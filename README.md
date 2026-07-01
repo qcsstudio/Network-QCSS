@@ -1,4 +1,4 @@
-# Network Command Growth OS Prototype
+# Network QCSS - Network Command Growth OS
 
 This is the first runnable MVP of the recommended web tool.
 
@@ -18,22 +18,12 @@ Then open:
 
 `npm start` is also defined in `package.json`, but direct `node server.js` is the safest command in this workspace because the local npm installation is currently pointing to a missing global npm CLI.
 
-## GitHub Setup
+## GitHub Repository
 
-This folder is designed to be pushed as its own repository.
-
-Recommended repository name:
+This project is bound to:
 
 ```text
-network-command-growth-os
-```
-
-After creating an empty GitHub repository, bind it locally with:
-
-```powershell
-git remote add origin https://github.com/YOUR-ORG/network-command-growth-os.git
-git branch -M main
-git push -u origin main
+https://github.com/qcsstudio/Network-QCSS.git
 ```
 
 ## What Is Built
