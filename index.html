@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Network Command Growth OS</title>
+    <meta
+      name="description"
+      content="A clean website outside and a consent-aware growth system inside for network administration, security, managed services, cloud networking, penetration testing, troubleshooting, and training."
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <canvas id="networkScene" aria-hidden="true"></canvas>
+
+    <header class="site-header" data-track-section="header">
+      <a class="brand" href="#top" aria-label="Network Command home">
+        <span class="brand-mark">NC</span>
+        <span>
+          <strong>Network Command</strong>
+          <small>Growth OS</small>
+        </span>
+      </a>
+
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="#services">Services</a>
+        <a href="#tools">Tools</a>
+        <a href="#automation">Automation</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#resources">Resources</a>
+        <a href="./admin.html">Admin</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="ghost-button" data-action="open-command" type="button">Find Help</button>
+        <a class="primary-button" href="#lead">Book Assessment</a>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero" data-track-section="hero">
+        <div class="hero-inner">
+          <p class="eyebrow">Network administration. Security. Cloud. Pentesting. Training.</p>
+          <h1>Your network is already telling a story. We help you read it, secure it, and keep it running.</h1>
+          <p class="hero-copy">
+            A simple website for visitors. A complete marketing, lead generation, tracking, content, and sales
+            intelligence system for you.
+          </p>
+
+          <div class="intent-panel" aria-labelledby="intent-title">
+            <div>
+              <p id="intent-title" class="panel-label">What do you need help with today?</p>
+              <div class="intent-grid" role="list">
+                <button type="button" data-intent="outage">Fix an outage</button>
+                <button type="button" data-intent="security">Secure my network</button>
+                <button type="button" data-intent="monitoring">Monitor infrastructure</button>
+                <button type="button" data-intent="pentest">Test vulnerabilities</button>
+                <button type="button" data-intent="training">Learn network security</button>
+              </div>
+            </div>
+            <div class="hero-status" aria-live="polite">
+              <span class="status-dot"></span>
+              <span id="heroStatus">Ready to route visitors by problem, urgency, and intent.</span>
+            </div>
+          </div>
+
+          <div class="hero-actions">
+            <a class="primary-button large" href="#tools">Run Network Risk Score</a>
+            <a class="secondary-button large" href="#dashboard">View Operator Layer</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="command-strip" aria-label="Problem command search">
+        <div>
+          <p class="section-kicker">Smart routing</p>
+          <h2>Visitors describe a problem. The site routes them to the right funnel.</h2>
+        </div>
+        <form class="command-form" id="commandForm">
+          <label class="sr-only" for="commandInput">Tell us your network problem</label>
+          <input
+            id="commandInput"
+            type="search"
+            placeholder="Try: VPN not working, firewall audit, CCNA training, penetration test"
+            autocomplete="off"
+          />
+          <button class="primary-button" type="submit">Route</button>
+        </form>
+        <p class="route-result" id="routeResult" aria-live="polite">
+          Type a problem to preview service matching, lead tagging, and funnel routing.
+        </p>
+      </section>
+
+      <section class="section" id="services" data-track-section="services">
+        <div class="section-heading">
+          <p class="section-kicker">Public layer</p>
+          <h2>Five operating modes instead of a generic services menu.</h2>
+          <p>
+            This keeps the website simple for buyers while creating clean segments for campaigns, CRM pipelines, and
+            content automation.
+          </p>
+        </div>
+
+        <div class="mode-grid">
+          <article class="mode-card" data-service="build">
+            <span class="mode-index">01</span>
+            <h3>Build</h3>
+            <p>Network design, LAN/WAN, managed Wi-Fi, SD-WAN, cloud connectivity, hybrid routing.</p>
+            <a href="#lead" data-service-link="build">Plan architecture</a>
+          </article>
+          <article class="mode-card" data-service="secure">
+            <span class="mode-index">02</span>
+            <h3>Secure</h3>
+            <p>Firewall hardening, VPN, ZTNA, SASE, segmentation, logging, incident readiness.</p>
+            <a href="#tools" data-service-link="secure">Check exposure</a>
+          </article>
+          <article class="mode-card" data-service="monitor">
+            <span class="mode-index">03</span>
+            <h3>Monitor</h3>
+            <p>NOC as a Service, alert triage, device backups, reporting, uptime governance.</p>
+            <a href="#lead" data-service-link="monitor">Start monitoring</a>
+          </article>
+          <article class="mode-card" data-service="test">
+            <span class="mode-index">04</span>
+            <h3>Test</h3>
+            <p>Network, cloud, API, web, wireless, and internal penetration testing with retesting.</p>
+            <a href="#tools" data-service-link="test">Scope a test</a>
+          </article>
+          <article class="mode-card" data-service="train">
+            <span class="mode-index">05</span>
+            <h3>Train</h3>
+            <p>CCNA, CCNP, firewall admin, cloud networking, SOC, ethical hacking, corporate labs.</p>
+            <a href="#tools" data-service-link="train">Find a path</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="section split-section" id="tools" data-track-section="tools">
+        <div class="section-heading">
+          <p class="section-kicker">Diagnostic layer</p>
+          <h2>The lead magnet is not a PDF. It is a useful tool.</h2>
+          <p>
+            Each assessment creates value for the visitor and updates intent, lead score, recommended offer, and follow-up
+            path.
+          </p>
+        </div>
+
+        <div class="tool-shell">
+          <aside class="tool-nav" aria-label="Diagnostic tools">
+            <button class="active" type="button" data-tool="risk">Network Risk Score</button>
+            <button type="button" data-tool="firewall">Firewall Hygiene</button>
+            <button type="button" data-tool="pentest">Pentest Readiness</button>
+            <button type="button" data-tool="career">Career Path Finder</button>
+          </aside>
+
+          <div class="tool-workspace">
+            <div class="tool-header">
+              <div>
+                <p class="panel-label" id="toolCategory">Managed network services</p>
+                <h3 id="toolTitle">Network Risk Score</h3>
+              </div>
+              <span class="tool-badge" id="toolBadge">Lead magnet</span>
+            </div>
+
+            <form id="assessmentForm" class="assessment-form"></form>
+
+            <div class="assessment-result" id="assessmentResult" aria-live="polite">
+              <span class="score-ring" id="scoreRing">--</span>
+              <div>
+                <p class="panel-label">Assessment result</p>
+                <h4 id="resultTitle">Run a tool to generate a lead profile.</h4>
+                <p id="resultText">
+                  Results will map the visitor to a service, lead score, CRM pipeline, and automated follow-up.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="automation" data-track-section="automation">
+        <div class="section-heading">
+          <p class="section-kicker">Automation layer</p>
+          <h2>Every serious action becomes a next step.</h2>
+          <p>
+            The site tracks consented behavior, captures lead source, scores intent, routes inquiries, and starts the
+            correct follow-up sequence.
+          </p>
+        </div>
+
+        <div class="flow-grid">
+          <article>
+            <span>1</span>
+            <h3>Consent</h3>
+            <p>Necessary tracking only by default. Analytics and marketing activate only after visitor consent.</p>
+          </article>
+          <article>
+            <span>2</span>
+            <h3>Identify Intent</h3>
+            <p>Problem choice, page view, command search, and tool answers build an anonymous intent profile.</p>
+          </article>
+          <article>
+            <span>3</span>
+            <h3>Capture Lead</h3>
+            <p>Reports, checklists, booking, WhatsApp, and quote requests connect identity with prior behavior.</p>
+          </article>
+          <article>
+            <span>4</span>
+            <h3>Route Pipeline</h3>
+            <p>Managed services, pentesting, emergency support, training, and corporate training get separate workflows.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section split-section" id="lead" data-track-section="lead">
+        <div class="section-heading compact">
+          <p class="section-kicker">Lead capture</p>
+          <h2>Collect identity only after value is clear.</h2>
+          <p>
+            The live version should connect this to Zoho or HubSpot, WhatsApp Business, GA4, GTM, Search Console, and
+            retargeting audiences.
+          </p>
+        </div>
+
+        <form class="lead-form" id="leadForm">
+          <div class="field-grid">
+            <label>
+              Name
+              <input name="name" type="text" placeholder="Your name" required />
+            </label>
+            <label>
+              Work email
+              <input name="email" type="email" placeholder="name@company.com" required />
+            </label>
+            <label>
+              WhatsApp / phone
+              <input name="phone" type="tel" placeholder="+91..." required />
+            </label>
+            <label>
+              Interest
+              <select name="interest" required>
+                <option value="">Select one</option>
+                <option>Managed network services</option>
+                <option>Network security</option>
+                <option>Cloud network services</option>
+                <option>Penetration testing</option>
+                <option>Emergency troubleshooting</option>
+                <option>Network security training</option>
+                <option>Corporate training</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            Current challenge
+            <textarea name="challenge" rows="4" placeholder="Tell us what is happening in your network"></textarea>
+          </label>
+          <label class="consent-line">
+            <input name="consent" type="checkbox" required />
+            I agree to be contacted about this request and understand my data will be handled according to the privacy
+            <a href="./privacy.html">policy</a>.
+          </label>
+          <button class="primary-button large" type="submit">Create Lead Profile</button>
+          <p class="form-note" id="leadNote" aria-live="polite">
+            This demo stores the lead profile locally in your browser only.
+          </p>
+        </form>
+      </section>
+
+      <section class="section dashboard-section" id="dashboard" data-track-section="dashboard">
+        <div class="section-heading">
+          <p class="section-kicker">Operator layer</p>
+          <h2>Your private dashboard sees the funnel behind the clean website.</h2>
+          <p>
+            This preview shows the type of information the full backend should send to your CRM, automations, and weekly
+            growth reports.
+          </p>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="metric-card">
+            <p>Lead score</p>
+            <strong id="dashScore">0</strong>
+            <span id="dashPriority">Anonymous visitor</span>
+          </article>
+          <article class="metric-card">
+            <p>Current pipeline</p>
+            <strong id="dashPipeline">Unassigned</strong>
+            <span id="dashIntent">No intent selected</span>
+          </article>
+          <article class="metric-card">
+            <p>Consent mode</p>
+            <strong id="dashConsent">Necessary</strong>
+            <span id="dashConsentDetail">Analytics off</span>
+          </article>
+          <article class="metric-card">
+            <p>Attribution</p>
+            <strong id="dashSource">Direct</strong>
+            <span id="dashLanding">Current session</span>
+          </article>
+        </div>
+
+        <div class="operator-grid">
+          <article class="operator-panel">
+            <div class="panel-title-row">
+              <h3>Lead Brief</h3>
+              <span class="tool-badge">Live preview</span>
+            </div>
+            <dl class="brief-list">
+              <div>
+                <dt>Likely need</dt>
+                <dd id="briefNeed">Waiting for visitor action</dd>
+              </div>
+              <div>
+                <dt>Suggested offer</dt>
+                <dd id="briefOffer">Network Risk Score</dd>
+              </div>
+              <div>
+                <dt>Follow-up</dt>
+                <dd id="briefFollowup">No automation yet</dd>
+              </div>
+              <div>
+                <dt>Server-side context</dt>
+                <dd>Production can add approximate country, IP handling, and request metadata with consent and policy.</dd>
+              </div>
+            </dl>
+          </article>
+
+          <article class="operator-panel">
+            <div class="panel-title-row">
+              <h3>Event Stream</h3>
+              <button class="ghost-button small" type="button" id="clearEvents">Clear</button>
+            </div>
+            <ol class="event-stream" id="eventStream"></ol>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="resources" data-track-section="resources">
+        <div class="section-heading">
+          <p class="section-kicker">Information sharing</p>
+          <h2>Resources become search assets, sales assets, and retargeting triggers.</h2>
+        </div>
+
+        <div class="resource-grid">
+          <article class="resource-card">
+            <p>Checklist</p>
+            <h3>Firewall Rule Cleanup Checklist</h3>
+            <button class="secondary-button" type="button" data-resource="firewall-checklist">Download</button>
+          </article>
+          <article class="resource-card">
+            <p>Guide</p>
+            <h3>Cloud Network Readiness Guide</h3>
+            <button class="secondary-button" type="button" data-resource="cloud-guide">Download</button>
+          </article>
+          <article class="resource-card">
+            <p>Template</p>
+            <h3>Penetration Testing Scope Sheet</h3>
+            <button class="secondary-button" type="button" data-resource="pentest-scope">Download</button>
+          </article>
+          <article class="resource-card">
+            <p>Career</p>
+            <h3>Network Security Engineer Roadmap</h3>
+            <button class="secondary-button" type="button" data-resource="career-roadmap">Download</button>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <aside class="cookie-panel" id="cookiePanel" aria-label="Cookie consent">
+      <div>
+        <h2>Privacy-safe tracking</h2>
+        <p>
+          This prototype starts with necessary storage only. Enable analytics and marketing to preview consent-aware
+          funnel tracking. Read the <a href="./privacy.html">privacy draft</a>.
+        </p>
+      </div>
+      <div class="cookie-options">
+        <label><input type="checkbox" checked disabled /> Necessary</label>
+        <label><input id="analyticsConsent" type="checkbox" /> Analytics</label>
+        <label><input id="marketingConsent" type="checkbox" /> Marketing</label>
+        <label><input id="personalizationConsent" type="checkbox" /> Personalization</label>
+      </div>
+      <div class="cookie-actions">
+        <button class="ghost-button" type="button" id="declineCookies">Necessary only</button>
+        <button class="primary-button" type="button" id="saveCookies">Save choices</button>
+      </div>
+    </aside>
+
+    <div class="mobile-action-bar" aria-label="Quick actions">
+      <a href="#lead">Book</a>
+      <button type="button" data-action="whatsapp">WhatsApp</button>
+      <a href="#tools">Score</a>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
