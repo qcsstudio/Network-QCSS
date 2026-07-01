@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
+import { isAdminRequest } from "@/lib/admin-auth";
+import { dispatchLeadIntegrations } from "@/lib/integrations";
 import { leadSchema } from "@/lib/schemas";
 import { requestContext } from "@/lib/security";
 import { createLead, getLeads } from "@/lib/store";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!isAdminRequest(request)) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+
   return NextResponse.json({ leads: await getLeads() });
 }
 
@@ -16,5 +22,6 @@ export async function POST(request: Request) {
   }
 
   const lead = await createLead(parsed.data, await requestContext());
-  return NextResponse.json({ ok: true, lead }, { status: 201 });
+  const integrations = await dispatchLeadIntegrations(lead);
+  return NextResponse.json({ ok: true, lead, integrations }, { status: 201 });
 }

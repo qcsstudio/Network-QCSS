@@ -14,10 +14,13 @@ https://github.com/qcsstudio/Network-QCSS.git
 - React 19
 - TypeScript
 - Prisma 7 schema for PostgreSQL
+- Prisma PostgreSQL adapter
 - Zod validation
 - Lucide icons
 - JSON local store for development fallback
 - API routes for leads, events, assessments, resources, dashboard, health, and CSV export
+- Admin session authentication
+- CRM and WhatsApp integration hooks
 
 ## Run Locally
 
@@ -49,6 +52,7 @@ npm run smoke
 - `/institute` - network and network security institute funnel
 - `/resources` - resource and content engine
 - `/admin` - operator dashboard
+- `/admin/login` - protected admin login
 - `/privacy` - privacy and consent policy
 - `/sitemap.xml` - SEO sitemap
 - `/robots.txt` - crawler rules
@@ -68,8 +72,11 @@ npm run smoke
 - Assessment persistence
 - Resource intent capture
 - Admin dashboard
+- Admin login, signed session cookies, and admin API token support
 - CSV export
 - Prisma/PostgreSQL production schema
+- File-store and PostgreSQL-store adapter architecture
+- Lead integration dispatch for webhook, HubSpot, Zoho, and WhatsApp
 - Security headers
 - SEO metadata, sitemap, and robots
 
@@ -86,6 +93,7 @@ That file is ignored by Git because it can contain lead/contact data.
 For production, configure:
 
 ```text
+STORE_DRIVER=postgres
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/network_qcss?schema=public
 ```
 
@@ -94,6 +102,67 @@ Then use Prisma migrations:
 ```powershell
 npm run prisma:generate
 npm run prisma:migrate
+```
+
+## Admin Authentication
+
+Set these before production:
+
+```text
+ADMIN_EMAIL=admin@network-qcss.local
+ADMIN_PASSWORD=change-this-password
+ADMIN_SESSION_SECRET=change-this-long-random-secret
+ADMIN_API_TOKEN=change-this-api-token
+```
+
+Local development fallback credentials are:
+
+```text
+admin@network-qcss.local
+admin
+```
+
+Do not use the fallback credentials in production.
+
+The dashboard and lead export are protected by signed admin cookies. Server-to-server admin API access can use:
+
+```text
+x-admin-token: ADMIN_API_TOKEN
+```
+
+## Integration Hooks
+
+The lead API dispatches integrations after a lead is saved. These stay skipped until credentials are configured.
+
+Generic webhook:
+
+```text
+LEAD_WEBHOOK_URL=https://your-automation-endpoint.example/leads
+```
+
+HubSpot:
+
+```text
+HUBSPOT_PRIVATE_APP_TOKEN=
+```
+
+Zoho CRM:
+
+```text
+ZOHO_ACCESS_TOKEN=
+ZOHO_CRM_LEADS_URL=
+```
+
+WhatsApp:
+
+```text
+WHATSAPP_WEBHOOK_URL=
+WHATSAPP_ACCESS_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_ALERT_TO=
+WHATSAPP_TEMPLATE_NAME=
+WHATSAPP_TEMPLATE_LANGUAGE=en_US
+WHATSAPP_API_VERSION=v23.0
 ```
 
 ## Verification
@@ -111,9 +180,9 @@ npm audit --audit-level=moderate
 ## Next Production Integrations
 
 - Admin authentication
-- PostgreSQL repository implementation behind the current store interface
-- Zoho CRM or HubSpot sync
-- WhatsApp Business API lead notifications
+- Production PostgreSQL migration deployment
+- Zoho CRM or HubSpot field mapping hardening
+- WhatsApp template approval and message QA
 - Email automation
 - Google Tag Manager and GA4 Consent Mode
 - Google Ads enhanced conversions

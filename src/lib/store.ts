@@ -24,6 +24,10 @@ type StoreFile = {
 const dataDir = path.join(process.cwd(), "data");
 const storePath = path.join(dataDir, "store.json");
 
+function isPostgresStore() {
+  return process.env.STORE_DRIVER === "postgres";
+}
+
 function createId(prefix: string) {
   return `${prefix}_${crypto.randomUUID()}`;
 }
@@ -61,6 +65,11 @@ async function writeStore(store: StoreFile) {
 }
 
 export async function createLead(input: LeadInput, context: { country: string; ipHash: string }) {
+  if (isPostgresStore()) {
+    const { createLeadPostgres } = await import("@/lib/postgres-store");
+    return createLeadPostgres(input, context);
+  }
+
   const now = new Date().toISOString();
   const score = Math.max(0, Math.min(100, input.score ?? 0));
   const lead: StoredLead = {
@@ -94,6 +103,11 @@ export async function createEvent(
   input: { name: string; sessionId?: string; metadata?: Record<string, unknown>; consent: StoredEvent["consent"] },
   context: { country: string; ipHash: string }
 ) {
+  if (isPostgresStore()) {
+    const { createEventPostgres } = await import("@/lib/postgres-store");
+    return createEventPostgres(input, context);
+  }
+
   const event: StoredEvent = {
     id: createId("evt"),
     name: input.name,
@@ -112,6 +126,11 @@ export async function createEvent(
 }
 
 export async function createAssessment(input: AssessmentInput, context: { country: string; ipHash: string }) {
+  if (isPostgresStore()) {
+    const { createAssessmentPostgres } = await import("@/lib/postgres-store");
+    return createAssessmentPostgres(input, context);
+  }
+
   const assessment: StoredAssessment = {
     id: createId("asm"),
     tool: input.tool,
@@ -145,6 +164,11 @@ export async function createResource(
   input: { resource: string; sessionId?: string; attribution?: StoredResource["attribution"]; consent?: StoredResource["consent"] },
   context: { country: string; ipHash: string }
 ) {
+  if (isPostgresStore()) {
+    const { createResourcePostgres } = await import("@/lib/postgres-store");
+    return createResourcePostgres(input, context);
+  }
+
   const resource: StoredResource = {
     id: createId("res"),
     resource: input.resource,
@@ -169,6 +193,11 @@ export async function createResource(
 }
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
+  if (isPostgresStore()) {
+    const { getDashboardSnapshotPostgres } = await import("@/lib/postgres-store");
+    return getDashboardSnapshotPostgres();
+  }
+
   const store = await readStore();
   const byPipeline: Record<string, number> = {};
   const byCountry: Record<string, number> = {};
@@ -196,6 +225,11 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
 }
 
 export async function getLeads() {
+  if (isPostgresStore()) {
+    const { getLeadsPostgres } = await import("@/lib/postgres-store");
+    return getLeadsPostgres();
+  }
+
   const store = await readStore();
   return store.leads.slice().reverse();
 }

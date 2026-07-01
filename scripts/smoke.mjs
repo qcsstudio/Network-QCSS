@@ -4,8 +4,15 @@ import path from "node:path";
 const port = 4173;
 const baseUrl = `http://127.0.0.1:${port}`;
 const nextBin = path.join(process.cwd(), "node_modules", "next", "dist", "bin", "next");
+const adminToken = "smoke-admin-token";
 const server = spawn(process.execPath, [nextBin, "start", "-p", String(port), "-H", "127.0.0.1"], {
   cwd: process.cwd(),
+  env: {
+    ...process.env,
+    ADMIN_API_TOKEN: adminToken,
+    ADMIN_PASSWORD: "admin",
+    ADMIN_SESSION_SECRET: "smoke-session-secret"
+  },
   stdio: ["ignore", "pipe", "pipe"]
 });
 
@@ -50,6 +57,11 @@ async function post(path, body) {
 
 try {
   await waitForServer();
+  const unauthorizedDashboard = await fetch(`${baseUrl}/api/dashboard`);
+  if (unauthorizedDashboard.status !== 401) {
+    throw new Error(`Dashboard should require admin auth. Received ${unauthorizedDashboard.status}`);
+  }
+
   const consent = {
     necessary: true,
     analytics: true,
@@ -91,7 +103,9 @@ try {
     sourceProfile: { source: "smoke" }
   });
 
-  const dashboard = await fetch(`${baseUrl}/api/dashboard`).then((response) => response.json());
+  const dashboard = await fetch(`${baseUrl}/api/dashboard`, {
+    headers: { "x-admin-token": adminToken }
+  }).then((response) => response.json());
   if (!dashboard.totals.leads || !dashboard.totals.assessments || !dashboard.totals.events) {
     throw new Error(`Dashboard did not update: ${JSON.stringify(dashboard.totals)}`);
   }

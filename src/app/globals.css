@@ -554,6 +554,19 @@ textarea {
   padding: 20px;
 }
 
+.auth-section {
+  max-width: 560px;
+}
+
+.auth-form {
+  width: 100%;
+}
+
+.form-note.error {
+  color: var(--red);
+  font-weight: 800;
+}
+
 .lead-form.compact .field-grid {
   grid-template-columns: 1fr;
 }

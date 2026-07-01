@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { OperatorDashboard } from "@/components/operator-dashboard";
+import { requireAdmin } from "@/lib/admin-auth";
 import { getDashboardSnapshot } from "@/lib/store";
 
 export const metadata: Metadata = {
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
+  const session = await requireAdmin();
   const snapshot = await getDashboardSnapshot();
 
   return (
@@ -21,6 +23,11 @@ export default async function AdminPage() {
           This dashboard reads the same API-backed data that will later sync into CRM, automation, WhatsApp, and reporting
           systems.
         </p>
+        <form method="post" action="/api/admin/logout">
+          <button className="button secondary" type="submit">
+            Sign out {session.email}
+          </button>
+        </form>
       </section>
       <section className="section flush">
         <OperatorDashboard snapshot={snapshot} />
