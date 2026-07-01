@@ -179,7 +179,6 @@ npm audit --audit-level=moderate
 
 ## Next Production Integrations
 
-- Admin authentication
 - Production PostgreSQL migration deployment
 - Zoho CRM or HubSpot field mapping hardening
 - WhatsApp template approval and message QA
@@ -188,4 +187,5 @@ npm audit --audit-level=moderate
 - Google Ads enhanced conversions
 - LinkedIn Insight Tag
 - PDF report generation
-- Role-based admin users and audit logs
+- Role-based admin users beyond the current single-admin session model
+- Admin audit logs
