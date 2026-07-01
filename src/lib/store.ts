@@ -1,0 +1,228 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import crypto from "node:crypto";
+import {
+  AssessmentInput,
+  DashboardSnapshot,
+  LeadInput,
+  StoredAssessment,
+  StoredEvent,
+  StoredLead,
+  StoredResource
+} from "@/lib/types";
+import { priorityForScore } from "@/lib/security";
+
+type StoreFile = {
+  leads: StoredLead[];
+  events: StoredEvent[];
+  assessments: StoredAssessment[];
+  resources: StoredResource[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+const dataDir = path.join(process.cwd(), "data");
+const storePath = path.join(dataDir, "store.json");
+
+function createId(prefix: string) {
+  return `${prefix}_${crypto.randomUUID()}`;
+}
+
+function blankStore(): StoreFile {
+  const now = new Date().toISOString();
+  return {
+    leads: [],
+    events: [],
+    assessments: [],
+    resources: [],
+    createdAt: now,
+    updatedAt: now
+  };
+}
+
+async function ensureStore() {
+  await fs.mkdir(dataDir, { recursive: true });
+  try {
+    await fs.access(storePath);
+  } catch {
+    await fs.writeFile(storePath, JSON.stringify(blankStore(), null, 2));
+  }
+}
+
+async function readStore(): Promise<StoreFile> {
+  await ensureStore();
+  const file = await fs.readFile(storePath, "utf8");
+  return JSON.parse(file) as StoreFile;
+}
+
+async function writeStore(store: StoreFile) {
+  store.updatedAt = new Date().toISOString();
+  await fs.writeFile(storePath, JSON.stringify(store, null, 2));
+}
+
+export async function createLead(input: LeadInput, context: { country: string; ipHash: string }) {
+  const now = new Date().toISOString();
+  const score = Math.max(0, Math.min(100, input.score ?? 0));
+  const lead: StoredLead = {
+    id: createId("lead"),
+    name: input.name,
+    email: input.email.toLowerCase(),
+    phone: input.phone,
+    interest: input.interest,
+    challenge: input.challenge || "",
+    pipeline: input.pipeline || input.interest || "Unassigned",
+    score,
+    priority: priorityForScore(score),
+    stage: "new",
+    sessionId: input.sessionId || "",
+    attribution: input.attribution || {},
+    consent: input.consent,
+    sourceProfile: input.sourceProfile || {},
+    country: context.country,
+    ipHash: context.ipHash,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  const store = await readStore();
+  store.leads.push(lead);
+  await writeStore(store);
+  return lead;
+}
+
+export async function createEvent(
+  input: { name: string; sessionId?: string; metadata?: Record<string, unknown>; consent: StoredEvent["consent"] },
+  context: { country: string; ipHash: string }
+) {
+  const event: StoredEvent = {
+    id: createId("evt"),
+    name: input.name,
+    sessionId: input.sessionId || "",
+    metadata: input.metadata || {},
+    consent: input.consent,
+    country: context.country,
+    ipHash: context.ipHash,
+    createdAt: new Date().toISOString()
+  };
+
+  const store = await readStore();
+  store.events.push(event);
+  await writeStore(store);
+  return event;
+}
+
+export async function createAssessment(input: AssessmentInput, context: { country: string; ipHash: string }) {
+  const assessment: StoredAssessment = {
+    id: createId("asm"),
+    tool: input.tool,
+    title: input.title,
+    pipeline: input.pipeline,
+    recommendation: input.recommendation,
+    riskLevel: input.riskLevel,
+    score: input.score,
+    answers: input.answers || {},
+    sessionId: input.sessionId || "",
+    attribution: input.attribution || {},
+    consent:
+      input.consent || {
+        necessary: true,
+        analytics: false,
+        marketing: false,
+        personalization: false
+      },
+    country: context.country,
+    ipHash: context.ipHash,
+    createdAt: new Date().toISOString()
+  };
+
+  const store = await readStore();
+  store.assessments.push(assessment);
+  await writeStore(store);
+  return assessment;
+}
+
+export async function createResource(
+  input: { resource: string; sessionId?: string; attribution?: StoredResource["attribution"]; consent?: StoredResource["consent"] },
+  context: { country: string; ipHash: string }
+) {
+  const resource: StoredResource = {
+    id: createId("res"),
+    resource: input.resource,
+    sessionId: input.sessionId || "",
+    attribution: input.attribution || {},
+    consent:
+      input.consent || {
+        necessary: true,
+        analytics: false,
+        marketing: false,
+        personalization: false
+      },
+    country: context.country,
+    ipHash: context.ipHash,
+    createdAt: new Date().toISOString()
+  };
+
+  const store = await readStore();
+  store.resources.push(resource);
+  await writeStore(store);
+  return resource;
+}
+
+export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
+  const store = await readStore();
+  const byPipeline: Record<string, number> = {};
+  const byCountry: Record<string, number> = {};
+
+  for (const lead of store.leads) {
+    byPipeline[lead.pipeline] = (byPipeline[lead.pipeline] || 0) + 1;
+    byCountry[lead.country] = (byCountry[lead.country] || 0) + 1;
+  }
+
+  return {
+    totals: {
+      leads: store.leads.length,
+      hotLeads: store.leads.filter((lead) => lead.priority === "hot").length,
+      events: store.events.length,
+      assessments: store.assessments.length,
+      resources: store.resources.length
+    },
+    byPipeline,
+    byCountry,
+    latestLeads: store.leads.slice(-10).reverse(),
+    latestEvents: store.events.slice(-15).reverse(),
+    latestAssessments: store.assessments.slice(-10).reverse(),
+    updatedAt: store.updatedAt
+  };
+}
+
+export async function getLeads() {
+  const store = await readStore();
+  return store.leads.slice().reverse();
+}
+
+export function leadsToCsv(leads: StoredLead[]) {
+  const headers = ["createdAt", "name", "email", "phone", "interest", "pipeline", "score", "priority", "country", "source"];
+  const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+  const lines = [headers.join(",")];
+
+  for (const lead of leads) {
+    lines.push(
+      [
+        lead.createdAt,
+        lead.name,
+        lead.email,
+        lead.phone,
+        lead.interest,
+        lead.pipeline,
+        lead.score,
+        lead.priority,
+        lead.country,
+        lead.attribution.source || "direct"
+      ]
+        .map(escape)
+        .join(",")
+    );
+  }
+
+  return lines.join("\n");
+}

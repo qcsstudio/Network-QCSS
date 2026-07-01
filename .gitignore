@@ -1,6 +1,9 @@
 node_modules/
+.next/
+out/
 data/*.json
 *.log
+*.tsbuildinfo
 .env
 .env.*
 !.env.example

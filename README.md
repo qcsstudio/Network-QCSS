@@ -1,78 +1,122 @@
 # Network QCSS - Network Command Growth OS
 
-This is the first runnable MVP of the recommended web tool.
+Production-grade Next.js rebuild for a network administration, network security, managed services, cloud networking, penetration testing, troubleshooting, and training website-tool.
 
-## Run Locally
-
-From this folder:
-
-```powershell
-node server.js
-```
-
-Then open:
-
-- Public site: `http://localhost:4173`
-- Operator dashboard: `http://localhost:4173/admin.html`
-- Health check: `http://localhost:4173/api/health`
-
-`npm start` is also defined in `package.json`, but direct `node server.js` is the safest command in this workspace because the local npm installation is currently pointing to a missing global npm CLI.
-
-## GitHub Repository
-
-This project is bound to:
+Repository:
 
 ```text
 https://github.com/qcsstudio/Network-QCSS.git
 ```
 
-## What Is Built
+## Tech Stack
 
-- Diagnostic homepage with problem-based routing
-- Consent-aware tracking prototype
-- Command search that routes visitor intent
-- Network Risk Score tool
+- Next.js 16 App Router
+- React 19
+- TypeScript
+- Prisma 7 schema for PostgreSQL
+- Zod validation
+- Lucide icons
+- JSON local store for development fallback
+- API routes for leads, events, assessments, resources, dashboard, health, and CSV export
+
+## Run Locally
+
+```powershell
+npm install
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+http://localhost:3000/admin
+http://localhost:3000/api/health
+```
+
+Production-style local test:
+
+```powershell
+npm run build
+npm run smoke
+```
+
+## Key Routes
+
+- `/` - public diagnostic homepage
+- `/services/[slug]` - service landing pages
+- `/tools/[slug]` - assessment tools and lead magnets
+- `/institute` - network and network security institute funnel
+- `/resources` - resource and content engine
+- `/admin` - operator dashboard
+- `/privacy` - privacy and consent policy
+- `/sitemap.xml` - SEO sitemap
+- `/robots.txt` - crawler rules
+
+## Built Product Layers
+
+- Public authority website
+- Problem-based visitor routing
+- Network Risk Score
 - Firewall Hygiene Checker
-- Pentest Readiness tool
+- Pentest Readiness
+- Cloud Network Readiness
+- Troubleshooting Triage
 - Career Path Finder
-- Lead capture form
-- Local lead scoring and backend persistence
-- Live operator dashboard preview
-- Event stream preview
-- Resource download triggers
-- Responsive layout
-- Interactive network topology canvas
-- Node.js server with no external dependencies
-- JSON-backed local database at `data/store.json`
-- API endpoints for leads, events, assessments, resources, dashboard, and CSV export
-- Admin dashboard at `admin.html`
-- Privacy policy draft at `privacy.html`
+- Consent-aware tracking
+- Lead capture and scoring
+- Assessment persistence
+- Resource intent capture
+- Admin dashboard
+- CSV export
+- Prisma/PostgreSQL production schema
+- Security headers
+- SEO metadata, sitemap, and robots
 
-## What Is Still Mocked
+## Local Persistence
 
-This MVP stores data locally. The production build should connect these areas to real systems:
+By default, development submissions are stored in:
 
-- CRM sync: Zoho, HubSpot, or Freshsales
-- Production-grade IP/country handling through CDN or hosting headers
-- GA4 and Google Tag Manager
+```text
+data/store.json
+```
+
+That file is ignored by Git because it can contain lead/contact data.
+
+For production, configure:
+
+```text
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/network_qcss?schema=public
+```
+
+Then use Prisma migrations:
+
+```powershell
+npm run prisma:generate
+npm run prisma:migrate
+```
+
+## Verification
+
+Current verification commands:
+
+```powershell
+npm run typecheck
+npx prisma generate
+npm run build
+npm run smoke
+npm audit --audit-level=moderate
+```
+
+## Next Production Integrations
+
+- Admin authentication
+- PostgreSQL repository implementation behind the current store interface
+- Zoho CRM or HubSpot sync
+- WhatsApp Business API lead notifications
+- Email automation
+- Google Tag Manager and GA4 Consent Mode
 - Google Ads enhanced conversions
 - LinkedIn Insight Tag
-- Meta Pixel and Conversions API if Meta ads are used
-- WhatsApp Business app/API
-- Email automation
-- Booking system
-- Admin authentication
-- PostgreSQL database storage
 - PDF report generation
-
-## Recommended Next Build Step
-
-Convert this prototype into a Next.js application with:
-
-- Server-rendered public pages for SEO
-- API routes for form and tool submissions
-- PostgreSQL database
-- CRM connector
-- Consent mode integration
-- Admin dashboard authentication
-- Real analytics and event dispatch
+- Role-based admin users and audit logs

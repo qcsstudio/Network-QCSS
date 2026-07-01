@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Lead {
+  id            String   @id @default(cuid())
+  name          String
+  email         String
+  phone         String
+  interest      String
+  challenge     String?
+  pipeline      String
+  score         Int      @default(0)
+  priority      String
+  stage         String   @default("new")
+  sessionId     String?
+  country       String?
+  ipHash        String?
+  attribution   Json?
+  consent       Json?
+  sourceProfile Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([pipeline])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+model InteractionEvent {
+  id        String   @id @default(cuid())
+  name      String
+  sessionId String?
+  metadata  Json?
+  consent   Json?
+  country   String?
+  ipHash    String?
+  createdAt DateTime @default(now())
+
+  @@index([name])
+  @@index([createdAt])
+}
+
+model Assessment {
+  id             String   @id @default(cuid())
+  tool           String
+  title          String
+  pipeline       String
+  recommendation String
+  riskLevel      String
+  score          Int
+  answers        Json?
+  sessionId      String?
+  attribution    Json?
+  consent        Json?
+  country        String?
+  ipHash         String?
+  createdAt      DateTime @default(now())
+
+  @@index([tool])
+  @@index([pipeline])
+  @@index([createdAt])
+}
+
+model ResourceDownload {
+  id          String   @id @default(cuid())
+  resource    String
+  sessionId   String?
+  attribution Json?
+  consent     Json?
+  country     String?
+  ipHash      String?
+  createdAt   DateTime @default(now())
+
+  @@index([resource])
+  @@index([createdAt])
+}

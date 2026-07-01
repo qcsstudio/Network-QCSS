@@ -1,15 +1,41 @@
 {
-  "name": "network-command-growth-os",
-  "version": "0.1.0",
+  "name": "network-qcss",
+  "version": "1.0.0",
   "private": true,
-  "description": "Consent-aware marketing, lead generation, assessment, and admin MVP for network services and training.",
+  "description": "Robust Next.js product for network services, cybersecurity lead generation, diagnostic tools, automation, and admin intelligence.",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "verify": "node verify.js",
-    "check": "node --check server.js && node --check script.js && node --check admin.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run build",
+    "smoke": "node scripts/smoke.mjs",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@prisma/client": "7.8.0",
+    "lucide-react": "^0.560.0",
+    "next": "16.2.10",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "16.2.10",
+    "prisma": "7.8.0",
+    "typescript": "^5.9.0"
+  },
+  "overrides": {
+    "@hono/node-server": "^1.19.13",
+    "postcss": "^8.5.10"
   }
 }
