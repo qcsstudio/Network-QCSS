@@ -14,41 +14,102 @@ import {
 } from "lucide-react";
 
 export const siteConfig = {
-  name: "Network QCSS",
-  title: "Network QCSS - Secure Network Operations and Training",
+  name: "QuantumCrafters Studio Pvt. Ltd.",
+  title: "QuantumCrafters Studio - Network Operations, Security, Cloud and Training",
   url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   description:
-    "Managed network services, network security, cloud networking, penetration testing, troubleshooting, and practical network security training."
+    "Network command studio for managed network services, network security, cloud networking, penetration testing, troubleshooting, and practical network security training."
 };
+
+export const positioning = {
+  eyebrow: "Network command studio for India and global teams",
+  headline: "Operate, secure, test, and teach networks from one engineering-led system.",
+  body:
+    "QuantumCrafters Studio Pvt. Ltd. turns network chaos into a measurable operating system: monitoring, firewall hygiene, cloud connectivity, penetration testing, emergency troubleshooting, and hands-on institute programs connected to one growth and delivery layer.",
+  primaryCta: "Run Network Risk Score",
+  secondaryCta: "Explore Service System"
+};
+
+export const proofSignals = [
+  { value: "24x7", label: "NOC-ready monitoring model" },
+  { value: "5", label: "Operate, secure, monitor, test, train" },
+  { value: "100%", label: "Consent-aware lead intelligence" },
+  { value: "1", label: "Studio for services and institute" }
+];
+
+export const marketEdges = [
+  {
+    title: "Smaller than an enterprise MSP, sharper than a freelancer",
+    description:
+      "Large providers sell scale. We sell accountable engineering, fast triage, and visible operating discipline for growing teams."
+  },
+  {
+    title: "Security testing connected to remediation",
+    description:
+      "Pentest findings should not become a PDF graveyard. Our flow connects assessment, firewall hygiene, segmentation, retesting, and owner-ready action."
+  },
+  {
+    title: "Training powered by real service work",
+    description:
+      "The institute is not separated from operations. Learners and corporate teams train on the same problems networks face in production."
+  }
+];
+
+export const contentPillars = [
+  {
+    title: "Managed Network Services India",
+    description: "NOC, device monitoring, backups, uptime reporting, change discipline, and multi-site support."
+  },
+  {
+    title: "Network Security and Firewall Hygiene",
+    description: "Firewall cleanup, VPN hardening, segmentation, ZTNA/SASE readiness, logging, and audit preparation."
+  },
+  {
+    title: "Cloud Network Services",
+    description: "AWS VPC, Azure VNet, Google Cloud VPC, hybrid VPN, route design, exposure review, and cloud logs."
+  },
+  {
+    title: "Penetration Testing and Retesting",
+    description: "External, internal, web, API, cloud, and wireless testing with remediation support and retest workflow."
+  },
+  {
+    title: "Network Security Institute",
+    description: "CCNA, CCNP, firewall, cloud networking, SOC, ethical hacking, and corporate network security training."
+  },
+  {
+    title: "Emergency Network Troubleshooting",
+    description: "Outage triage, latency, packet analysis, VPN failures, firewall routing, Wi-Fi instability, and RCA."
+  }
+];
 
 export const operatingModes = [
   {
     title: "Build",
-    description: "LAN/WAN, SD-WAN, managed Wi-Fi, routing, cloud connectivity, and branch architecture.",
+    description: "LAN/WAN, SD-WAN, managed Wi-Fi, routing, cloud connectivity, and branch architecture with documentation.",
     icon: Router,
     href: "/services/managed-network-services"
   },
   {
     title: "Secure",
-    description: "Firewall hardening, segmentation, ZTNA, SASE, VPN modernization, logging, and incident readiness.",
+    description: "Firewall hygiene, segmentation, ZTNA, SASE, VPN modernization, logging, and incident readiness.",
     icon: ShieldCheck,
     href: "/services/network-security-services"
   },
   {
     title: "Monitor",
-    description: "NOC workflows, uptime monitoring, change tracking, device backups, reporting, and escalation.",
+    description: "NOC workflows, uptime monitoring, change tracking, device backups, reporting, and escalation discipline.",
     icon: Radar,
     href: "/services/noc-as-a-service"
   },
   {
     title: "Test",
-    description: "External, internal, API, web, wireless, and cloud penetration testing with remediation support.",
+    description: "External, internal, API, web, wireless, and cloud penetration testing with retesting support.",
     icon: LockKeyhole,
     href: "/services/penetration-testing"
   },
   {
     title: "Train",
-    description: "Network security institute tracks for CCNA, CCNP, firewall, cloud networking, SOC, and pentesting.",
+    description: "Institute tracks for CCNA, CCNP, firewalls, cloud networking, SOC, and ethical hacking labs.",
     icon: BookOpen,
     href: "/institute"
   }
@@ -58,10 +119,10 @@ export const services = [
   {
     slug: "managed-network-services",
     title: "Managed Network Services",
-    kicker: "NOC-ready operations",
+    kicker: "Operate",
     summary:
-      "Operate office, branch, campus, and remote-team networks with monitoring, change control, documentation, backups, and reporting.",
-    outcomes: ["Improved uptime", "Faster root cause analysis", "Documented network state", "Predictable support"],
+      "Run office, branch, campus, and remote-team networks with monitoring, change control, device backups, documentation, and monthly evidence.",
+    outcomes: ["Improved uptime", "Faster RCA", "Documented network state", "Predictable support"],
     cta: "Get Network Risk Score",
     icon: Activity,
     tool: "network-risk-score"
@@ -69,9 +130,9 @@ export const services = [
   {
     slug: "network-security-services",
     title: "Network Security Services",
-    kicker: "Secure connectivity",
+    kicker: "Secure",
     summary:
-      "Harden firewalls, VPNs, remote access, segmentation, logs, DNS, email, and Zero Trust pathways.",
+      "Harden firewalls, VPNs, remote access, segmentation, logs, DNS, email pathways, and Zero Trust readiness.",
     outcomes: ["Cleaner firewall rules", "Reduced remote-access risk", "Audit-ready evidence", "Better segmentation"],
     cta: "Check Firewall Hygiene",
     icon: ShieldCheck,
@@ -80,9 +141,9 @@ export const services = [
   {
     slug: "cloud-network-services",
     title: "Cloud Network Services",
-    kicker: "Hybrid and cloud-first",
+    kicker: "Cloud",
     summary:
-      "Design and secure AWS VPC, Azure VNet, Google Cloud VPC, site-to-site VPN, direct connectivity, routing, and public exposure.",
+      "Design and secure AWS VPC, Azure VNet, Google Cloud VPC, site-to-site VPN, routing, private access, and public exposure.",
     outcomes: ["Cloud visibility", "Safer public exposure", "Cleaner routing", "Cost-aware connectivity"],
     cta: "Review Cloud Network",
     icon: Cloud,
@@ -91,9 +152,9 @@ export const services = [
   {
     slug: "penetration-testing",
     title: "Penetration Testing",
-    kicker: "Evidence-based security testing",
+    kicker: "Test",
     summary:
-      "Scope and perform external, internal, web, API, cloud, and wireless penetration testing with retesting and executive reporting.",
+      "Scope and perform external, internal, web, API, cloud, and wireless penetration testing with remediation guidance and retesting.",
     outcomes: ["Clear scope", "Risk-ranked findings", "Retesting path", "Client-ready reports"],
     cta: "Run Pentest Readiness",
     icon: LockKeyhole,
@@ -102,9 +163,9 @@ export const services = [
   {
     slug: "network-troubleshooting",
     title: "Network Troubleshooting",
-    kicker: "Emergency and root cause",
+    kicker: "Troubleshoot",
     summary:
-      "Resolve outages, slow applications, VPN failures, firewall routing issues, wireless instability, and cloud connectivity incidents.",
+      "Resolve outages, slow applications, VPN failures, firewall routing issues, Wi-Fi instability, and cloud connectivity incidents.",
     outcomes: ["Issue triage", "Packet-level analysis", "Vendor-aware escalation", "Prevention plan"],
     cta: "Start Triage",
     icon: Siren,
@@ -113,7 +174,7 @@ export const services = [
   {
     slug: "noc-as-a-service",
     title: "NOC as a Service",
-    kicker: "Monitoring without hiring a full NOC",
+    kicker: "Monitor",
     summary:
       "Add monitoring, alert triage, escalation, monthly reporting, and network governance around existing infrastructure.",
     outcomes: ["Central alerting", "Escalation workflows", "Monthly evidence", "Device inventory"],
@@ -124,7 +185,7 @@ export const services = [
   {
     slug: "firewall-management",
     title: "Firewall Management",
-    kicker: "Policy hygiene and controlled change",
+    kicker: "Govern",
     summary:
       "Review, clean, document, and manage firewall policies, VPN users, admin access, logging, and config backups.",
     outcomes: ["Rule cleanup", "Safer admin access", "Config backups", "Change logs"],
@@ -135,7 +196,7 @@ export const services = [
   {
     slug: "managed-wifi-lan",
     title: "Managed Wi-Fi and LAN",
-    kicker: "Campus-grade reliability",
+    kicker: "Stabilize",
     summary:
       "Plan, stabilize, secure, and monitor Wi-Fi and wired LAN for schools, offices, hospitals, hotels, and warehouses.",
     outcomes: ["Better roaming", "VLAN design", "Device visibility", "Stable user experience"],

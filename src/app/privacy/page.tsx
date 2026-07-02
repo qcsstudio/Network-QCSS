@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "Privacy and consent approach for Network QCSS."
+  description: "Privacy and consent approach for QuantumCrafters Studio Pvt. Ltd."
 };
 
 export default function PrivacyPage() {

@@ -1,4 +1,4 @@
-# Network QCSS Deployment Runbook
+# QuantumCrafters Studio Deployment Runbook
 
 This runbook is for taking the product from local file-store mode to production PostgreSQL mode.
 

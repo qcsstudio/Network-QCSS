@@ -30,8 +30,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {children}
         <footer className="site-footer">
           <div>
-            <strong>Network QCSS</strong>
-            <p>Secure network operations, testing, troubleshooting, and practical network security training.</p>
+            <strong>QuantumCrafters Studio Pvt. Ltd.</strong>
+            <p>Network operations, security testing, cloud connectivity, troubleshooting, and practical network security training.</p>
           </div>
           <nav aria-label="Footer links">
             <a href="/privacy">Privacy</a>

@@ -1,6 +1,6 @@
-# Network QCSS - Network Command Growth OS
+# QuantumCrafters Studio - Network Command Growth OS
 
-Production-grade Next.js rebuild for a network administration, network security, managed services, cloud networking, penetration testing, troubleshooting, and training website-tool.
+Production-grade Next.js product for QuantumCrafters Studio Pvt. Ltd. covering network administration, network security, managed services, cloud networking, penetration testing, troubleshooting, and training.
 
 Repository:
 
@@ -57,7 +57,7 @@ npm run env:check
 - `/` - public diagnostic homepage
 - `/services/[slug]` - service landing pages
 - `/tools/[slug]` - assessment tools and lead magnets
-- `/institute` - network and network security institute funnel
+- `/institute` - network and network security institute path
 - `/resources` - resource and content engine
 - `/admin` - operator dashboard
 - `/admin/login` - protected admin login

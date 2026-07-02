@@ -38,7 +38,7 @@ export default function InstitutePage() {
 
       <section className="section split">
         <div className="section-heading">
-          <p className="eyebrow">Enrollment funnel</p>
+          <p className="eyebrow">Enrollment path</p>
           <h2>Route students, working professionals, and corporate teams separately.</h2>
         </div>
         <LeadForm interest="Network security training" pipeline="Training / Institute" />

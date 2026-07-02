@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 export function GET() {
   return NextResponse.json({
     ok: true,
-    name: "Network QCSS",
+    name: "QuantumCrafters Studio Pvt. Ltd.",
     mode: "nextjs-product",
     time: new Date().toISOString()
   });

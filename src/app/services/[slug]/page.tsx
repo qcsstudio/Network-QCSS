@@ -48,17 +48,17 @@ export default async function ServicePage({ params }: ServicePageProps) {
       <section className="section split">
         <div>
           <Icon size={42} />
-          <h2>Outcomes this page is built to sell</h2>
+          <h2>What this engagement should improve</h2>
           <p>
-            This service page is structured as a conversion funnel: problem context, outcomes, diagnostic CTA, proof
-            areas, and lead capture.
+            Every service is framed around operational outcomes, security evidence, and a clear next action instead of
+            a vague list of technical capabilities.
           </p>
         </div>
         <div className="outcome-list">
           {service.outcomes.map((outcome) => (
             <article key={outcome}>
               <h3>{outcome}</h3>
-              <p>Track this as a buyer outcome, not just a technical feature.</p>
+              <p>Handled through assessment, implementation guidance, documentation, and follow-up review.</p>
             </article>
           ))}
         </div>

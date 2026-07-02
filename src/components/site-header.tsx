@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import Image from "next/image";
 
 const navItems = [
   { href: "/#services", label: "Services" },
@@ -13,13 +13,14 @@ export function SiteHeader() {
   return (
     <header className="site-header">
       <Link className="brand" href="/">
-        <span className="brand-mark">
-          <ShieldCheck size={20} />
-        </span>
-        <span>
-          <strong>Network QCSS</strong>
-          <small>Command Growth OS</small>
-        </span>
+        <Image
+          className="brand-logo"
+          src="/brand/quantumcrafters-logo.png"
+          alt="QuantumCrafters Studio Pvt. Ltd."
+          width={262}
+          height={80}
+          priority
+        />
       </Link>
 
       <nav className="main-nav" aria-label="Main navigation">

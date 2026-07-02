@@ -1,39 +1,53 @@
 import Link from "next/link";
+import Image from "next/image";
 import { AssessmentTool } from "@/components/assessment-tool";
 import { IntentRouter } from "@/components/intent-router";
 import { LeadForm } from "@/components/lead-form";
 import { ResourceDownloads } from "@/components/resource-downloads";
-import { automationFlows, operatingModes, services } from "@/lib/content";
+import { automationFlows, contentPillars, marketEdges, operatingModes, positioning, proofSignals, services } from "@/lib/content";
 
 export default function HomePage() {
   return (
     <main>
       <section className="hero-section">
         <div className="hero-copy">
-          <p className="eyebrow">Network administration. Security. Cloud. Pentesting. Training.</p>
-          <h1>Your network is already telling a story. We help you read it, secure it, and keep it running.</h1>
-          <p>
-            A modern website outside and a marketing, lead generation, assessment, automation, and sales intelligence
-            system inside.
-          </p>
+          <Image
+            className="hero-logo"
+            src="/brand/quantumcrafters-logo.png"
+            alt="QuantumCrafters Studio Pvt. Ltd."
+            width={328}
+            height={100}
+            priority
+          />
+          <p className="eyebrow">{positioning.eyebrow}</p>
+          <h1>{positioning.headline}</h1>
+          <p>{positioning.body}</p>
           <div className="button-row">
             <Link className="button primary large" href="/tools/network-risk-score">
-              Run Network Risk Score
+              {positioning.primaryCta}
             </Link>
-            <Link className="button secondary large" href="/admin">
-              View Operator Dashboard
+            <Link className="button secondary large" href="#services">
+              {positioning.secondaryCta}
             </Link>
+          </div>
+          <div className="proof-strip" aria-label="QuantumCrafters proof signals">
+            {proofSignals.map((signal) => (
+              <span key={signal.label}>
+                <strong>{signal.value}</strong>
+                {signal.label}
+              </span>
+            ))}
           </div>
         </div>
         <div className="network-visual" aria-label="Network command dashboard preview">
           <div className="visual-panel">
-            <span className="signal online">NOC</span>
-            <span className="signal alert">Firewall</span>
-            <span className="signal online">Cloud</span>
-            <span className="signal warn">Pentest</span>
+            <span className="signal online">NOC 24x7</span>
+            <span className="signal alert">Firewall drift</span>
+            <span className="signal online">Cloud route</span>
+            <span className="signal warn">Pentest scope</span>
             <div className="visual-score">
-              <strong>82</strong>
-              <span>Lead Score</span>
+              <strong>QCS</strong>
+              <span>Command Score</span>
             </div>
           </div>
         </div>
@@ -43,11 +57,34 @@ export default function HomePage() {
         <IntentRouter />
       </section>
 
+      <section className="section flush">
+        <div className="section-heading">
+          <p className="eyebrow">Why QuantumCrafters</p>
+          <h2>Built for buyers who need action, evidence, and continuity.</h2>
+          <p>
+            Competitors either lead with scale, pentest specialization, or training promises. QuantumCrafters Studio
+            leads with an integrated operating model: diagnose the network, secure the path, test the exposure, train
+            the people, and keep every interaction measurable.
+          </p>
+        </div>
+        <div className="edge-grid">
+          {marketEdges.map((edge) => (
+            <article className="edge-card" key={edge.title}>
+              <h3>{edge.title}</h3>
+              <p>{edge.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="section" id="services">
         <div className="section-heading">
-          <p className="eyebrow">Operating modes</p>
-          <h2>Build, secure, monitor, test, and train from one system.</h2>
-          <p>Visitors see simple choices. You get structured intent data, pipeline routing, and follow-up triggers.</p>
+          <p className="eyebrow">Command modes</p>
+          <h2>Five doors into one network command system.</h2>
+          <p>
+            A buyer can arrive through outages, security risk, cloud change, pentest pressure, or career development.
+            The site routes that intent into the right service path.
+          </p>
         </div>
         <div className="mode-grid">
           {operatingModes.map((mode) => {
@@ -66,7 +103,11 @@ export default function HomePage() {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Service architecture</p>
-          <h2>Service pages become funnels, not thin descriptions.</h2>
+          <h2>Operational services with security depth and training credibility.</h2>
+          <p>
+            The offer is intentionally broader than a pentest vendor and more personal than an enterprise MSP: a studio
+            that can stabilize, harden, test, and teach the same network environment.
+          </p>
         </div>
         <div className="service-grid">
           {services.map((service) => {
@@ -89,7 +130,7 @@ export default function HomePage() {
       <section className="section split" id="tools">
         <div className="section-heading">
           <p className="eyebrow">Diagnostic layer</p>
-          <h2>The lead magnet is an assessment tool, not only a PDF.</h2>
+          <h2>Lead magnets should behave like engineering triage.</h2>
           <p>
             Each completed tool stores the result, pipeline, recommendation, country signal, consent state, and
             attribution context.
@@ -101,7 +142,7 @@ export default function HomePage() {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Automation layer</p>
-          <h2>Every serious interaction becomes a next step.</h2>
+          <h2>The public site stays simple. The operator layer does the heavy lifting.</h2>
         </div>
         <div className="automation-grid">
           {automationFlows.map((flow) => {
@@ -119,8 +160,27 @@ export default function HomePage() {
 
       <section className="section">
         <div className="section-heading">
-          <p className="eyebrow">Information engine</p>
-          <h2>Resources create SEO value and measurable buying signals.</h2>
+          <p className="eyebrow">Content strategy</p>
+          <h2>Own the search clusters where service buyers and learners overlap.</h2>
+          <p>
+            The strongest path is not one giant keyword page. It is a cluster of focused service, problem, tool, and
+            training pages tied to measurable lead magnets.
+          </p>
+        </div>
+        <div className="pillar-grid">
+          {contentPillars.map((pillar) => (
+            <article className="pillar-card" key={pillar.title}>
+              <h3>{pillar.title}</h3>
+              <p>{pillar.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Resource engine</p>
+          <h2>Give visitors a useful asset before asking for a sales conversation.</h2>
         </div>
         <ResourceDownloads />
       </section>
@@ -128,7 +188,7 @@ export default function HomePage() {
       <section className="section split">
         <div className="section-heading">
           <p className="eyebrow">Lead capture</p>
-          <h2>Collect identity only when the value exchange is clear.</h2>
+          <h2>Convert service buyers without making the brand feel like a form factory.</h2>
           <p>
             Anonymous activity stays anonymous until the visitor submits a form, books a call, downloads a gated
             resource, or contacts you.
