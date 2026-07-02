@@ -3,9 +3,11 @@ import path from "node:path";
 import crypto from "node:crypto";
 import {
   AssessmentInput,
+  AuditInput,
   DashboardSnapshot,
   LeadInput,
   StoredAssessment,
+  StoredAuditLog,
   StoredEvent,
   StoredLead,
   StoredResource
@@ -17,6 +19,7 @@ type StoreFile = {
   events: StoredEvent[];
   assessments: StoredAssessment[];
   resources: StoredResource[];
+  auditLogs: StoredAuditLog[];
   createdAt: string;
   updatedAt: string;
 };
@@ -39,6 +42,7 @@ function blankStore(): StoreFile {
     events: [],
     assessments: [],
     resources: [],
+    auditLogs: [],
     createdAt: now,
     updatedAt: now
   };
@@ -192,6 +196,30 @@ export async function createResource(
   return resource;
 }
 
+export async function createAuditLog(input: AuditInput, context: { country: string; ipHash: string }) {
+  if (isPostgresStore()) {
+    const { createAuditLogPostgres } = await import("@/lib/postgres-store");
+    return createAuditLogPostgres(input, context);
+  }
+
+  const auditLog: StoredAuditLog = {
+    id: createId("audit"),
+    action: input.action,
+    actor: input.actor || "anonymous",
+    target: input.target || "",
+    metadata: input.metadata || {},
+    country: context.country,
+    ipHash: context.ipHash,
+    createdAt: new Date().toISOString()
+  };
+
+  const store = await readStore();
+  store.auditLogs ||= [];
+  store.auditLogs.push(auditLog);
+  await writeStore(store);
+  return auditLog;
+}
+
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   if (isPostgresStore()) {
     const { getDashboardSnapshotPostgres } = await import("@/lib/postgres-store");
@@ -213,13 +241,15 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       hotLeads: store.leads.filter((lead) => lead.priority === "hot").length,
       events: store.events.length,
       assessments: store.assessments.length,
-      resources: store.resources.length
+      resources: store.resources.length,
+      auditLogs: (store.auditLogs || []).length
     },
     byPipeline,
     byCountry,
     latestLeads: store.leads.slice(-10).reverse(),
     latestEvents: store.events.slice(-15).reverse(),
     latestAssessments: store.assessments.slice(-10).reverse(),
+    latestAuditLogs: (store.auditLogs || []).slice(-10).reverse(),
     updatedAt: store.updatedAt
   };
 }

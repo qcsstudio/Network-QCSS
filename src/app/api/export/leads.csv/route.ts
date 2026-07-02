@@ -1,5 +1,6 @@
 import { isAdminRequest } from "@/lib/admin-auth";
-import { getLeads, leadsToCsv } from "@/lib/store";
+import { requestContext } from "@/lib/security";
+import { createAuditLog, getLeads, leadsToCsv } from "@/lib/store";
 
 export const runtime = "nodejs";
 
@@ -8,7 +9,18 @@ export async function GET(request: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  return new Response(leadsToCsv(await getLeads()), {
+  const leads = await getLeads();
+  await createAuditLog(
+    {
+      action: "admin.leads_export",
+      actor: "admin",
+      target: "leads.csv",
+      metadata: { count: leads.length }
+    },
+    await requestContext()
+  );
+
+  return new Response(leadsToCsv(leads), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": "attachment; filename=network-qcss-leads.csv"

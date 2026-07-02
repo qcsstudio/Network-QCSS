@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { OperatorDashboard } from "@/components/operator-dashboard";
 import { requireAdmin } from "@/lib/admin-auth";
-import { getDashboardSnapshot } from "@/lib/store";
+import { requestContext } from "@/lib/security";
+import { createAuditLog, getDashboardSnapshot } from "@/lib/store";
 
 export const metadata: Metadata = {
   title: "Operator Dashboard",
@@ -12,6 +13,14 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const session = await requireAdmin();
+  await createAuditLog(
+    {
+      action: "admin.dashboard_view",
+      actor: session.email,
+      target: "admin"
+    },
+    await requestContext()
+  );
   const snapshot = await getDashboardSnapshot();
 
   return (

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ConsentBanner } from "@/components/consent-banner";
+import { MarketingScripts } from "@/components/marketing-scripts";
 import { SiteHeader } from "@/components/site-header";
 import { siteConfig } from "@/lib/content";
 import "./globals.css";
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
+        <MarketingScripts />
         <SiteHeader />
         {children}
         <footer className="site-footer">

@@ -12,5 +12,15 @@ export async function POST(request: Request) {
   }
 
   const resource = await createResource(parsed.data, await requestContext());
-  return NextResponse.json({ ok: true, resource }, { status: 201 });
+  return NextResponse.json(
+    {
+      ok: true,
+      resource: {
+        id: resource.id,
+        resource: resource.resource,
+        createdAt: resource.createdAt
+      }
+    },
+    { status: 201 }
+  );
 }

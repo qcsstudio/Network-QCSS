@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { getStoredConsent } from "@/components/consent-banner";
+import { trackBrowserEvent } from "@/lib/client-tracking";
 
 type LeadFormProps = {
   interest?: string;
@@ -60,6 +61,14 @@ export function LeadForm({ interest = "", pipeline, compact = false }: LeadFormP
     });
 
     setLoading(false);
+    if (response.ok) {
+      trackBrowserEvent("generate_lead", {
+        pipeline: pipeline || formData.get("interest") || interest,
+        interest: formData.get("interest") || interest,
+        form_type: compact ? "compact" : "full"
+      });
+    }
+
     setStatus(response.ok ? "Lead profile saved. The right follow-up workflow can start now." : "Please check the form fields and consent.");
   }
 

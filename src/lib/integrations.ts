@@ -159,11 +159,52 @@ async function sendWhatsAppCloudApi(lead: StoredLead) {
   );
 }
 
+async function sendEmailWebhook(lead: StoredLead) {
+  const url = process.env.EMAIL_WEBHOOK_URL;
+  if (!url) return skipped("email-webhook");
+  return postJson("email-webhook", url, {}, {
+    event: "lead.created",
+    subject: `New ${lead.priority} lead: ${lead.pipeline}`,
+    lead: leadPayload(lead)
+  });
+}
+
+async function sendResendEmail(lead: StoredLead) {
+  const token = process.env.RESEND_API_KEY;
+  const from = process.env.LEAD_ALERT_EMAIL_FROM;
+  const to = process.env.LEAD_ALERT_EMAIL_TO;
+  if (!token || !from || !to) return skipped("resend-email");
+
+  return postJson(
+    "resend-email",
+    "https://api.resend.com/emails",
+    { Authorization: `Bearer ${token}` },
+    {
+      from,
+      to: to.split(",").map((email) => email.trim()),
+      subject: `New ${lead.priority} lead: ${lead.pipeline}`,
+      text: [
+        `Name: ${lead.name}`,
+        `Email: ${lead.email}`,
+        `Phone: ${lead.phone}`,
+        `Interest: ${lead.interest}`,
+        `Pipeline: ${lead.pipeline}`,
+        `Score: ${lead.score}`,
+        `Priority: ${lead.priority}`,
+        `Country: ${lead.country}`,
+        `Challenge: ${lead.challenge || "None provided"}`
+      ].join("\n")
+    }
+  );
+}
+
 export async function dispatchLeadIntegrations(lead: StoredLead) {
   const jobs = [
     sendGenericWebhook(lead),
     sendHubSpot(lead),
     sendZoho(lead),
+    sendEmailWebhook(lead),
+    lead.priority === "hot" ? sendResendEmail(lead) : Promise.resolve(skipped("resend-email")),
     sendWhatsAppWebhook(lead),
     lead.priority === "hot" ? sendWhatsAppCloudApi(lead) : Promise.resolve(skipped("whatsapp-cloud-api"))
   ];

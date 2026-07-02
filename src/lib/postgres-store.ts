@@ -4,11 +4,13 @@ import { priorityForScore } from "@/lib/security";
 import {
   AssessmentInput,
   Attribution,
+  AuditInput,
   ConsentState,
   DashboardSnapshot,
   JsonRecord,
   LeadInput,
   StoredAssessment,
+  StoredAuditLog,
   StoredEvent,
   StoredLead,
   StoredResource
@@ -140,6 +142,28 @@ function mapAssessment(record: {
   };
 }
 
+function mapAuditLog(record: {
+  id: string;
+  action: string;
+  actor: string | null;
+  target: string | null;
+  metadata: unknown;
+  country: string | null;
+  ipHash: string | null;
+  createdAt: Date;
+}): StoredAuditLog {
+  return {
+    id: record.id,
+    action: record.action,
+    actor: record.actor || "anonymous",
+    target: record.target || "",
+    metadata: asRecord(record.metadata),
+    country: record.country || "Unknown",
+    ipHash: record.ipHash || "",
+    createdAt: iso(record.createdAt)
+  };
+}
+
 export async function createLeadPostgres(input: LeadInput, context: { country: string; ipHash: string }) {
   const prisma = getPrismaClient();
   const score = Math.max(0, Math.min(100, input.score ?? 0));
@@ -235,20 +259,51 @@ export async function createResourcePostgres(
   };
 }
 
+export async function createAuditLogPostgres(input: AuditInput, context: { country: string; ipHash: string }) {
+  const prisma = getPrismaClient();
+  const record = await prisma.auditLog.create({
+    data: {
+      action: input.action,
+      actor: input.actor || "anonymous",
+      target: input.target || "",
+      metadata: inputJson(input.metadata || {}),
+      country: context.country,
+      ipHash: context.ipHash
+    }
+  });
+
+  return mapAuditLog(record);
+}
+
 export async function getDashboardSnapshotPostgres(): Promise<DashboardSnapshot> {
   const prisma = getPrismaClient();
-  const [leadCount, hotLeadCount, eventCount, assessmentCount, resourceCount, pipelineRows, countryRows, leads, events, assessments] =
+  const [
+    leadCount,
+    hotLeadCount,
+    eventCount,
+    assessmentCount,
+    resourceCount,
+    auditLogCount,
+    pipelineRows,
+    countryRows,
+    leads,
+    events,
+    assessments,
+    auditLogs
+  ] =
     await Promise.all([
       prisma.lead.count(),
       prisma.lead.count({ where: { priority: "hot" } }),
       prisma.interactionEvent.count(),
       prisma.assessment.count(),
       prisma.resourceDownload.count(),
+      prisma.auditLog.count(),
       prisma.lead.findMany({ select: { pipeline: true } }),
       prisma.lead.findMany({ select: { country: true } }),
       prisma.lead.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
       prisma.interactionEvent.findMany({ orderBy: { createdAt: "desc" }, take: 15 }),
-      prisma.assessment.findMany({ orderBy: { createdAt: "desc" }, take: 10 })
+      prisma.assessment.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
+      prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 10 })
     ]);
 
   const byPipeline: Record<string, number> = {};
@@ -266,13 +321,15 @@ export async function getDashboardSnapshotPostgres(): Promise<DashboardSnapshot>
       hotLeads: hotLeadCount,
       events: eventCount,
       assessments: assessmentCount,
-      resources: resourceCount
+      resources: resourceCount,
+      auditLogs: auditLogCount
     },
     byPipeline,
     byCountry,
     latestLeads: leads.map(mapLead),
     latestEvents: events.map(mapEvent),
     latestAssessments: assessments.map(mapAssessment),
+    latestAuditLogs: auditLogs.map(mapAuditLog),
     updatedAt: new Date().toISOString()
   };
 }

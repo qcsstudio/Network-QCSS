@@ -79,3 +79,18 @@ model ResourceDownload {
   @@index([resource])
   @@index([createdAt])
 }
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  actor     String?
+  target    String?
+  metadata  Json?
+  country   String?
+  ipHash    String?
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([actor])
+  @@index([createdAt])
+}

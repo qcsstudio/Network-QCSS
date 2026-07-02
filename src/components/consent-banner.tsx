@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { trackBrowserEvent, updateConsentMode } from "@/lib/client-tracking";
 import type { ConsentState } from "@/lib/types";
 
 const defaultConsent: ConsentState = {
@@ -29,8 +30,10 @@ export function ConsentBanner() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const saved = window.localStorage.getItem("network-qcss-consent");
+      const storedConsent = getStoredConsent();
       setVisible(!saved);
-      setConsent(getStoredConsent());
+      setConsent(storedConsent);
+      updateConsentMode(storedConsent);
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -40,6 +43,12 @@ export function ConsentBanner() {
     window.localStorage.setItem("network-qcss-consent", JSON.stringify(nextConsent));
     setConsent(nextConsent);
     setVisible(false);
+    updateConsentMode(nextConsent);
+    trackBrowserEvent("consent_updated", {
+      analytics: nextConsent.analytics,
+      marketing: nextConsent.marketing,
+      personalization: nextConsent.personalization
+    });
 
     void fetch("/api/events", {
       method: "POST",

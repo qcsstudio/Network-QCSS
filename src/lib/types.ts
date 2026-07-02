@@ -94,6 +94,24 @@ export type StoredResource = {
   createdAt: string;
 };
 
+export type AuditInput = {
+  action: string;
+  actor?: string;
+  target?: string;
+  metadata?: JsonRecord;
+};
+
+export type StoredAuditLog = {
+  id: string;
+  action: string;
+  actor: string;
+  target: string;
+  metadata: JsonRecord;
+  country: string;
+  ipHash: string;
+  createdAt: string;
+};
+
 export type DashboardSnapshot = {
   totals: {
     leads: number;
@@ -101,11 +119,13 @@ export type DashboardSnapshot = {
     events: number;
     assessments: number;
     resources: number;
+    auditLogs: number;
   };
   byPipeline: Record<string, number>;
   byCountry: Record<string, number>;
   latestLeads: StoredLead[];
   latestEvents: StoredEvent[];
   latestAssessments: StoredAssessment[];
+  latestAuditLogs: StoredAuditLog[];
   updatedAt: string;
 };

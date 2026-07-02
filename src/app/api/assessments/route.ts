@@ -12,5 +12,19 @@ export async function POST(request: Request) {
   }
 
   const assessment = await createAssessment(parsed.data, await requestContext());
-  return NextResponse.json({ ok: true, assessment }, { status: 201 });
+  return NextResponse.json(
+    {
+      ok: true,
+      assessment: {
+        id: assessment.id,
+        tool: assessment.tool,
+        pipeline: assessment.pipeline,
+        score: assessment.score,
+        riskLevel: assessment.riskLevel,
+        recommendation: assessment.recommendation,
+        createdAt: assessment.createdAt
+      }
+    },
+    { status: 201 }
+  );
 }

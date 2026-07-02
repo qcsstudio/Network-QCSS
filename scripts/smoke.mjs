@@ -62,6 +62,16 @@ try {
     throw new Error(`Dashboard should require admin auth. Received ${unauthorizedDashboard.status}`);
   }
 
+  const unauthorizedLeads = await fetch(`${baseUrl}/api/leads`);
+  if (unauthorizedLeads.status !== 401) {
+    throw new Error(`Lead list should require admin auth. Received ${unauthorizedLeads.status}`);
+  }
+
+  const unauthorizedExport = await fetch(`${baseUrl}/api/export/leads.csv`);
+  if (unauthorizedExport.status !== 401) {
+    throw new Error(`Lead export should require admin auth. Received ${unauthorizedExport.status}`);
+  }
+
   const consent = {
     necessary: true,
     analytics: true,
@@ -78,7 +88,7 @@ try {
     requiresAnalytics: false
   });
 
-  await post("/api/assessments", {
+  const assessmentResponse = await post("/api/assessments", {
     tool: "network-risk-score",
     title: "Network Risk Score",
     pipeline: "Managed Network Services",
@@ -88,8 +98,21 @@ try {
     answers: { monitoring: "Partial" },
     consent
   });
+  if (assessmentResponse.assessment.ipHash || assessmentResponse.assessment.answers) {
+    throw new Error(`Assessment response exposed private fields: ${JSON.stringify(assessmentResponse.assessment)}`);
+  }
 
-  await post("/api/leads", {
+  const resourceResponse = await post("/api/resources", {
+    resource: "firewall-rule-cleanup",
+    sessionId: "smoke",
+    attribution: { source: "smoke" },
+    consent
+  });
+  if (resourceResponse.resource.ipHash || resourceResponse.resource.consent) {
+    throw new Error(`Resource response exposed private fields: ${JSON.stringify(resourceResponse.resource)}`);
+  }
+
+  const leadResponse = await post("/api/leads", {
     name: "Smoke Test Lead",
     email: "smoke@example.com",
     phone: "+910000000000",
@@ -102,12 +125,21 @@ try {
     consent,
     sourceProfile: { source: "smoke" }
   });
+  if (leadResponse.lead.ipHash || leadResponse.lead.email || leadResponse.lead.consent) {
+    throw new Error(`Lead response exposed private fields: ${JSON.stringify(leadResponse.lead)}`);
+  }
+  if (!leadResponse.integrationSummary || typeof leadResponse.integrationSummary.attempted !== "number") {
+    throw new Error(`Lead response did not include sanitized integration summary: ${JSON.stringify(leadResponse)}`);
+  }
 
   const dashboard = await fetch(`${baseUrl}/api/dashboard`, {
     headers: { "x-admin-token": adminToken }
   }).then((response) => response.json());
-  if (!dashboard.totals.leads || !dashboard.totals.assessments || !dashboard.totals.events) {
+  if (!dashboard.totals.leads || !dashboard.totals.assessments || !dashboard.totals.events || !dashboard.totals.resources) {
     throw new Error(`Dashboard did not update: ${JSON.stringify(dashboard.totals)}`);
+  }
+  if (!dashboard.totals.auditLogs || !dashboard.latestAuditLogs?.some((auditLog) => auditLog.action === "lead.created")) {
+    throw new Error(`Dashboard did not include lead audit log: ${JSON.stringify(dashboard.totals)}`);
   }
 
   console.log(JSON.stringify({ ok: true, totals: dashboard.totals }, null, 2));

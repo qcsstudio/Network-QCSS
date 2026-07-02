@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { resources } from "@/lib/content";
 import { getStoredConsent } from "@/components/consent-banner";
+import { trackBrowserEvent } from "@/lib/client-tracking";
 
 export function ResourceDownloads() {
   const [status, setStatus] = useState("Choose a resource to create a content-led signal.");
 
   async function download(slug: string) {
+    trackBrowserEvent("lead_magnet_download", { resource: slug });
     await fetch("/api/resources", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

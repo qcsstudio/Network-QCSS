@@ -26,6 +26,11 @@ export function OperatorDashboard({ snapshot }: { snapshot: DashboardSnapshot })
           <strong>{snapshot.totals.events}</strong>
           <span>Consent-aware events</span>
         </article>
+        <article className="metric-card">
+          <p>Audit logs</p>
+          <strong>{snapshot.totals.auditLogs}</strong>
+          <span>Admin and system actions</span>
+        </article>
       </div>
 
       <div className="admin-grid">
@@ -121,6 +126,24 @@ export function OperatorDashboard({ snapshot }: { snapshot: DashboardSnapshot })
                 <div className="stack-item" key={event.id}>
                   <strong>{event.name}</strong>
                   <span>{new Date(event.createdAt).toLocaleString()}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="admin-panel">
+          <h2>Audit Log</h2>
+          <div className="stack-list">
+            {snapshot.latestAuditLogs.length === 0 ? (
+              <p>No audit logs yet.</p>
+            ) : (
+              snapshot.latestAuditLogs.map((auditLog) => (
+                <div className="stack-item" key={auditLog.id}>
+                  <strong>{auditLog.action}</strong>
+                  <span>
+                    {auditLog.actor} {auditLog.target ? `- ${auditLog.target}` : ""} | {new Date(auditLog.createdAt).toLocaleString()}
+                  </span>
                 </div>
               ))
             )}

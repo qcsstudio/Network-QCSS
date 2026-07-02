@@ -9,16 +9,21 @@ type AdminSession = {
   expiresAt: number;
 };
 
+const productionFallbackSessionSecret = crypto.randomUUID();
+
 function adminEmail() {
-  return process.env.ADMIN_EMAIL || "admin@network-qcss.local";
+  if (process.env.ADMIN_EMAIL) return process.env.ADMIN_EMAIL;
+  return process.env.NODE_ENV === "production" ? "" : "admin@network-qcss.local";
 }
 
 function adminPassword() {
-  return process.env.ADMIN_PASSWORD || "admin";
+  if (process.env.ADMIN_PASSWORD) return process.env.ADMIN_PASSWORD;
+  return process.env.NODE_ENV === "production" ? "" : "admin";
 }
 
 function sessionSecret() {
-  return process.env.ADMIN_SESSION_SECRET || "development-session-secret-change-me";
+  if (process.env.ADMIN_SESSION_SECRET) return process.env.ADMIN_SESSION_SECRET;
+  return process.env.NODE_ENV === "production" ? productionFallbackSessionSecret : "development-session-secret-change-me";
 }
 
 function apiToken() {
@@ -68,7 +73,10 @@ export function verifyAdminSession(token?: string | null) {
 }
 
 export function verifyAdminCredentials(email: string, password: string) {
-  return safeEqual(email, adminEmail()) && safeEqual(password, adminPassword());
+  const configuredEmail = adminEmail();
+  const configuredPassword = adminPassword();
+  if (!configuredEmail || !configuredPassword) return false;
+  return safeEqual(email, configuredEmail) && safeEqual(password, configuredPassword);
 }
 
 export async function getAdminSession() {

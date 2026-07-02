@@ -20,7 +20,8 @@ https://github.com/qcsstudio/Network-QCSS.git
 - JSON local store for development fallback
 - API routes for leads, events, assessments, resources, dashboard, health, and CSV export
 - Admin session authentication
-- CRM and WhatsApp integration hooks
+- Consent-aware analytics and marketing pixels
+- CRM, email, and WhatsApp integration hooks
 
 ## Run Locally
 
@@ -73,12 +74,14 @@ npm run smoke
 - Resource intent capture
 - Admin dashboard
 - Admin login, signed session cookies, and admin API token support
+- Admin and system audit logs
 - CSV export
 - Prisma/PostgreSQL production schema
 - File-store and PostgreSQL-store adapter architecture
-- Lead integration dispatch for webhook, HubSpot, Zoho, and WhatsApp
+- Lead integration dispatch for webhook, HubSpot, Zoho, email, Resend, and WhatsApp
+- Privacy-hardened public API responses
 - Security headers
-- SEO metadata, sitemap, and robots
+- SEO metadata, sitemap, robots, and AI-answer-friendly service structure
 
 ## Local Persistence
 
@@ -122,13 +125,40 @@ admin@network-qcss.local
 admin
 ```
 
-Do not use the fallback credentials in production.
+Do not use the fallback credentials in production. In production, admin login is disabled until `ADMIN_EMAIL` and
+`ADMIN_PASSWORD` are configured. Use a long stable `ADMIN_SESSION_SECRET` so admin sessions remain valid across
+deployments.
 
 The dashboard and lead export are protected by signed admin cookies. Server-to-server admin API access can use:
 
 ```text
 x-admin-token: ADMIN_API_TOKEN
 ```
+
+## Growth Tracking and Consent
+
+The browser layer starts with Google Consent Mode defaults set to denied. Analytics and marketing storage are upgraded
+only after the visitor accepts the matching cookie categories.
+
+Configure optional tracking IDs:
+
+```text
+NEXT_PUBLIC_GTM_ID=
+NEXT_PUBLIC_GA_ID=
+NEXT_PUBLIC_META_PIXEL_ID=
+NEXT_PUBLIC_LINKEDIN_PARTNER_ID=
+```
+
+Tracked browser events:
+
+- `consent_updated`
+- `generate_lead`
+- `assessment_complete`
+- `lead_magnet_download`
+
+Meta Pixel and LinkedIn Insight are loaded only after marketing consent. Google Tag Manager and GA4 can run in consent
+mode with denied storage until analytics consent is granted. The site does not try to read visitor email from the
+browser; email is stored only when a visitor submits it.
 
 ## Integration Hooks
 
@@ -153,6 +183,18 @@ ZOHO_ACCESS_TOKEN=
 ZOHO_CRM_LEADS_URL=
 ```
 
+Email automation:
+
+```text
+EMAIL_WEBHOOK_URL=
+RESEND_API_KEY=
+LEAD_ALERT_EMAIL_FROM=
+LEAD_ALERT_EMAIL_TO=
+```
+
+Resend email alerts are sent only for hot leads. `EMAIL_WEBHOOK_URL` can be used for Zapier, Make, n8n, or a custom
+automation endpoint.
+
 WhatsApp:
 
 ```text
@@ -170,11 +212,12 @@ WHATSAPP_API_VERSION=v23.0
 Current verification commands:
 
 ```powershell
+npm run lint
 npm run typecheck
 npx prisma generate
+npm audit --audit-level=moderate
 npm run build
 npm run smoke
-npm audit --audit-level=moderate
 ```
 
 ## Next Production Integrations
@@ -182,10 +225,8 @@ npm audit --audit-level=moderate
 - Production PostgreSQL migration deployment
 - Zoho CRM or HubSpot field mapping hardening
 - WhatsApp template approval and message QA
-- Email automation
-- Google Tag Manager and GA4 Consent Mode
-- Google Ads enhanced conversions
-- LinkedIn Insight Tag
+- Google Ads enhanced conversions through GTM after consent review
+- Meta and LinkedIn conversion event mapping
 - PDF report generation
 - Role-based admin users beyond the current single-admin session model
-- Admin audit logs
+- Content cluster expansion for India, global, managed network, cloud network, pentest, and institute search intent

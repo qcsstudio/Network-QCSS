@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { getStoredConsent } from "@/components/consent-banner";
 import { tools } from "@/lib/content";
+import { trackBrowserEvent } from "@/lib/client-tracking";
 
 type AssessmentToolProps = {
   slug?: string;
@@ -59,6 +60,11 @@ export function AssessmentTool({ slug = "network-risk-score" }: AssessmentToolPr
       pipeline: activeTool.pipeline
     };
     setResult(nextResult);
+    trackBrowserEvent("assessment_complete", {
+      tool: activeTool.slug,
+      pipeline: activeTool.pipeline,
+      score
+    });
 
     await fetch("/api/assessments", {
       method: "POST",
