@@ -1,0 +1,296 @@
+:root {
+  --orange: #FF6B00;
+}
+
+/* Full page container */
+.signup-container {
+  background: #ffffff;
+}
+
+/* Left panel */
+.left-panel {
+  width: 220px;
+}
+
+.brand-title {
+  font-size: 36px;
+  font-weight: 800;
+  margin: 0;
+}
+
+/* Form Box */
+.form-box {
+  width: 420px;
+  max-width: 90%;
+}
+
+.heading-small {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.heading-large {
+  font-size: 34px;
+  font-weight: 800;
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+
+/* Signup Button */
+.btn-signup {
+  background: var(--orange);
+  color: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  font-weight: 600;
+}
+
+.btn-signup:hover {
+  background: #ff8b29;
+}
+
+/* Divider */
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #9aa0a6;
+  text-align: center;
+}
+
+.or-divider::before,
+.or-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: #e6e6e6;
+}
+
+/* Google Button */
+.btn-google {
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #e6e6e6;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .left-panel {
+    display: none;
+  }
+}
+
+
+/* ======================
+   Audit Section
+====================== */
+
+.audit-hero {
+  background: #fafafa;
+  padding: 80px 0px;
+  text-align: center;
+  position: relative; 
+  // border: 1px solid red;
+}
+
+.audit-inner {
+  width: 1280px;
+  margin: 0px auto;
+  // border: 1px solid yellow;
+
+
+}
+
+.audit-trust {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #555;
+  // border:1px solid red
+}
+
+.audit-heading {
+  font-size: 65px;
+  font-weight: 800;
+  // line-height: 1.2;
+  margin-top: 25px;
+  // border: 1px solid red;
+  width: 100%;
+  // letter-spacing: 5px;
+  // text-align: start;
+  
+}
+
+.audit-heading span,
+.audit-heading strong {
+  color: #FF6B00;
+}
+
+.audit-desc {
+  max-width: 720px;
+  margin: 20px auto 40px;
+  color: #555;
+  // border: 1px solid blue;
+  width: 50%;
+}
+
+.audit-input-row {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+  // max-width: 700px;
+  margin: auto;
+  // border:1px solid green;
+  width: 70%;
+}
+
+.audit-input-row input,
+.audit-input-row select {
+  border: none;
+  border-bottom: 2px solid #454545;
+  outline: none;
+  font-size: 20px;
+  padding: 6px;
+  background-color: transparent;
+  color: #444;
+}
+
+.audit-input-row input {
+  width: 580px;
+}
+
+.audit-input-row select {
+  width: 280px;
+}
+
+.audit-main-btn {
+  margin-top: 40px;
+  background: linear-gradient(90deg, #FF6B00, #ff4d2d);
+  color: white;
+  border: none;
+  padding: 14px 36px;
+  border-radius: 40px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: 5px solid #FFD6B8;
+}
+
+.audit-note {
+  margin-top: 20px;
+  font-size: 20px;
+  color: #666;
+  // border:1px solid red;
+}
+
+.audit-secure {
+  margin-top: 10px;
+  font-weight: 700;
+  color: #FF6B00;
+  font-size: 20px;
+}
+
+
+.terms {
+  display: flex;
+  align-items: flex-center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #444;
+ width: 100%;
+  text-align: center;
+  margin: 10px;
+}
+
+.terms input {
+  margin-top: 3px;
+  // accent-color: #ff6a00;
+}
+
+.terms a {
+  color: #ff6a00;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.terms a:hover {
+  text-decoration: underline;
+}
+
+/* ======================
+   Popup
+====================== */
+
+.audit-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.audit-popup {
+  background: #fff;
+  width: 100%;
+  max-width: 720px;
+  padding: 40px 30px;
+  border-radius: 18px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+}
+
+.audit-title {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.audit-title span {
+  color: #FF6B00;
+}
+
+.progress-ring {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 30px auto;
+}
+
+.progress-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ff4d2d;
+}
+
+.audit-btn {
+  background: linear-gradient(90deg, #FF6B00, #ff4d2d);
+  border: none;
+  padding: 12px 26px;
+  color: #fff;
+  border-radius: 30px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.audit-close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  border: none;
+  background: none;
+  font-size: 18px;
+  cursor: pointer;
+}

@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "QCS LinkedIn Profile Audit",
+  "version": "1.0.1",
+  "description": "Analyze a LinkedIn profile from the QCS audit page and generate a role-based profile score and improvement checklist.",
+  "permissions": [
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://www.linkedin.com/in/*"
+  ],
+  "externally_connectable": {
+    "matches": [
+      "https://www.qcsstudio.com/*",
+      "https://qcsstudio.com/*"
+    ]
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.qcsstudio.com/linkedin-profile-audit*",
+        "https://qcsstudio.com/linkedin-profile-audit*"
+      ],
+      "js": [
+        "content_script.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "QCS LinkedIn Profile Audit"
+  }
+}

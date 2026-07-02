@@ -1,0 +1,61 @@
+.profile-card {
+  background: #fff;
+}
+
+.cover-section {
+  height: 260px;
+  background: radial-gradient(circle at top left, #3b1c2f, #0b0b0b);
+  color: #fff;
+  padding: 30px;
+}
+
+.cover-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(255,255,255,0.05), rgba(0,0,0,0.8));
+}
+
+.cover-text {
+  position: relative;
+  // max-width: 650px;
+}
+
+.cover-text h2 {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.pill {
+  background: rgba(255,255,255,0.12);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+}
+
+.pill.success {
+  background: rgba(40,167,69,0.2);
+  color: #7CFF9B;
+}
+
+.designer-badge {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: #2b2b2b;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 2;
+}
+
+.profile-img-wrapper {
+  position: absolute;
+  bottom: -60px;
+  left: 40px;
+  z-index: 3;
+}
+
+.profile-img {
+  border-radius: 50%;
+  border: 5px solid #fff;
+}
