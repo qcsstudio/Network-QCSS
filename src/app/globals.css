@@ -234,6 +234,38 @@ button {
   font-size: 1.28rem;
 }
 
+.command-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: min(1180px, calc(100% - 36px));
+  margin: 0 auto 28px;
+  border: 1px solid rgba(236, 35, 111, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px;
+  box-shadow: 0 16px 42px rgba(23, 16, 25, 0.08);
+}
+
+.command-nav a {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 8px 12px;
+  color: #332634;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.command-nav a:hover,
+.command-nav a:focus-visible {
+  border-color: rgba(255, 138, 43, 0.42);
+  background: #fff4ec;
+  color: var(--accent-dark);
+}
+
 .network-visual {
   min-height: 440px;
   display: grid;
@@ -471,7 +503,9 @@ button {
 }
 
 .edge-grid,
-.pillar-grid {
+.pillar-grid,
+.comparison-grid,
+.process-timeline {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
@@ -491,6 +525,144 @@ button {
 
 .pillar-card {
   border-left: 4px solid var(--brand-orange);
+}
+
+.comparison-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.comparison-panel {
+  min-height: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  padding: clamp(20px, 3vw, 30px);
+}
+
+.comparison-panel.old {
+  background:
+    linear-gradient(135deg, rgba(100, 92, 109, 0.08), transparent),
+    white;
+}
+
+.comparison-panel.qcs {
+  border-color: rgba(236, 35, 111, 0.28);
+  background:
+    radial-gradient(circle at 92% 8%, rgba(255, 138, 43, 0.18), transparent 30%),
+    linear-gradient(135deg, rgba(236, 35, 111, 0.08), rgba(99, 139, 217, 0.08)),
+    white;
+}
+
+.comparison-panel h3 {
+  margin: 0 0 18px;
+  font-size: clamp(1.5rem, 2.2vw, 2.4rem);
+  line-height: 1.06;
+}
+
+.check-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.check-list li {
+  position: relative;
+  border: 1px solid rgba(234, 221, 230, 0.9);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 11px 12px 11px 34px;
+  color: #332634;
+  font-weight: 750;
+}
+
+.check-list li::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 17px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--brand-magenta);
+}
+
+.check-list.muted li::before {
+  background: var(--muted);
+}
+
+.pill-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.pill-cloud span {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  border: 1px solid rgba(236, 35, 111, 0.2);
+  border-radius: 999px;
+  background: white;
+  padding: 9px 14px;
+  color: #332634;
+  font-weight: 900;
+  box-shadow: 0 10px 28px rgba(23, 16, 25, 0.06);
+}
+
+.pill-cloud.muted span {
+  border-color: rgba(100, 92, 109, 0.18);
+  background: #fffafc;
+  color: var(--muted);
+  font-weight: 780;
+}
+
+.process-timeline {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.process-timeline article {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  padding: 20px;
+}
+
+.process-timeline article::before {
+  content: "";
+  position: absolute;
+  top: 34px;
+  right: -15px;
+  width: 16px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--brand-orange), var(--brand-magenta));
+}
+
+.process-timeline article:last-child::before {
+  display: none;
+}
+
+.process-timeline span {
+  display: inline-flex;
+  width: 46px;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--brand-black);
+  color: white;
+  font-weight: 950;
+}
+
+.process-timeline h3 {
+  margin: 18px 0 8px;
+}
+
+.process-timeline p {
+  color: var(--muted);
 }
 
 .mode-card,
@@ -916,8 +1088,14 @@ td span {
   .metric-grid,
   .readiness-grid,
   .edge-grid,
-  .pillar-grid {
+  .pillar-grid,
+  .comparison-grid,
+  .process-timeline {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .process-timeline article::before {
+    display: none;
   }
 }
 
@@ -956,6 +1134,8 @@ td span {
   .readiness-grid,
   .edge-grid,
   .pillar-grid,
+  .comparison-grid,
+  .process-timeline,
   .proof-strip,
   .outcome-list,
   .assessment-result,

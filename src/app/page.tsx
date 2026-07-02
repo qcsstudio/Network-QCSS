@@ -4,7 +4,20 @@ import { AssessmentTool } from "@/components/assessment-tool";
 import { IntentRouter } from "@/components/intent-router";
 import { LeadForm } from "@/components/lead-form";
 import { ResourceDownloads } from "@/components/resource-downloads";
-import { automationFlows, contentPillars, marketEdges, operatingModes, positioning, proofSignals, services } from "@/lib/content";
+import {
+  automationFlows,
+  commandNavItems,
+  contentPillars,
+  deliveryWorkflow,
+  industryCoverage,
+  marketEdges,
+  operatingModes,
+  positioning,
+  proofSignals,
+  services,
+  supportModelComparison,
+  vendorCoverage
+} from "@/lib/content";
 
 export default function HomePage() {
   return (
@@ -57,6 +70,14 @@ export default function HomePage() {
         <IntentRouter />
       </section>
 
+      <nav className="command-nav" aria-label="QuantumCrafters command sections">
+        {commandNavItems.map((item) => (
+          <Link href={item.href} key={item.href}>
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
       <section className="section flush">
         <div className="section-heading">
           <p className="eyebrow">Why QuantumCrafters</p>
@@ -74,6 +95,37 @@ export default function HomePage() {
               <p>{edge.description}</p>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="section" id="support-models">
+        <div className="section-heading">
+          <p className="eyebrow">Support model</p>
+          <h2>The old support model is not built for modern network infrastructure.</h2>
+          <p>
+            Reactive support creates drift. The QuantumCrafters model turns network help into governed operations with
+            diagnosis, controlled change, evidence, and continuity.
+          </p>
+        </div>
+        <div className="comparison-grid">
+          <article className="comparison-panel old">
+            <p className="eyebrow">{supportModelComparison.old.label}</p>
+            <h3>{supportModelComparison.old.title}</h3>
+            <ul className="check-list muted">
+              {supportModelComparison.old.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </article>
+          <article className="comparison-panel qcs">
+            <p className="eyebrow">{supportModelComparison.qcs.label}</p>
+            <h3>{supportModelComparison.qcs.title}</h3>
+            <ul className="check-list">
+              {supportModelComparison.qcs.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </article>
         </div>
       </section>
 
@@ -124,6 +176,47 @@ export default function HomePage() {
               </article>
             );
           })}
+        </div>
+      </section>
+
+      <section className="section" id="vendors">
+        <div className="section-heading">
+          <p className="eyebrow">Multi-vendor coverage</p>
+          <h2>Support across the platforms real networks actually use.</h2>
+          <p>
+            Real environments are mixed. We support the vendors, clouds, and business scenarios that show up in
+            multi-site networks, firewall estates, and cloud-connected teams.
+          </p>
+        </div>
+        <div className="pill-cloud">
+          {vendorCoverage.map((vendor) => (
+            <span key={vendor}>{vendor}</span>
+          ))}
+        </div>
+        <div className="pill-cloud muted" aria-label="Industries supported">
+          {industryCoverage.map((industry) => (
+            <span key={industry}>{industry}</span>
+          ))}
+        </div>
+      </section>
+
+      <section className="section" id="process">
+        <div className="section-heading">
+          <p className="eyebrow">Delivery workflow</p>
+          <h2>Diagnose. Stabilise. Secure. Support.</h2>
+          <p>
+            Every serious request should move through a clear operating rhythm so fixes are controlled, validated,
+            documented, and ready for follow-up support.
+          </p>
+        </div>
+        <div className="process-timeline">
+          {deliveryWorkflow.map((step, index) => (
+            <article key={step.title}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <h3>{step.title}</h3>
+              <p>{step.description}</p>
+            </article>
+          ))}
         </div>
       </section>
 

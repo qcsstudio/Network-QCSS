@@ -82,6 +82,89 @@ export const contentPillars = [
   }
 ];
 
+export const commandNavItems = [
+  { label: "Services", href: "#services" },
+  { label: "Support Models", href: "#support-models" },
+  { label: "Vendors", href: "#vendors" },
+  { label: "Process", href: "#process" },
+  { label: "Tools", href: "#tools" }
+];
+
+export const supportModelComparison = {
+  old: {
+    label: "Reactive model",
+    title: "What most networks suffer from",
+    items: [
+      "Break-fix support after users complain",
+      "Firewall rules added without review",
+      "VPN and routing issues fixed temporarily",
+      "No clear change documentation",
+      "Vendor dependency during emergencies",
+      "Fragmented monitoring and ownership"
+    ]
+  },
+  qcs: {
+    label: "QuantumCrafters model",
+    title: "What the command system creates",
+    items: [
+      "Structured diagnosis before configuration changes",
+      "Firewall, VPN, SD-WAN, cloud, LAN, and Wi-Fi handled together",
+      "SLA-led response path for critical incidents",
+      "Backups, documentation, and handover discipline",
+      "Security testing connected to remediation",
+      "Training and operating knowledge kept in the same studio"
+    ]
+  }
+};
+
+export const vendorCoverage = [
+  "Cisco",
+  "Fortinet / FortiGate",
+  "Palo Alto Networks",
+  "Sophos",
+  "SonicWall",
+  "Juniper",
+  "Aruba / HPE",
+  "Ubiquiti",
+  "MikroTik",
+  "Check Point",
+  "AWS",
+  "Azure",
+  "Google Cloud"
+];
+
+export const industryCoverage = [
+  "Corporate offices",
+  "IT companies",
+  "Manufacturing units",
+  "Warehouses",
+  "Hospitals and clinics",
+  "Schools and colleges",
+  "Hotels and hospitality",
+  "Retail chains",
+  "Multi-branch businesses",
+  "Cloud-first teams"
+];
+
+export const deliveryWorkflow = [
+  {
+    title: "Discover and Diagnose",
+    description: "Understand business impact, topology, current device state, recent changes, and urgency."
+  },
+  {
+    title: "Design the Fix",
+    description: "Prepare the configuration, remediation, testing, migration, or stabilisation path before changing production."
+  },
+  {
+    title: "Configure and Validate",
+    description: "Implement the controlled change and validate routing, VPN, firewall, failover, access, and logs."
+  },
+  {
+    title: "Document and Support",
+    description: "Create handover notes, backup recommendations, audit evidence, and an ongoing support option."
+  }
+];
+
 export const operatingModes = [
   {
     title: "Build",
