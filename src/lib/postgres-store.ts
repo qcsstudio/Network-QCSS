@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { getPrismaClient } from "@/lib/prisma";
+import { getDeploymentReadiness } from "@/lib/readiness";
 import { priorityForScore } from "@/lib/security";
 import {
   AssessmentInput,
@@ -330,6 +331,7 @@ export async function getDashboardSnapshotPostgres(): Promise<DashboardSnapshot>
     latestEvents: events.map(mapEvent),
     latestAssessments: assessments.map(mapAssessment),
     latestAuditLogs: auditLogs.map(mapAuditLog),
+    readiness: getDeploymentReadiness(),
     updatedAt: new Date().toISOString()
   };
 }

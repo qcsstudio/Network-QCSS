@@ -22,6 +22,7 @@ https://github.com/qcsstudio/Network-QCSS.git
 - Admin session authentication
 - Consent-aware analytics and marketing pixels
 - CRM, email, and WhatsApp integration hooks
+- Deployment readiness checks and Prisma migration deploy scripts
 
 ## Run Locally
 
@@ -45,6 +46,12 @@ npm run build
 npm run smoke
 ```
 
+Production readiness report:
+
+```powershell
+npm run env:check
+```
+
 ## Key Routes
 
 - `/` - public diagnostic homepage
@@ -54,6 +61,7 @@ npm run smoke
 - `/resources` - resource and content engine
 - `/admin` - operator dashboard
 - `/admin/login` - protected admin login
+- `/api/admin/readiness` - protected deployment readiness snapshot
 - `/privacy` - privacy and consent policy
 - `/sitemap.xml` - SEO sitemap
 - `/robots.txt` - crawler rules
@@ -75,8 +83,10 @@ npm run smoke
 - Admin dashboard
 - Admin login, signed session cookies, and admin API token support
 - Admin and system audit logs
+- Admin deployment readiness panel
 - CSV export
 - Prisma/PostgreSQL production schema
+- Prisma migration for production deploys
 - File-store and PostgreSQL-store adapter architecture
 - Lead integration dispatch for webhook, HubSpot, Zoho, email, Resend, and WhatsApp
 - Privacy-hardened public API responses
@@ -104,7 +114,7 @@ Then use Prisma migrations:
 
 ```powershell
 npm run prisma:generate
-npm run prisma:migrate
+npm run prisma:deploy
 ```
 
 ## Admin Authentication
@@ -147,6 +157,11 @@ NEXT_PUBLIC_GTM_ID=
 NEXT_PUBLIC_GA_ID=
 NEXT_PUBLIC_META_PIXEL_ID=
 NEXT_PUBLIC_LINKEDIN_PARTNER_ID=
+NEXT_PUBLIC_GOOGLE_ADS_LEAD_SEND_TO=
+NEXT_PUBLIC_LINKEDIN_LEAD_CONVERSION_ID=
+NEXT_PUBLIC_CONVERSION_CURRENCY=INR
+NEXT_PUBLIC_LEAD_CONVERSION_VALUE=0
+NEXT_PUBLIC_ASSESSMENT_CONVERSION_VALUE=0
 ```
 
 Tracked browser events:
@@ -174,6 +189,7 @@ HubSpot:
 
 ```text
 HUBSPOT_PRIVATE_APP_TOKEN=
+HUBSPOT_FIELD_MAPPING_JSON=
 ```
 
 Zoho CRM:
@@ -181,6 +197,7 @@ Zoho CRM:
 ```text
 ZOHO_ACCESS_TOKEN=
 ZOHO_CRM_LEADS_URL=
+ZOHO_FIELD_MAPPING_JSON=
 ```
 
 Email automation:
@@ -216,17 +233,20 @@ npm run lint
 npm run typecheck
 npx prisma generate
 npm audit --audit-level=moderate
+npm run env:check
 npm run build
 npm run smoke
 ```
 
+## Operator Docs
+
+- [Deployment runbook](docs/deployment-runbook.md)
+- [Conversion and CRM mapping](docs/conversion-and-crm-mapping.md)
+
 ## Next Production Integrations
 
-- Production PostgreSQL migration deployment
-- Zoho CRM or HubSpot field mapping hardening
 - WhatsApp template approval and message QA
-- Google Ads enhanced conversions through GTM after consent review
-- Meta and LinkedIn conversion event mapping
+- Google Ads enhanced conversions through GTM after legal review
 - PDF report generation
 - Role-based admin users beyond the current single-admin session model
 - Content cluster expansion for India, global, managed network, cloud network, pentest, and institute search intent

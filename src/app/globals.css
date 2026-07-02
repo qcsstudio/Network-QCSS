@@ -683,6 +683,75 @@ td span {
   color: var(--muted);
 }
 
+.status-pill {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 11px;
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.status-pill.ready {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.status-pill.missing {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.readiness-group h3 {
+  margin: 0 0 10px;
+}
+
+.readiness-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 11px;
+}
+
+.readiness-item.ready {
+  border-left-color: var(--green);
+}
+
+.readiness-item.warning {
+  border-left-color: var(--amber);
+}
+
+.readiness-item.missing {
+  border-left-color: var(--red);
+}
+
+.readiness-item span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.readiness-item em {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
 .resource-card button {
   margin-top: 8px;
 }
@@ -778,7 +847,8 @@ td span {
   .service-grid,
   .automation-grid,
   .resource-grid,
-  .metric-grid {
+  .metric-grid,
+  .readiness-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -810,6 +880,7 @@ td span {
   .automation-grid,
   .resource-grid,
   .metric-grid,
+  .readiness-grid,
   .outcome-list,
   .assessment-result,
   .cookie-options {

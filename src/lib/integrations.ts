@@ -60,6 +60,57 @@ function leadPayload(lead: StoredLead) {
   };
 }
 
+const leadFieldReaders: Record<string, (lead: StoredLead) => unknown> = {
+  id: (lead) => lead.id,
+  name: (lead) => lead.name,
+  email: (lead) => lead.email,
+  phone: (lead) => lead.phone,
+  interest: (lead) => lead.interest,
+  challenge: (lead) => lead.challenge,
+  pipeline: (lead) => lead.pipeline,
+  score: (lead) => lead.score,
+  priority: (lead) => lead.priority,
+  stage: (lead) => lead.stage,
+  country: (lead) => lead.country,
+  source: (lead) => lead.attribution.source || "direct",
+  medium: (lead) => lead.attribution.medium || "",
+  campaign: (lead) => lead.attribution.campaign || "",
+  landing: (lead) => lead.attribution.landing || "",
+  referrer: (lead) => lead.attribution.referrer || "",
+  createdAt: (lead) => lead.createdAt
+};
+
+function parseFieldMapping(envName: string) {
+  const value = process.env[envName];
+  if (!value) return {};
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return Object.fromEntries(
+      Object.entries(parsed as Record<string, unknown>).filter(([, crmField]) => typeof crmField === "string" && crmField.trim())
+    ) as Record<string, string>;
+  } catch (error) {
+    console.error(`Invalid ${envName}. Expected a JSON object that maps lead fields to CRM fields.`, error);
+    return {};
+  }
+}
+
+function mappedLeadFields(lead: StoredLead, envName: string) {
+  const mapping = parseFieldMapping(envName);
+  const fields: Record<string, string | number | boolean> = {};
+
+  for (const [leadField, crmField] of Object.entries(mapping)) {
+    const reader = leadFieldReaders[leadField];
+    if (!reader) continue;
+    const value = reader(lead);
+    if (value === undefined || value === null || value === "") continue;
+    fields[crmField] = typeof value === "object" ? JSON.stringify(value) : (value as string | number | boolean);
+  }
+
+  return fields;
+}
+
 async function sendGenericWebhook(lead: StoredLead) {
   const url = process.env.LEAD_WEBHOOK_URL;
   if (!url) return skipped("lead-webhook");
@@ -81,7 +132,8 @@ async function sendHubSpot(lead: StoredLead) {
         firstname: firstName,
         lastname: lastNameParts.join(" "),
         phone: lead.phone,
-        lifecyclestage: "lead"
+        lifecyclestage: "lead",
+        ...mappedLeadFields(lead, "HUBSPOT_FIELD_MAPPING_JSON")
       }
     }
   );
@@ -103,7 +155,8 @@ async function sendZoho(lead: StoredLead) {
           Email: lead.email,
           Phone: lead.phone,
           Lead_Source: lead.attribution.source || "Website",
-          Description: `${lead.interest} | ${lead.challenge}`.slice(0, 32000)
+          Description: `${lead.interest} | ${lead.challenge}`.slice(0, 32000),
+          ...mappedLeadFields(lead, "ZOHO_FIELD_MAPPING_JSON")
         }
       ]
     }

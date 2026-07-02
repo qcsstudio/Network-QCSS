@@ -26,6 +26,37 @@ function trackingWindow() {
   return window as TrackingWindow;
 }
 
+function numericEnv(name: string, fallback: number) {
+  const value = Number(process.env[name] || "");
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function conversionParams(event: string, params: JsonRecord): JsonRecord {
+  const currency = process.env.NEXT_PUBLIC_CONVERSION_CURRENCY || "INR";
+  const leadValue = numericEnv("NEXT_PUBLIC_LEAD_CONVERSION_VALUE", 0);
+  const assessmentValue = numericEnv("NEXT_PUBLIC_ASSESSMENT_CONVERSION_VALUE", 0);
+
+  if (event === "generate_lead") {
+    return {
+      ...params,
+      currency,
+      value: leadValue,
+      event_category: "lead_generation"
+    };
+  }
+
+  if (event === "assessment_complete") {
+    return {
+      ...params,
+      currency,
+      value: assessmentValue,
+      event_category: "diagnostic_tool"
+    };
+  }
+
+  return params;
+}
+
 export function updateConsentMode(consent: ConsentState) {
   const win = trackingWindow();
   const update = {
@@ -46,13 +77,23 @@ export function updateConsentMode(consent: ConsentState) {
 
 export function trackBrowserEvent(event: string, params: JsonRecord = {}) {
   const win = trackingWindow();
+  const conversion = conversionParams(event, params);
   win.dataLayer = win.dataLayer || [];
-  win.dataLayer.push({ event, ...params });
-  win.gtag?.("event", event, params);
+  win.dataLayer.push({ event, ...conversion });
+  win.gtag?.("event", event, conversion);
 
   if (event === "generate_lead") {
-    win.fbq?.("track", "Lead", params);
-    win.lintrk?.("track", params);
+    const googleAdsSendTo = process.env.NEXT_PUBLIC_GOOGLE_ADS_LEAD_SEND_TO;
+    const linkedInConversionId = process.env.NEXT_PUBLIC_LINKEDIN_LEAD_CONVERSION_ID;
+    if (googleAdsSendTo) {
+      win.gtag?.("event", "conversion", {
+        send_to: googleAdsSendTo,
+        currency: String(conversion.currency || process.env.NEXT_PUBLIC_CONVERSION_CURRENCY || "INR"),
+        value: typeof conversion.value === "number" ? conversion.value : 0
+      });
+    }
+    win.fbq?.("track", "Lead", conversion);
+    win.lintrk?.("track", linkedInConversionId ? { conversion_id: linkedInConversionId } : conversion);
   }
 }
 

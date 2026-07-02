@@ -12,6 +12,7 @@ import {
   StoredLead,
   StoredResource
 } from "@/lib/types";
+import { getDeploymentReadiness } from "@/lib/readiness";
 import { priorityForScore } from "@/lib/security";
 
 type StoreFile = {
@@ -250,6 +251,7 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     latestEvents: store.events.slice(-15).reverse(),
     latestAssessments: store.assessments.slice(-10).reverse(),
     latestAuditLogs: (store.auditLogs || []).slice(-10).reverse(),
+    readiness: getDeploymentReadiness(),
     updatedAt: store.updatedAt
   };
 }

@@ -2,6 +2,7 @@ import type { DashboardSnapshot } from "@/lib/types";
 
 export function OperatorDashboard({ snapshot }: { snapshot: DashboardSnapshot }) {
   const pipelineEntries = Object.entries(snapshot.byPipeline).sort((a, b) => b[1] - a[1]);
+  const readiness = snapshot.readiness;
 
   return (
     <div className="admin-stack">
@@ -32,6 +33,36 @@ export function OperatorDashboard({ snapshot }: { snapshot: DashboardSnapshot })
           <span>Admin and system actions</span>
         </article>
       </div>
+
+      <section className="admin-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Deployment readiness</p>
+            <h2>{readiness.score}% configured</h2>
+          </div>
+          <span className={readiness.blockers ? "status-pill missing" : "status-pill ready"}>
+            {readiness.blockers ? `${readiness.blockers} blocker(s)` : "Production ready"}
+          </span>
+        </div>
+        <div className="readiness-grid">
+          {readiness.groups.map((group) => (
+            <div className="readiness-group" key={group.key}>
+              <h3>{group.label}</h3>
+              <div className="stack-list">
+                {group.items.map((item) => (
+                  <div className={`readiness-item ${item.status}`} key={item.key}>
+                    <div>
+                      <strong>{item.label}</strong>
+                      <span>{item.detail}</span>
+                    </div>
+                    <em>{item.status}</em>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <div className="admin-grid">
         <section className="admin-panel wide">

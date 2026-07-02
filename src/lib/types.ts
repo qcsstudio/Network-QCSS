@@ -112,6 +112,31 @@ export type StoredAuditLog = {
   createdAt: string;
 };
 
+export type ReadinessStatus = "ready" | "warning" | "missing";
+
+export type ReadinessItem = {
+  key: string;
+  label: string;
+  status: ReadinessStatus;
+  detail: string;
+  required: boolean;
+};
+
+export type ReadinessGroup = {
+  key: string;
+  label: string;
+  items: ReadinessItem[];
+};
+
+export type DeploymentReadiness = {
+  score: number;
+  ready: number;
+  total: number;
+  blockers: number;
+  groups: ReadinessGroup[];
+  updatedAt: string;
+};
+
 export type DashboardSnapshot = {
   totals: {
     leads: number;
@@ -127,5 +152,6 @@ export type DashboardSnapshot = {
   latestEvents: StoredEvent[];
   latestAssessments: StoredAssessment[];
   latestAuditLogs: StoredAuditLog[];
+  readiness: DeploymentReadiness;
   updatedAt: string;
 };

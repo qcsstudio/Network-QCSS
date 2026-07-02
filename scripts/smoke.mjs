@@ -72,6 +72,11 @@ try {
     throw new Error(`Lead export should require admin auth. Received ${unauthorizedExport.status}`);
   }
 
+  const unauthorizedReadiness = await fetch(`${baseUrl}/api/admin/readiness`);
+  if (unauthorizedReadiness.status !== 401) {
+    throw new Error(`Readiness should require admin auth. Received ${unauthorizedReadiness.status}`);
+  }
+
   const consent = {
     necessary: true,
     analytics: true,
@@ -140,6 +145,16 @@ try {
   }
   if (!dashboard.totals.auditLogs || !dashboard.latestAuditLogs?.some((auditLog) => auditLog.action === "lead.created")) {
     throw new Error(`Dashboard did not include lead audit log: ${JSON.stringify(dashboard.totals)}`);
+  }
+  if (!dashboard.readiness || typeof dashboard.readiness.score !== "number") {
+    throw new Error(`Dashboard did not include deployment readiness: ${JSON.stringify(dashboard)}`);
+  }
+
+  const readiness = await fetch(`${baseUrl}/api/admin/readiness`, {
+    headers: { "x-admin-token": adminToken }
+  }).then((response) => response.json());
+  if (!readiness.ok || typeof readiness.readiness?.score !== "number") {
+    throw new Error(`Readiness endpoint did not return a snapshot: ${JSON.stringify(readiness)}`);
   }
 
   console.log(JSON.stringify({ ok: true, totals: dashboard.totals }, null, 2));
