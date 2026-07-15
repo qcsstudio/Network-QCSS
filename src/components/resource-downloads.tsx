@@ -6,7 +6,7 @@ import { getStoredConsent } from "@/components/consent-banner";
 import { trackBrowserEvent } from "@/lib/client-tracking";
 
 export function ResourceDownloads() {
-  const [status, setStatus] = useState("Choose a resource to create a content-led signal.");
+  const [status, setStatus] = useState("Choose a resource to review the checklist, template, or roadmap.");
 
   async function download(slug: string) {
     trackBrowserEvent("lead_magnet_download", { resource: slug });
@@ -19,7 +19,7 @@ export function ResourceDownloads() {
         attribution: { landing: window.location.pathname, referrer: document.referrer || undefined }
       })
     });
-    setStatus("Resource intent saved. In production this can trigger email, WhatsApp, and retargeting workflows.");
+    setStatus("Resource request saved. QCS can use this context if you ask for a deeper review.");
   }
 
   return (
@@ -32,7 +32,7 @@ export function ResourceDownloads() {
             <p>{resource.summary}</p>
             <span className="resource-audience">{resource.audience}</span>
             <button className="button secondary" onClick={() => download(resource.slug)} type="button">
-              Capture Download
+              Get Resource
             </button>
           </article>
         ))}

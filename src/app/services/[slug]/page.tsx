@@ -96,7 +96,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
           <Link className="button primary" href={`/tools/${service.tool}`}>
             {service.cta}
           </Link>
-          <a className="button secondary" href="#lead">
+          <a className="button secondary" href="#request-review">
             Request Engineering Review
           </a>
         </div>
@@ -176,10 +176,10 @@ export default async function ServicePage({ params }: ServicePageProps) {
         </div>
       </section>
 
-      <section className="section split" id="lead">
+      <section className="section split" id="request-review">
         <div className="section-heading">
-          <p className="eyebrow">Pipeline routing</p>
-          <h2>Qualified inquiries from this page route to {service.title}.</h2>
+          <p className="eyebrow">Request review</p>
+          <h2>Share the environment and QCS can respond around {service.title}.</h2>
         </div>
         <LeadForm interest={service.title} pipeline={service.title} />
       </section>

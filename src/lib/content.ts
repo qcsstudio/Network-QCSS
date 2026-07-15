@@ -31,10 +31,10 @@ export const positioning = {
 };
 
 export const proofSignals = [
-  { value: "6", label: "Assessment engines for buyer intent" },
+  { value: "6", label: "Guided network readiness checks" },
   { value: "24x7", label: "NOC and incident-response operating model" },
-  { value: "30+", label: "SEO/AIO page and tool opportunities" },
-  { value: "1", label: "Public website plus private growth dashboard" }
+  { value: "30+", label: "Service, tool, and resource paths" },
+  { value: "1", label: "Operate, secure, test, and train model" }
 ];
 
 export const commandNavItems = [
@@ -50,7 +50,7 @@ export const commandLayers = [
   {
     title: "Diagnose",
     description:
-      "Assessment-led discovery for outages, firewall drift, cloud exposure, pentest readiness, SASE maturity, and training path fit.",
+      "Guided checks for outages, firewall drift, cloud exposure, pentest readiness, SASE maturity, and training path fit.",
     icon: Radar
   },
   {
@@ -83,7 +83,7 @@ export const researchSignals = [
   {
     title: "Networks are becoming business-critical AI infrastructure",
     description:
-      "NaaS, SD-WAN, SASE, cloud connectivity, and observability are being positioned as the foundation for distributed teams, SaaS dependency, and AI-era workloads."
+      "NaaS, SD-WAN, SASE, cloud connectivity, and observability are becoming the foundation for distributed teams, SaaS dependency, and AI-era workloads."
   },
   {
     title: "Buyers want evidence, not vague IT support",
@@ -93,7 +93,7 @@ export const researchSignals = [
   {
     title: "Search and AI visibility reward useful, structured answers",
     description:
-      "Google's AI guidance still points back to helpful, crawlable, original content with clear page purpose, strong structured data, and answer-first information architecture."
+      "Modern buyers compare answers before they book calls, so every page should explain the problem, the method, and the practical next step."
   }
 ];
 
@@ -101,7 +101,7 @@ export const visualPositioningModules = [
   {
     title: "Command room, not brochure",
     description:
-      "The website should look simple to buyers while quietly qualifying urgency, service interest, evidence needs, and campaign source."
+      "The experience should feel clear to buyers while guiding them toward the right diagnostic, service, or training path."
   },
   {
     title: "Global trust with Indian execution",
@@ -175,13 +175,13 @@ export const supportModelComparison = {
   },
   qcs: {
     label: "QCS command model",
-    title: "What the refreshed structure sells",
+    title: "What the QCS model creates",
     items: [
       "Assessment before configuration changes",
-      "Service pages mapped to buyer problems",
-      "Free tools that capture high-intent signals",
-      "Evidence checklists before calls",
-      "Dashboard-ready lead and assessment profiles",
+      "Service paths mapped to buyer problems",
+      "Free tools that help validate symptoms",
+      "Evidence checklists before engineering calls",
+      "Clear readiness snapshots",
       "Training paths connected to real operations"
     ]
   }
@@ -828,17 +828,17 @@ export const authorityEngine = [
   {
     title: "Network Tools",
     description:
-      "DNS, MX, SPF/DMARC, SSL, headers, and port checks that capture high-intent search demand and route to service pipelines."
+      "DNS, MX, SPF/DMARC, SSL, headers, and port checks that help visitors validate symptoms before deeper support."
   },
   {
     title: "Resource Library",
     description:
-      "Checklists, templates, guides, and roadmaps that create useful content-led signals and nurture paths."
+      "Checklists, templates, guides, and roadmaps that help buyers prepare the right evidence before a technical discussion."
   },
   {
     title: "LLM Index",
     description:
-      "A plain-language llms.txt index that helps AI systems understand services, tools, assessments, and positioning."
+      "A plain-language index that helps assistants understand services, tools, assessments, and positioning."
   },
   {
     title: "Structured Data",
@@ -875,7 +875,7 @@ export const seoAioBlueprint = [
   {
     title: "Schema plus crawl clarity",
     description:
-      "JSON-LD, sitemap coverage, canonical paths, llms.txt, internal links, and concise FAQs make the site easier for search and AI systems to interpret."
+      "JSON-LD, sitemap coverage, canonical paths, internal links, and concise FAQs make the site easier for users and discovery systems to interpret."
   }
 ];
 
@@ -964,8 +964,8 @@ export const instituteTracks = [
 ];
 
 export const automationFlows = [
-  { title: "Lead capture", description: "Forms, tools, WhatsApp, calls, and resource downloads become structured lead records.", icon: BriefcaseBusiness },
-  { title: "Consent-aware tracking", description: "Analytics and marketing events activate only when visitor consent allows it.", icon: ShieldCheck },
-  { title: "Lead scoring", description: "Intent, fit, urgency, and assessment answers determine priority and follow-up timing.", icon: BrainCircuit },
-  { title: "Workflow routing", description: "Managed services, pentesting, emergency support, training, and corporate leads route separately.", icon: Zap }
+  { title: "Share the issue", description: "Tell us what is happening across users, sites, cloud apps, security controls, or career goals.", icon: BriefcaseBusiness },
+  { title: "Check readiness", description: "Use a guided diagnostic to understand urgency, missing evidence, and the likely work path.", icon: ShieldCheck },
+  { title: "Review with QCS", description: "Turn the result into a practical conversation with the right network, security, cloud, or training focus.", icon: BrainCircuit },
+  { title: "Move with clarity", description: "Leave with a next-step plan, evidence checklist, and service or training direction.", icon: Zap }
 ];

@@ -7,18 +7,14 @@ import { LeadForm } from "@/components/lead-form";
 import { ResourceDownloads } from "@/components/resource-downloads";
 import {
   automationFlows,
-  authorityEngine,
   buyerJourneys,
   commandLayers,
-  contentPillars,
   deliveryWorkflow,
   industryCoverage,
   marketEdges,
   operatingModes,
   positioning,
   proofSignals,
-  researchSignals,
-  seoAioBlueprint,
   services,
   solutionPages,
   supportModelComparison,
@@ -29,7 +25,7 @@ import { networkUtilityTools } from "@/lib/network-tools";
 export default function HomePage() {
   return (
     <main>
-      <section className="hero-section">
+      <section className="hero-section futuristic-hero">
         <Image className="hero-bg-image" src="/brand/network-command-hero.png" alt="" fill priority sizes="100vw" />
         <div className="hero-copy">
           <Image
@@ -49,7 +45,7 @@ export default function HomePage() {
               {positioning.primaryCta}
             </Link>
             <Link className="button secondary dark large" href="/solutions">
-              {positioning.secondaryCta}
+              See Solutions
             </Link>
           </div>
           <div className="proof-strip" aria-label="QuantumCrafters proof signals">
@@ -62,20 +58,20 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="network-visual" aria-label="Network command dashboard preview">
+        <div className="network-visual" aria-label="QuantumCrafters network command visual">
           <div className="visual-panel command-console">
             <div className="console-topline">
-              <span>Command readiness</span>
-              <strong>Live</strong>
+              <span>Network posture</span>
+              <strong>Guided</strong>
             </div>
             <div className="visual-radar" aria-hidden="true">
               <span />
               <span />
               <span />
             </div>
-            <span className="signal online">Assess</span>
-            <span className="signal alert">Exposure</span>
             <span className="signal online">Operate</span>
+            <span className="signal alert">Secure</span>
+            <span className="signal online">Cloud</span>
             <span className="signal warn">Retest</span>
             <div className="visual-score">
               <strong>QCS</strong>
@@ -93,11 +89,11 @@ export default function HomePage() {
 
       <section className="section mission-band">
         <div className="mission-copy">
-          <p className="eyebrow">Full site refresh</p>
-          <h2>A website that works like a marketing and service qualification system.</h2>
+          <p className="eyebrow">Why this exists</p>
+          <h2>Your network should not feel like a mystery every time something breaks.</h2>
           <p>
-            The public layer educates buyers and learners. The tool layer captures high-intent technical signals. The
-            private layer turns assessments, resources, attribution, and leads into a funnel you can manage.
+            QCS helps teams understand what is happening, what is exposed, what should be fixed first, and which support
+            or training path makes sense before production changes begin.
           </p>
         </div>
         <div className="mission-grid">
@@ -118,34 +114,34 @@ export default function HomePage() {
         <IntentRouter />
       </section>
 
+      <EnvatoVisualSystem />
+
       <section className="section">
         <div className="section-heading">
-          <p className="eyebrow">Research-backed direction</p>
-          <h2>Position QCS where network operations, security, cloud, and training are converging.</h2>
+          <p className="eyebrow">Built for your situation</p>
+          <h2>Choose the path that matches the pressure you are under.</h2>
           <p>
-            The refreshed structure is designed around the demand shift toward managed operations, SASE/Zero Trust,
-            cloud-connected networks, useful tools, and evidence-led service buying.
+            Outage, firewall drift, cloud exposure, pentest pressure, monitoring gaps, or career development: every path
+            starts with a clear first step.
           </p>
         </div>
-        <div className="edge-grid">
-          {researchSignals.map((signal) => (
-            <article className="edge-card" key={signal.title}>
-              <h3>{signal.title}</h3>
-              <p>{signal.description}</p>
+        <div className="journey-grid">
+          {buyerJourneys.map((journey) => (
+            <article className="journey-card" key={journey.title}>
+              <h3>{journey.title}</h3>
+              <p>{journey.description}</p>
+              <span>{journey.route}</span>
             </article>
           ))}
         </div>
       </section>
 
-      <EnvatoVisualSystem />
-
       <section className="section" id="solutions">
         <div className="section-heading">
-          <p className="eyebrow">Solution architecture</p>
-          <h2>Start with the buyer problem, then route to service, tool, and evidence.</h2>
+          <p className="eyebrow">Solution paths</p>
+          <h2>Simple pages for the problems people actually search for.</h2>
           <p>
-            These pages are built for answer engines and search intent: each one gives a direct answer, explains the
-            problem, links to services, and sends qualified visitors into an assessment.
+            Each path explains the issue, what evidence helps, and which QCS service or diagnostic should come next.
           </p>
         </div>
         <div className="service-grid">
@@ -160,18 +156,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section">
+      <section className="section dark-showcase outcome-showcase">
         <div className="section-heading">
-          <p className="eyebrow">Why QCS</p>
-          <h2>Built for teams that need action, evidence, and continuity.</h2>
-          <p>
-            The strongest positioning is not “we do IT support.” It is a command system that diagnoses, operates,
-            secures, tests, and teaches networks with measurable outputs.
-          </p>
+          <p className="eyebrow">What makes QCS different</p>
+          <h2>Practical network expertise, security discipline, and training depth in one place.</h2>
         </div>
         <div className="edge-grid">
           {marketEdges.map((edge) => (
-            <article className="edge-card" key={edge.title}>
+            <article className="authority-card" key={edge.title}>
               <h3>{edge.title}</h3>
               <p>{edge.description}</p>
             </article>
@@ -182,10 +174,9 @@ export default function HomePage() {
       <section className="section" id="services">
         <div className="section-heading">
           <p className="eyebrow">Core services</p>
-          <h2>Eight commercial service pages with assessment-led CTAs.</h2>
+          <h2>Operate, secure, monitor, test, troubleshoot, and train.</h2>
           <p>
-            Each service has a clear buyer trigger, scope, deliverables, FAQ content, and a diagnostic CTA that feeds the
-            owner dashboard.
+            Pick a service when you already know the need. Start with an assessment when the problem is still unclear.
           </p>
         </div>
         <div className="service-grid">
@@ -208,8 +199,8 @@ export default function HomePage() {
 
       <section className="section" id="support-models">
         <div className="section-heading">
-          <p className="eyebrow">Operating model</p>
-          <h2>Move buyers from reactive support to governed network operations.</h2>
+          <p className="eyebrow">Support model</p>
+          <h2>Move from reactive fixes to controlled network decisions.</h2>
         </div>
         <div className="comparison-grid">
           <article className="comparison-panel old">
@@ -236,7 +227,7 @@ export default function HomePage() {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Command modes</p>
-          <h2>Five doors into one network command system.</h2>
+          <h2>Five clear ways QCS can help.</h2>
         </div>
         <div className="mode-grid">
           {operatingModes.map((mode) => {
@@ -252,63 +243,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section">
-        <div className="section-heading">
-          <p className="eyebrow">Buyer journey routing</p>
-          <h2>Different visitors should feel they found the exact door.</h2>
-        </div>
-        <div className="journey-grid">
-          {buyerJourneys.map((journey) => (
-            <article className="journey-card" key={journey.title}>
-              <h3>{journey.title}</h3>
-              <p>{journey.description}</p>
-              <span>{journey.route}</span>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="section dark-showcase">
-        <div className="section-heading">
-          <p className="eyebrow">SEO and AIO engine</p>
-          <h2>Helpful content, structured entities, tools, and schema instead of empty keyword pages.</h2>
-          <p>
-            The site is structured to help people first: answer the question, show the method, provide a tool or
-            checklist, and route the next action logically.
-          </p>
-        </div>
-        <div className="authority-grid">
-          {authorityEngine.map((block) => (
-            <article className="authority-card" key={block.title}>
-              <h3>{block.title}</h3>
-              <p>{block.description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-heading">
-          <p className="eyebrow">AIO copy model</p>
-          <h2>Each page should be easy for humans, crawlers, and AI systems to summarize correctly.</h2>
-        </div>
-        <div className="pillar-grid">
-          {seoAioBlueprint.map((item) => (
-            <article className="pillar-card" key={item.title}>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section className="section" id="tools">
         <div className="section-heading">
-          <p className="eyebrow">Assessment layer</p>
-          <h2>Lead magnets that behave like technical triage.</h2>
+          <p className="eyebrow">Guided assessment</p>
+          <h2>Start with a readiness snapshot when the next step is not obvious.</h2>
           <p>
-            Assessments store risk band, service pipeline, evidence needs, CTA owner, response window, consent state,
-            and attribution context.
+            The assessment asks a few practical questions and returns a risk band, evidence checklist, and recommended
+            next action.
           </p>
         </div>
         <AssessmentTool />
@@ -317,7 +258,7 @@ export default function HomePage() {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Free network utilities</p>
-          <h2>Short tools that attract high-intent troubleshooting searches.</h2>
+          <h2>Run quick public checks before deeper troubleshooting.</h2>
         </div>
         <div className="utility-grid compact">
           {networkUtilityTools.map((tool) => {
@@ -329,6 +270,41 @@ export default function HomePage() {
                 <h3>{tool.shortTitle}</h3>
                 <p>{tool.description}</p>
               </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="section" id="process">
+        <div className="section-heading">
+          <p className="eyebrow">How the work moves</p>
+          <h2>A simpler path from symptom to decision.</h2>
+        </div>
+        <div className="process-timeline">
+          {deliveryWorkflow.map((step, index) => (
+            <article key={step.title}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <h3>{step.title}</h3>
+              <p>{step.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">First conversation</p>
+          <h2>What you can expect after sharing a request.</h2>
+        </div>
+        <div className="automation-grid">
+          {automationFlows.map((flow) => {
+            const Icon = flow.icon;
+            return (
+              <article className="flow-card" key={flow.title}>
+                <Icon size={26} />
+                <h3>{flow.title}</h3>
+                <p>{flow.description}</p>
+              </article>
             );
           })}
         </div>
@@ -351,71 +327,21 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section" id="process">
-        <div className="section-heading">
-          <p className="eyebrow">Delivery workflow</p>
-          <h2>Discover. Diagnose. Design. Deliver. Develop.</h2>
-        </div>
-        <div className="process-timeline">
-          {deliveryWorkflow.map((step, index) => (
-            <article key={step.title}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <h3>{step.title}</h3>
-              <p>{step.description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section className="section">
         <div className="section-heading">
-          <p className="eyebrow">Content clusters</p>
-          <h2>Own the topics where service buyers and learners overlap.</h2>
-        </div>
-        <div className="pillar-grid">
-          {contentPillars.map((pillar) => (
-            <article className="pillar-card" key={pillar.title}>
-              <h3>{pillar.title}</h3>
-              <p>{pillar.description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-heading">
-          <p className="eyebrow">Resource engine</p>
-          <h2>Give visitors a useful asset before asking for a sales conversation.</h2>
+          <p className="eyebrow">Useful resources</p>
+          <h2>Prepare better before a call, audit, incident review, or career decision.</h2>
         </div>
         <ResourceDownloads />
       </section>
 
-      <section className="section">
+      <section className="section split final-cta-band">
         <div className="section-heading">
-          <p className="eyebrow">Automation layer</p>
-          <h2>The public site stays simple. The operator layer does the heavy lifting.</h2>
-        </div>
-        <div className="automation-grid">
-          {automationFlows.map((flow) => {
-            const Icon = flow.icon;
-            return (
-              <article className="flow-card" key={flow.title}>
-                <Icon size={26} />
-                <h3>{flow.title}</h3>
-                <p>{flow.description}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="section split">
-        <div className="section-heading">
-          <p className="eyebrow">Lead capture</p>
-          <h2>Convert serious visitors without making the brand feel like a form factory.</h2>
+          <p className="eyebrow">Request review</p>
+          <h2>Tell QCS what is happening. We will help you choose the right next step.</h2>
           <p>
-            Anonymous activity stays anonymous until the visitor submits a form, resource request, assessment follow-up,
-            WhatsApp action, or booking request.
+            Share the issue, the environment, or the training goal. Keep it simple; the first response should help you
+            move with more clarity.
           </p>
         </div>
         <LeadForm interest="Network command assessment" pipeline="Managed Network Services" />

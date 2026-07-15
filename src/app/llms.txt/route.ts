@@ -26,7 +26,7 @@ export function GET() {
     "## Positioning",
     "- Evidence-first network command studio: diagnose, operate, secure, modernize, test, and train.",
     "- Best fit: growing companies, multi-site teams, cloud-connected businesses, hybrid-work organizations, institutes, and teams needing accountable network/security help.",
-    "- Private operator layer: consent-aware tracking, lead funnel, service pipeline mix, tool usage, assessments, resources, and readiness data."
+    "- Public experience: guided assessments, practical utilities, service paths, resources, and training options that help buyers choose the right next action."
   ];
 
   return new Response(lines.join("\n"), {

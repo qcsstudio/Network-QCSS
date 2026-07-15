@@ -1,11 +1,33 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Orbitron, Rajdhani, Space_Grotesk } from "next/font/google";
 import { ConsentBanner } from "@/components/consent-banner";
 import { MarketingScripts } from "@/components/marketing-scripts";
 import { SiteHeader } from "@/components/site-header";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig } from "@/lib/content";
 import "./globals.css";
+
+const displayFont = Orbitron({
+  subsets: ["latin"],
+  weight: ["600", "700", "800", "900"],
+  variable: "--font-display",
+  display: "swap"
+});
+
+const bodyFont = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-body",
+  display: "swap"
+});
+
+const techFont = Rajdhani({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-tech",
+  display: "swap"
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -34,7 +56,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>
+      <body className={`${bodyFont.variable} ${displayFont.variable} ${techFont.variable}`}>
         <StructuredData
           data={[
             {

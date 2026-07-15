@@ -49,7 +49,7 @@ export default function NetworkToolsPage() {
         ]}
       />
       <section className="page-hero">
-        <p className="eyebrow">Network utility layer</p>
+        <p className="eyebrow">Network utility hub</p>
         <h1>Free online network tools for DNS, SSL, email security, headers, and port triage.</h1>
         <p>
           Use focused tools to check public network signals quickly. Every tool is useful on its own, and each one also
@@ -59,19 +59,19 @@ export default function NetworkToolsPage() {
 
       <section className="section split">
         <div className="answer-panel">
-          <p className="eyebrow">SEO intent</p>
-          <h2>Short tools attract technical buyers before they are ready to book a call.</h2>
+          <p className="eyebrow">Quick diagnosis</p>
+          <h2>Short tools help technical teams validate symptoms before booking a call.</h2>
           <p>
             DNS, MX, SPF/DMARC, SSL, header, and port checks reveal intent around outages, email delivery, public
             exposure, firewall access, and website security.
           </p>
         </div>
         <div className="answer-panel muted">
-          <p className="eyebrow">Conversion path</p>
-          <h2>The tool result becomes a service signal, not a dead end.</h2>
+          <p className="eyebrow">Next-step path</p>
+          <h2>The result becomes a practical decision point, not a dead end.</h2>
           <p>
-            Tool usage can feed analytics, lead scoring, retargeting, and service routing when visitor consent and
-            form-based contact permission are available.
+            If a check shows risk or uncertainty, the next step can move into assessment, remediation, managed support,
+            or a focused engineering review.
           </p>
         </div>
       </section>

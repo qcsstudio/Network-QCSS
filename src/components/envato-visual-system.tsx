@@ -35,7 +35,7 @@ const toolSignals = [
   "SSL health signals",
   "Port and header checks",
   "Network risk scoring",
-  "Lead funnel attribution"
+  "Readiness path"
 ];
 
 export function EnvatoVisualSystem() {
@@ -43,19 +43,19 @@ export function EnvatoVisualSystem() {
     <section className="asset-command-band" aria-labelledby="asset-command-heading">
       <div className="asset-command-inner">
         <div className="asset-command-copy">
-          <p className="eyebrow">Imported Envato visual system</p>
-          <h2 id="asset-command-heading">A premium network-services brand with an operator dashboard under the hood.</h2>
+          <p className="eyebrow">Immersive network visual system</p>
+          <h2 id="asset-command-heading">A futuristic service surface for networks that need clarity.</h2>
           <p>
             The new visual direction uses real infrastructure imagery, consistent cloud-network icons, and concise service
-            proof blocks. Visitors see a polished services website; the backend captures intent, source, tool usage, and
-            lead readiness for your marketing engine.
+            proof blocks so visitors quickly understand how QCS connects operations, security, cloud, testing, and
+            training.
           </p>
           <div className="button-row">
             <Link className="button primary" href="/network-tools">
               Open Network Tools
             </Link>
-            <Link className="button secondary dark" href="/admin">
-              View Operator Dashboard
+            <Link className="button secondary dark" href="/diagnose">
+              Start Guided Assessment
             </Link>
           </div>
         </div>
@@ -90,11 +90,11 @@ export function EnvatoVisualSystem() {
 
         <div className="asset-intelligence-panel">
           <div>
-            <p className="eyebrow">Marketing intelligence layer</p>
-            <h3>Every useful click can become a clearer follow-up path.</h3>
+            <p className="eyebrow">Guided diagnostic layer</p>
+            <h3>Every useful check can become a clearer next step.</h3>
             <p>
-              The public utility layer creates SEO demand, while consent-aware tracking and lead forms turn high-intent
-              technical actions into pipeline context.
+              Quick checks and readiness tools help turn unclear symptoms into practical evidence before a deeper
+              engineering conversation begins.
             </p>
           </div>
           <div className="tool-signal-list">

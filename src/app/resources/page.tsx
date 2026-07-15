@@ -6,7 +6,7 @@ import { resources, siteConfig } from "@/lib/content";
 export const metadata: Metadata = {
   title: "Network Security Resources, Checklists, Templates and Career Roadmaps",
   description:
-    "Download and capture intent from network security resources: firewall cleanup checklist, cloud network readiness guide, pentest scope sheet, emergency triage sheet, SASE readiness map and career roadmap.",
+    "Download network security resources: firewall cleanup checklist, cloud network readiness guide, pentest scope sheet, emergency triage sheet, SASE readiness map and career roadmap.",
   alternates: { canonical: "/resources" },
   keywords: [
     "network security checklist",
@@ -47,11 +47,11 @@ export default function ResourcesPage() {
         ]}
       />
       <section className="page-hero">
-        <p className="eyebrow">Content engine</p>
-        <h1>Network security resources that educate visitors and feed the growth system.</h1>
+        <p className="eyebrow">Resource hub</p>
+        <h1>Network security resources that help teams prepare before decisions, audits, and incidents.</h1>
         <p>
-          Checklists, templates, guides, and roadmaps should become useful SEO assets, sales enablement assets, and
-          automation triggers for follow-up.
+          Use checklists, templates, guides, and roadmaps to understand the evidence, risks, and next actions that matter
+          before a deeper review.
         </p>
       </section>
       <section className="section">

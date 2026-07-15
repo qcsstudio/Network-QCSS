@@ -173,7 +173,7 @@ export function NetworkToolRunner({ slug }: { slug: string }) {
           <div>
             <p className="eyebrow">Waiting for input</p>
             <h2>{activeTool.outputPromise}</h2>
-            <p>Every completed run can become an anonymous funnel signal when the visitor accepts analytics cookies.</p>
+            <p>Run a public check to understand the symptom before deeper troubleshooting.</p>
           </div>
         )}
       </div>

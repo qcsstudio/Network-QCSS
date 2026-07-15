@@ -114,7 +114,7 @@ export default function InstitutePage() {
         <div className="section-heading">
           <p className="eyebrow">Enrollment path</p>
           <h2>Route students, working professionals, and corporate teams separately.</h2>
-          <p>Use the career assessment first, then capture the lead with the right training pipeline.</p>
+          <p>Use the career assessment first, then request counseling for the right training path.</p>
         </div>
         <LeadForm interest="Network security training" pipeline="Training / Institute" />
       </section>

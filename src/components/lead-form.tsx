@@ -33,7 +33,7 @@ function attribution() {
 }
 
 export function LeadForm({ interest = "", pipeline, compact = false }: LeadFormProps) {
-  const [status, setStatus] = useState("Ready to create a lead profile.");
+  const [status, setStatus] = useState("Ready when you are. Share the issue and we will suggest the right next step.");
   const [loading, setLoading] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -69,7 +69,11 @@ export function LeadForm({ interest = "", pipeline, compact = false }: LeadFormP
       });
     }
 
-    setStatus(response.ok ? "Lead profile saved. The right follow-up workflow can start now." : "Please check the form fields and consent.");
+    setStatus(
+      response.ok
+        ? "Request received. QCS can review the details and respond with the right next step."
+        : "Please check the form fields and consent."
+    );
   }
 
   return (
@@ -115,7 +119,7 @@ export function LeadForm({ interest = "", pipeline, compact = false }: LeadFormP
       </label>
 
       <button className="button primary" disabled={loading} type="submit">
-        {loading ? "Saving..." : "Create Lead Profile"}
+        {loading ? "Sending..." : "Request Review"}
       </button>
       <p className="form-note" aria-live="polite">
         {status}

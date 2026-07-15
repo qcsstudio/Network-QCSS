@@ -40,7 +40,7 @@ function assessmentFaqs(tool: (typeof tools)[number]) {
     {
       question: "What happens after the assessment?",
       answer:
-        "The result can be stored with consent-aware attribution, scored for priority, and attached to a service or training lead workflow."
+        "The result can guide the right evidence checklist, service route, training option, and follow-up priority."
     }
   ];
 }
@@ -136,11 +136,11 @@ export default async function ToolPage({ params }: ToolPageProps) {
       </section>
       <section className="section split">
         <div className="section-heading">
-          <p className="eyebrow">Lead conversion</p>
+          <p className="eyebrow">Request review</p>
           <h2>Turn the assessment into an engineering follow-up.</h2>
           <p>
-            Submit a contact request to attach this result to a service pipeline, evidence checklist, and practical
-            remediation conversation.
+            Submit a contact request to connect this result with an evidence checklist and practical remediation
+            conversation.
           </p>
         </div>
         <LeadForm interest={tool.pipeline} pipeline={tool.pipeline} compact />

@@ -134,7 +134,7 @@ export default async function NetworkToolPage({ params }: NetworkToolPageProps) 
           <p>{tool.outputPromise}</p>
         </div>
         <div className="search-intent-panel">
-          <p className="eyebrow">Built for search intent</p>
+          <p className="eyebrow">Built for practical checks</p>
           <h2>Use it when someone asks:</h2>
           <div className="pill-cloud">
             {tool.searchIntent.map((intent) => (

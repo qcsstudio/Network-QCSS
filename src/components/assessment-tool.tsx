@@ -124,11 +124,11 @@ export function AssessmentTool({ slug = "network-risk-score" }: AssessmentToolPr
           <span className="score-ring">{result?.score ?? "--"}</span>
           <div>
             <p className="eyebrow">Assessment result</p>
-            <h3>{result ? `${result.riskLevel}: ${result.recommendation}` : "Run a tool to generate a lead profile."}</h3>
+            <h3>{result ? `${result.riskLevel}: ${result.recommendation}` : "Run an assessment to generate a readiness snapshot."}</h3>
             <p>
               {result
-                ? `Route this visitor to ${result.pipeline}. Maturity score: ${result.maturityScore}.`
-                : "Results map the visitor to service pipeline, lead score, risk domains, evidence needs, and follow-up workflow."}
+                ? `Recommended path: ${result.pipeline}. Maturity score: ${result.maturityScore}.`
+                : "Your answers create a practical view of risk domains, evidence needs, and suggested next steps."}
             </p>
             {result ? (
               <div className="assessment-cta-row">
@@ -185,7 +185,7 @@ export function AssessmentTool({ slug = "network-risk-score" }: AssessmentToolPr
               <p className="eyebrow">Next action logic</p>
               <div className="action-grid">
                 <article>
-                  <h3>CTA owner</h3>
+                  <h3>Recommended support path</h3>
                   <p>{result.cta.owner}</p>
                   <span>{result.cta.note}</span>
                 </article>
