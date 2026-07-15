@@ -29,6 +29,8 @@ export function ResourceDownloads() {
           <article className="resource-card" key={resource.slug}>
             <p className="eyebrow">{resource.type}</p>
             <h3>{resource.title}</h3>
+            <p>{resource.summary}</p>
+            <span className="resource-audience">{resource.audience}</span>
             <button className="button secondary" onClick={() => download(resource.slug)} type="button">
               Capture Download
             </button>

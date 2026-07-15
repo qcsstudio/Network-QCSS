@@ -50,11 +50,30 @@ export default function NetworkToolsPage() {
       />
       <section className="page-hero">
         <p className="eyebrow">Network utility layer</p>
-        <h1>Free online network tools for fast DNS, SSL, email, and firewall triage.</h1>
+        <h1>Free online network tools for DNS, SSL, email security, headers, and port triage.</h1>
         <p>
-          Use these focused tools to check public network signals quickly. Every tool is built for useful troubleshooting
-          first, then connected to QuantumCrafters Studio service workflows when a deeper fix is needed.
+          Use focused tools to check public network signals quickly. Every tool is useful on its own, and each one also
+          routes serious problems into QuantumCrafters Studio service workflows when a deeper fix is needed.
         </p>
+      </section>
+
+      <section className="section split">
+        <div className="answer-panel">
+          <p className="eyebrow">SEO intent</p>
+          <h2>Short tools attract technical buyers before they are ready to book a call.</h2>
+          <p>
+            DNS, MX, SPF/DMARC, SSL, header, and port checks reveal intent around outages, email delivery, public
+            exposure, firewall access, and website security.
+          </p>
+        </div>
+        <div className="answer-panel muted">
+          <p className="eyebrow">Conversion path</p>
+          <h2>The tool result becomes a service signal, not a dead end.</h2>
+          <p>
+            Tool usage can feed analytics, lead scoring, retargeting, and service routing when visitor consent and
+            form-based contact permission are available.
+          </p>
+        </div>
       </section>
 
       <section className="section">

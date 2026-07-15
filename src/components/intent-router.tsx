@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 
 const routes = [
-  { label: "Fix an outage", href: "/services/network-troubleshooting", detail: "Emergency troubleshooting and root-cause triage." },
-  { label: "Secure my network", href: "/tools/firewall-hygiene", detail: "Firewall hygiene, segmentation, VPN, SASE, and ZTNA." },
-  { label: "Monitor infrastructure", href: "/tools/network-risk-score", detail: "Managed network services and NOC workflow readiness." },
-  { label: "Test vulnerabilities", href: "/tools/pentest-readiness", detail: "Penetration testing scope and readiness." },
-  { label: "Learn network security", href: "/tools/career-path-finder", detail: "Training and institute path recommendation." }
+  { label: "Fix an outage", href: "/solutions/network-outage-response", detail: "Emergency triage, RCA, vendor escalation, and stabilization path." },
+  { label: "Clean firewall risk", href: "/solutions/firewall-rule-cleanup", detail: "Rule cleanup, VPN hardening, admin access, backups, and logs." },
+  { label: "Modernize access", href: "/solutions/sase-zero-trust-readiness", detail: "SASE, Zero Trust, SD-WAN direction, cloud access, and remote workforce security." },
+  { label: "Review cloud exposure", href: "/solutions/cloud-network-exposure-review", detail: "VPC/VNet routes, public IPs, security groups, hybrid VPN, and flow logs." },
+  { label: "Test and retest", href: "/solutions/pentest-remediation-retesting", detail: "Pentest scoping, remediation support, retesting, and closure evidence." },
+  { label: "Learn network security", href: "/solutions/network-security-career-labs", detail: "Practical career labs for networking, firewalls, cloud, SOC, and ethical hacking." }
 ];
 
 export function IntentRouter() {

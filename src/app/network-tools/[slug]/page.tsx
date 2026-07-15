@@ -28,11 +28,29 @@ export async function generateMetadata({ params }: NetworkToolPageProps): Promis
   };
 }
 
+function toolFaqs(tool: NonNullable<ReturnType<typeof getNetworkUtilityTool>>) {
+  return [
+    {
+      question: `What does the ${tool.shortTitle} tool check?`,
+      answer: tool.outputPromise
+    },
+    {
+      question: `When should I use the ${tool.shortTitle} tool?`,
+      answer: `Use it when you need a quick public signal for ${tool.searchIntent.join(", ")} before deeper troubleshooting.`
+    },
+    {
+      question: "When should this become a service request?",
+      answer: `If the result affects users, email delivery, security exposure, firewall access, or a client requirement, route it to ${tool.serviceIntent}.`
+    }
+  ];
+}
+
 export default async function NetworkToolPage({ params }: NetworkToolPageProps) {
   const { slug } = await params;
   const tool = getNetworkUtilityTool(slug);
   if (!tool) notFound();
   const Icon = tool.icon;
+  const faqs = toolFaqs(tool);
 
   return (
     <main>
@@ -80,6 +98,18 @@ export default async function NetworkToolPage({ params }: NetworkToolPageProps) 
                 item: `${siteConfig.url}/network-tools/${tool.slug}`
               }
             ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: faqs.map((faq) => ({
+              "@type": "Question",
+              name: faq.question,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: faq.answer
+              }
+            }))
           }
         ]}
       />
@@ -116,6 +146,21 @@ export default async function NetworkToolPage({ params }: NetworkToolPageProps) 
 
       <section className="section" id="run-tool">
         <NetworkToolRunner slug={tool.slug} />
+      </section>
+
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Answer block</p>
+          <h2>What this tool tells you and when to escalate</h2>
+        </div>
+        <div className="faq-grid">
+          {faqs.map((faq) => (
+            <article className="faq-card" key={faq.question}>
+              <h3>{faq.question}</h3>
+              <p>{faq.answer}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="section split">

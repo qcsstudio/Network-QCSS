@@ -20,14 +20,36 @@ export async function generateMetadata({ params }: ToolPageProps): Promise<Metad
 
   return {
     title: tool.title,
-    description: tool.description
+    description: tool.description,
+    alternates: { canonical: `/tools/${tool.slug}` },
+    keywords: [tool.title, tool.category, tool.pipeline, tool.recommendation]
   };
+}
+
+function assessmentFaqs(tool: (typeof tools)[number]) {
+  return [
+    {
+      question: `What does ${tool.title} qualify?`,
+      answer: `${tool.title} qualifies ${tool.description.toLowerCase()} and routes the result to ${tool.pipeline}.`
+    },
+    {
+      question: "Is this assessment a formal audit?",
+      answer:
+        "No. It is a structured triage and qualification signal that helps decide urgency, evidence requests, service route, and follow-up priority."
+    },
+    {
+      question: "What happens after the assessment?",
+      answer:
+        "The result can be stored with consent-aware attribution, scored for priority, and attached to a service or training lead workflow."
+    }
+  ];
 }
 
 export default async function ToolPage({ params }: ToolPageProps) {
   const { slug } = await params;
   const tool = tools.find((item) => item.slug === slug);
   if (!tool) notFound();
+  const faqs = assessmentFaqs(tool);
 
   return (
     <main>
@@ -75,6 +97,18 @@ export default async function ToolPage({ params }: ToolPageProps) {
                 item: `${siteConfig.url}/tools/${tool.slug}`
               }
             ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: faqs.map((faq) => ({
+              "@type": "Question",
+              name: faq.question,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: faq.answer
+              }
+            }))
           }
         ]}
       />
@@ -85,6 +119,20 @@ export default async function ToolPage({ params }: ToolPageProps) {
       </section>
       <section className="section">
         <AssessmentTool slug={tool.slug} />
+      </section>
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Assessment logic</p>
+          <h2>Use this assessment to create a clearer follow-up path.</h2>
+        </div>
+        <div className="faq-grid">
+          {faqs.map((faq) => (
+            <article className="faq-card" key={faq.question}>
+              <h3>{faq.question}</h3>
+              <p>{faq.answer}</p>
+            </article>
+          ))}
+        </div>
       </section>
       <section className="section split">
         <div className="section-heading">

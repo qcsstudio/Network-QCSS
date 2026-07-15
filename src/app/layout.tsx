@@ -49,6 +49,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               knowsAbout: [
                 "Managed Network Services",
                 "Network Security",
+                "SASE Readiness",
+                "Zero Trust Network Access",
+                "SD-WAN",
+                "Network as a Service",
                 "Cloud Networking",
                 "Penetration Testing",
                 "Network Troubleshooting",
@@ -74,10 +78,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <footer className="site-footer">
           <div>
             <strong>QuantumCrafters Studio Pvt. Ltd.</strong>
-            <p>Network operations, security testing, cloud connectivity, troubleshooting, and practical network security training.</p>
+            <p>Evidence-first network command, security, cloud, troubleshooting, tools, and practical network security training.</p>
           </div>
           <nav aria-label="Footer links">
+            <Link href="/solutions">Solutions</Link>
             <Link href="/network-tools">Network Tools</Link>
+            <Link href="/diagnose">Assessments</Link>
             <Link href="/privacy">Privacy</Link>
             <Link href="/admin">Admin</Link>
             <a href="/api/health">Health</a>

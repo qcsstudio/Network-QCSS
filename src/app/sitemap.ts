@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
-import { services, siteConfig, tools } from "@/lib/content";
+import { services, siteConfig, solutionPages, tools } from "@/lib/content";
 import { networkUtilityTools } from "@/lib/network-tools";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const staticRoutes = ["", "/institute", "/resources", "/network-tools", "/privacy"].map((path) => ({
+  const staticRoutes = ["", "/solutions", "/diagnose", "/institute", "/resources", "/network-tools", "/privacy"].map((path) => ({
     url: `${siteConfig.url}${path}`,
     lastModified: now
   }));
@@ -19,10 +19,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: now
   }));
 
+  const solutionRoutes = solutionPages.map((solution) => ({
+    url: `${siteConfig.url}/solutions/${solution.slug}`,
+    lastModified: now
+  }));
+
   const networkToolRoutes = networkUtilityTools.map((tool) => ({
     url: `${siteConfig.url}/network-tools/${tool.slug}`,
     lastModified: now
   }));
 
-  return [...staticRoutes, ...serviceRoutes, ...toolRoutes, ...networkToolRoutes];
+  return [...staticRoutes, ...solutionRoutes, ...serviceRoutes, ...toolRoutes, ...networkToolRoutes];
 }

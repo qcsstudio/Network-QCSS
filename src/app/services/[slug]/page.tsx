@@ -19,8 +19,10 @@ export async function generateMetadata({ params }: ServicePageProps): Promise<Me
   if (!service) return {};
 
   return {
-    title: service.title,
-    description: service.summary
+    title: service.metaTitle,
+    description: service.metaDescription,
+    alternates: { canonical: `/services/${service.slug}` },
+    keywords: [service.title, ...service.buyerTriggers, ...service.outcomes]
   };
 }
 
@@ -39,7 +41,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
             "@type": "Service",
             name: service.title,
             serviceType: service.title,
-            description: service.summary,
+            description: service.metaDescription,
             url: `${siteConfig.url}/services/${service.slug}`,
             areaServed: ["India", "Global"],
             provider: {
@@ -71,6 +73,18 @@ export default async function ServicePage({ params }: ServicePageProps) {
                 item: `${siteConfig.url}/services/${service.slug}`
               }
             ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: service.faqs.map((faq) => ({
+              "@type": "Question",
+              name: faq.question,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: faq.answer
+              }
+            }))
           }
         ]}
       />
@@ -89,20 +103,74 @@ export default async function ServicePage({ params }: ServicePageProps) {
       </section>
 
       <section className="section split">
-        <div>
+        <div className="answer-panel">
           <Icon size={42} />
-          <h2>What this engagement should improve</h2>
-          <p>
-            Every service is framed around operational outcomes, security evidence, and a clear next action instead of
-            a vague list of technical capabilities. The assessment CTA qualifies urgency, evidence, and follow-up logic
-            before the sales conversation starts.
-          </p>
+          <p className="eyebrow">Best fit</p>
+          <h2>{service.bestFor}</h2>
+          <p>{service.proof}</p>
         </div>
         <div className="outcome-list">
           {service.outcomes.map((outcome) => (
             <article key={outcome}>
               <h3>{outcome}</h3>
               <p>Handled through assessment, implementation guidance, documentation, and follow-up review.</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Buyer triggers</p>
+          <h2>When this service becomes urgent</h2>
+        </div>
+        <div className="pill-cloud">
+          {service.buyerTriggers.map((trigger) => (
+            <span key={trigger}>{trigger}</span>
+          ))}
+        </div>
+      </section>
+
+      <section className="section split">
+        <div className="section-heading">
+          <p className="eyebrow">Scope</p>
+          <h2>What QCS should examine and manage</h2>
+        </div>
+        <div className="outcome-list">
+          {service.scope.map((item) => (
+            <article key={item}>
+              <h3>{item}</h3>
+              <p>Handled through discovery, validation, documentation, and a practical next action.</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Deliverables</p>
+          <h2>What the buyer should receive</h2>
+        </div>
+        <div className="pillar-grid">
+          {service.deliverables.map((deliverable) => (
+            <article className="pillar-card" key={deliverable}>
+              <h3>{deliverable}</h3>
+              <p>Designed to be useful for owners, engineers, stakeholders, and future follow-up.</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">FAQ</p>
+          <h2>Short answers for service buyers</h2>
+        </div>
+        <div className="faq-grid">
+          {service.faqs.map((faq) => (
+            <article className="faq-card" key={faq.question}>
+              <h3>{faq.question}</h3>
+              <p>{faq.answer}</p>
             </article>
           ))}
         </div>

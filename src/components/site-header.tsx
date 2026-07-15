@@ -2,12 +2,12 @@ import Link from "next/link";
 import Image from "next/image";
 
 const navItems = [
+  { href: "/solutions", label: "Solutions" },
   { href: "/#services", label: "Services" },
-  { href: "/#tools", label: "Tools" },
-  { href: "/network-tools", label: "Network Tools" },
+  { href: "/diagnose", label: "Assessments" },
+  { href: "/network-tools", label: "Tools" },
   { href: "/institute", label: "Institute" },
-  { href: "/resources", label: "Resources" },
-  { href: "/admin", label: "Admin" }
+  { href: "/resources", label: "Resources" }
 ];
 
 export function SiteHeader() {
@@ -33,8 +33,8 @@ export function SiteHeader() {
         ))}
       </nav>
 
-      <Link className="button primary" href="/tools/network-risk-score">
-        Get Risk Score
+      <Link className="button primary" href="/diagnose">
+        Start Assessment
       </Link>
     </header>
   );

@@ -1202,6 +1202,43 @@ button {
   padding: 20px;
 }
 
+.answer-panel,
+.faq-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 138, 43, 0.12), transparent 40%),
+    white;
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.answer-panel.muted {
+  background:
+    linear-gradient(135deg, rgba(99, 139, 217, 0.12), transparent 42%),
+    #fffafc;
+}
+
+.answer-panel h2 {
+  margin: 0 0 12px;
+  font-size: clamp(1.45rem, 2.4vw, 2.5rem);
+  line-height: 1.08;
+}
+
+.answer-panel p:not(.eyebrow),
+.faq-card p {
+  color: var(--muted);
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.faq-card h3 {
+  margin: 0 0 10px;
+}
+
 .edge-card {
   border-top: 4px solid var(--brand-magenta);
 }
@@ -2035,6 +2072,14 @@ td span {
   margin-top: 8px;
 }
 
+.resource-audience {
+  display: block;
+  margin-top: 8px;
+  color: var(--accent-dark);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
 .cookie-panel {
   position: fixed;
   right: 18px;
@@ -2144,7 +2189,8 @@ td span {
   .journey-grid,
   .authority-grid,
   .asset-command-grid,
-  .assessment-report {
+  .assessment-report,
+  .faq-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -2226,6 +2272,7 @@ td span {
   .authority-grid,
   .asset-command-grid,
   .assessment-report,
+  .faq-grid,
   .action-grid {
     grid-template-columns: 1fr;
   }
