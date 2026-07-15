@@ -1,0 +1,11 @@
+priority,folder,asset_type,asset_name,source_url,license_type,download_date,status,intended_use,import_decision,notes
+1,01-core-nextjs-theme,ThemeForest or Elements theme,TBD futuristic Next.js SaaS/AI theme,,Market or Elements,,needed,Public website visual foundation,audit first,Prefer Next.js App Router, Tailwind, reusable sections, strong animation, dark/light readiness
+2,02-admin-dashboard,Admin dashboard template,TBD analytics/CRM dashboard,,Market or Elements,,needed,Private owner dashboard for leads/funnels/tool usage,audit first,Prefer React/Next dashboard components, charts, tables, filters, responsive layouts
+3,03-ui-kit-figma,UX/UI kit,TBD technology or SaaS UI kit,,Elements,,needed,Design tokens and reusable component references,audit first,Prefer Figma plus web-ready components
+4,04-3d-cyber-network-graphics,3D graphics,TBD network/cloud/security pack,,Elements,,needed,Hero visuals, service artwork, tool page illustrations, social media,audit first,Prefer transparent PNG/WebP renders plus source model if useful
+5,05-icons-infographics,Icon/infographic pack,TBD cyber/network icon system,,Elements,,needed,Service icons, online tool icons, diagrams, lead magnets,audit first,Prefer consistent SVG style and editable source
+6,06-presentations-sales-decks,Presentation template,TBD cybersecurity/technology deck,,Elements,,needed,Sales proposal, VAPT report, institute deck, webinar deck,audit first,Prefer PowerPoint/Keynote/Canva/Figma compatibility
+7,07-lead-magnet-pdfs,Report/brochure template,TBD audit/checklist/whitepaper template,,Elements,,needed,Gated PDFs and downloadable checklists,audit first,Prefer InDesign/Canva/Word/PPT formats we can edit
+8,08-social-video-campaigns,Social/video campaign kit,TBD cybersecurity reels/social templates,,Elements,,needed,LinkedIn carousel, reels, YouTube Shorts, remarketing,audit first,Prefer Canva/After Effects/Premiere variants
+9,09-email-templates,Email template,TBD SaaS/security newsletter templates,,Elements,,needed,Lead nurture, audit follow-up, course enrollment emails,audit first,Prefer responsive HTML with clean tables and dark-mode sanity
+10,10-codecanyon-review,Code/script,TBD CRM/helpdesk/booking/LMS reference,,Market,,optional,Feature reference or isolated internal utility,review only,Do not merge third-party backend code without security review

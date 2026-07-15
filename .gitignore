@@ -9,3 +9,12 @@ data/*.json
 !.env.example
 .DS_Store
 Thumbs.db
+
+# Keep paid Envato source assets local. Track only planning/register files.
+envato-assets/**
+!envato-assets/
+!envato-assets/README.md
+!envato-assets/intake-checklist.md
+!envato-assets/asset-register.csv
+!envato-assets/**/
+!envato-assets/**/.gitkeep
