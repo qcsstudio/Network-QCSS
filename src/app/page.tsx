@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { AssessmentTool } from "@/components/assessment-tool";
+import { EnvatoVisualSystem } from "@/components/envato-visual-system";
 import { IntentRouter } from "@/components/intent-router";
 import { LeadForm } from "@/components/lead-form";
 import { ResourceDownloads } from "@/components/resource-downloads";
@@ -123,6 +124,8 @@ export default function HomePage() {
       <section className="section">
         <IntentRouter />
       </section>
+
+      <EnvatoVisualSystem />
 
       <nav className="command-nav" aria-label="QuantumCrafters command sections">
         {commandNavItems.map((item) => (

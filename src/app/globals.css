@@ -31,6 +31,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
@@ -47,6 +48,7 @@ body {
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.5;
+  overflow-x: clip;
 }
 
 a {
@@ -138,6 +140,18 @@ button {
   border-color: rgba(236, 35, 111, 0.22);
   background: white;
   color: var(--ink);
+}
+
+.button.secondary.dark {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.button.secondary.dark:hover,
+.button.secondary.dark:focus-visible {
+  border-color: rgba(255, 138, 43, 0.62);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .button.large {
@@ -641,6 +655,226 @@ button {
   grid-template-columns: minmax(0, 0.96fr) minmax(340px, 1.04fr);
   gap: clamp(22px, 4vw, 54px);
   align-items: center;
+}
+
+.asset-command-band {
+  position: relative;
+  overflow: hidden;
+  margin: 10px 0 34px;
+  background:
+    linear-gradient(115deg, rgba(255, 138, 43, 0.17), transparent 34%),
+    linear-gradient(245deg, rgba(99, 139, 217, 0.2), transparent 38%),
+    var(--deep-ink);
+  color: white;
+}
+
+.asset-command-band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: 0.52;
+}
+
+.asset-command-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 0.78fr);
+  gap: clamp(18px, 3vw, 34px);
+  width: min(1180px, calc(100% - 36px));
+  margin-inline: auto;
+  padding: clamp(38px, 6vw, 76px) 0;
+}
+
+.asset-command-inner > *,
+.asset-intelligence-panel > * {
+  min-width: 0;
+}
+
+.asset-command-copy {
+  max-width: 720px;
+}
+
+.asset-command-copy h2 {
+  margin: 0;
+  font-size: clamp(2rem, 3.6vw, 4rem);
+  line-height: 1.02;
+}
+
+.asset-command-copy p:not(.eyebrow),
+.asset-intelligence-panel p {
+  color: #deced9;
+  font-size: clamp(1rem, 1.5vw, 1.14rem);
+}
+
+.asset-command-band .eyebrow {
+  color: #ffb169;
+}
+
+.asset-command-visual {
+  position: relative;
+  min-height: 460px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: #11131a;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.38);
+}
+
+.asset-command-visual img {
+  object-fit: cover;
+  filter: saturate(1.05) contrast(1.06);
+}
+
+.asset-command-visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(5, 5, 6, 0.02), rgba(5, 5, 6, 0.72)),
+    linear-gradient(90deg, rgba(236, 35, 111, 0.18), transparent 42%);
+}
+
+.asset-visual-overlay {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(5, 5, 6, 0.72);
+  padding: 14px;
+  backdrop-filter: blur(14px);
+}
+
+.asset-visual-overlay span {
+  color: #ffb169;
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.asset-visual-overlay strong {
+  font-size: clamp(1.15rem, 2vw, 1.7rem);
+}
+
+.asset-command-grid {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.asset-command-card {
+  min-height: 245px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.055)),
+    rgba(255, 255, 255, 0.04);
+  padding: 18px;
+}
+
+.asset-command-icon {
+  display: block;
+  width: 46px;
+  height: 46px;
+  background: linear-gradient(135deg, var(--brand-orange), var(--brand-magenta), var(--brand-blue));
+  filter: drop-shadow(0 10px 22px rgba(99, 139, 217, 0.22));
+  mask: var(--asset-icon) center / contain no-repeat;
+  -webkit-mask: var(--asset-icon) center / contain no-repeat;
+}
+
+.asset-command-metric {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  margin: 14px 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 138, 43, 0.16);
+  color: #ffb169;
+  padding: 6px 10px;
+  font-size: 0.74rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.asset-command-card h3,
+.asset-intelligence-panel h3 {
+  margin: 0 0 8px;
+}
+
+.asset-command-card p {
+  margin: 0;
+  color: #d8cbd8;
+}
+
+.asset-intelligence-panel {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.62fr) minmax(0, 0.48fr);
+  gap: 22px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(236, 35, 111, 0.16), transparent 38%),
+    rgba(255, 255, 255, 0.06);
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.asset-intelligence-panel h3 {
+  font-size: clamp(1.4rem, 2.2vw, 2.3rem);
+  line-height: 1.08;
+}
+
+.tool-signal-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.tool-signal-list span {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 7px 11px;
+  color: #f6e9f1;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.asset-mini-visuals {
+  position: relative;
+  min-height: 210px;
+}
+
+.asset-mini-visuals img {
+  position: absolute;
+  width: 156px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.34));
+}
+
+.asset-mini-visuals img:first-child {
+  top: -8px;
+  right: 74px;
+}
+
+.asset-mini-visuals img:last-child {
+  right: 0;
+  bottom: -10px;
 }
 
 .module-list {
@@ -1672,7 +1906,9 @@ td span {
   .intent-panel,
   .admin-grid,
   .mission-band,
-  .visual-split {
+  .visual-split,
+  .asset-command-inner,
+  .asset-intelligence-panel {
     grid-template-columns: 1fr;
   }
 
@@ -1697,7 +1933,8 @@ td span {
     .network-tool-shell,
     .mission-grid,
     .journey-grid,
-    .authority-grid {
+    .authority-grid,
+    .asset-command-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1776,8 +2013,21 @@ td span {
     .cookie-options,
     .mission-grid,
     .journey-grid,
-    .authority-grid {
+    .authority-grid,
+    .asset-command-grid {
     grid-template-columns: 1fr;
+  }
+
+  .asset-command-visual {
+    min-height: 340px;
+  }
+
+  .asset-mini-visuals {
+    min-height: 150px;
+  }
+
+  .asset-mini-visuals img {
+    width: 128px;
   }
 
   .mission-band {
