@@ -145,9 +145,20 @@ export type DashboardSnapshot = {
     assessments: number;
     resources: number;
     auditLogs: number;
+    toolRuns: number;
+  };
+  funnel: {
+    sessions: number;
+    toolRuns: number;
+    assessments: number;
+    resources: number;
+    leads: number;
+    hotLeads: number;
+    leadConversionRate: number;
   };
   byPipeline: Record<string, number>;
   byCountry: Record<string, number>;
+  topUtilityTools: { tool: string; count: number }[];
   latestLeads: StoredLead[];
   latestEvents: StoredEvent[];
   latestAssessments: StoredAssessment[];

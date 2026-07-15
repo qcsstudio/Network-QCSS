@@ -87,7 +87,8 @@ export const commandNavItems = [
   { label: "Support Models", href: "#support-models" },
   { label: "Vendors", href: "#vendors" },
   { label: "Process", href: "#process" },
-  { label: "Tools", href: "#tools" }
+  { label: "Tools", href: "#tools" },
+  { label: "Network Utilities", href: "/network-tools" }
 ];
 
 export const supportModelComparison = {

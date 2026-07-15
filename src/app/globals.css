@@ -479,6 +479,7 @@ button {
 .service-grid,
 .automation-grid,
 .resource-grid,
+.utility-grid,
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -493,6 +494,7 @@ button {
 .service-card,
 .flow-card,
 .resource-card,
+.utility-card,
 .metric-card,
 .admin-panel,
 .outcome-list article {
@@ -500,6 +502,36 @@ button {
   border-radius: 8px;
   background: white;
   padding: 18px;
+}
+
+.utility-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.utility-grid.compact {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.utility-card {
+  min-height: 240px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  border-top: 4px solid var(--brand-blue);
+}
+
+.utility-grid.compact .utility-card {
+  min-height: 220px;
+}
+
+.utility-card h2,
+.utility-card h3 {
+  margin: 0;
+  line-height: 1.12;
+}
+
+.utility-card p:not(.eyebrow) {
+  color: var(--muted);
 }
 
 .edge-grid,
@@ -699,6 +731,114 @@ button {
   overflow: hidden;
 }
 
+.network-tool-shell {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.42fr) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.network-tool-form,
+.network-tool-result,
+.search-intent-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  padding: 20px;
+}
+
+.network-tool-form {
+  display: grid;
+  gap: 14px;
+}
+
+.network-tool-result {
+  min-height: 280px;
+}
+
+.network-tool-result.ok {
+  border-top: 4px solid var(--green);
+}
+
+.network-tool-result.warning {
+  border-top: 4px solid var(--amber);
+}
+
+.network-tool-result.error {
+  border-top: 4px solid var(--red);
+}
+
+.result-heading {
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.result-heading h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2vw, 2rem);
+  line-height: 1.1;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.result-grid article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 12px;
+  overflow-wrap: anywhere;
+}
+
+.result-grid strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.inline-result-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.mini-table {
+  display: grid;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.mini-row {
+  display: grid;
+  grid-auto-columns: minmax(120px, 1fr);
+  grid-auto-flow: column;
+  gap: 8px;
+  min-width: max-content;
+  border-bottom: 1px solid rgba(234, 221, 230, 0.7);
+  padding-bottom: 6px;
+}
+
+.mini-row.head {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.muted-text {
+  color: var(--muted);
+}
+
+.tool-intro h2 {
+  margin-bottom: 8px;
+}
+
 .tool-tabs {
   display: flex;
   flex-direction: column;
@@ -833,6 +973,48 @@ textarea {
 
 .metric-grid {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.funnel-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.funnel-step {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfe;
+  padding: 16px;
+}
+
+.funnel-step span {
+  display: inline-flex;
+  min-height: 28px;
+  min-width: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #fff0f5;
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.funnel-step strong {
+  display: block;
+  margin: 14px 0 2px;
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+}
+
+.funnel-step h3 {
+  margin: 0 0 6px;
+}
+
+.funnel-step p {
+  margin: 0;
+  color: var(--muted);
 }
 
 .metric-card {
@@ -1085,12 +1267,15 @@ td span {
   .service-grid,
   .automation-grid,
   .resource-grid,
+  .utility-grid,
   .metric-grid,
   .readiness-grid,
   .edge-grid,
   .pillar-grid,
   .comparison-grid,
-  .process-timeline {
+  .process-timeline,
+  .funnel-grid,
+  .network-tool-shell {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1124,21 +1309,25 @@ td span {
   }
 
   .tool-shell,
+  .network-tool-shell,
   .assessment-form,
   .field-grid,
   .mode-grid,
   .service-grid,
   .automation-grid,
   .resource-grid,
+  .utility-grid,
   .metric-grid,
   .readiness-grid,
   .edge-grid,
   .pillar-grid,
   .comparison-grid,
   .process-timeline,
+  .funnel-grid,
   .proof-strip,
   .outcome-list,
   .assessment-result,
+  .result-grid,
   .cookie-options {
     grid-template-columns: 1fr;
   }

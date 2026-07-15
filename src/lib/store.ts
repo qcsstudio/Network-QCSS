@@ -230,11 +230,34 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   const store = await readStore();
   const byPipeline: Record<string, number> = {};
   const byCountry: Record<string, number> = {};
+  const sessions = new Set<string>();
+  const utilityToolCounts: Record<string, number> = {};
+  const toolRuns = store.events.filter((event) => event.name === "network_tool_run");
 
   for (const lead of store.leads) {
     byPipeline[lead.pipeline] = (byPipeline[lead.pipeline] || 0) + 1;
     byCountry[lead.country] = (byCountry[lead.country] || 0) + 1;
+    if (lead.sessionId) sessions.add(lead.sessionId);
   }
+
+  for (const event of store.events) {
+    if (event.sessionId) sessions.add(event.sessionId);
+    if (event.name === "network_tool_run") {
+      const tool = typeof event.metadata.tool === "string" ? event.metadata.tool : "unknown";
+      utilityToolCounts[tool] = (utilityToolCounts[tool] || 0) + 1;
+    }
+  }
+
+  for (const assessment of store.assessments) {
+    if (assessment.sessionId) sessions.add(assessment.sessionId);
+  }
+
+  for (const resource of store.resources) {
+    if (resource.sessionId) sessions.add(resource.sessionId);
+  }
+
+  const sessionCount = sessions.size;
+  const leadConversionRate = sessionCount ? Math.round((store.leads.length / sessionCount) * 1000) / 10 : 0;
 
   return {
     totals: {
@@ -243,10 +266,24 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
       events: store.events.length,
       assessments: store.assessments.length,
       resources: store.resources.length,
-      auditLogs: (store.auditLogs || []).length
+      auditLogs: (store.auditLogs || []).length,
+      toolRuns: toolRuns.length
+    },
+    funnel: {
+      sessions: sessionCount,
+      toolRuns: toolRuns.length,
+      assessments: store.assessments.length,
+      resources: store.resources.length,
+      leads: store.leads.length,
+      hotLeads: store.leads.filter((lead) => lead.priority === "hot").length,
+      leadConversionRate
     },
     byPipeline,
     byCountry,
+    topUtilityTools: Object.entries(utilityToolCounts)
+      .map(([tool, count]) => ({ tool, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8),
     latestLeads: store.leads.slice(-10).reverse(),
     latestEvents: store.events.slice(-15).reverse(),
     latestAssessments: store.assessments.slice(-10).reverse(),

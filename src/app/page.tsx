@@ -18,6 +18,7 @@ import {
   supportModelComparison,
   vendorCoverage
 } from "@/lib/content";
+import { networkUtilityTools } from "@/lib/network-tools";
 
 export default function HomePage() {
   return (
@@ -230,6 +231,30 @@ export default function HomePage() {
           </p>
         </div>
         <AssessmentTool />
+      </section>
+
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Free network utilities</p>
+          <h2>Short public tools that attract high-intent troubleshooting searches.</h2>
+          <p>
+            DNS, SSL, email security, header, and port checks bring useful traffic into the site. The visitor sees a
+            simple utility; your dashboard sees a service-intent signal when consent allows analytics.
+          </p>
+        </div>
+        <div className="utility-grid compact">
+          {networkUtilityTools.map((tool) => {
+            const Icon = tool.icon;
+            return (
+              <Link className="utility-card" href={`/network-tools/${tool.slug}`} key={tool.slug}>
+                <Icon size={26} />
+                <p className="eyebrow">{tool.category}</p>
+                <h3>{tool.shortTitle}</h3>
+                <p>{tool.description}</p>
+              </Link>
+            );
+          })}
+        </div>
       </section>
 
       <section className="section">

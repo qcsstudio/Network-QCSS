@@ -54,6 +54,13 @@ function conversionParams(event: string, params: JsonRecord): JsonRecord {
     };
   }
 
+  if (event === "network_tool_run") {
+    return {
+      ...params,
+      event_category: "network_utility_tool"
+    };
+  }
+
   return params;
 }
 

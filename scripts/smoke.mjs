@@ -117,6 +117,16 @@ try {
     throw new Error(`Resource response exposed private fields: ${JSON.stringify(resourceResponse.resource)}`);
   }
 
+  const networkToolResponse = await post("/api/network-tools", {
+    tool: "dns-lookup",
+    target: "example.com",
+    sessionId: "smoke",
+    consent
+  });
+  if (!networkToolResponse.result?.details?.length) {
+    throw new Error(`Network tool did not return diagnostic details: ${JSON.stringify(networkToolResponse)}`);
+  }
+
   const leadResponse = await post("/api/leads", {
     name: "Smoke Test Lead",
     email: "smoke@example.com",
@@ -140,7 +150,7 @@ try {
   const dashboard = await fetch(`${baseUrl}/api/dashboard`, {
     headers: { "x-admin-token": adminToken }
   }).then((response) => response.json());
-  if (!dashboard.totals.leads || !dashboard.totals.assessments || !dashboard.totals.events || !dashboard.totals.resources) {
+  if (!dashboard.totals.leads || !dashboard.totals.assessments || !dashboard.totals.events || !dashboard.totals.resources || !dashboard.totals.toolRuns) {
     throw new Error(`Dashboard did not update: ${JSON.stringify(dashboard.totals)}`);
   }
   if (!dashboard.totals.auditLogs || !dashboard.latestAuditLogs?.some((auditLog) => auditLog.action === "lead.created")) {

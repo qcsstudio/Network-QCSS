@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AssessmentTool } from "@/components/assessment-tool";
 import { LeadForm } from "@/components/lead-form";
-import { tools } from "@/lib/content";
+import { StructuredData } from "@/components/structured-data";
+import { siteConfig, tools } from "@/lib/content";
 
 type ToolPageProps = {
   params: Promise<{ slug: string }>;
@@ -30,6 +31,53 @@ export default async function ToolPage({ params }: ToolPageProps) {
 
   return (
     <main>
+      <StructuredData
+        data={[
+          {
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: tool.title,
+            applicationCategory: "BusinessApplication",
+            operatingSystem: "Web",
+            url: `${siteConfig.url}/tools/${tool.slug}`,
+            description: tool.description,
+            provider: {
+              "@type": "Organization",
+              name: siteConfig.name,
+              url: siteConfig.url
+            },
+            offers: {
+              "@type": "Offer",
+              price: "0",
+              priceCurrency: "INR"
+            }
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: siteConfig.url
+              },
+              {
+                "@type": "ListItem",
+                position: 2,
+                name: "Assessment Tools",
+                item: `${siteConfig.url}/#tools`
+              },
+              {
+                "@type": "ListItem",
+                position: 3,
+                name: tool.title,
+                item: `${siteConfig.url}/tools/${tool.slug}`
+              }
+            ]
+          }
+        ]}
+      />
       <section className="page-hero">
         <p className="eyebrow">{tool.category}</p>
         <h1>{tool.title}</h1>

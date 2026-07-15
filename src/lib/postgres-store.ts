@@ -287,6 +287,11 @@ export async function getDashboardSnapshotPostgres(): Promise<DashboardSnapshot>
     auditLogCount,
     pipelineRows,
     countryRows,
+    leadSessionRows,
+    sessionRows,
+    assessmentSessionRows,
+    resourceSessionRows,
+    utilityToolRows,
     leads,
     events,
     assessments,
@@ -301,6 +306,14 @@ export async function getDashboardSnapshotPostgres(): Promise<DashboardSnapshot>
       prisma.auditLog.count(),
       prisma.lead.findMany({ select: { pipeline: true } }),
       prisma.lead.findMany({ select: { country: true } }),
+      prisma.lead.findMany({ select: { sessionId: true } }),
+      prisma.interactionEvent.findMany({ select: { sessionId: true } }),
+      prisma.assessment.findMany({ select: { sessionId: true } }),
+      prisma.resourceDownload.findMany({ select: { sessionId: true } }),
+      prisma.interactionEvent.findMany({
+        where: { name: "network_tool_run" },
+        select: { metadata: true, sessionId: true }
+      }),
       prisma.lead.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
       prisma.interactionEvent.findMany({ orderBy: { createdAt: "desc" }, take: 15 }),
       prisma.assessment.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
@@ -316,6 +329,23 @@ export async function getDashboardSnapshotPostgres(): Promise<DashboardSnapshot>
     byCountry[country] = (byCountry[country] || 0) + 1;
   }
 
+  const sessions = new Set<string>();
+  for (const row of leadSessionRows) if (row.sessionId) sessions.add(row.sessionId);
+  for (const row of sessionRows) if (row.sessionId) sessions.add(row.sessionId);
+  for (const row of assessmentSessionRows) if (row.sessionId) sessions.add(row.sessionId);
+  for (const row of resourceSessionRows) if (row.sessionId) sessions.add(row.sessionId);
+
+  const utilityToolCounts: Record<string, number> = {};
+  for (const row of utilityToolRows) {
+    if (row.sessionId) sessions.add(row.sessionId);
+    const metadata = asRecord(row.metadata);
+    const tool = typeof metadata.tool === "string" ? metadata.tool : "unknown";
+    utilityToolCounts[tool] = (utilityToolCounts[tool] || 0) + 1;
+  }
+
+  const sessionCount = sessions.size;
+  const leadConversionRate = sessionCount ? Math.round((leadCount / sessionCount) * 1000) / 10 : 0;
+
   return {
     totals: {
       leads: leadCount,
@@ -323,10 +353,24 @@ export async function getDashboardSnapshotPostgres(): Promise<DashboardSnapshot>
       events: eventCount,
       assessments: assessmentCount,
       resources: resourceCount,
-      auditLogs: auditLogCount
+      auditLogs: auditLogCount,
+      toolRuns: utilityToolRows.length
+    },
+    funnel: {
+      sessions: sessionCount,
+      toolRuns: utilityToolRows.length,
+      assessments: assessmentCount,
+      resources: resourceCount,
+      leads: leadCount,
+      hotLeads: hotLeadCount,
+      leadConversionRate
     },
     byPipeline,
     byCountry,
+    topUtilityTools: Object.entries(utilityToolCounts)
+      .map(([tool, count]) => ({ tool, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8),
     latestLeads: leads.map(mapLead),
     latestEvents: events.map(mapEvent),
     latestAssessments: assessments.map(mapAssessment),

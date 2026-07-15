@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LeadForm } from "@/components/lead-form";
-import { services } from "@/lib/content";
+import { StructuredData } from "@/components/structured-data";
+import { services, siteConfig } from "@/lib/content";
 
 type ServicePageProps = {
   params: Promise<{ slug: string }>;
@@ -31,6 +32,48 @@ export default async function ServicePage({ params }: ServicePageProps) {
 
   return (
     <main>
+      <StructuredData
+        data={[
+          {
+            "@context": "https://schema.org",
+            "@type": "Service",
+            name: service.title,
+            serviceType: service.title,
+            description: service.summary,
+            url: `${siteConfig.url}/services/${service.slug}`,
+            areaServed: ["India", "Global"],
+            provider: {
+              "@type": "Organization",
+              name: siteConfig.name,
+              url: siteConfig.url
+            }
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: siteConfig.url
+              },
+              {
+                "@type": "ListItem",
+                position: 2,
+                name: "Services",
+                item: `${siteConfig.url}/#services`
+              },
+              {
+                "@type": "ListItem",
+                position: 3,
+                name: service.title,
+                item: `${siteConfig.url}/services/${service.slug}`
+              }
+            ]
+          }
+        ]}
+      />
       <section className="page-hero">
         <p className="eyebrow">{service.kicker}</p>
         <h1>{service.title}</h1>
