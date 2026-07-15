@@ -44,11 +44,11 @@ export const eventSchema = z.object({
 
 export const assessmentSchema = z.object({
   tool: z.string().trim().min(2).max(100),
-  title: z.string().trim().min(2).max(180),
-  pipeline: z.string().trim().min(2).max(180),
-  recommendation: z.string().trim().min(2).max(300),
-  riskLevel: z.string().trim().min(2).max(100),
-  score: z.number().int().min(0).max(100),
+  title: z.string().trim().min(2).max(180).optional(),
+  pipeline: z.string().trim().min(2).max(180).optional(),
+  recommendation: z.string().trim().min(2).max(300).optional(),
+  riskLevel: z.string().trim().min(2).max(100).optional(),
+  score: z.number().int().min(0).max(100).optional(),
   answers: z.record(z.string(), z.unknown()).optional().default({}),
   sessionId: z.string().trim().max(200).optional().default(""),
   attribution: attributionSchema,

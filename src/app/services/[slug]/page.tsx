@@ -83,7 +83,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
             {service.cta}
           </Link>
           <a className="button secondary" href="#lead">
-            Book Assessment
+            Request Engineering Review
           </a>
         </div>
       </section>
@@ -94,7 +94,8 @@ export default async function ServicePage({ params }: ServicePageProps) {
           <h2>What this engagement should improve</h2>
           <p>
             Every service is framed around operational outcomes, security evidence, and a clear next action instead of
-            a vague list of technical capabilities.
+            a vague list of technical capabilities. The assessment CTA qualifies urgency, evidence, and follow-up logic
+            before the sales conversation starts.
           </p>
         </div>
         <div className="outcome-list">

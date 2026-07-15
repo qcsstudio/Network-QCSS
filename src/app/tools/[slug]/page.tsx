@@ -89,8 +89,11 @@ export default async function ToolPage({ params }: ToolPageProps) {
       <section className="section split">
         <div className="section-heading">
           <p className="eyebrow">Lead conversion</p>
-          <h2>Need help interpreting the score?</h2>
-          <p>Submit a contact request to turn the tool result into a real follow-up workflow.</p>
+          <h2>Turn the assessment into an engineering follow-up.</h2>
+          <p>
+            Submit a contact request to attach this result to a service pipeline, evidence checklist, and practical
+            remediation conversation.
+          </p>
         </div>
         <LeadForm interest={tool.pipeline} pipeline={tool.pipeline} compact />
       </section>

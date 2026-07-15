@@ -1,5 +1,26 @@
 import type { DashboardSnapshot } from "@/lib/types";
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function assessmentSummary(answers: Record<string, unknown>) {
+  const profile = isRecord(answers.profile) ? answers.profile : null;
+  const cta = profile && isRecord(profile.cta) ? profile.cta : null;
+  const domainScores = profile && Array.isArray(profile.domainScores) ? profile.domainScores : [];
+  const domains = domainScores
+    .filter(isRecord)
+    .map((domain) => (typeof domain.label === "string" ? domain.label : ""))
+    .filter(Boolean)
+    .slice(0, 2);
+
+  return {
+    cta: typeof cta?.label === "string" ? cta.label : "",
+    responseWindow: typeof cta?.responseWindow === "string" ? cta.responseWindow : "",
+    domains
+  };
+}
+
 export function OperatorDashboard({ snapshot }: { snapshot: DashboardSnapshot }) {
   const pipelineEntries = Object.entries(snapshot.byPipeline).sort((a, b) => b[1] - a[1]);
   const readiness = snapshot.readiness;
@@ -184,14 +205,30 @@ export function OperatorDashboard({ snapshot }: { snapshot: DashboardSnapshot })
             {snapshot.latestAssessments.length === 0 ? (
               <p>No assessments yet.</p>
             ) : (
-              snapshot.latestAssessments.map((assessment) => (
-                <div className="stack-item" key={assessment.id}>
-                  <strong>{assessment.title}</strong>
-                  <span>
-                    {assessment.score} - {assessment.riskLevel}
-                  </span>
-                </div>
-              ))
+              snapshot.latestAssessments.map((assessment) => {
+                const summary = assessmentSummary(assessment.answers);
+                return (
+                  <div className="stack-item assessment-stack-item" key={assessment.id}>
+                    <strong>{assessment.title}</strong>
+                    <span>
+                      {assessment.score} - {assessment.riskLevel}
+                    </span>
+                    <em>{assessment.pipeline}</em>
+                    {summary.cta ? (
+                      <small>
+                        {summary.cta} | {summary.responseWindow}
+                      </small>
+                    ) : null}
+                    {summary.domains.length > 0 ? (
+                      <div className="mini-chip-row">
+                        {summary.domains.map((domain) => (
+                          <i key={domain}>{domain}</i>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
             )}
           </div>
         </section>

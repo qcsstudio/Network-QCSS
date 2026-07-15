@@ -352,10 +352,11 @@ export default function HomePage() {
       <section className="section split" id="tools">
         <div className="section-heading">
           <p className="eyebrow">Diagnostic layer</p>
-          <h2>Lead magnets should behave like engineering triage.</h2>
+          <h2>Lead magnets should behave like engineering triage, not a shallow quiz.</h2>
           <p>
-            Each completed tool stores the result, pipeline, recommendation, country signal, consent state, and
-            attribution context.
+            Each completed assessment maps answers to risk domains, evidence requests, response urgency, service
+            pipeline, recommended CTA, country signal, consent state, and attribution context. The browser shows a
+            result instantly while the API recalculates a trusted server score for the dashboard.
           </p>
         </div>
         <AssessmentTool />
