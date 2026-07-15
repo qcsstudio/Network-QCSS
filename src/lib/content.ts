@@ -37,6 +37,45 @@ export const proofSignals = [
   { value: "1", label: "Studio for services and institute" }
 ];
 
+export const commandLayers = [
+  {
+    title: "Network Operations Layer",
+    description:
+      "Monitoring, device health, routing, Wi-Fi, VPN, SD-WAN, backups, documentation, and incident response workflows.",
+    icon: Radar
+  },
+  {
+    title: "Security Assurance Layer",
+    description:
+      "Firewall hygiene, segmentation, cloud exposure review, penetration testing, retesting, logs, and audit evidence.",
+    icon: ShieldCheck
+  },
+  {
+    title: "Growth Intelligence Layer",
+    description:
+      "SEO/AIO pages, online utilities, gated resources, lead scoring, attribution, and admin funnel visibility.",
+    icon: BrainCircuit
+  }
+];
+
+export const visualPositioningModules = [
+  {
+    title: "Command room, not brochure",
+    description:
+      "The website should feel simple to buyers while behaving like a live marketing and service qualification system for you."
+  },
+  {
+    title: "Global trust with Indian execution",
+    description:
+      "Position QuantumCrafters for India, GCC, US, UK, EU, and remote-first teams that need practical network expertise without enterprise MSP overhead."
+  },
+  {
+    title: "Training becomes a trust signal",
+    description:
+      "Institute programs prove depth, build talent, and create a bridge between learners, corporate upskilling, and service delivery."
+  }
+];
+
 export const marketEdges = [
   {
     title: "Smaller than an enterprise MSP, sharper than a freelancer",
@@ -79,6 +118,59 @@ export const contentPillars = [
   {
     title: "Emergency Network Troubleshooting",
     description: "Outage triage, latency, packet analysis, VPN failures, firewall routing, Wi-Fi instability, and RCA."
+  }
+];
+
+export const authorityEngine = [
+  {
+    title: "Service Cluster Pages",
+    description:
+      "Managed network services, NOC, firewall management, cloud networking, Wi-Fi/LAN, pentesting, troubleshooting, and institute pages with schema and conversion CTAs."
+  },
+  {
+    title: "Problem Intent Pages",
+    description:
+      "Pages for VPN down, firewall rule cleanup, office Wi-Fi instability, DNS failures, SSL issues, email spoofing, cloud routing, and audit readiness."
+  },
+  {
+    title: "Online Utility Pages",
+    description:
+      "Fast DNS, MX, SPF, DMARC, SSL, header, and port tools that attract search demand and turn anonymous technical intent into qualified signals."
+  },
+  {
+    title: "AIO Answer Assets",
+    description:
+      "Concise definitions, comparison blocks, checklists, FAQs, JSON-LD, llms.txt, and answer-first copy designed for AI answer engines and featured snippets."
+  }
+];
+
+export const conversionMagnets = [
+  "Network Risk Score",
+  "Firewall Hygiene Checker",
+  "Cloud Network Readiness Review",
+  "Pentest Scope Sheet",
+  "Emergency Troubleshooting Triage",
+  "Network Security Career Roadmap"
+];
+
+export const buyerJourneys = [
+  {
+    title: "IT Head or Founder",
+    description:
+      "Needs uptime, support ownership, documentation, firewall confidence, and a partner who can explain business impact clearly.",
+    route: "Managed services, NOC, firewall management, troubleshooting"
+  },
+  {
+    title: "Security or Compliance Buyer",
+    description:
+      "Needs testing, evidence, retesting, cloud exposure visibility, access controls, and remediation that does not stop at a report.",
+    route: "Network security, cloud security review, penetration testing"
+  },
+  {
+    title: "Student or Working Professional",
+    description:
+      "Needs a practical route into network engineering, cybersecurity, cloud networking, SOC, or ethical hacking roles.",
+    route: "Institute programs, labs, roadmap resources, demo class leads"
   }
 ];
 

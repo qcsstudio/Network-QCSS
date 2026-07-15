@@ -21,6 +21,7 @@ export function SiteHeader() {
           width={262}
           height={80}
           priority
+          style={{ width: "100%", height: "auto" }}
         />
       </Link>
 

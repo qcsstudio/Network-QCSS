@@ -6,8 +6,12 @@ import { LeadForm } from "@/components/lead-form";
 import { ResourceDownloads } from "@/components/resource-downloads";
 import {
   automationFlows,
+  authorityEngine,
+  buyerJourneys,
   commandNavItems,
+  commandLayers,
   contentPillars,
+  conversionMagnets,
   deliveryWorkflow,
   industryCoverage,
   marketEdges,
@@ -16,7 +20,8 @@ import {
   proofSignals,
   services,
   supportModelComparison,
-  vendorCoverage
+  vendorCoverage,
+  visualPositioningModules
 } from "@/lib/content";
 import { networkUtilityTools } from "@/lib/network-tools";
 
@@ -24,6 +29,14 @@ export default function HomePage() {
   return (
     <main>
       <section className="hero-section">
+        <Image
+          className="hero-bg-image"
+          src="/brand/network-command-hero.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+        />
         <div className="hero-copy">
           <Image
             className="hero-logo"
@@ -32,6 +45,7 @@ export default function HomePage() {
             width={328}
             height={100}
             priority
+            style={{ width: "min(222px, 68vw)", height: "auto" }}
           />
           <p className="eyebrow">{positioning.eyebrow}</p>
           <h1>{positioning.headline}</h1>
@@ -54,7 +68,16 @@ export default function HomePage() {
           </div>
         </div>
         <div className="network-visual" aria-label="Network command dashboard preview">
-          <div className="visual-panel">
+          <div className="visual-panel command-console">
+            <div className="console-topline">
+              <span>Live signal map</span>
+              <strong>98%</strong>
+            </div>
+            <div className="visual-radar" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
             <span className="signal online">NOC 24x7</span>
             <span className="signal alert">Firewall drift</span>
             <span className="signal online">Cloud route</span>
@@ -63,7 +86,37 @@ export default function HomePage() {
               <strong>QCS</strong>
               <span>Command Score</span>
             </div>
+            <div className="telemetry-stack" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
           </div>
+        </div>
+      </section>
+
+      <section className="section mission-band">
+        <div className="mission-copy">
+          <p className="eyebrow">Out-of-box website architecture</p>
+          <h2>A simple public website on the surface. A network growth operating system underneath.</h2>
+          <p>
+            The design now positions QuantumCrafters as a modern command studio: one place for network operations,
+            security assurance, cloud connectivity, penetration testing, troubleshooting, institute programs, and
+            measurable lead intelligence.
+          </p>
+        </div>
+        <div className="mission-grid">
+          {commandLayers.map((layer) => {
+            const Icon = layer.icon;
+            return (
+              <article className="mission-card" key={layer.title}>
+                <Icon size={26} />
+                <h3>{layer.title}</h3>
+                <p>{layer.description}</p>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -94,6 +147,59 @@ export default function HomePage() {
             <article className="edge-card" key={edge.title}>
               <h3>{edge.title}</h3>
               <p>{edge.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section visual-split">
+        <div className="section-heading">
+          <p className="eyebrow">Positioning system</p>
+          <h2>Futuristic does not mean decorative. Every visual should explain trust, speed, and control.</h2>
+          <p>
+            The website should feel premium and direct while quietly proving that QuantumCrafters understands networks,
+            security, cloud, training, and marketing automation as one connected system.
+          </p>
+          <div className="module-list">
+            {visualPositioningModules.map((module) => (
+              <article key={module.title}>
+                <h3>{module.title}</h3>
+                <p>{module.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+        <div className="holo-diagram" aria-label="QuantumCrafters website and marketing intelligence layers">
+          <div className="diagram-ring">
+            <span className="diagram-node node-a">SEO</span>
+            <span className="diagram-node node-b">Tools</span>
+            <span className="diagram-node node-c">Leads</span>
+            <span className="diagram-node node-d">CRM</span>
+            <strong>QCS</strong>
+          </div>
+          <div className="diagram-rail">
+            {conversionMagnets.map((magnet) => (
+              <span key={magnet}>{magnet}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Buyer journey routing</p>
+          <h2>Different visitors should feel they found the exact door, not a generic IT vendor.</h2>
+          <p>
+            The site separates urgent support, strategic security, cloud network, pentest, and institute audiences
+            while still keeping them connected to one QuantumCrafters command system.
+          </p>
+        </div>
+        <div className="journey-grid">
+          {buyerJourneys.map((journey) => (
+            <article className="journey-card" key={journey.title}>
+              <h3>{journey.title}</h3>
+              <p>{journey.description}</p>
+              <span>{journey.route}</span>
             </article>
           ))}
         </div>
@@ -177,6 +283,25 @@ export default function HomePage() {
               </article>
             );
           })}
+        </div>
+      </section>
+
+      <section className="section dark-showcase">
+        <div className="section-heading">
+          <p className="eyebrow">Authority engine</p>
+          <h2>Content-rich enough to rank, useful enough to convert, structured enough for AI answers.</h2>
+          <p>
+            The content system should win search demand from buyers, learners, IT teams, and urgent troubleshooting
+            visitors. Each page has a job: educate, diagnose, route, or qualify.
+          </p>
+        </div>
+        <div className="authority-grid">
+          {authorityEngine.map((block) => (
+            <article className="authority-card" key={block.title}>
+              <h3>{block.title}</h3>
+              <p>{block.description}</p>
+            </article>
+          ))}
         </div>
       </section>
 

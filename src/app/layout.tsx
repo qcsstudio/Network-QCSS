@@ -19,7 +19,15 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     url: siteConfig.url,
     siteName: siteConfig.name,
-    type: "website"
+    type: "website",
+    images: [
+      {
+        url: "/brand/network-command-hero.png",
+        width: 1807,
+        height: 870,
+        alt: "QuantumCrafters Studio network command center"
+      }
+    ]
   }
 };
 
