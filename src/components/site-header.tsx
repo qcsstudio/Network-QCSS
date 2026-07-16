@@ -12,28 +12,43 @@ const navItems = [
 
 export function SiteHeader() {
   return (
-    <header className="site-header">
-      <Link className="brand" href="/">
-        <Image
-          className="brand-logo"
-          src="/brand/quantumcrafters-logo.png"
-          alt="QuantumCrafters Studio Pvt. Ltd."
-          width={262}
-          height={80}
-          priority
-          style={{ width: "100%", height: "auto" }}
-        />
+    <header className="site-header command-header">
+      <span className="header-scanline" aria-hidden="true" />
+      <Link className="brand command-brand" href="/">
+        <span className="brand-mark-shell">
+          <Image
+            className="brand-logo"
+            src="/brand/quantumcrafters-logo.png"
+            alt="QuantumCrafters Studio Pvt. Ltd."
+            width={262}
+            height={80}
+            priority
+            style={{ width: "100%", height: "auto" }}
+          />
+        </span>
+        <span className="brand-status">
+          <span>Network Command</span>
+          <strong>Global + India</strong>
+        </span>
       </Link>
 
-      <nav className="main-nav" aria-label="Main navigation">
-        {navItems.map((item) => (
-          <Link key={item.href} href={item.href}>
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      <div className="header-core">
+        <nav className="main-nav command-nav-shell" aria-label="Main navigation">
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href}>
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </nav>
+        <div className="header-status-grid" aria-hidden="true">
+          <span>Operate</span>
+          <span>Secure</span>
+          <span>Test</span>
+        </div>
+      </div>
 
-      <Link className="button primary" href="/diagnose">
+      <Link className="button primary header-cta" href="/diagnose">
+        <span className="cta-pulse" aria-hidden="true" />
         Start Assessment
       </Link>
     </header>
