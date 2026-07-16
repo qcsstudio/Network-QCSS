@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Activity, ClipboardCheck, Network, Wrench } from "lucide-react";
 
 const navItems = [
   { href: "/solutions", label: "Solutions" },
@@ -8,6 +9,13 @@ const navItems = [
   { href: "/network-tools", label: "Tools" },
   { href: "/institute", label: "Institute" },
   { href: "/resources", label: "Resources" }
+];
+
+const mobileNavItems = [
+  { href: "/solutions", label: "Solve", ariaLabel: "Solutions", Icon: Network },
+  { href: "/network-tools", label: "Tools", ariaLabel: "Network tools", Icon: Wrench },
+  { href: "/diagnose", label: "Assess", ariaLabel: "Assessments", Icon: ClipboardCheck },
+  { href: "/resources", label: "Learn", ariaLabel: "Resources", Icon: Activity }
 ];
 
 export function SiteHeader() {
@@ -51,6 +59,18 @@ export function SiteHeader() {
         <span className="cta-pulse" aria-hidden="true" />
         Start Assessment
       </Link>
+
+      <nav className="mobile-command-nav" aria-label="Compact navigation">
+        {mobileNavItems.map((item) => {
+          const Icon = item.Icon;
+          return (
+            <Link key={item.href} href={item.href} aria-label={item.ariaLabel}>
+              <Icon size={15} aria-hidden="true" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </header>
   );
 }

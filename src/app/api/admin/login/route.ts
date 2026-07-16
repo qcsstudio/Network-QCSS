@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
 import { adminCookieName, adminCookieOptions, createAdminSession, verifyAdminCredentials } from "@/lib/admin-auth";
+import { readFormBody } from "@/lib/api";
+import { rateLimit } from "@/lib/rate-limit";
 import { requestContext } from "@/lib/security";
 import { createAuditLog } from "@/lib/store";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const formData = await request.formData();
+  const limited = rateLimit(request, { keyPrefix: "admin-login", max: 8, windowMs: 5 * 60_000 });
+  if (limited) {
+    return NextResponse.redirect(new URL("/admin/login?error=rate", request.url), { status: 303 });
+  }
+
+  const body = await readFormBody(request);
+  if (!body.ok) return body.response;
+
+  const formData = body.data;
   const email = String(formData.get("email") || "");
   const password = String(formData.get("password") || "");
   const context = await requestContext();

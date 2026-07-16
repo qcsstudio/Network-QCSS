@@ -305,7 +305,11 @@ export async function getLeads() {
 
 export function leadsToCsv(leads: StoredLead[]) {
   const headers = ["createdAt", "name", "email", "phone", "interest", "pipeline", "score", "priority", "country", "source"];
-  const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+  const escape = (value: unknown) => {
+    const text = String(value ?? "");
+    const safeText = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+    return `"${safeText.replace(/"/g, '""')}"`;
+  };
   const lines = [headers.join(",")];
 
   for (const lead of leads) {

@@ -1,4 +1,5 @@
 import { isAdminRequest } from "@/lib/admin-auth";
+import { noStoreHeaders } from "@/lib/api";
 import { requestContext } from "@/lib/security";
 import { createAuditLog, getLeads, leadsToCsv } from "@/lib/store";
 
@@ -22,6 +23,7 @@ export async function GET(request: Request) {
 
   return new Response(leadsToCsv(leads), {
     headers: {
+      ...noStoreHeaders,
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": "attachment; filename=network-qcss-leads.csv"
     }

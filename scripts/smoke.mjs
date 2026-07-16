@@ -57,6 +57,32 @@ async function post(path, body) {
 
 try {
   await waitForServer();
+  const health = await fetch(`${baseUrl}/api/health`);
+  if (!health.headers.get("content-security-policy") || health.headers.get("x-content-type-options") !== "nosniff") {
+    throw new Error("Expected security headers were not present on API responses.");
+  }
+  if (!/no-store/i.test(health.headers.get("cache-control") || "")) {
+    throw new Error("Health endpoint should not be cached.");
+  }
+
+  const invalidJson = await fetch(`${baseUrl}/api/leads`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{"
+  });
+  if (invalidJson.status !== 400) {
+    throw new Error(`Malformed JSON should return 400. Received ${invalidJson.status}`);
+  }
+
+  const wrongContentType = await fetch(`${baseUrl}/api/events`, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: "{}"
+  });
+  if (wrongContentType.status !== 415) {
+    throw new Error(`Wrong content type should return 415. Received ${wrongContentType.status}`);
+  }
+
   const unauthorizedDashboard = await fetch(`${baseUrl}/api/dashboard`);
   if (unauthorizedDashboard.status !== 401) {
     throw new Error(`Dashboard should require admin auth. Received ${unauthorizedDashboard.status}`);
@@ -145,6 +171,16 @@ try {
   }
   if (!leadResponse.integrationSummary || typeof leadResponse.integrationSummary.attempted !== "number") {
     throw new Error(`Lead response did not include sanitized integration summary: ${JSON.stringify(leadResponse)}`);
+  }
+
+  const leadExport = await fetch(`${baseUrl}/api/export/leads.csv`, {
+    headers: { "x-admin-token": adminToken }
+  });
+  if (!leadExport.ok || !/attachment/.test(leadExport.headers.get("content-disposition") || "")) {
+    throw new Error(`Lead export did not return an attachment: ${leadExport.status}`);
+  }
+  if (!/no-store/i.test(leadExport.headers.get("cache-control") || "")) {
+    throw new Error("Lead export should not be cached.");
   }
 
   const dashboard = await fetch(`${baseUrl}/api/dashboard`, {

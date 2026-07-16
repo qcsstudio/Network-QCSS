@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { jsonError, noStoreHeaders, readJsonBody } from "@/lib/api";
 import { dispatchLeadIntegrations } from "@/lib/integrations";
+import { rateLimit } from "@/lib/rate-limit";
 import { leadSchema } from "@/lib/schemas";
 import { requestContext } from "@/lib/security";
 import { createAuditLog, createLead, getLeads } from "@/lib/store";
@@ -9,16 +11,22 @@ export const runtime = "nodejs";
 
 export async function GET(request: Request) {
   if (!isAdminRequest(request)) {
-    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    return jsonError("Unauthorized", 401);
   }
 
-  return NextResponse.json({ leads: await getLeads() });
+  return NextResponse.json({ leads: await getLeads() }, { headers: noStoreHeaders });
 }
 
 export async function POST(request: Request) {
-  const parsed = leadSchema.safeParse(await request.json());
+  const limited = rateLimit(request, { keyPrefix: "leads", max: 20, windowMs: 60_000 });
+  if (limited) return limited;
+
+  const body = await readJsonBody(request);
+  if (!body.ok) return body.response;
+
+  const parsed = leadSchema.safeParse(body.data);
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: parsed.error.flatten() }, { status: 400 });
+    return jsonError(parsed.error.flatten(), 400);
   }
 
   const context = await requestContext();

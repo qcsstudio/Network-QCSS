@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { scoreAssessment } from "@/lib/assessment-engine";
+import { jsonError, readJsonBody } from "@/lib/api";
 import { tools } from "@/lib/content";
+import { rateLimit } from "@/lib/rate-limit";
 import { assessmentSchema } from "@/lib/schemas";
 import { requestContext } from "@/lib/security";
 import { createAssessment } from "@/lib/store";
@@ -12,14 +14,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export async function POST(request: Request) {
-  const parsed = assessmentSchema.safeParse(await request.json());
+  const limited = rateLimit(request, { keyPrefix: "assessments", max: 30, windowMs: 60_000 });
+  if (limited) return limited;
+
+  const body = await readJsonBody(request);
+  if (!body.ok) return body.response;
+
+  const parsed = assessmentSchema.safeParse(body.data);
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: parsed.error.flatten() }, { status: 400 });
+    return jsonError(parsed.error.flatten(), 400);
   }
 
   const tool = tools.find((item) => item.slug === parsed.data.tool);
   if (!tool) {
-    return NextResponse.json({ ok: false, error: "Unknown assessment tool." }, { status: 400 });
+    return jsonError("Unknown assessment tool.", 400);
   }
 
   const submittedAnswers = parsed.data.answers;

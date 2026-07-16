@@ -445,6 +445,42 @@ button {
   box-shadow: 0 0 12px rgba(85, 242, 255, 0.72);
 }
 
+.mobile-command-nav {
+  display: none;
+}
+
+.mobile-command-nav a {
+  position: relative;
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.065);
+  padding: 7px 8px;
+  color: #f6e9f1;
+  font-family: var(--font-tech), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.mobile-command-nav a::after {
+  content: "";
+  position: absolute;
+  inset: auto 9px 5px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--brand-orange), var(--neon-cyan), transparent);
+  opacity: 0.65;
+}
+
+.mobile-command-nav svg {
+  flex: none;
+  color: #ffb169;
+}
+
 .header-cta {
   min-width: 178px;
   white-space: nowrap;
@@ -560,7 +596,7 @@ button {
   width: 100%;
   max-width: none;
   min-height: 720px;
-  padding: 42px max(18px, calc((100vw - 1180px) / 2)) 48px;
+  padding: 56px max(18px, calc((100vw - 1180px) / 2)) 64px;
   background:
     linear-gradient(115deg, rgba(255, 138, 43, 0.2), transparent 28%),
     linear-gradient(245deg, rgba(99, 139, 217, 0.18), transparent 34%),
@@ -921,7 +957,7 @@ button {
 .page-hero {
   position: relative;
   overflow: hidden;
-  padding: 88px 0 44px;
+  padding: 96px 0 56px;
 }
 
 .page-hero::before {
@@ -950,8 +986,8 @@ button {
 }
 
 .section {
-  margin-bottom: 28px;
-  padding: clamp(24px, 4vw, 50px);
+  margin-bottom: 34px;
+  padding: clamp(34px, 6vw, 64px);
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1191,6 +1227,7 @@ button {
   position: relative;
   overflow: hidden;
   margin: 10px 0 34px;
+  padding-block: clamp(8px, 1.6vw, 18px);
   background:
     linear-gradient(115deg, rgba(255, 138, 43, 0.17), transparent 34%),
     linear-gradient(245deg, rgba(99, 139, 217, 0.2), transparent 38%),
@@ -1785,7 +1822,7 @@ button {
 }
 
 .utility-grid.compact {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .utility-card {
@@ -1797,7 +1834,7 @@ button {
 }
 
 .utility-grid.compact .utility-card {
-  min-height: 220px;
+  min-height: 240px;
 }
 
 .utility-card h2,
@@ -3050,9 +3087,11 @@ td span {
 }
 
 @supports (animation-timeline: view()) {
+  .section,
   .motion-section,
   .asset-command-band,
-  .page-hero {
+  .page-hero,
+  .site-footer {
     animation: sectionReveal both;
     animation-timeline: view();
     animation-range: entry 8% cover 30%;
@@ -3066,6 +3105,7 @@ td span {
     animation-range: entry 12% cover 38%;
   }
 
+  .section :is(.journey-card, .service-card, .mode-card, .utility-card, .flow-card, .resource-card, .authority-card, .comparison-panel, .process-timeline article, .edge-card, .pillar-card, .answer-panel, .faq-card, .lead-form, .network-tool-shell, .tool-shell, .assessment-form, .network-tool-result, .asset-command-card),
   .motion-section :is(.journey-card, .service-card, .mode-card, .utility-card, .flow-card, .resource-card, .authority-card, .comparison-panel, .process-timeline article) {
     animation: cardRise both;
     animation-timeline: view();
@@ -3076,6 +3116,16 @@ td span {
 @media (max-width: 1080px) {
   .site-header {
     grid-template-columns: minmax(0, 1fr) auto;
+    padding-block: 8px;
+  }
+
+  .command-brand {
+    min-height: 62px;
+    padding: 7px 10px;
+  }
+
+  .brand-mark-shell {
+    width: min(196px, 34vw);
   }
 
   .header-core {
@@ -3084,6 +3134,19 @@ td span {
 
   .main-nav {
     display: none;
+  }
+
+  .mobile-command-nav {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .mobile-command-nav a {
+    min-height: 34px;
+    padding: 6px 7px;
+    font-size: 0.78rem;
   }
 
   .hero-section,
@@ -3134,6 +3197,10 @@ td span {
   .footer-command-panel {
     grid-template-columns: 1fr;
   }
+
+  .utility-grid.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -3150,13 +3217,13 @@ td span {
 
   .command-brand {
     justify-content: center;
-    min-height: 62px;
+    min-height: 54px;
     width: 100%;
-    padding: 8px 10px;
+    padding: 6px 8px;
   }
 
   .brand-mark-shell {
-    width: min(230px, 76vw);
+    width: min(198px, 66vw);
     min-width: 0;
   }
 
@@ -3168,14 +3235,28 @@ td span {
     display: none;
   }
 
+  .mobile-command-nav {
+    gap: 6px;
+  }
+
+  .mobile-command-nav a {
+    min-height: 34px;
+    padding: 6px 5px;
+    font-size: 0.74rem;
+  }
+
   .hero-section,
   .page-hero {
-    padding-top: 58px;
+    padding-top: 62px;
   }
 
   .hero-section {
     min-height: auto;
-    padding-bottom: 42px;
+    padding-bottom: 48px;
+  }
+
+  .page-hero {
+    padding-bottom: 46px;
   }
 
   .hero-bg-image {
@@ -3282,7 +3363,49 @@ td span {
   }
 
   .footer-command-panel {
-    padding: 14px;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .footer-brand-stack,
+  .footer-action-panel,
+  .footer-link-grid > div {
+    padding: 12px;
+  }
+
+  .footer-logo {
+    width: min(226px, 72vw);
+  }
+
+  .footer-link-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .footer-link-grid > div {
+    gap: 6px;
+  }
+
+  .footer-link-grid a {
+    min-height: 28px;
+    font-size: 0.82rem;
+  }
+
+  .footer-link-grid a::before {
+    width: 5px;
+    height: 5px;
+    margin-right: 6px;
+  }
+
+  .footer-signal-row span,
+  .footer-bottom-bar span {
+    min-height: 26px;
+    padding: 5px 8px;
+    font-size: 0.74rem;
+  }
+
+  .footer-action-panel h2 {
+    font-size: clamp(1.25rem, 8vw, 1.85rem);
   }
 
   .footer-bottom-bar {

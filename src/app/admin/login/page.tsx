@@ -15,6 +15,8 @@ export default async function AdminLoginPage({
   const session = await getAdminSession();
   if (session) redirect("/admin");
   const { error } = await searchParams;
+  const errorMessage =
+    error === "rate" ? "Too many login attempts. Please wait a few minutes and try again." : "Invalid admin credentials.";
 
   return (
     <main>
@@ -36,7 +38,7 @@ export default async function AdminLoginPage({
           <button className="button primary" type="submit">
             Sign in
           </button>
-          {error ? <p className="form-note error">Invalid admin credentials.</p> : null}
+          {error ? <p className="form-note error">{errorMessage}</p> : null}
           <p className="form-note">Development default is documented in README. Production must override it with env vars.</p>
         </form>
       </section>

@@ -4,7 +4,9 @@ import tls from "node:tls";
 import { domainToASCII } from "node:url";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { jsonError, readJsonBody } from "@/lib/api";
 import { getNetworkUtilityTool } from "@/lib/network-tools";
+import { rateLimit } from "@/lib/rate-limit";
 import { requestContext } from "@/lib/security";
 import { createEvent } from "@/lib/store";
 
@@ -393,14 +395,20 @@ async function runTool(tool: string, title: string, target: string, port?: numbe
 
 export async function POST(request: Request) {
   const startedAt = Date.now();
-  const parsed = networkToolSchema.safeParse(await request.json());
+  const limited = rateLimit(request, { keyPrefix: "network-tools", max: 30, windowMs: 60_000 });
+  if (limited) return limited;
+
+  const body = await readJsonBody(request);
+  if (!body.ok) return body.response;
+
+  const parsed = networkToolSchema.safeParse(body.data);
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: parsed.error.flatten() }, { status: 400 });
+    return jsonError(parsed.error.flatten(), 400);
   }
 
   const payload = parsed.data;
   const tool = getNetworkUtilityTool(payload.tool);
-  if (!tool) return NextResponse.json({ ok: false, error: "Unknown network tool." }, { status: 404 });
+  if (!tool) return jsonError("Unknown network tool.", 404);
 
   try {
     const output = await runTool(tool.slug, tool.title, payload.target, payload.port);
@@ -442,6 +450,6 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ ok: false, error: errorMessage(error) }, { status: 400 });
+    return jsonError(errorMessage(error), 400);
   }
 }
