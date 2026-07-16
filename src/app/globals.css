@@ -87,6 +87,64 @@
   }
 }
 
+@keyframes sectionReveal {
+  from {
+    opacity: 0.42;
+    transform: translateY(42px) scale(0.985);
+    filter: blur(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes mediaReveal {
+  from {
+    opacity: 0.4;
+    transform: translateY(26px) rotateX(10deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateX(0);
+  }
+}
+
+@keyframes railTravel {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: 180px 0;
+  }
+}
+
+@keyframes frameScan {
+  0% {
+    transform: translateY(-110%);
+  }
+
+  100% {
+    transform: translateY(110%);
+  }
+}
+
+@keyframes cardRise {
+  from {
+    opacity: 0.5;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -714,6 +772,144 @@ button {
   line-height: 1.05;
   letter-spacing: 0;
   text-wrap: balance;
+}
+
+.media-section {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(280px, 0.52fr);
+  gap: clamp(18px, 3vw, 34px);
+  align-items: center;
+}
+
+.media-section > .section-heading {
+  margin-bottom: 0;
+}
+
+.media-section > :is(.journey-grid, .service-grid, .utility-grid, .tool-shell) {
+  grid-column: 1 / -1;
+}
+
+.section-motion-graphic {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  overflow: hidden;
+  min-height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(255, 138, 43, 0.16), rgba(236, 35, 111, 0.1), rgba(99, 139, 217, 0.16)),
+    var(--deep-ink);
+  background-size: 34px 34px, 34px 34px, auto, auto;
+  color: white;
+  padding: 12px;
+  box-shadow: 0 22px 64px rgba(5, 5, 6, 0.24);
+}
+
+.section-motion-graphic::before,
+.section-motion-graphic::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.section-motion-graphic::before {
+  inset: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+}
+
+.section-motion-graphic::after {
+  inset: auto 12px 12px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--brand-orange), var(--brand-magenta), var(--neon-cyan), transparent);
+  background-size: 180px 100%;
+  animation: railTravel 3.8s linear infinite;
+}
+
+.motion-frame {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: #08070b;
+}
+
+.motion-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, transparent 0 42%, rgba(85, 242, 255, 0.18) 50%, transparent 58% 100%);
+  mix-blend-mode: screen;
+  animation: frameScan 4.8s linear infinite;
+}
+
+.motion-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  filter: saturate(1.08) contrast(1.06);
+}
+
+.motion-glass-label {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(5, 5, 6, 0.72);
+  padding: 8px 10px;
+  color: #fff2f8;
+  font-family: var(--font-tech), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  backdrop-filter: blur(12px);
+}
+
+.motion-glass-label svg {
+  color: #ffb169;
+}
+
+.section-motion-graphic h3 {
+  margin: 0;
+  color: white;
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  line-height: 1.08;
+}
+
+.motion-signal-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.motion-signal-row span {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 6px 9px;
+  color: #f7e7ef;
+  font-family: var(--font-tech), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.section-motion-graphic.security .motion-glass-label svg,
+.section-motion-graphic.assessment .motion-glass-label svg {
+  color: var(--neon-cyan);
 }
 
 .split {
@@ -1570,6 +1766,37 @@ button {
 
 .process-timeline {
   grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.process-motion-section {
+  position: relative;
+}
+
+.process-signal-rail {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: -6px 0 18px;
+}
+
+.process-signal-rail span {
+  position: relative;
+  overflow: hidden;
+  height: 4px;
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 138, 43, 0.95), rgba(236, 35, 111, 0.95), rgba(85, 242, 255, 0.86), transparent),
+    rgba(5, 5, 6, 0.1);
+  background-size: 180px 100%, auto;
+  animation: railTravel 3.8s linear infinite;
+}
+
+.process-signal-rail span:nth-child(2) {
+  animation-delay: 0.35s;
+}
+
+.process-signal-rail span:nth-child(3) {
+  animation-delay: 0.7s;
 }
 
 .process-timeline article {
@@ -2441,6 +2668,30 @@ td span {
   font-weight: 800;
 }
 
+@supports (animation-timeline: view()) {
+  .motion-section,
+  .asset-command-band,
+  .page-hero {
+    animation: sectionReveal both;
+    animation-timeline: view();
+    animation-range: entry 8% cover 30%;
+  }
+
+  .motion-section > .section-motion-graphic,
+  .asset-command-visual,
+  .asset-intelligence-panel {
+    animation: mediaReveal both;
+    animation-timeline: view();
+    animation-range: entry 12% cover 38%;
+  }
+
+  .motion-section :is(.journey-card, .service-card, .mode-card, .utility-card, .flow-card, .resource-card, .authority-card, .comparison-panel, .process-timeline article) {
+    animation: cardRise both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 26%;
+  }
+}
+
 @media (max-width: 1080px) {
   .main-nav {
     display: none;
@@ -2449,6 +2700,7 @@ td span {
   .hero-section,
   .split,
   .intent-panel,
+  .media-section,
   .admin-grid,
   .mission-band,
   .visual-split,
@@ -2607,6 +2859,22 @@ td span {
 
   .site-footer {
     display: grid;
+  }
+
+  .media-section > .section-heading {
+    margin-bottom: 0;
+  }
+
+  .section-motion-graphic {
+    order: 2;
+  }
+
+  .media-section > :is(.journey-grid, .service-grid, .utility-grid, .tool-shell) {
+    order: 3;
+  }
+
+  .process-signal-rail {
+    grid-template-columns: 1fr;
   }
 }
 

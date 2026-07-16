@@ -5,6 +5,7 @@ import { EnvatoVisualSystem } from "@/components/envato-visual-system";
 import { IntentRouter } from "@/components/intent-router";
 import { LeadForm } from "@/components/lead-form";
 import { ResourceDownloads } from "@/components/resource-downloads";
+import { SectionMotionGraphic } from "@/components/section-motion-graphic";
 import {
   automationFlows,
   buyerJourneys,
@@ -87,7 +88,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section mission-band">
+      <section className="section mission-band motion-section">
         <div className="mission-copy">
           <p className="eyebrow">Why this exists</p>
           <h2>Your network should not feel like a mystery every time something breaks.</h2>
@@ -110,13 +111,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section">
+      <section className="section motion-section">
         <IntentRouter />
       </section>
 
       <EnvatoVisualSystem />
 
-      <section className="section">
+      <section className="section media-section motion-section">
         <div className="section-heading">
           <p className="eyebrow">Built for your situation</p>
           <h2>Choose the path that matches the pressure you are under.</h2>
@@ -125,6 +126,7 @@ export default function HomePage() {
             starts with a clear first step.
           </p>
         </div>
+        <SectionMotionGraphic variant="network" />
         <div className="journey-grid">
           {buyerJourneys.map((journey) => (
             <article className="journey-card" key={journey.title}>
@@ -136,7 +138,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section" id="solutions">
+      <section className="section media-section motion-section" id="solutions">
         <div className="section-heading">
           <p className="eyebrow">Solution paths</p>
           <h2>Simple pages for the problems people actually search for.</h2>
@@ -144,6 +146,7 @@ export default function HomePage() {
             Each path explains the issue, what evidence helps, and which QCS service or diagnostic should come next.
           </p>
         </div>
+        <SectionMotionGraphic variant="security" />
         <div className="service-grid">
           {solutionPages.map((solution) => (
             <Link className="service-card" href={`/solutions/${solution.slug}`} key={solution.slug}>
@@ -156,7 +159,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section dark-showcase outcome-showcase">
+      <section className="section dark-showcase outcome-showcase motion-section">
         <div className="section-heading">
           <p className="eyebrow">What makes QCS different</p>
           <h2>Practical network expertise, security discipline, and training depth in one place.</h2>
@@ -171,7 +174,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section" id="services">
+      <section className="section media-section motion-section" id="services">
         <div className="section-heading">
           <p className="eyebrow">Core services</p>
           <h2>Operate, secure, monitor, test, troubleshoot, and train.</h2>
@@ -179,6 +182,7 @@ export default function HomePage() {
             Pick a service when you already know the need. Start with an assessment when the problem is still unclear.
           </p>
         </div>
+        <SectionMotionGraphic variant="cloud" />
         <div className="service-grid">
           {services.map((service) => {
             const Icon = service.icon;
@@ -197,7 +201,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section" id="support-models">
+      <section className="section motion-section" id="support-models">
         <div className="section-heading">
           <p className="eyebrow">Support model</p>
           <h2>Move from reactive fixes to controlled network decisions.</h2>
@@ -224,7 +228,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section">
+      <section className="section motion-section">
         <div className="section-heading">
           <p className="eyebrow">Command modes</p>
           <h2>Five clear ways QCS can help.</h2>
@@ -243,7 +247,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section" id="tools">
+      <section className="section media-section motion-section" id="tools">
         <div className="section-heading">
           <p className="eyebrow">Guided assessment</p>
           <h2>Start with a readiness snapshot when the next step is not obvious.</h2>
@@ -252,14 +256,16 @@ export default function HomePage() {
             next action.
           </p>
         </div>
+        <SectionMotionGraphic variant="assessment" />
         <AssessmentTool />
       </section>
 
-      <section className="section">
+      <section className="section media-section motion-section">
         <div className="section-heading">
           <p className="eyebrow">Free network utilities</p>
           <h2>Run quick public checks before deeper troubleshooting.</h2>
         </div>
+        <SectionMotionGraphic variant="cloud" />
         <div className="utility-grid compact">
           {networkUtilityTools.map((tool) => {
             const Icon = tool.icon;
@@ -275,10 +281,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section" id="process">
+      <section className="section process-motion-section motion-section" id="process">
         <div className="section-heading">
           <p className="eyebrow">How the work moves</p>
           <h2>A simpler path from symptom to decision.</h2>
+        </div>
+        <div className="process-signal-rail" aria-hidden="true">
+          <span />
+          <span />
+          <span />
         </div>
         <div className="process-timeline">
           {deliveryWorkflow.map((step, index) => (
@@ -291,7 +302,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section">
+      <section className="section motion-section">
         <div className="section-heading">
           <p className="eyebrow">First conversation</p>
           <h2>What you can expect after sharing a request.</h2>
@@ -310,7 +321,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section" id="vendors">
+      <section className="section motion-section" id="vendors">
         <div className="section-heading">
           <p className="eyebrow">Coverage</p>
           <h2>Support across the vendors, clouds, and environments buyers actually use.</h2>
@@ -327,7 +338,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section">
+      <section className="section motion-section">
         <div className="section-heading">
           <p className="eyebrow">Useful resources</p>
           <h2>Prepare better before a call, audit, incident review, or career decision.</h2>
@@ -335,7 +346,7 @@ export default function HomePage() {
         <ResourceDownloads />
       </section>
 
-      <section className="section split final-cta-band">
+      <section className="section split final-cta-band motion-section">
         <div className="section-heading">
           <p className="eyebrow">Request review</p>
           <h2>Tell QCS what is happening. We will help you choose the right next step.</h2>
