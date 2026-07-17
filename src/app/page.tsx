@@ -23,6 +23,19 @@ import {
 } from "@/lib/content";
 import { networkUtilityTools } from "@/lib/network-tools";
 
+const coverageVisuals = [
+  { src: "/brand/envato/icons/global-cloud-network.svg", label: "Global routing" },
+  { src: "/brand/envato/icons/multicloud-network.svg", label: "Multicloud" },
+  { src: "/brand/envato/icons/router-cloud-network.svg", label: "Branch edge" },
+  { src: "/brand/envato/icons/security-cloud-network.svg", label: "Secure access" }
+];
+
+const resourceVisuals = [
+  { src: "/brand/envato/objects/locked-data-folder.png", label: "Evidence pack" },
+  { src: "/brand/envato/icons/server-cloud-network.svg", label: "Tool output" },
+  { src: "/brand/envato/library/padlock-security.webp", label: "Security checklist" }
+];
+
 export default function HomePage() {
   return (
     <main>
@@ -173,6 +186,21 @@ export default function HomePage() {
           <p className="eyebrow">What makes QCS different</p>
           <h2>Practical network expertise, security discipline, and training depth in one place.</h2>
         </div>
+        <div className="showcase-video-panel" aria-label="Data center operations walkthrough preview">
+          <video
+            src="/brand/envato/video/data-center-walkthrough.mp4"
+            poster="/brand/envato/library/data-center-platform.webp"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          />
+          <div className="showcase-video-overlay">
+            <span>Managed network operations</span>
+            <strong>Live infrastructure visibility without tool sprawl.</strong>
+          </div>
+        </div>
         <div className="edge-grid">
           {marketEdges.map((edge) => (
             <article className="authority-card" key={edge.title}>
@@ -191,7 +219,7 @@ export default function HomePage() {
             Pick a service when you already know the need. Start with an assessment when the problem is still unclear.
           </p>
         </div>
-        <SectionMotionGraphic variant="cloud" />
+        <SectionMotionGraphic variant="services" />
         <div className="service-grid">
           {services.map((service) => {
             const Icon = service.icon;
@@ -274,7 +302,7 @@ export default function HomePage() {
           <p className="eyebrow">Free network utilities</p>
           <h2>Run quick public checks before deeper troubleshooting.</h2>
         </div>
-        <SectionMotionGraphic variant="cloud" />
+        <SectionMotionGraphic variant="utilities" />
         <div className="utility-grid compact">
           {networkUtilityTools.map((tool) => {
             const Icon = tool.icon;
@@ -335,6 +363,14 @@ export default function HomePage() {
           <p className="eyebrow">Coverage</p>
           <h2>Support across the vendors, clouds, and environments buyers actually use.</h2>
         </div>
+        <div className="coverage-visual-grid" aria-label="Network coverage visual signals">
+          {coverageVisuals.map((visual) => (
+            <span key={visual.label}>
+              <Image src={visual.src} alt="" width={42} height={42} />
+              {visual.label}
+            </span>
+          ))}
+        </div>
         <div className="pill-cloud">
           {vendorCoverage.map((vendor) => (
             <span key={vendor}>{vendor}</span>
@@ -351,6 +387,23 @@ export default function HomePage() {
         <div className="section-heading">
           <p className="eyebrow">Useful resources</p>
           <h2>Prepare better before a call, audit, incident review, or career decision.</h2>
+        </div>
+        <div className="resource-command-panel" aria-label="Resource library visual preview">
+          <div className="resource-visual-stack" aria-hidden="true">
+            {resourceVisuals.map((visual) => (
+              <span key={visual.label}>
+                <Image src={visual.src} alt="" width={86} height={86} />
+              </span>
+            ))}
+          </div>
+          <div>
+            <p className="eyebrow">Lead-ready knowledge base</p>
+            <h3>Resources should make the next technical conversation sharper.</h3>
+            <p>
+              Checklists, tool outputs, and assessment notes help buyers describe the issue clearly before they ask for
+              managed support, security review, cloud guidance, or training.
+            </p>
+          </div>
         </div>
         <ResourceDownloads />
       </section>

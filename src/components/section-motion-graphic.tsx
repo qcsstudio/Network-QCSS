@@ -1,5 +1,24 @@
 import Image from "next/image";
-import { Activity, CloudCog, Radar, ShieldCheck } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Activity, CloudCog, Radar, Route, ShieldCheck, Wrench } from "lucide-react";
+
+type GraphicTone = "photo" | "object" | "illustration" | "map" | "icon-cluster";
+
+type GraphicConfig = {
+  src: string;
+  object?: string;
+  alt: string;
+  eyebrow: string;
+  title: string;
+  Icon: LucideIcon;
+  signals: string[];
+  insight: string;
+  visualTone: GraphicTone;
+  nodes?: {
+    src: string;
+    label: string;
+  }[];
+};
 
 const graphics = {
   network: {
@@ -14,9 +33,9 @@ const graphics = {
     visualTone: "photo"
   },
   security: {
-    src: "/brand/envato/objects/security-shield-3d.png",
+    src: "/brand/envato/library/security-network-shield.webp",
     object: "/brand/envato/objects/locked-data-folder.png",
-    alt: "3D shield representing network security controls",
+    alt: "3D shield and lock representing network security controls",
     eyebrow: "Security scan",
     title: "Exposure, controls, and evidence checked in sequence.",
     Icon: ShieldCheck,
@@ -24,29 +43,56 @@ const graphics = {
     insight: "Firewall policy, access paths, logs, and ownership reviewed together.",
     visualTone: "object"
   },
+  services: {
+    src: "/brand/envato/library/server-cluster-engineer.webp",
+    object: "/brand/envato/objects/vpn-symbol.png",
+    alt: "Engineer validating a server cluster and network service path",
+    eyebrow: "Service workspace",
+    title: "Hands-on support for operations, security, cloud, and training.",
+    Icon: Wrench,
+    signals: ["Operate", "Troubleshoot", "Monitor", "Train"],
+    insight: "A practical service map for the teams that need fixes, proof, or skill transfer.",
+    visualTone: "illustration"
+  },
+  assessment: {
+    src: "/brand/envato/library/padlock-security.webp",
+    object: "/brand/envato/icons/security-cloud-network.svg",
+    alt: "3D padlock representing protected assessment evidence",
+    eyebrow: "Readiness radar",
+    title: "A practical snapshot before the next engineering decision.",
+    Icon: Radar,
+    signals: ["Risk", "Evidence", "Priority", "Next step"],
+    insight: "Risk score, evidence checklist, and recommended next action in one view.",
+    visualTone: "object"
+  },
+  utilities: {
+    src: "/brand/envato/icons/global-cloud-network.svg",
+    alt: "Cloud network icon representing public network utilities",
+    eyebrow: "Quick checks",
+    title: "Small public tools that turn first symptoms into useful signals.",
+    Icon: CloudCog,
+    signals: ["DNS", "IP", "Headers", "Latency"],
+    insight: "Fast checks help visitors self-qualify before they request deeper troubleshooting.",
+    visualTone: "icon-cluster",
+    nodes: [
+      { src: "/brand/envato/icons/router-cloud-network.svg", label: "Router" },
+      { src: "/brand/envato/icons/server-cloud-network.svg", label: "Server" },
+      { src: "/brand/envato/icons/wifi-cloud-network.svg", label: "Wi-Fi" },
+      { src: "/brand/envato/icons/security-cloud-network.svg", label: "Security" }
+    ]
+  },
   cloud: {
     src: "/brand/envato/cyber/data-access-cloud.png",
     object: "/brand/envato/objects/vpn-symbol.png",
     alt: "Cloud access illustration showing protected data access",
     eyebrow: "Cloud routes",
     title: "Hybrid paths between users, services, and workloads.",
-    Icon: CloudCog,
+    Icon: Route,
     signals: ["VPC", "VPN", "SASE", "DNS"],
     insight: "Hybrid access, public exposure, and cloud routes made easier to inspect.",
-    visualTone: "illustration"
-  },
-  assessment: {
-    src: "/brand/envato/illustrations/isometric-data-center-network.svg",
-    object: "/brand/envato/objects/locked-data-folder.png",
-    alt: "Isometric data center network with analytics and connected infrastructure",
-    eyebrow: "Readiness radar",
-    title: "A practical snapshot before the next engineering decision.",
-    Icon: Radar,
-    signals: ["Risk", "Evidence", "Priority", "Next step"],
-    insight: "Risk score, evidence checklist, and recommended next action in one view.",
     visualTone: "map"
   }
-};
+} satisfies Record<string, GraphicConfig>;
 
 type SectionMotionGraphicProps = {
   variant: keyof typeof graphics;
@@ -54,7 +100,7 @@ type SectionMotionGraphicProps = {
 };
 
 export function SectionMotionGraphic({ variant, className = "" }: SectionMotionGraphicProps) {
-  const graphic = graphics[variant];
+  const graphic: GraphicConfig = graphics[variant];
   const Icon = graphic.Icon;
 
   return (
@@ -68,7 +114,19 @@ export function SectionMotionGraphic({ variant, className = "" }: SectionMotionG
           height={360}
           sizes="(max-width: 900px) 92vw, 34vw"
         />
-        <Image className="motion-asset-object" src={graphic.object} alt="" width={150} height={150} aria-hidden="true" />
+        {graphic.object ? (
+          <Image className="motion-asset-object" src={graphic.object} alt="" width={150} height={150} aria-hidden="true" />
+        ) : null}
+        {graphic.nodes ? (
+          <div className="motion-node-cluster" aria-hidden="true">
+            {graphic.nodes.map((node) => (
+              <span key={node.label}>
+                <Image src={node.src} alt="" width={40} height={40} />
+                <small>{node.label}</small>
+              </span>
+            ))}
+          </div>
+        ) : null}
         <div className="motion-badge">
           <Icon size={22} />
           <span>{graphic.eyebrow}</span>

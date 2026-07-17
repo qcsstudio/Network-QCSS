@@ -9,7 +9,7 @@ const commandSignals = [
     metric: "Operate"
   },
   {
-    visual: "/brand/envato/objects/security-shield-3d.png",
+    visual: "/brand/envato/library/security-network-shield.webp",
     title: "Security Controls",
     description: "Firewall policy, VPN access, segmentation, logging, admin paths, and exposure risks reviewed together.",
     metric: "Secure"
@@ -21,7 +21,7 @@ const commandSignals = [
     metric: "Connect"
   },
   {
-    visual: "/brand/envato/objects/locked-data-folder.png",
+    visual: "/brand/envato/library/padlock-security.webp",
     title: "Evidence and Closure",
     description: "Assessment outputs, pentest findings, remediation proof, retest status, and owner-ready action plans.",
     metric: "Prove"
@@ -60,8 +60,8 @@ export function EnvatoVisualSystem() {
 
         <div className="asset-command-visual" aria-label="Network command topology illustration">
           <Image
-            src="/brand/envato/illustrations/isometric-data-center-network.svg"
-            alt="Isometric network command map showing data center racks, analytics panels, and connected infrastructure"
+            src="/brand/envato/library/data-center-platform.webp"
+            alt="Isometric data center platform with cloud, server, and analytics systems"
             fill
             sizes="(max-width: 900px) 100vw, 48vw"
           />
@@ -99,7 +99,7 @@ export function EnvatoVisualSystem() {
             ))}
           </div>
           <div className="asset-mini-visuals" aria-hidden="true">
-            <Image src="/brand/envato/objects/security-shield-3d.png" alt="" width={220} height={220} />
+            <Image src="/brand/envato/library/server-cluster-engineer.webp" alt="" width={220} height={220} />
             <Image src="/brand/envato/objects/locked-data-folder.png" alt="" width={220} height={220} />
           </div>
         </div>
