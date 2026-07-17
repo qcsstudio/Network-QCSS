@@ -60,24 +60,43 @@ export default function HomePage() {
         </div>
 
         <div className="network-visual" aria-label="QuantumCrafters network command visual">
-          <div className="visual-panel command-console">
+          <div className="visual-panel command-console posture-console">
             <div className="console-topline">
               <span>Network posture</span>
-              <strong>Guided</strong>
+              <strong>Guided triage</strong>
             </div>
-            <div className="visual-radar" aria-hidden="true">
-              <span />
-              <span />
-              <span />
+
+            <div className="posture-main">
+              <div className="visual-radar" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="visual-score">
+                <strong>82</strong>
+                <span>Readiness score</span>
+              </div>
             </div>
-            <span className="signal online">Operate</span>
-            <span className="signal alert">Secure</span>
-            <span className="signal online">Cloud</span>
-            <span className="signal warn">Retest</span>
-            <div className="visual-score">
-              <strong>QCS</strong>
-              <span>Network Command</span>
+
+            <div className="posture-status-grid">
+              <span className="signal online">
+                <strong>Operate</strong>
+                <small>Monitoring active</small>
+              </span>
+              <span className="signal alert">
+                <strong>Secure</strong>
+                <small>Controls to review</small>
+              </span>
+              <span className="signal cloud">
+                <strong>Cloud</strong>
+                <small>Exposure mapped</small>
+              </span>
+              <span className="signal warn">
+                <strong>Retest</strong>
+                <small>Evidence required</small>
+              </span>
             </div>
+
             <div className="telemetry-stack" aria-hidden="true">
               <span />
               <span />

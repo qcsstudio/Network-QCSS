@@ -54,7 +54,7 @@ export function EnvatoVisualSystem() {
             <Link className="button primary" href="/network-tools">
               Open Network Tools
             </Link>
-            <Link className="button secondary dark" href="/diagnose">
+            <Link className="button secondary" href="/diagnose">
               Start Guided Assessment
             </Link>
           </div>
