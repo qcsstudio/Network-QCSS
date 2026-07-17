@@ -59,12 +59,14 @@ export function EnvatoVisualSystem() {
         </div>
 
         <div className="asset-command-visual" aria-label="Network command topology illustration">
-          <Image
-            src="/brand/envato/library/data-center-platform.webp"
-            alt="Isometric data center platform with cloud, server, and analytics systems"
-            fill
-            sizes="(max-width: 900px) 100vw, 48vw"
-          />
+          <div className="asset-command-media">
+            <Image
+              src="/brand/envato/library/data-center-platform.webp"
+              alt="Isometric data center platform with cloud, server, and analytics systems"
+              fill
+              sizes="(max-width: 900px) 100vw, 48vw"
+            />
+          </div>
           <div className="asset-visual-overlay">
             <span>Assessment-ready operating map</span>
             <strong>Topology + controls + evidence</strong>
