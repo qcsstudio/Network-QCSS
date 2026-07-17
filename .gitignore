@@ -16,5 +16,3 @@ envato-assets/**
 !envato-assets/README.md
 !envato-assets/intake-checklist.md
 !envato-assets/asset-register.csv
-!envato-assets/**/
-!envato-assets/**/.gitkeep

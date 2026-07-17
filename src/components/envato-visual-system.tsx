@@ -1,41 +1,40 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { CSSProperties } from "react";
 
 const commandSignals = [
   {
-    icon: "/brand/envato/icons/router-cloud-network.svg",
-    title: "Managed Network Operations",
-    description: "Routing, switching, Wi-Fi, VPN, SD-WAN, backups, monitoring, and incident evidence in one support rhythm.",
+    visual: "/brand/envato/objects/server-tower.png",
+    title: "Infrastructure Operations",
+    description: "Routers, switches, Wi-Fi, circuits, backups, monitoring, inventory, and support evidence kept visible.",
     metric: "Operate"
   },
   {
-    icon: "/brand/envato/icons/security-cloud-network.svg",
-    title: "Security Governance",
-    description: "Firewall hygiene, access review, segmentation, logs, cloud exposure, and audit-ready security controls.",
+    visual: "/brand/envato/objects/security-shield-3d.png",
+    title: "Security Controls",
+    description: "Firewall policy, VPN access, segmentation, logging, admin paths, and exposure risks reviewed together.",
     metric: "Secure"
   },
   {
-    icon: "/brand/envato/icons/multicloud-network.svg",
-    title: "Cloud Network Control",
-    description: "AWS VPC, Azure VNet, Google Cloud VPC, hybrid VPN, public exposure, routing, and private access design.",
-    metric: "Cloud"
+    visual: "/brand/envato/objects/vpn-symbol.png",
+    title: "Hybrid Connectivity",
+    description: "Site-to-site VPN, branch access, cloud routes, remote teams, and SASE readiness mapped before change.",
+    metric: "Connect"
   },
   {
-    icon: "/brand/envato/icons/protected-cloud-network.svg",
-    title: "Testing to Remediation",
-    description: "Penetration testing, retesting, risk-ranked reporting, remediation support, and owner-ready action plans.",
-    metric: "Test"
+    visual: "/brand/envato/objects/locked-data-folder.png",
+    title: "Evidence and Closure",
+    description: "Assessment outputs, pentest findings, remediation proof, retest status, and owner-ready action plans.",
+    metric: "Prove"
   }
 ];
 
 const toolSignals = [
-  "DNS and MX checks",
-  "SPF and DMARC review",
-  "SSL health signals",
-  "Port and header checks",
-  "Network risk scoring",
-  "Readiness path"
+  "Topology clarity",
+  "Firewall hygiene",
+  "VPN and access review",
+  "Cloud exposure map",
+  "Pentest readiness",
+  "Training path fit"
 ];
 
 export function EnvatoVisualSystem() {
@@ -43,12 +42,11 @@ export function EnvatoVisualSystem() {
     <section className="asset-command-band" aria-labelledby="asset-command-heading">
       <div className="asset-command-inner">
         <div className="asset-command-copy">
-          <p className="eyebrow">Immersive network visual system</p>
-          <h2 id="asset-command-heading">A futuristic service surface for networks that need clarity.</h2>
+          <p className="eyebrow">Network command workspace</p>
+          <h2 id="asset-command-heading">See the network, security, cloud, and evidence path in one view.</h2>
           <p>
-            The new visual direction uses real infrastructure imagery, consistent cloud-network icons, and concise service
-            proof blocks so visitors quickly understand how QCS connects operations, security, cloud, testing, and
-            training.
+            QCS helps teams move from scattered symptoms to a usable operating picture: what is connected, what is
+            exposed, what is breaking, what needs proof, and which next step makes sense.
           </p>
           <div className="button-row">
             <Link className="button primary" href="/network-tools">
@@ -60,27 +58,25 @@ export function EnvatoVisualSystem() {
           </div>
         </div>
 
-        <div className="asset-command-visual" aria-label="QuantumCrafters network service visual">
+        <div className="asset-command-visual" aria-label="Network command topology illustration">
           <Image
-            src="/brand/envato/cyber/network-service-operator.jpg"
-            alt="Network operator reviewing infrastructure in a server environment"
+            src="/brand/envato/illustrations/isometric-data-center-network.svg"
+            alt="Isometric network command map showing data center racks, analytics panels, and connected infrastructure"
             fill
             sizes="(max-width: 900px) 100vw, 48vw"
           />
           <div className="asset-visual-overlay">
-            <span>Live network service posture</span>
-            <strong>Operate + Secure + Train</strong>
+            <span>Assessment-ready operating map</span>
+            <strong>Topology + controls + evidence</strong>
           </div>
         </div>
 
         <div className="asset-command-grid" aria-label="Network command service signals">
           {commandSignals.map((signal) => (
             <article className="asset-command-card" key={signal.title}>
-              <span
-                className="asset-command-icon"
-                aria-hidden="true"
-                style={{ "--asset-icon": `url("${signal.icon}")` } as CSSProperties}
-              />
+              <span className="asset-command-object" aria-hidden="true">
+                <Image src={signal.visual} alt="" width={132} height={132} />
+              </span>
               <span className="asset-command-metric">{signal.metric}</span>
               <h3>{signal.title}</h3>
               <p>{signal.description}</p>
@@ -91,10 +87,10 @@ export function EnvatoVisualSystem() {
         <div className="asset-intelligence-panel">
           <div>
             <p className="eyebrow">Guided diagnostic layer</p>
-            <h3>Every useful check can become a clearer next step.</h3>
+            <h3>Every useful check should end with a practical next action.</h3>
             <p>
-              Quick checks and readiness tools help turn unclear symptoms into practical evidence before a deeper
-              engineering conversation begins.
+              The website routes visitors through small tools, readiness assessments, resources, and service paths so
+              each visitor can recognize their own issue before booking a deeper review.
             </p>
           </div>
           <div className="tool-signal-list">
@@ -103,8 +99,8 @@ export function EnvatoVisualSystem() {
             ))}
           </div>
           <div className="asset-mini-visuals" aria-hidden="true">
-            <Image src="/brand/envato/cyber/security-shield-network.png" alt="" width={220} height={220} />
-            <Image src="/brand/envato/cyber/data-access-cloud.png" alt="" width={220} height={220} />
+            <Image src="/brand/envato/objects/security-shield-3d.png" alt="" width={220} height={220} />
+            <Image src="/brand/envato/objects/locked-data-folder.png" alt="" width={220} height={220} />
           </div>
         </div>
       </div>
