@@ -3,12 +3,13 @@ import Link from "next/link";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
 import { instituteTracks, siteConfig } from "@/lib/content";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Network and Network Security Institute for CCNA, Firewalls, Cloud and SOC",
   description:
     "Hands-on network and network security institute for CCNA foundation, CCNP path, firewall administration, cloud networking, SOC, ethical hacking and corporate training.",
-  alternates: { canonical: "/institute" },
+  path: "/institute",
   keywords: [
     "network security institute",
     "CCNA training",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
     "SOC analyst training",
     "ethical hacking labs"
   ]
-};
+});
 
 export default function InstitutePage() {
   return (

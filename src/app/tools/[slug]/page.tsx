@@ -4,6 +4,7 @@ import { AssessmentTool } from "@/components/assessment-tool";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig, tools } from "@/lib/content";
+import { createPageMetadata } from "@/lib/seo";
 
 type ToolPageProps = {
   params: Promise<{ slug: string }>;
@@ -18,12 +19,12 @@ export async function generateMetadata({ params }: ToolPageProps): Promise<Metad
   const tool = tools.find((item) => item.slug === slug);
   if (!tool) return {};
 
-  return {
+  return createPageMetadata({
     title: tool.title,
     description: tool.description,
-    alternates: { canonical: `/tools/${tool.slug}` },
+    path: `/tools/${tool.slug}`,
     keywords: [tool.title, tool.category, tool.pipeline, tool.recommendation]
-  };
+  });
 }
 
 function assessmentFaqs(tool: (typeof tools)[number]) {

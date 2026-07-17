@@ -3,12 +3,13 @@ import Link from "next/link";
 import { AssessmentTool } from "@/components/assessment-tool";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig, tools } from "@/lib/content";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Network Assessment Tools for Risk, Firewall, Cloud, Pentest and Troubleshooting",
   description:
     "Run structured network assessments for managed services, firewall hygiene, cloud network readiness, pentest scoping, career path fit, and emergency troubleshooting.",
-  alternates: { canonical: "/diagnose" },
+  path: "/diagnose",
   keywords: [
     "network assessment",
     "network risk assessment",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
     "pentest readiness",
     "network troubleshooting triage"
   ]
-};
+});
 
 export default function DiagnosePage() {
   return (

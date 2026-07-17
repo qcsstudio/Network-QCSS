@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
 import { services, siteConfig } from "@/lib/content";
+import { createPageMetadata } from "@/lib/seo";
 
 type ServicePageProps = {
   params: Promise<{ slug: string }>;
@@ -18,12 +19,12 @@ export async function generateMetadata({ params }: ServicePageProps): Promise<Me
   const service = services.find((item) => item.slug === slug);
   if (!service) return {};
 
-  return {
+  return createPageMetadata({
     title: service.metaTitle,
     description: service.metaDescription,
-    alternates: { canonical: `/services/${service.slug}` },
+    path: `/services/${service.slug}`,
     keywords: [service.title, ...service.buyerTriggers, ...service.outcomes]
-  };
+  });
 }
 
 export default async function ServicePage({ params }: ServicePageProps) {

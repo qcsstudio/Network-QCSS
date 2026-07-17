@@ -6,6 +6,7 @@ import { NetworkToolRunner } from "@/components/network-tool-runner";
 import { StructuredData } from "@/components/structured-data";
 import { getNetworkUtilityTool, networkUtilityTools } from "@/lib/network-tools";
 import { siteConfig } from "@/lib/content";
+import { createPageMetadata } from "@/lib/seo";
 
 type NetworkToolPageProps = {
   params: Promise<{ slug: string }>;
@@ -20,12 +21,12 @@ export async function generateMetadata({ params }: NetworkToolPageProps): Promis
   const tool = getNetworkUtilityTool(slug);
   if (!tool) return {};
 
-  return {
+  return createPageMetadata({
     title: tool.title,
     description: tool.description,
-    alternates: { canonical: `/network-tools/${tool.slug}` },
+    path: `/network-tools/${tool.slug}`,
     keywords: tool.searchIntent
-  };
+  });
 }
 
 function toolFaqs(tool: NonNullable<ReturnType<typeof getNetworkUtilityTool>>) {

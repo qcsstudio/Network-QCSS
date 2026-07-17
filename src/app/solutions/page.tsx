@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig, solutionPages } from "@/lib/content";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Network Solutions for Outages, Firewall Cleanup, SASE, Cloud and Pentest Remediation",
   description:
     "Problem-led network and security solution pages for outage response, firewall rule cleanup, SASE readiness, cloud exposure review, pentest remediation, and career labs.",
-  alternates: { canonical: "/solutions" },
+  path: "/solutions",
   keywords: [
     "network solutions",
     "network outage response",
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
     "cloud network exposure",
     "pentest remediation"
   ]
-};
+});
 
 export default function SolutionsPage() {
   return (

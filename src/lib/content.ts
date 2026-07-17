@@ -18,7 +18,7 @@ export const siteConfig = {
   title: "QuantumCrafters Studio - Network Command, Security, Cloud and Training",
   url: process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   description:
-    "Evidence-first network command studio for managed network services, network security, cloud networking, SASE readiness, penetration testing, troubleshooting, and practical network security training."
+    "Network command studio for managed network services, security, cloud networking, SASE readiness, penetration testing, troubleshooting, and practical network security training."
 };
 
 export const positioning = {
@@ -606,7 +606,8 @@ export const tools = [
     category: "Institute and training",
     pipeline: "Training / Institute",
     recommendation: "Demo Class and Counseling",
-    description: "Route students and professionals to the right network security learning path.",
+    description:
+      "Route students and professionals to the right network security learning path across CCNA, firewalls, cloud networking, SOC, and ethical hacking.",
     fields: [
       { name: "level", label: "Current level", options: ["Beginner", "Basic networking", "Working professional", "Advanced"] },
       { name: "goal", label: "Career goal", options: ["Network engineer", "Security engineer", "SOC analyst", "Pentester", "Cloud network engineer"] },

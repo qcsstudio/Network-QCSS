@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Privacy Policy",
-  description: "Privacy and consent approach for QuantumCrafters Studio Pvt. Ltd."
-};
+  description:
+    "Privacy, cookie consent, analytics, lead capture, and visitor tracking policy for QuantumCrafters Studio Pvt. Ltd.",
+  path: "/privacy",
+  keywords: ["privacy policy", "cookie consent", "website tracking consent"]
+});
 
 export default function PrivacyPage() {
   return (

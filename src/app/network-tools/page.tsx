@@ -3,12 +3,13 @@ import Link from "next/link";
 import { StructuredData } from "@/components/structured-data";
 import { networkUtilityTools } from "@/lib/network-tools";
 import { siteConfig } from "@/lib/content";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Free Online Network Tools for DNS, SSL, Email and Port Checks",
   description:
-    "Run focused online network tools from QuantumCrafters Studio: DNS lookup, MX lookup, SPF and DMARC check, SSL certificate check, HTTP security header check, and port reachability check.",
-  alternates: { canonical: "/network-tools" },
+    "Run online DNS lookup, MX lookup, SPF and DMARC checks, SSL certificate checks, HTTP security header checks, and port reachability tests.",
+  path: "/network-tools",
   keywords: [
     "online network tools",
     "dns lookup tool",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
     "port checker",
     "network troubleshooting tools"
   ]
-};
+});
 
 export default function NetworkToolsPage() {
   return (

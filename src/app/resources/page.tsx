@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { ResourceDownloads } from "@/components/resource-downloads";
 import { StructuredData } from "@/components/structured-data";
 import { resources, siteConfig } from "@/lib/content";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = createPageMetadata({
   title: "Network Security Resources, Checklists, Templates and Career Roadmaps",
   description:
     "Download network security resources: firewall cleanup checklist, cloud network readiness guide, pentest scope sheet, emergency triage sheet, SASE readiness map and career roadmap.",
-  alternates: { canonical: "/resources" },
+  path: "/resources",
   keywords: [
     "network security checklist",
     "firewall cleanup checklist",
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
     "pentest scope sheet",
     "network security career roadmap"
   ]
-};
+});
 
 export default function ResourcesPage() {
   return (

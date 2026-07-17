@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { StructuredData } from "@/components/structured-data";
 import { networkUtilityTools } from "@/lib/network-tools";
 import { services, siteConfig, solutionPages, tools } from "@/lib/content";
+import { createPageMetadata } from "@/lib/seo";
 
 type SolutionPageProps = {
   params: Promise<{ slug: string }>;
@@ -26,11 +27,12 @@ export async function generateMetadata({ params }: SolutionPageProps): Promise<M
   const solution = solutionPages.find((item) => item.slug === slug);
   if (!solution) return {};
 
-  return {
+  return createPageMetadata({
     title: solution.metaTitle,
     description: solution.metaDescription,
-    alternates: { canonical: `/solutions/${solution.slug}` }
-  };
+    path: `/solutions/${solution.slug}`,
+    keywords: [solution.title, solution.eyebrow, ...solution.outcomes]
+  });
 }
 
 export default async function SolutionPage({ params }: SolutionPageProps) {

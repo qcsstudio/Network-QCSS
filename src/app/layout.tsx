@@ -7,6 +7,7 @@ import { MarketingScripts } from "@/components/marketing-scripts";
 import { SiteHeader } from "@/components/site-header";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig } from "@/lib/content";
+import { createPageMetadata, defaultKeywords } from "@/lib/seo";
 import "./globals.css";
 
 const displayFont = Orbitron({
@@ -31,26 +32,26 @@ const techFont = Rajdhani({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteConfig.url),
-  title: {
-    default: siteConfig.title,
-    template: `%s | ${siteConfig.name}`
-  },
-  description: siteConfig.description,
-  openGraph: {
+  ...createPageMetadata({
     title: siteConfig.title,
     description: siteConfig.description,
-    url: siteConfig.url,
-    siteName: siteConfig.name,
-    type: "website",
-    images: [
-      {
-        url: "/brand/network-command-hero.png",
-        width: 1807,
-        height: 870,
-        alt: "QuantumCrafters Studio network command center"
-      }
-    ]
+    path: "/",
+    keywords: defaultKeywords
+  }),
+  metadataBase: new URL(siteConfig.url),
+  applicationName: siteConfig.name,
+  authors: [{ name: "QuantumCrafters Studio Pvt. Ltd.", url: siteConfig.url }],
+  creator: "QuantumCrafters Studio Pvt. Ltd.",
+  publisher: "QuantumCrafters Studio Pvt. Ltd.",
+  category: "Managed network services and network security",
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false
+  },
+  title: {
+    default: siteConfig.title,
+    template: "%s | QCS"
   }
 };
 
@@ -63,10 +64,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             {
               "@context": "https://schema.org",
               "@type": "Organization",
+              "@id": `${siteConfig.url}/#organization`,
               name: siteConfig.name,
               legalName: "QuantumCrafters Studio Private Limited",
               url: siteConfig.url,
               logo: `${siteConfig.url}/brand/quantumcrafters-logo.png`,
+              image: `${siteConfig.url}/brand/network-command-hero.png`,
               description: siteConfig.description,
               areaServed: ["India", "Global"],
               knowsAbout: [
@@ -85,11 +88,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             {
               "@context": "https://schema.org",
               "@type": "WebSite",
+              "@id": `${siteConfig.url}/#website`,
               name: siteConfig.name,
               url: siteConfig.url,
               description: siteConfig.description,
               publisher: {
                 "@type": "Organization",
+                "@id": `${siteConfig.url}/#organization`,
                 name: siteConfig.name
               }
             }
