@@ -1665,11 +1665,144 @@ button {
   color: #ffb169;
 }
 
+.motion-asset-stage {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-height: clamp(250px, 23vw, 320px);
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(242, 140, 56, 0.2), transparent 32%),
+    radial-gradient(circle at 76% 24%, rgba(56, 189, 248, 0.18), transparent 34%),
+    linear-gradient(rgba(255, 255, 255, 0.052) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    #0b1425;
+  background-size: auto, auto, 34px 34px, 34px 34px, auto;
+}
+
+.motion-asset-stage::before,
+.motion-asset-stage::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.motion-asset-stage::before {
+  inset: 12px;
+  z-index: 1;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+}
+
+.motion-asset-stage::after {
+  inset: 0;
+  z-index: 2;
+  background:
+    linear-gradient(180deg, transparent 0 43%, rgba(85, 242, 255, 0.16) 49%, transparent 56% 100%),
+    linear-gradient(180deg, rgba(6, 12, 24, 0.02), rgba(6, 12, 24, 0.52));
+  mix-blend-mode: screen;
+  animation: frameScan 5.8s linear infinite;
+}
+
+.motion-asset-image {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: min(88%, 430px);
+  height: auto;
+  max-height: 302px;
+  object-fit: contain;
+  filter: saturate(1.08) contrast(1.04) drop-shadow(0 22px 34px rgba(0, 0, 0, 0.28));
+}
+
+.motion-asset-stage.photo .motion-asset-image {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+  filter: saturate(1.06) contrast(1.04);
+}
+
+.motion-asset-stage.object .motion-asset-image {
+  width: min(72%, 330px);
+  max-height: 285px;
+}
+
+.motion-asset-stage.map .motion-asset-image {
+  width: min(94%, 460px);
+  max-height: 318px;
+}
+
+.motion-asset-object {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  z-index: 3;
+  width: clamp(82px, 8vw, 120px);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.34));
+}
+
+.motion-asset-stage.photo .motion-asset-object,
+.motion-asset-stage.illustration .motion-asset-object {
+  right: 14px;
+  bottom: 12px;
+  width: clamp(76px, 7vw, 108px);
+}
+
+.motion-badge {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 4;
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(5, 5, 6, 0.68);
+  padding: 8px 11px;
+  color: #fff2f8;
+  font-family: var(--font-tech), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  backdrop-filter: blur(14px);
+}
+
+.motion-badge svg {
+  color: #ffb169;
+}
+
+.section-motion-graphic.security .motion-badge svg,
+.section-motion-graphic.assessment .motion-badge svg {
+  color: var(--neon-cyan);
+}
+
+.motion-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+}
+
 .section-motion-graphic h3 {
   margin: 0;
   color: white;
   font-size: clamp(1.15rem, 2vw, 1.55rem);
   line-height: 1.08;
+}
+
+.motion-content p {
+  margin: 0;
+  color: #d8e1f3;
+  font-size: 0.92rem;
+  line-height: 1.45;
 }
 
 .motion-signal-row {
@@ -4323,6 +4456,41 @@ td span {
 
   .section-motion-graphic {
     order: 2;
+    width: 100%;
+  }
+
+  .motion-asset-stage {
+    min-height: 220px;
+  }
+
+  .motion-asset-image {
+    width: min(88%, 320px);
+    max-height: 218px;
+  }
+
+  .motion-asset-stage.photo .motion-asset-image {
+    width: 100%;
+  }
+
+  .motion-asset-stage.object .motion-asset-image,
+  .motion-asset-stage.map .motion-asset-image {
+    width: min(82%, 286px);
+  }
+
+  .motion-asset-object {
+    width: 72px;
+  }
+
+  .motion-badge {
+    left: 10px;
+    top: 10px;
+    min-height: 34px;
+    padding: 7px 9px;
+    font-size: 0.68rem;
+  }
+
+  .motion-content p {
+    font-size: 0.86rem;
   }
 
   .media-section > :is(.journey-grid, .service-grid, .utility-grid, .tool-shell) {
