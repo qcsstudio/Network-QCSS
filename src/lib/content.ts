@@ -31,10 +31,10 @@ export const positioning = {
 };
 
 export const proofSignals = [
-  { value: "6", label: "Guided network readiness checks" },
-  { value: "24x7", label: "NOC and incident-response operating model" },
-  { value: "30+", label: "Service, tool, and resource paths" },
-  { value: "1", label: "Operate, secure, test, and train model" }
+  { value: "6", label: "Guided readiness checks" },
+  { value: "24x7", label: "NOC and incident model" },
+  { value: "30+", label: "Service and resource paths" },
+  { value: "1", label: "Operate-secure-test-train model" }
 ];
 
 export const commandNavItems = [

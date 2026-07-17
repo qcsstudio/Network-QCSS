@@ -36,7 +36,7 @@ export default function HomePage() {
             width={328}
             height={100}
             priority
-            style={{ width: "min(232px, 68vw)", height: "auto" }}
+            style={{ width: "min(188px, 54vw)", height: "auto" }}
           />
           <p className="eyebrow">{positioning.eyebrow}</p>
           <h1>{positioning.headline}</h1>
@@ -59,60 +59,46 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="network-visual" aria-label="QuantumCrafters network command visual">
-          <div className="visual-panel network-workspace">
-            <div className="workspace-media">
-              <Image
-                src="/brand/envato/cyber/network-service-operator.jpg"
-                alt="Network operator reviewing infrastructure in a server room"
-                fill
-                sizes="(max-width: 900px) 92vw, 34vw"
-              />
-              <div className="workspace-live-badge">
-                <span>Live network operations</span>
-                <strong>Monitor. Secure. Resolve.</strong>
+        <div className="network-visual" aria-label="QuantumCrafters network readiness snapshot">
+          <div className="visual-panel network-workspace compact-command">
+            <div className="workspace-scorecard">
+              <div>
+                <span>Network readiness snapshot</span>
+                <strong>82</strong>
+                <small>Score before a technical call</small>
               </div>
+              <Link className="mini-cta" href="/diagnose">
+                Run assessment
+              </Link>
             </div>
 
-            <div className="workspace-map" aria-label="Network service topology">
-              <span className="map-link link-one" aria-hidden="true" />
-              <span className="map-link link-two" aria-hidden="true" />
-              <span className="map-link link-three" aria-hidden="true" />
-              <span className="map-node node-core">
-                <Image src="/brand/envato/icons/router-cloud-network.svg" alt="" width={28} height={28} />
-                <strong>Core</strong>
-                <small>Stable</small>
-              </span>
-              <span className="map-node node-cloud">
-                <Image src="/brand/envato/icons/multicloud-network.svg" alt="" width={28} height={28} />
-                <strong>Cloud</strong>
-                <small>Routes</small>
-              </span>
-              <span className="map-node node-edge">
-                <Image src="/brand/envato/icons/wifi-cloud-network.svg" alt="" width={28} height={28} />
-                <strong>Sites</strong>
-                <small>Users</small>
-              </span>
-              <span className="map-node node-secure">
-                <Image src="/brand/envato/icons/security-cloud-network.svg" alt="" width={28} height={28} />
-                <strong>Security</strong>
-                <small>Policy</small>
-              </span>
-            </div>
-
-            <div className="workspace-status-grid">
-              <div>
-                <span>Priority path</span>
-                <strong>Incident to fix plan</strong>
-              </div>
-              <div>
+            <div className="workspace-priority-grid" aria-label="What the readiness snapshot gives visitors">
+              <article>
+                <Image src="/brand/envato/icons/router-cloud-network.svg" alt="" width={32} height={32} />
+                <span>Fix first</span>
+                <strong>Firewall, VPN, DNS or route issue</strong>
+              </article>
+              <article>
+                <Image src="/brand/envato/icons/security-cloud-network.svg" alt="" width={32} height={32} />
                 <span>Evidence</span>
-                <strong>DNS, firewall, VPN, cloud</strong>
-              </div>
-              <div>
+                <strong>Logs, rules, exposure and ownership</strong>
+              </article>
+              <article>
+                <Image src="/brand/envato/icons/multicloud-network.svg" alt="" width={32} height={32} />
+                <span>Cloud path</span>
+                <strong>VPC/VNet, public IPs and hybrid VPN</strong>
+              </article>
+              <article>
+                <Image src="/brand/envato/icons/protected-cloud-network.svg" alt="" width={32} height={32} />
                 <span>Next action</span>
-                <strong>Assess or engage support</strong>
-              </div>
+                <strong>Support, pentest, cleanup or training</strong>
+              </article>
+            </div>
+
+            <div className="workspace-outcome-rail" aria-label="QCS response flow">
+              <span>Assess</span>
+              <span>Prioritize</span>
+              <span>Resolve</span>
             </div>
           </div>
         </div>
