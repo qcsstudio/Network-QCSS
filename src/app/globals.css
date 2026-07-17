@@ -401,7 +401,7 @@ body.mobile-menu-locked {
   gap: clamp(18px, 2.05vw, 34px);
   color: #f8fbff;
   font-family: var(--font-tech), ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(0.86rem, 0.92vw, 1rem);
+  font-size: clamp(0.98rem, 1.04vw, 1.12rem);
   font-weight: 850;
   letter-spacing: 0;
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.48);
@@ -555,7 +555,7 @@ body.mobile-menu-locked {
   padding: 10px 4px;
   color: rgba(248, 251, 255, 0.86);
   font-family: var(--font-tech), ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.88rem;
+  font-size: 0.98rem;
   font-weight: 850;
   text-shadow: none;
   transition:
@@ -4694,7 +4694,7 @@ td span {
 
   .mobile-command-nav a {
     min-height: 40px;
-    font-size: 0.9rem;
+    font-size: 0.96rem;
   }
 
   .hero-section,
