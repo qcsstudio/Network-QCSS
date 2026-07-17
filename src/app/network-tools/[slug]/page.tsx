@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import { NetworkToolRunner } from "@/components/network-tool-runner";
 import { StructuredData } from "@/components/structured-data";
@@ -157,6 +158,7 @@ export default async function NetworkToolPage({ params }: NetworkToolPageProps) 
         <div className="faq-grid">
           {faqs.map((faq) => (
             <article className="faq-card" key={faq.question}>
+              <CardVisual title={faq.question} context={tool.title} />
               <h3>{faq.question}</h3>
               <p>{faq.answer}</p>
             </article>

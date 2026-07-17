@@ -3,7 +3,7 @@ import Link from "next/link";
 
 const commandSignals = [
   {
-    visual: "/brand/envato/objects/server-tower.png",
+    visual: "/brand/envato/icons/router-cloud-network.svg",
     title: "Infrastructure Operations",
     description: "Routers, switches, Wi-Fi, circuits, backups, monitoring, inventory, and support evidence kept visible.",
     metric: "Operate"
@@ -15,13 +15,13 @@ const commandSignals = [
     metric: "Secure"
   },
   {
-    visual: "/brand/envato/objects/vpn-symbol.png",
+    visual: "/brand/envato/cyber/data-access-cloud.png",
     title: "Hybrid Connectivity",
     description: "Site-to-site VPN, branch access, cloud routes, remote teams, and SASE readiness mapped before change.",
     metric: "Connect"
   },
   {
-    visual: "/brand/envato/library/padlock-security.webp",
+    visual: "/brand/envato/icons/protected-cloud-network.svg",
     title: "Evidence and Closure",
     description: "Assessment outputs, pentest findings, remediation proof, retest status, and owner-ready action plans.",
     metric: "Prove"

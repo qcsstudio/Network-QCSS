@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CardVisual } from "@/components/card-visual";
 import { StructuredData } from "@/components/structured-data";
 import { networkUtilityTools } from "@/lib/network-tools";
 import { services, siteConfig, solutionPages, tools } from "@/lib/content";
@@ -120,6 +121,7 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
         <div className="pillar-grid">
           {solution.outcomes.map((outcome) => (
             <article className="pillar-card" key={outcome}>
+              <CardVisual title={outcome} context={solution.title} />
               <h3>{outcome}</h3>
               <p>Converted into evidence, service routing, and a practical next action for the buyer.</p>
             </article>
@@ -135,6 +137,7 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
         <div className="outcome-list">
           {linkedServices.map((service) => (
             <article key={service.slug}>
+              <CardVisual title={service.title} context={service.summary} />
               <h3>{service.title}</h3>
               <p>{service.summary}</p>
               <Link className="text-link" href={`/services/${service.slug}`}>
@@ -153,6 +156,7 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
         <div className="utility-grid">
           {linkedTools.map((tool) => (
             <Link className="utility-card" href={tool.href} key={tool.href}>
+              <CardVisual title={tool.label} context={tool.description} />
               <p className="eyebrow">Diagnostic path</p>
               <h3>{tool.label}</h3>
               <p>{tool.description}</p>
@@ -170,6 +174,7 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
         <div className="faq-grid">
           {solution.faqs.map((faq) => (
             <article className="faq-card" key={faq.question}>
+              <CardVisual title={faq.question} context={solution.title} />
               <h3>{faq.question}</h3>
               <p>{faq.answer}</p>
             </article>

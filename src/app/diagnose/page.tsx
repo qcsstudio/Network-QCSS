@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AssessmentTool } from "@/components/assessment-tool";
+import { CardVisual } from "@/components/card-visual";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig, tools } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -70,6 +71,7 @@ export default function DiagnosePage() {
         <div className="service-grid">
           {tools.map((tool) => (
             <Link className="service-card" href={`/tools/${tool.slug}`} key={tool.slug}>
+              <CardVisual title={tool.title} context={tool.category} />
               <p className="eyebrow">{tool.category}</p>
               <h2>{tool.title}</h2>
               <p>{tool.description}</p>

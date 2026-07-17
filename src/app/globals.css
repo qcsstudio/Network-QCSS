@@ -2400,7 +2400,7 @@ button {
 }
 
 .diagram-rail span,
-.journey-card span {
+.journey-card > span:not(.card-visual) {
   display: inline-flex;
   min-height: 36px;
   align-items: center;
@@ -2716,6 +2716,87 @@ button {
     transform 180ms ease,
     border-color 180ms ease,
     box-shadow 180ms ease;
+}
+
+.card-visual {
+  position: relative;
+  z-index: 1;
+  display: inline-grid;
+  grid-template-columns: auto 1fr;
+  width: 92px;
+  min-height: 48px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: var(--brand-blue);
+}
+
+.card-visual-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid rgba(65, 105, 201, 0.18);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(238, 244, 255, 0.78)),
+    white;
+  box-shadow: 0 14px 34px rgba(65, 105, 201, 0.1);
+}
+
+.card-visual-icon svg {
+  width: 24px;
+  height: 24px;
+  color: currentColor;
+}
+
+.card-visual-circuit {
+  display: grid;
+  gap: 5px;
+  min-width: 32px;
+}
+
+.card-visual-circuit i {
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, currentColor, transparent);
+  opacity: 0.56;
+}
+
+.card-visual-circuit i:nth-child(1) {
+  width: 32px;
+}
+
+.card-visual-circuit i:nth-child(2) {
+  width: 22px;
+  opacity: 0.42;
+}
+
+.card-visual-circuit i:nth-child(3) {
+  width: 28px;
+  opacity: 0.34;
+}
+
+.card-visual.orange {
+  color: var(--brand-orange);
+}
+
+.card-visual.magenta {
+  color: var(--brand-magenta);
+}
+
+.card-visual.green {
+  color: var(--green);
+}
+
+.card-visual.dark {
+  color: var(--deep-panel);
+}
+
+.card-visual.dark .card-visual-icon {
+  border-color: rgba(24, 34, 53, 0.16);
+  background: linear-gradient(135deg, #f8fafc, #eef2f7);
 }
 
 .mode-card::before,

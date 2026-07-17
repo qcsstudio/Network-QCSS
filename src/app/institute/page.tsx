@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
 import { instituteTracks, siteConfig } from "@/lib/content";
@@ -79,6 +80,7 @@ export default function InstitutePage() {
         <div className="service-grid">
           {instituteTracks.map((track) => (
             <article className="service-card" key={track.title}>
+              <CardVisual title={track.title} context={track.level} />
               <p className="eyebrow">{track.level}</p>
               <h3>{track.title}</h3>
               <p>{track.outcome}</p>

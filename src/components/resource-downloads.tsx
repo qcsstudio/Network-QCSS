@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CardVisual } from "@/components/card-visual";
 import { resources } from "@/lib/content";
 import { getStoredConsent } from "@/components/consent-banner";
 import { trackBrowserEvent } from "@/lib/client-tracking";
@@ -27,6 +28,7 @@ export function ResourceDownloads() {
       <div className="resource-grid">
         {resources.map((resource) => (
           <article className="resource-card" key={resource.slug}>
+            <CardVisual title={resource.title} context={`${resource.type} ${resource.audience}`} />
             <p className="eyebrow">{resource.type}</p>
             <h3>{resource.title}</h3>
             <p>{resource.summary}</p>

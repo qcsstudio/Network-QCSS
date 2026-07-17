@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
 import { services, siteConfig } from "@/lib/content";
@@ -113,6 +114,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
         <div className="outcome-list">
           {service.outcomes.map((outcome) => (
             <article key={outcome}>
+              <CardVisual title={outcome} context={service.title} />
               <h3>{outcome}</h3>
               <p>Handled through assessment, implementation guidance, documentation, and follow-up review.</p>
             </article>
@@ -140,6 +142,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
         <div className="outcome-list">
           {service.scope.map((item) => (
             <article key={item}>
+              <CardVisual title={item} context={service.title} />
               <h3>{item}</h3>
               <p>Handled through discovery, validation, documentation, and a practical next action.</p>
             </article>
@@ -155,6 +158,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
         <div className="pillar-grid">
           {service.deliverables.map((deliverable) => (
             <article className="pillar-card" key={deliverable}>
+              <CardVisual title={deliverable} context={service.title} />
               <h3>{deliverable}</h3>
               <p>Designed to be useful for owners, engineers, stakeholders, and future follow-up.</p>
             </article>
@@ -170,6 +174,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
         <div className="faq-grid">
           {service.faqs.map((faq) => (
             <article className="faq-card" key={faq.question}>
+              <CardVisual title={faq.question} context={service.title} />
               <h3>{faq.question}</h3>
               <p>{faq.answer}</p>
             </article>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AssessmentTool } from "@/components/assessment-tool";
+import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig, tools } from "@/lib/content";
@@ -129,6 +130,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
         <div className="faq-grid">
           {faqs.map((faq) => (
             <article className="faq-card" key={faq.question}>
+              <CardVisual title={faq.question} context={tool.title} />
               <h3>{faq.question}</h3>
               <p>{faq.answer}</p>
             </article>

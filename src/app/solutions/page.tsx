@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CardVisual } from "@/components/card-visual";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig, solutionPages } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -61,6 +62,7 @@ export default function SolutionsPage() {
         <div className="service-grid">
           {solutionPages.map((solution) => (
             <Link className="service-card" href={`/solutions/${solution.slug}`} key={solution.slug}>
+              <CardVisual title={solution.title} context={solution.eyebrow} />
               <p className="eyebrow">{solution.eyebrow}</p>
               <h2>{solution.title}</h2>
               <p>{solution.answer}</p>

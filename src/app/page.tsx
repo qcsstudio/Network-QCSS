@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { AssessmentTool } from "@/components/assessment-tool";
+import { CardVisual } from "@/components/card-visual";
 import { EnvatoVisualSystem } from "@/components/envato-visual-system";
 import { IntentRouter } from "@/components/intent-router";
 import { LeadForm } from "@/components/lead-form";
@@ -152,6 +153,7 @@ export default function HomePage() {
         <div className="journey-grid">
           {buyerJourneys.map((journey) => (
             <article className="journey-card" key={journey.title}>
+              <CardVisual title={journey.title} context={journey.route} />
               <h3>{journey.title}</h3>
               <p>{journey.description}</p>
               <span>{journey.route}</span>
@@ -172,6 +174,7 @@ export default function HomePage() {
         <div className="service-grid">
           {solutionPages.map((solution) => (
             <Link className="service-card" href={`/solutions/${solution.slug}`} key={solution.slug}>
+              <CardVisual title={solution.title} context={solution.eyebrow} />
               <p className="eyebrow">{solution.eyebrow}</p>
               <h3>{solution.title}</h3>
               <p>{solution.answer}</p>
@@ -189,8 +192,8 @@ export default function HomePage() {
         <div className="showcase-illustration-panel" aria-label="Network operating model illustration">
           <Image
             className="showcase-illustration-image"
-            src="/brand/envato/library/data-center-platform.webp"
-            alt="Isometric network operations map showing data center, cloud, evidence, and analytics systems"
+            src="/brand/envato/cyber/security-shield-network.png"
+            alt="Network security shield illustration showing protected cloud and infrastructure controls"
             width={620}
             height={390}
             sizes="(max-width: 900px) 92vw, 34vw"
@@ -217,6 +220,7 @@ export default function HomePage() {
         <div className="edge-grid">
           {marketEdges.map((edge) => (
             <article className="authority-card" key={edge.title}>
+              <CardVisual title={edge.title} context={edge.description} />
               <h3>{edge.title}</h3>
               <p>{edge.description}</p>
             </article>
@@ -238,7 +242,7 @@ export default function HomePage() {
             const Icon = service.icon;
             return (
               <article className="service-card" key={service.slug}>
-                <Icon size={26} />
+                <CardVisual title={service.title} context={service.summary} icon={Icon} />
                 <p className="eyebrow">{service.kicker}</p>
                 <h3>{service.title}</h3>
                 <p>{service.summary}</p>
@@ -258,6 +262,7 @@ export default function HomePage() {
         </div>
         <div className="comparison-grid">
           <article className="comparison-panel old">
+            <CardVisual title={supportModelComparison.old.title} context={supportModelComparison.old.label} tone="dark" />
             <p className="eyebrow">{supportModelComparison.old.label}</p>
             <h3>{supportModelComparison.old.title}</h3>
             <ul className="check-list muted">
@@ -267,6 +272,7 @@ export default function HomePage() {
             </ul>
           </article>
           <article className="comparison-panel qcs">
+            <CardVisual title={supportModelComparison.qcs.title} context={supportModelComparison.qcs.label} tone="green" />
             <p className="eyebrow">{supportModelComparison.qcs.label}</p>
             <h3>{supportModelComparison.qcs.title}</h3>
             <ul className="check-list">
@@ -288,7 +294,7 @@ export default function HomePage() {
             const Icon = mode.icon;
             return (
               <Link className="mode-card" href={mode.href} key={mode.title}>
-                <Icon size={28} />
+                <CardVisual title={mode.title} context={mode.description} icon={Icon} />
                 <h3>{mode.title}</h3>
                 <p>{mode.description}</p>
               </Link>
@@ -321,7 +327,7 @@ export default function HomePage() {
             const Icon = tool.icon;
             return (
               <Link className="utility-card" href={`/network-tools/${tool.slug}`} key={tool.slug}>
-                <Icon size={26} />
+                <CardVisual title={tool.title} context={tool.category} icon={Icon} />
                 <p className="eyebrow">{tool.category}</p>
                 <h3>{tool.shortTitle}</h3>
                 <p>{tool.description}</p>
@@ -362,7 +368,7 @@ export default function HomePage() {
             const Icon = flow.icon;
             return (
               <article className="flow-card" key={flow.title}>
-                <Icon size={26} />
+                <CardVisual title={flow.title} context={flow.description} icon={Icon} />
                 <h3>{flow.title}</h3>
                 <p>{flow.description}</p>
               </article>

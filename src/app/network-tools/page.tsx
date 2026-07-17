@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CardVisual } from "@/components/card-visual";
 import { StructuredData } from "@/components/structured-data";
 import { networkUtilityTools } from "@/lib/network-tools";
 import { siteConfig } from "@/lib/content";
@@ -83,7 +84,7 @@ export default function NetworkToolsPage() {
             const Icon = tool.icon;
             return (
               <Link className="utility-card" href={`/network-tools/${tool.slug}`} key={tool.slug}>
-                <Icon size={28} />
+                <CardVisual title={tool.title} context={tool.category} icon={Icon} />
                 <p className="eyebrow">{tool.category}</p>
                 <h2>{tool.title}</h2>
                 <p>{tool.description}</p>
