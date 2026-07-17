@@ -59,46 +59,39 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="network-visual" aria-label="QuantumCrafters network readiness snapshot">
-          <div className="visual-panel network-workspace compact-command">
-            <div className="workspace-scorecard">
-              <div>
-                <span>Network readiness snapshot</span>
-                <strong>82</strong>
-                <small>Score before a technical call</small>
-              </div>
+        <div className="network-visual" aria-label="QuantumCrafters secure network operations illustration">
+          <div className="hero-illustration-shell">
+            <Image
+              className="hero-network-illustration"
+              src="/brand/envato/illustrations/isometric-data-center-network.svg"
+              alt="Isometric secure data center network with connected cloud and security systems"
+              width={520}
+              height={530}
+              priority
+            />
+
+            <div className="hero-readiness-card" aria-label="Network readiness assessment preview">
+              <span>Readiness score</span>
+              <strong>82</strong>
+              <small>Fix-first view before a technical call</small>
               <Link className="mini-cta" href="/diagnose">
                 Run assessment
               </Link>
             </div>
 
-            <div className="workspace-priority-grid" aria-label="What the readiness snapshot gives visitors">
-              <article>
+            <div className="hero-signal-grid" aria-label="What QuantumCrafters maps first">
+              <span>
                 <Image src="/brand/envato/icons/router-cloud-network.svg" alt="" width={32} height={32} />
-                <span>Fix first</span>
-                <strong>Firewall, VPN, DNS or route issue</strong>
-              </article>
-              <article>
+                Firewall
+              </span>
+              <span>
                 <Image src="/brand/envato/icons/security-cloud-network.svg" alt="" width={32} height={32} />
-                <span>Evidence</span>
-                <strong>Logs, rules, exposure and ownership</strong>
-              </article>
-              <article>
+                Security
+              </span>
+              <span>
                 <Image src="/brand/envato/icons/multicloud-network.svg" alt="" width={32} height={32} />
-                <span>Cloud path</span>
-                <strong>VPC/VNet, public IPs and hybrid VPN</strong>
-              </article>
-              <article>
-                <Image src="/brand/envato/icons/protected-cloud-network.svg" alt="" width={32} height={32} />
-                <span>Next action</span>
-                <strong>Support, pentest, cleanup or training</strong>
-              </article>
-            </div>
-
-            <div className="workspace-outcome-rail" aria-label="QCS response flow">
-              <span>Assess</span>
-              <span>Prioritize</span>
-              <span>Resolve</span>
+                Cloud
+              </span>
             </div>
           </div>
         </div>
