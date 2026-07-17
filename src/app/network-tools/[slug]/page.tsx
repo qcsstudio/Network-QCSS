@@ -115,7 +115,7 @@ export default async function NetworkToolPage({ params }: NetworkToolPageProps) 
           }
         ]}
       />
-      <section className="page-hero">
+      <section className="page-hero tool-page-hero">
         <p className="eyebrow">{tool.category}</p>
         <h1>{tool.title}</h1>
         <p>{tool.description}</p>
@@ -127,6 +127,10 @@ export default async function NetworkToolPage({ params }: NetworkToolPageProps) 
             All Network Tools
           </Link>
         </div>
+      </section>
+
+      <section className="section tool-run-section" id="run-tool">
+        <NetworkToolRunner slug={tool.slug} />
       </section>
 
       <section className="section split tool-intro">
@@ -144,10 +148,6 @@ export default async function NetworkToolPage({ params }: NetworkToolPageProps) 
             ))}
           </div>
         </div>
-      </section>
-
-      <section className="section" id="run-tool">
-        <NetworkToolRunner slug={tool.slug} />
       </section>
 
       <section className="section">

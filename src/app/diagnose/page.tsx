@@ -67,7 +67,19 @@ export default function DiagnosePage() {
         </div>
       </section>
 
+      <section className="section tool-run-section" id="assessment">
+        <div className="section-heading">
+          <p className="eyebrow">Live assessment</p>
+          <h2>Start with the assessment that best matches the visitor intent.</h2>
+        </div>
+        <AssessmentTool />
+      </section>
+
       <section className="section">
+        <div className="section-heading">
+          <p className="eyebrow">Dedicated assessment pages</p>
+          <h2>Open a focused page when the problem path is already clear.</h2>
+        </div>
         <div className="service-grid">
           {tools.map((tool) => (
             <Link className="service-card" href={`/tools/${tool.slug}`} key={tool.slug}>
@@ -79,14 +91,6 @@ export default function DiagnosePage() {
             </Link>
           ))}
         </div>
-      </section>
-
-      <section className="section" id="assessment">
-        <div className="section-heading">
-          <p className="eyebrow">Live assessment</p>
-          <h2>Start with the assessment that best matches the visitor intent.</h2>
-        </div>
-        <AssessmentTool />
       </section>
     </main>
   );

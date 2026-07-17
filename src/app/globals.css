@@ -1602,6 +1602,10 @@ body.mobile-menu-locked {
   padding: 96px 0 56px;
 }
 
+.tool-page-hero {
+  padding-bottom: clamp(28px, 4vw, 42px);
+}
+
 .page-hero::before {
   content: "";
   position: absolute;
@@ -1634,6 +1638,10 @@ body.mobile-menu-locked {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+}
+
+.tool-run-section {
+  padding-top: clamp(18px, 3vw, 34px);
 }
 
 .section.flush {

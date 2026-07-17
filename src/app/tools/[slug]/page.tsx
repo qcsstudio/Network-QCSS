@@ -114,12 +114,12 @@ export default async function ToolPage({ params }: ToolPageProps) {
           }
         ]}
       />
-      <section className="page-hero">
+      <section className="page-hero tool-page-hero">
         <p className="eyebrow">{tool.category}</p>
         <h1>{tool.title}</h1>
         <p>{tool.description}</p>
       </section>
-      <section className="section">
+      <section className="section tool-run-section">
         <AssessmentTool slug={tool.slug} />
       </section>
       <section className="section">

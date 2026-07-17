@@ -85,17 +85,6 @@ export function AssessmentTool({ slug = "network-risk-score" }: AssessmentToolPr
         <p className="eyebrow">{activeTool.category}</p>
         <h2>{activeTool.title}</h2>
         <p>{activeTool.description}</p>
-        {framework ? (
-          <div className="assessment-method">
-            <strong>Assessment method</strong>
-            <span>{framework.method}</span>
-            <div className="method-chip-row">
-              {framework.frameworks.map((item) => (
-                <em key={item}>{item}</em>
-              ))}
-            </div>
-          </div>
-        ) : null}
 
         <form className="assessment-form" onSubmit={submit}>
           {activeTool.fields.map((field) => {
@@ -140,6 +129,18 @@ export function AssessmentTool({ slug = "network-risk-score" }: AssessmentToolPr
             ) : null}
           </div>
         </div>
+
+        {framework ? (
+          <div className="assessment-method">
+            <strong>Assessment method</strong>
+            <span>{framework.method}</span>
+            <div className="method-chip-row">
+              {framework.frameworks.map((item) => (
+                <em key={item}>{item}</em>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {result ? (
           <div className="assessment-report">
