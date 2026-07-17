@@ -3416,6 +3416,10 @@ body.mobile-menu-locked {
   align-items: start;
 }
 
+.network-tool-shell:has(.tool-field-grid) {
+  grid-template-columns: minmax(380px, 0.58fr) minmax(0, 1fr);
+}
+
 .network-tool-form,
 .network-tool-result,
 .search-intent-panel {
@@ -3430,6 +3434,12 @@ body.mobile-menu-locked {
 
 .network-tool-form {
   display: grid;
+  gap: 14px;
+}
+
+.tool-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -3487,6 +3497,26 @@ body.mobile-menu-locked {
   gap: 6px;
   margin: 0;
   padding-left: 18px;
+}
+
+.command-result-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.command-result-list code {
+  display: block;
+  overflow-x: auto;
+  border: 1px solid rgba(71, 85, 105, 0.14);
+  border-radius: 7px;
+  background: #101827;
+  padding: 8px 10px;
+  color: #f8fbff;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre;
 }
 
 .mini-table {
@@ -4592,6 +4622,10 @@ td span {
     display: none;
   }
 
+  .network-tool-shell:has(.tool-field-grid) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .outcome-showcase .edge-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4885,6 +4919,7 @@ td span {
   .network-tool-shell,
   .assessment-form,
   .field-grid,
+  .tool-field-grid,
   .mode-grid,
   .service-grid,
   .automation-grid,
@@ -4910,6 +4945,10 @@ td span {
     .assessment-report,
     .faq-grid,
     .action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .network-tool-shell:has(.tool-field-grid) {
     grid-template-columns: 1fr;
   }
 

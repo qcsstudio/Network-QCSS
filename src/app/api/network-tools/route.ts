@@ -9,6 +9,7 @@ import { getNetworkUtilityTool } from "@/lib/network-tools";
 import { rateLimit } from "@/lib/rate-limit";
 import { requestContext } from "@/lib/security";
 import { createEvent } from "@/lib/store";
+import { generateVendorTaskScript } from "@/lib/vendor-task-scripts";
 
 export const runtime = "nodejs";
 
@@ -33,6 +34,7 @@ const networkToolSchema = z.object({
   tool: z.string().trim().min(2).max(80),
   target: z.string().trim().max(500).default(""),
   port: z.number().int().min(1).max(65535).optional(),
+  params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).default({}),
   sessionId: z.string().trim().max(200).optional().default(""),
   consent: z
     .object({
@@ -150,6 +152,14 @@ function flattenTxt(records: string[][]) {
   return records.map((record) => record.join(""));
 }
 
+function intToIpv4(value: number) {
+  return [value >>> 24, (value >>> 16) & 255, (value >>> 8) & 255, value & 255].join(".");
+}
+
+function ipv4ToInt(parts: number[]) {
+  return (((parts[0] * 256 + parts[1]) * 256 + parts[2]) * 256 + parts[3]) >>> 0;
+}
+
 async function runDnsLookup(tool: string, title: string, input: string): Promise<ToolResult> {
   const host = normalizeHostname(input);
   const [a, aaaa, mx, ns, txt] = await Promise.allSettled([
@@ -234,6 +244,169 @@ async function runSpfDmarc(tool: string, title: string, input: string): Promise<
       { label: "DMARC record", value: dmarc || "Missing" },
       { label: "DMARC policy", value: dmarcPolicy },
       { label: "Recommendation", value: strongPolicy ? "Policy is enforcement-ready." : "Move toward quarantine or reject after monitoring." }
+    ]
+  });
+}
+
+async function runReverseDns(tool: string, title: string, input: string): Promise<ToolResult> {
+  const ip = normalizeHostname(input);
+  if (!net.isIP(ip)) throw new Error("Enter one public IP address for reverse DNS lookup.");
+  const records = await dns.reverse(ip).catch(() => []);
+
+  return result({
+    tool,
+    title,
+    target: ip,
+    status: records.length ? "ok" : "warning",
+    summary: records.length ? `${ip} has ${records.length} PTR record(s).` : `${ip} does not return a PTR record.`,
+    details: [
+      { label: "IP address", value: ip },
+      { label: "PTR records", value: records.length ? records : "No PTR records found" },
+      {
+        label: "Operational note",
+        value: records.length
+          ? "Reverse DNS is present. Confirm it matches the service, mail, or provider ownership expectation."
+          : "Missing PTR can affect mail reputation, provider identification, and some allowlisting workflows."
+      }
+    ]
+  });
+}
+
+async function runCaaCheck(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input);
+  const records = await dns.resolveCaa(host).catch(() => []);
+  const rows = records.flatMap((record) => {
+    const values: Record<string, string | number | boolean>[] = [];
+    const tags = ["issue", "issuewild", "iodef", "contactemail", "contactphone"] as const;
+    for (const tag of tags) {
+      const value = record[tag];
+      if (value) values.push({ tag, value, critical: record.critical });
+    }
+    return values;
+  });
+
+  return result({
+    tool,
+    title,
+    target: host,
+    status: rows.length ? "ok" : "warning",
+    summary: rows.length
+      ? `${host} publishes ${rows.length} CAA authorization signal(s).`
+      : `${host} does not publish CAA records.`,
+    details: [
+      { label: "CAA records", value: rows.length ? rows : "No CAA records found" },
+      {
+        label: "Recommendation",
+        value: rows.length
+          ? "Confirm the listed certificate authorities match your certificate governance and renewal process."
+          : "Consider CAA records to reduce unexpected certificate issuance risk."
+      }
+    ]
+  });
+}
+
+async function runRedirectChain(tool: string, title: string, input: string): Promise<ToolResult> {
+  let currentUrl = new URL(/^https?:\/\//i.test(input.trim()) ? input.trim() : `https://${input.trim()}`);
+  if (!["http:", "https:"].includes(currentUrl.protocol)) throw new Error("Only HTTP and HTTPS URLs are supported.");
+
+  const hops: Record<string, string | number | boolean>[] = [];
+  const visited = new Set<string>();
+  let downgraded = false;
+
+  for (let index = 0; index < 8; index += 1) {
+    const host = normalizeHostname(currentUrl.href, { allowUrl: true });
+    await assertPublicResolvedHost(host);
+    if (visited.has(currentUrl.href)) throw new Error("Redirect loop detected.");
+    visited.add(currentUrl.href);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(currentUrl, {
+        method: "GET",
+        redirect: "manual",
+        signal: controller.signal,
+        headers: { "user-agent": "QuantumCrafters-Network-Tool/1.0" }
+      });
+      const location = response.headers.get("location") || "";
+      hops.push({
+        hop: index + 1,
+        status: response.status,
+        url: currentUrl.href,
+        location: location || "Final response"
+      });
+
+      if (response.status >= 300 && response.status < 400 && location) {
+        const nextUrl = new URL(location, currentUrl);
+        if (currentUrl.protocol === "https:" && nextUrl.protocol === "http:") downgraded = true;
+        currentUrl = nextUrl;
+        continue;
+      }
+      break;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  const finalUrl = String(hops[hops.length - 1]?.url || currentUrl.href);
+  const longChain = hops.length > 4;
+  const status = downgraded || longChain ? "warning" : "ok";
+
+  return result({
+    tool,
+    title,
+    target: finalUrl,
+    status,
+    summary: `Observed ${hops.length} HTTP response hop(s). Final URL: ${finalUrl}`,
+    details: [
+      { label: "Redirect hops", value: hops },
+      { label: "Long chain", value: longChain },
+      { label: "HTTPS to HTTP downgrade", value: downgraded },
+      {
+        label: "Recommendation",
+        value: downgraded
+          ? "Remove HTTPS-to-HTTP downgrades and keep the landing path encrypted."
+          : longChain
+            ? "Shorten redirects to reduce latency, crawl waste, and troubleshooting ambiguity."
+            : "Redirect path is concise from this diagnostic edge."
+      }
+    ]
+  });
+}
+
+async function runSubnetCalculator(tool: string, title: string, input: string): Promise<ToolResult> {
+  const [ipRaw, prefixRaw] = input.trim().split("/");
+  const parts = ipv4Parts(ipRaw || "");
+  const prefix = Number(prefixRaw);
+  if (!parts || !Number.isInteger(prefix) || prefix < 0 || prefix > 32) {
+    throw new Error("Enter IPv4 CIDR notation such as 192.168.10.0/24.");
+  }
+
+  const ip = ipv4ToInt(parts);
+  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+  const wildcard = (~mask) >>> 0;
+  const network = (ip & mask) >>> 0;
+  const broadcast = (network | wildcard) >>> 0;
+  const total = 2 ** (32 - prefix);
+  const usable = prefix === 32 ? 1 : prefix === 31 ? 2 : Math.max(total - 2, 0);
+  const firstHost = prefix >= 31 ? network : network + 1;
+  const lastHost = prefix >= 31 ? broadcast : broadcast - 1;
+
+  return result({
+    tool,
+    title,
+    target: `${intToIpv4(network)}/${prefix}`,
+    status: "ok",
+    summary: `${input.trim()} maps to network ${intToIpv4(network)}/${prefix} with ${usable} usable host address(es).`,
+    details: [
+      { label: "Network address", value: intToIpv4(network) },
+      { label: "Subnet mask", value: intToIpv4(mask) },
+      { label: "Wildcard mask", value: intToIpv4(wildcard) },
+      { label: "Broadcast address", value: intToIpv4(broadcast) },
+      { label: "Usable host range", value: `${intToIpv4(firstHost)} - ${intToIpv4(lastHost)}` },
+      { label: "Total addresses", value: total },
+      { label: "Usable host addresses", value: usable },
+      { label: "Private, loopback, multicast, or reserved", value: isPrivateIpv4(intToIpv4(network)) }
     ]
   });
 }
@@ -374,7 +547,19 @@ async function runPortCheck(tool: string, title: string, input: string, port?: n
   });
 }
 
-async function runTool(tool: string, title: string, target: string, port?: number) {
+function runVendorTaskGenerator(tool: string, title: string, params: Record<string, string | number | boolean>): ToolResult {
+  const generated = generateVendorTaskScript(params);
+  return result({
+    tool,
+    title,
+    target: generated.target,
+    status: generated.status,
+    summary: generated.summary,
+    details: generated.details
+  });
+}
+
+async function runTool(tool: string, title: string, target: string, port?: number, params: Record<string, string | number | boolean> = {}) {
   switch (tool) {
     case "dns-lookup":
       return runDnsLookup(tool, title, target);
@@ -382,12 +567,22 @@ async function runTool(tool: string, title: string, target: string, port?: numbe
       return runMxLookup(tool, title, target);
     case "spf-dmarc-check":
       return runSpfDmarc(tool, title, target);
+    case "reverse-dns-lookup":
+      return runReverseDns(tool, title, target);
+    case "caa-record-check":
+      return runCaaCheck(tool, title, target);
+    case "http-redirect-chain":
+      return runRedirectChain(tool, title, target);
+    case "ipv4-subnet-calculator":
+      return runSubnetCalculator(tool, title, target);
     case "http-header-check":
       return runHttpHeaders(tool, title, target);
     case "ssl-certificate-check":
       return runSslCertificate(tool, title, target);
     case "port-check":
       return runPortCheck(tool, title, target, port);
+    case "vendor-task-script-generator":
+      return runVendorTaskGenerator(tool, title, params);
     default:
       throw new Error("Unsupported network tool.");
   }
@@ -411,7 +606,7 @@ export async function POST(request: Request) {
   if (!tool) return jsonError("Unknown network tool.", 404);
 
   try {
-    const output = await runTool(tool.slug, tool.title, payload.target, payload.port);
+    const output = await runTool(tool.slug, tool.title, payload.target, payload.port, payload.params);
 
     if (payload.consent.analytics) {
       await createEvent(

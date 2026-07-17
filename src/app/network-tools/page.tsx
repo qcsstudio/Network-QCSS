@@ -7,9 +7,9 @@ import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Free Online Network Tools for DNS, SSL, Email and Port Checks",
+  title: "Free Online Network Tools and Vendor Script Generator",
   description:
-    "Run online DNS lookup, MX lookup, SPF and DMARC checks, SSL certificate checks, HTTP security header checks, and port reachability tests.",
+    "Run DNS, SSL, email, redirect, subnet, reverse DNS, CAA, port checks, and generate Cisco, FortiGate, and Juniper troubleshooting command plans.",
   path: "/network-tools",
   keywords: [
     "online network tools",
@@ -17,6 +17,8 @@ export const metadata: Metadata = createPageMetadata({
     "ssl certificate checker",
     "spf dmarc checker",
     "port checker",
+    "subnet calculator",
+    "packet capture command generator",
     "network troubleshooting tools"
   ]
 });
@@ -52,10 +54,10 @@ export default function NetworkToolsPage() {
       />
       <section className="page-hero">
         <p className="eyebrow">Network utility hub</p>
-        <h1>Free online network tools for DNS, SSL, email security, headers, and port triage.</h1>
+        <h1>Free online network tools for checks, subnet planning, and vendor task scripts.</h1>
         <p>
-          Use focused tools to check public network signals quickly. Every tool is useful on its own, and each one also
-          routes serious problems into QuantumCrafters Studio service workflows when a deeper fix is needed.
+          Use focused tools to check public network signals, calculate practical IPv4 ranges, and generate
+          operator-ready Cisco, FortiGate, and Juniper troubleshooting plans before deeper work begins.
         </p>
       </section>
 
@@ -64,8 +66,8 @@ export default function NetworkToolsPage() {
           <p className="eyebrow">Quick diagnosis</p>
           <h2>Short tools help technical teams validate symptoms before booking a call.</h2>
           <p>
-            DNS, MX, SPF/DMARC, SSL, header, and port checks reveal intent around outages, email delivery, public
-            exposure, firewall access, and website security.
+            DNS, MX, SPF/DMARC, SSL, header, redirect, CAA, reverse DNS, subnet, port, and command-plan tools reveal
+            intent around outages, email delivery, public exposure, routing, firewall access, and website security.
           </p>
         </div>
         <div className="answer-panel muted">

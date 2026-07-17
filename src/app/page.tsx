@@ -319,7 +319,7 @@ export default function HomePage() {
       <section className="section media-section motion-section">
         <div className="section-heading">
           <p className="eyebrow">Free network utilities</p>
-          <h2>Run quick public checks before deeper troubleshooting.</h2>
+          <h2>Run quick checks and generate controlled vendor task plans before deeper troubleshooting.</h2>
         </div>
         <SectionMotionGraphic variant="utilities" />
         <div className="utility-grid compact">

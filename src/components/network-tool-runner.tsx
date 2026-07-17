@@ -35,7 +35,7 @@ function isRecordList(value: unknown[]): value is Record<string, string | number
   return value.every((item) => item && typeof item === "object" && !Array.isArray(item));
 }
 
-function renderValue(value: DetailValue) {
+function renderValue(value: DetailValue, label = "") {
   if (Array.isArray(value)) {
     if (value.length === 0) return <span className="muted-text">None found</span>;
     if (isRecordList(value)) {
@@ -58,6 +58,18 @@ function renderValue(value: DetailValue) {
       );
     }
 
+    if (/command|cleanup|prepare|validate|evidence/i.test(label)) {
+      return (
+        <ol className="command-result-list">
+          {value.map((item) => (
+            <li key={String(item)}>
+              <code>{String(item)}</code>
+            </li>
+          ))}
+        </ol>
+      );
+    }
+
     return (
       <ul className="inline-result-list">
         {value.map((item) => (
@@ -75,6 +87,9 @@ export function NetworkToolRunner({ slug }: { slug: string }) {
   const tool = useMemo(() => getNetworkUtilityTool(slug), [slug]);
   const [target, setTarget] = useState("");
   const [port, setPort] = useState(443);
+  const [fieldValues, setFieldValues] = useState<Record<string, string | number>>(() =>
+    Object.fromEntries((tool?.fields || []).map((field) => [field.name, field.defaultValue ?? ""]))
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ToolResult | null>(null);
@@ -96,6 +111,7 @@ export function NetworkToolRunner({ slug }: { slug: string }) {
         tool: slug,
         target,
         port: activeTool.portRequired ? port : undefined,
+        params: activeTool.fields ? fieldValues : undefined,
         sessionId: sessionId(),
         consent
       })
@@ -119,28 +135,71 @@ export function NetworkToolRunner({ slug }: { slug: string }) {
   return (
     <div className="network-tool-shell">
       <form className="network-tool-form" onSubmit={submit}>
-        <label>
-          {activeTool.inputLabel}
-          <input value={target} onChange={(event) => setTarget(event.target.value)} required placeholder={activeTool.placeholder} />
-        </label>
-        {activeTool.portRequired && (
-          <label>
-            TCP port
-            <input
-              type="number"
-              min={1}
-              max={65535}
-              value={port}
-              onChange={(event) => setPort(Number(event.target.value))}
-              required
-            />
-          </label>
+        {activeTool.fields ? (
+          <div className="tool-field-grid">
+            {activeTool.fields.map((field) => (
+              <label key={field.name}>
+                {field.label}
+                {field.type === "select" ? (
+                  <select
+                    value={fieldValues[field.name] ?? field.defaultValue ?? ""}
+                    required={field.required}
+                    onChange={(event) => setFieldValues((current) => ({ ...current, [field.name]: event.target.value }))}
+                  >
+                    {(field.options || []).map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type={field.type}
+                    min={field.min}
+                    max={field.max}
+                    value={fieldValues[field.name] ?? ""}
+                    required={field.required}
+                    placeholder={field.placeholder}
+                    onChange={(event) => setFieldValues((current) => ({ ...current, [field.name]: event.target.value }))}
+                  />
+                )}
+                {field.helper && <small>{field.helper}</small>}
+              </label>
+            ))}
+          </div>
+        ) : (
+          <>
+            <label>
+              {activeTool.inputLabel}
+              <input
+                value={target}
+                onChange={(event) => setTarget(event.target.value)}
+                required
+                placeholder={activeTool.placeholder}
+              />
+            </label>
+            {activeTool.portRequired && (
+              <label>
+                TCP port
+                <input
+                  type="number"
+                  min={1}
+                  max={65535}
+                  value={port}
+                  onChange={(event) => setPort(Number(event.target.value))}
+                  required
+                />
+              </label>
+            )}
+          </>
         )}
         <button className="button primary" disabled={loading} type="submit">
-          {loading ? "Checking..." : `Run ${activeTool.shortTitle}`}
+          {loading ? "Working..." : activeTool.fields ? `Generate ${activeTool.shortTitle}` : `Run ${activeTool.shortTitle}`}
         </button>
         <p className="form-note">
-          Public diagnostics only. Private, localhost, multicast, and reserved targets are blocked.
+          {activeTool.fields
+            ? "Generated scripts are planning aids. Confirm syntax against device version, change window, and vendor documentation before use."
+            : "Public diagnostics only. Private, localhost, multicast, and reserved targets are blocked."}
         </p>
       </form>
 
@@ -164,7 +223,7 @@ export function NetworkToolRunner({ slug }: { slug: string }) {
               {result.details.map((detail) => (
                 <article key={detail.label}>
                   <strong>{detail.label}</strong>
-                  <div>{renderValue(detail.value)}</div>
+                  <div>{renderValue(detail.value, detail.label)}</div>
                 </article>
               ))}
             </div>
