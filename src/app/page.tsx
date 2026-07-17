@@ -60,48 +60,59 @@ export default function HomePage() {
         </div>
 
         <div className="network-visual" aria-label="QuantumCrafters network command visual">
-          <div className="visual-panel command-console posture-console">
-            <div className="console-topline">
-              <span>Network posture</span>
-              <strong>Guided triage</strong>
-            </div>
-
-            <div className="posture-main">
-              <div className="visual-radar" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="visual-score">
-                <strong>82</strong>
-                <span>Readiness score</span>
+          <div className="visual-panel network-workspace">
+            <div className="workspace-media">
+              <Image
+                src="/brand/envato/cyber/network-service-operator.jpg"
+                alt="Network operator reviewing infrastructure in a server room"
+                fill
+                sizes="(max-width: 900px) 92vw, 34vw"
+              />
+              <div className="workspace-live-badge">
+                <span>Live network operations</span>
+                <strong>Monitor. Secure. Resolve.</strong>
               </div>
             </div>
 
-            <div className="posture-status-grid">
-              <span className="signal online">
-                <strong>Operate</strong>
-                <small>Monitoring active</small>
+            <div className="workspace-map" aria-label="Network service topology">
+              <span className="map-link link-one" aria-hidden="true" />
+              <span className="map-link link-two" aria-hidden="true" />
+              <span className="map-link link-three" aria-hidden="true" />
+              <span className="map-node node-core">
+                <Image src="/brand/envato/icons/router-cloud-network.svg" alt="" width={28} height={28} />
+                <strong>Core</strong>
+                <small>Stable</small>
               </span>
-              <span className="signal alert">
-                <strong>Secure</strong>
-                <small>Controls to review</small>
-              </span>
-              <span className="signal cloud">
+              <span className="map-node node-cloud">
+                <Image src="/brand/envato/icons/multicloud-network.svg" alt="" width={28} height={28} />
                 <strong>Cloud</strong>
-                <small>Exposure mapped</small>
+                <small>Routes</small>
               </span>
-              <span className="signal warn">
-                <strong>Retest</strong>
-                <small>Evidence required</small>
+              <span className="map-node node-edge">
+                <Image src="/brand/envato/icons/wifi-cloud-network.svg" alt="" width={28} height={28} />
+                <strong>Sites</strong>
+                <small>Users</small>
+              </span>
+              <span className="map-node node-secure">
+                <Image src="/brand/envato/icons/security-cloud-network.svg" alt="" width={28} height={28} />
+                <strong>Security</strong>
+                <small>Policy</small>
               </span>
             </div>
 
-            <div className="telemetry-stack" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-              <span />
+            <div className="workspace-status-grid">
+              <div>
+                <span>Priority path</span>
+                <strong>Incident to fix plan</strong>
+              </div>
+              <div>
+                <span>Evidence</span>
+                <strong>DNS, firewall, VPN, cloud</strong>
+              </div>
+              <div>
+                <span>Next action</span>
+                <strong>Assess or engage support</strong>
+              </div>
             </div>
           </div>
         </div>

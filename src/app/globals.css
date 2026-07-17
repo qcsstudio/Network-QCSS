@@ -241,20 +241,18 @@ button {
   z-index: 30;
   isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(250px, 0.62fr) minmax(0, 1.25fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: clamp(12px, 2vw, 24px);
+  gap: clamp(18px, 3vw, 42px);
   overflow: hidden;
-  padding: 10px clamp(14px, 3vw, 38px);
-  border-bottom: 1px solid rgba(71, 85, 105, 0.14);
+  min-height: 58px;
+  padding: 6px clamp(18px, 4vw, 48px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.34);
   background:
-    linear-gradient(rgba(65, 105, 201, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(65, 105, 201, 0.026) 1px, transparent 1px),
-    linear-gradient(105deg, rgba(242, 140, 56, 0.08), transparent 32%, rgba(216, 61, 114, 0.055) 58%, rgba(65, 105, 201, 0.08)),
-    rgba(255, 255, 255, 0.92);
-  background-size: 32px 32px, 32px 32px, auto, auto;
-  box-shadow: 0 18px 52px rgba(23, 32, 51, 0.1);
-  backdrop-filter: blur(22px) saturate(1.18);
+    linear-gradient(105deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.38)),
+    linear-gradient(90deg, rgba(242, 140, 56, 0.07), transparent 34%, rgba(65, 105, 201, 0.08));
+  box-shadow: 0 12px 34px rgba(23, 32, 51, 0.07);
+  backdrop-filter: blur(20px) saturate(1.18);
 }
 
 .site-header::before {
@@ -263,21 +261,14 @@ button {
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(90deg, transparent, rgba(65, 105, 201, 0.09), rgba(242, 140, 56, 0.08), transparent),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.74), transparent);
+    linear-gradient(90deg, transparent, rgba(65, 105, 201, 0.07), rgba(242, 140, 56, 0.06), transparent),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent);
   mask-image: linear-gradient(90deg, transparent, black 18%, black 82%, transparent);
   animation: headerScan 5.5s linear infinite alternate;
 }
 
 .header-scanline {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--brand-orange), var(--brand-magenta), var(--brand-blue), transparent);
-  background-size: 220px 100%;
-  animation: railTravel 4.2s linear infinite;
+  display: none;
 }
 
 .brand {
@@ -289,12 +280,12 @@ button {
 
 .command-brand {
   position: relative;
-  min-height: 62px;
-  border: 1px solid rgba(71, 85, 105, 0.1);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.76);
-  padding: 7px 10px;
-  box-shadow: 0 14px 34px rgba(23, 32, 51, 0.07);
+  min-height: 44px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
 }
 
 .command-brand::before {
@@ -303,8 +294,8 @@ button {
 
 .brand-mark-shell {
   display: inline-flex;
-  width: min(210px, 36vw);
-  min-width: 176px;
+  width: min(176px, 24vw);
+  min-width: 148px;
   align-items: center;
 }
 
@@ -343,42 +334,39 @@ button {
 }
 
 .main-nav {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  display: flex;
   align-items: center;
-  justify-content: stretch;
-  gap: 7px;
+  justify-content: flex-end;
+  gap: clamp(12px, 1.8vw, 26px);
   color: #263348;
   font-family: var(--font-tech), ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(0.78rem, 0.92vw, 1.01rem);
-  font-weight: 700;
+  font-size: clamp(0.82rem, 0.9vw, 0.98rem);
+  font-weight: 780;
   letter-spacing: 0;
 }
 
 .main-nav a {
   position: relative;
   display: inline-flex;
-  min-height: 38px;
+  min-height: 34px;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid rgba(71, 85, 105, 0.13);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.7);
-  padding: 8px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 6px 0;
   text-align: center;
-  box-shadow: 0 10px 24px rgba(23, 32, 51, 0.055);
+  box-shadow: none;
   transition:
     transform 180ms ease,
-    border-color 180ms ease,
-    background 180ms ease,
     color 180ms ease;
 }
 
 .main-nav a::before {
   content: "";
   position: absolute;
-  inset: auto 10px 5px;
+  inset: auto 0 2px;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--brand-orange), var(--brand-blue), transparent);
   opacity: 0;
@@ -396,9 +384,7 @@ button {
 .main-nav a:hover,
 .main-nav a:focus-visible {
   transform: translateY(-1px);
-  border-color: rgba(65, 105, 201, 0.3);
-  background: #f3f7ff;
-  color: #1d2b44;
+  color: var(--brand-blue);
 }
 
 .main-nav a:hover::before,
@@ -445,15 +431,16 @@ button {
 .mobile-command-nav a {
   position: relative;
   display: inline-flex;
-  min-height: 38px;
+  min-height: 32px;
   align-items: center;
   justify-content: center;
   gap: 6px;
   overflow: hidden;
-  border: 1px solid rgba(71, 85, 105, 0.14);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.72);
-  padding: 7px 8px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 6px 2px;
   color: #25334a;
   font-family: var(--font-tech), ui-sans-serif, system-ui, sans-serif;
   font-size: 0.82rem;
@@ -463,29 +450,20 @@ button {
 .mobile-command-nav a::after {
   content: "";
   position: absolute;
-  inset: auto 9px 5px;
+  inset: auto 0 3px;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--brand-orange), var(--brand-blue), transparent);
-  opacity: 0.65;
+  opacity: 0;
+  transform: scaleX(0.35);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
-.mobile-command-nav svg {
-  flex: none;
-  color: var(--brand-blue);
-}
-
-.header-cta {
-  min-width: 178px;
-  white-space: nowrap;
-}
-
-.cta-pulse {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: #dff6ff;
-  box-shadow: 0 0 18px rgba(56, 189, 248, 0.72);
-  animation: ctaPulse 1.8s ease-in-out infinite;
+.mobile-command-nav a:hover::after,
+.mobile-command-nav a:focus-visible::after {
+  opacity: 1;
+  transform: scaleX(1);
 }
 
 .button {
@@ -737,7 +715,7 @@ button {
 .network-visual {
   position: relative;
   z-index: 1;
-  min-height: 480px;
+  min-height: 500px;
   display: grid;
   place-items: center;
 }
@@ -745,7 +723,7 @@ button {
 .visual-panel {
   position: relative;
   width: min(480px, 100%);
-  min-height: 520px;
+  min-height: 510px;
   border: 1px solid rgba(255, 255, 255, 0.34);
   border-radius: 8px;
   background:
@@ -756,6 +734,229 @@ button {
   background-size: 34px 34px, 34px 34px, auto, auto;
   box-shadow: 0 28px 70px rgba(8, 17, 34, 0.28);
   animation: floatPanel 6s ease-in-out infinite;
+}
+
+.network-workspace {
+  display: grid;
+  grid-template-rows: minmax(200px, 0.86fr) minmax(230px, 0.78fr) auto;
+  gap: 12px;
+  overflow: hidden;
+  padding: 12px;
+  border-color: rgba(255, 255, 255, 0.42);
+  background:
+    linear-gradient(rgba(65, 105, 201, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(65, 105, 201, 0.045) 1px, transparent 1px),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(238, 244, 255, 0.72)),
+    rgba(255, 255, 255, 0.78);
+  background-size: 32px 32px, 32px 32px, auto, auto;
+  backdrop-filter: blur(14px);
+}
+
+.network-workspace::before,
+.network-workspace::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.network-workspace::before {
+  inset: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  border-radius: 8px;
+}
+
+.network-workspace::after {
+  right: -62px;
+  top: -62px;
+  width: 170px;
+  height: 170px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(65, 105, 201, 0.18), transparent 62%);
+}
+
+.workspace-media {
+  position: relative;
+  z-index: 1;
+  min-height: 200px;
+  overflow: hidden;
+  border: 1px solid rgba(71, 85, 105, 0.13);
+  border-radius: 8px;
+  background: var(--deep-panel);
+}
+
+.workspace-media > img {
+  object-fit: cover;
+  object-position: center;
+  filter: saturate(1.04) contrast(1.02);
+}
+
+.workspace-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(10, 18, 31, 0.04), rgba(10, 18, 31, 0.58)),
+    linear-gradient(90deg, rgba(65, 105, 201, 0.22), transparent 56%);
+}
+
+.workspace-live-badge {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(8, 15, 28, 0.68);
+  padding: 12px;
+  color: white;
+  backdrop-filter: blur(12px);
+}
+
+.workspace-live-badge span,
+.workspace-status-grid span {
+  color: #ffd0a6;
+  font-family: var(--font-tech), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.workspace-live-badge strong {
+  font-family: var(--font-display), var(--font-tech), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(1rem, 1.5vw, 1.28rem);
+  line-height: 1.08;
+}
+
+.workspace-map {
+  position: relative;
+  z-index: 1;
+  min-height: 230px;
+  overflow: hidden;
+  border: 1px solid rgba(71, 85, 105, 0.13);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at center, rgba(65, 105, 201, 0.12), transparent 33%),
+    linear-gradient(rgba(65, 105, 201, 0.052) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(65, 105, 201, 0.045) 1px, transparent 1px),
+    rgba(255, 255, 255, 0.76);
+  background-size: auto, 28px 28px, 28px 28px, auto;
+}
+
+.map-link {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 42%;
+  height: 2px;
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(65, 105, 201, 0.72), rgba(242, 140, 56, 0.72), transparent);
+  opacity: 0.72;
+}
+
+.link-one {
+  transform: rotate(-24deg);
+}
+
+.link-two {
+  transform: rotate(28deg);
+}
+
+.link-three {
+  transform: rotate(164deg);
+}
+
+.map-node {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  width: 104px;
+  min-height: 76px;
+  justify-items: center;
+  align-content: center;
+  gap: 3px;
+  border: 1px solid rgba(71, 85, 105, 0.13);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px;
+  text-align: center;
+  box-shadow: 0 14px 34px rgba(23, 32, 51, 0.09);
+}
+
+.map-node img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.map-node strong {
+  color: var(--ink);
+  font-family: var(--font-display), var(--font-tech), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.92rem;
+  line-height: 1;
+}
+
+.map-node small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 760;
+}
+
+.node-core {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-top: 4px solid var(--brand-blue);
+}
+
+.node-cloud {
+  right: 22px;
+  top: 18px;
+  border-top: 4px solid var(--brand-blue);
+}
+
+.node-edge {
+  left: 22px;
+  bottom: 18px;
+  border-top: 4px solid var(--green);
+}
+
+.node-secure {
+  right: 28px;
+  bottom: 18px;
+  border-top: 4px solid var(--brand-magenta);
+}
+
+.workspace-status-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.workspace-status-grid div {
+  display: grid;
+  gap: 4px;
+  min-height: 68px;
+  align-content: center;
+  border: 1px solid rgba(71, 85, 105, 0.13);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 12px;
+  box-shadow: 0 14px 32px rgba(23, 32, 51, 0.07);
+}
+
+.workspace-status-grid span {
+  color: var(--brand-blue);
+}
+
+.workspace-status-grid strong {
+  color: var(--ink);
+  font-size: 0.86rem;
+  line-height: 1.18;
 }
 
 .command-console {
@@ -3230,17 +3431,19 @@ td span {
 
 @media (max-width: 1080px) {
   .site-header {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: 1fr;
+    gap: 6px;
     padding-block: 8px;
   }
 
   .command-brand {
-    min-height: 62px;
-    padding: 7px 10px;
+    justify-self: center;
+    min-height: 42px;
+    padding: 0;
   }
 
   .brand-mark-shell {
-    width: min(196px, 34vw);
+    width: min(172px, 46vw);
   }
 
   .header-core {
@@ -3253,15 +3456,21 @@ td span {
 
   .mobile-command-nav {
     grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 7px;
+    display: flex;
+    justify-content: center;
+    gap: clamp(12px, 3vw, 24px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .mobile-command-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .mobile-command-nav a {
-    min-height: 34px;
-    padding: 6px 7px;
-    font-size: 0.78rem;
+    min-height: 30px;
+    padding: 5px 0;
+    font-size: 0.8rem;
   }
 
   .hero-section,
@@ -3321,8 +3530,9 @@ td span {
 @media (max-width: 760px) {
   .site-header {
     grid-template-columns: 1fr;
-    gap: 8px;
-    padding-inline: 14px;
+    gap: 4px;
+    min-height: 88px;
+    padding: 7px 14px 8px;
   }
 
   .brand {
@@ -3332,13 +3542,13 @@ td span {
 
   .command-brand {
     justify-content: center;
-    min-height: 54px;
+    min-height: 38px;
     width: 100%;
-    padding: 6px 8px;
+    padding: 0;
   }
 
   .brand-mark-shell {
-    width: min(198px, 66vw);
+    width: min(164px, 58vw);
     min-width: 0;
   }
 
@@ -3351,13 +3561,16 @@ td span {
   }
 
   .mobile-command-nav {
-    gap: 6px;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 0 2px;
   }
 
   .mobile-command-nav a {
-    min-height: 34px;
-    padding: 6px 5px;
-    font-size: 0.74rem;
+    min-height: 28px;
+    padding: 4px 0;
+    font-size: 0.68rem;
   }
 
   .hero-section,
@@ -3388,8 +3601,65 @@ td span {
   }
 
   .visual-panel {
-    width: min(340px, 100%);
+    width: min(350px, 100%);
     min-height: auto;
+  }
+
+  .network-workspace {
+    grid-template-rows: auto auto auto;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .workspace-media {
+    min-height: 190px;
+  }
+
+  .workspace-map {
+    min-height: 238px;
+  }
+
+  .map-link {
+    width: 38%;
+  }
+
+  .map-node {
+    width: 96px;
+    min-height: 72px;
+    padding: 8px;
+  }
+
+  .map-node img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .map-node strong {
+    font-size: 0.8rem;
+  }
+
+  .node-cloud {
+    right: 14px;
+    top: 14px;
+  }
+
+  .node-edge {
+    left: 14px;
+    bottom: 14px;
+  }
+
+  .node-secure {
+    right: 14px;
+    bottom: 14px;
+  }
+
+  .workspace-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-status-grid div {
+    min-height: 58px;
+    padding: 10px;
   }
 
   .command-console {
