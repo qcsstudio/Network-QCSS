@@ -160,6 +160,86 @@ function ipv4ToInt(parts: number[]) {
   return (((parts[0] * 256 + parts[1]) * 256 + parts[2]) * 256 + parts[3]) >>> 0;
 }
 
+function textParam(params: Record<string, string | number | boolean>, key: string, fallback = "") {
+  const value = params[key];
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return typeof value === "string" ? value.trim() : fallback;
+}
+
+function validateDnsPrefix(value: string, label: string) {
+  const trimmed = value.trim().toLowerCase().replace(/\.$/, "");
+  if (!trimmed || trimmed.length > 190) throw new Error(`Enter a valid ${label}.`);
+  const valid = trimmed.split(".").every((part) => /^_?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(part));
+  if (!valid) throw new Error(`Enter a valid ${label}.`);
+  return trimmed;
+}
+
+function parseTagRecord(record = "") {
+  return Object.fromEntries(
+    record
+      .split(";")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const [key, ...value] = part.split("=");
+        return [key.toLowerCase(), value.join("=").trim()];
+      })
+  );
+}
+
+function toDetailRows(records: unknown[]): Record<string, string | number | boolean>[] {
+  return records.map((record) => {
+    if (!record || typeof record !== "object") return { value: String(record) };
+    return Object.fromEntries(
+      Object.entries(record as Record<string, unknown>).map(([key, value]) => [
+        key,
+        typeof value === "string" || typeof value === "number" || typeof value === "boolean" ? value : String(value)
+      ])
+    );
+  });
+}
+
+function normalizeHttpUrl(input: string, defaultPath?: string) {
+  const trimmed = input.trim();
+  if (!trimmed) throw new Error("Enter a public HTTP or HTTPS URL.");
+  const parsed = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+  if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Only HTTP and HTTPS URLs are supported.");
+  const host = normalizeHostname(parsed.href, { allowUrl: true });
+  return new URL(defaultPath ?? `${parsed.pathname}${parsed.search}`, `${parsed.protocol}//${host}`);
+}
+
+async function fetchWithTimeout(url: URL, init: RequestInit = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        "user-agent": "QuantumCrafters-Network-Tool/1.0",
+        ...init.headers
+      }
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function checkTcpPort(host: string, checkedPort: number, timeoutMs = 5000) {
+  return new Promise<boolean>((resolve) => {
+    const socket = net.connect({ host, port: checkedPort, timeout: timeoutMs });
+    socket.once("connect", () => {
+      socket.end();
+      resolve(true);
+    });
+    socket.once("timeout", () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once("error", () => resolve(false));
+  });
+}
+
 async function runDnsLookup(tool: string, title: string, input: string): Promise<ToolResult> {
   const host = normalizeHostname(input);
   const [a, aaaa, mx, ns, txt] = await Promise.allSettled([
@@ -191,6 +271,126 @@ async function runDnsLookup(tool: string, title: string, input: string): Promise
       { label: "MX records", value: mxRecords.length ? mxRecords : "None found" },
       { label: "NS records", value: nsRecords.length ? nsRecords : "None found" },
       { label: "TXT records", value: txtRecords.length ? txtRecords : "None found" }
+    ]
+  });
+}
+
+async function runDnsRecordLookup(tool: string, title: string, input: string, recordType: "A" | "AAAA" | "CNAME" | "NS" | "TXT"): Promise<ToolResult> {
+  const host = normalizeHostname(input);
+  const records =
+    recordType === "A"
+      ? await dns.resolve4(host).catch(() => [])
+      : recordType === "AAAA"
+        ? await dns.resolve6(host).catch(() => [])
+        : recordType === "CNAME"
+          ? await dns.resolveCname(host).catch(() => [])
+          : recordType === "NS"
+            ? await dns.resolveNs(host).catch(() => [])
+            : flattenTxt(await dns.resolveTxt(host).catch(() => []));
+
+  return result({
+    tool,
+    title,
+    target: host,
+    status: records.length ? "ok" : "warning",
+    summary: records.length ? `${host} publishes ${records.length} ${recordType} record(s).` : `${host} does not publish ${recordType} records.`,
+    details: [
+      { label: `${recordType} records`, value: records.length ? records.slice(0, 20) : "No records found" },
+      {
+        label: "Operational note",
+        value:
+          recordType === "CNAME"
+            ? "Confirm the canonical target is expected for your CDN, SaaS, cloud, or migration path."
+            : recordType === "TXT"
+              ? "Review TXT records for email security, domain verification, and stale ownership proofs."
+              : "Compare the result with the intended service, provider, and change record."
+      }
+    ]
+  });
+}
+
+async function runSoaLookup(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input);
+  const record = await dns.resolveSoa(host).catch(() => null);
+
+  return result({
+    tool,
+    title,
+    target: host,
+    status: record ? "ok" : "warning",
+    summary: record ? `${host} publishes an SOA record with serial ${record.serial}.` : `${host} does not return an SOA record.`,
+    details: [
+      {
+        label: "SOA record",
+        value: record
+          ? [
+              {
+                nsname: record.nsname,
+                hostmaster: record.hostmaster,
+                serial: record.serial,
+                refresh: record.refresh,
+                retry: record.retry,
+                expire: record.expire,
+                minttl: record.minttl
+              }
+            ]
+          : "No SOA record found"
+      },
+      { label: "Operational note", value: "Check serial and timers during DNS migrations, delegation changes, and zone transfer troubleshooting." }
+    ]
+  });
+}
+
+async function runSrvLookup(tool: string, title: string, params: Record<string, string | number | boolean>): Promise<ToolResult> {
+  const service = validateDnsPrefix(textParam(params, "service", "_sip"), "service name");
+  const protocol = textParam(params, "protocol", "_tcp") === "_udp" ? "_udp" : "_tcp";
+  const domain = normalizeHostname(textParam(params, "domain"));
+  const lookupName = `${service}.${protocol}.${domain}`;
+  const records = await dns.resolveSrv(lookupName).catch(() => []);
+
+  return result({
+    tool,
+    title,
+    target: lookupName,
+    status: records.length ? "ok" : "warning",
+    summary: records.length ? `${lookupName} has ${records.length} SRV record(s).` : `${lookupName} does not publish SRV records.`,
+    details: [
+      {
+        label: "SRV records",
+        value: records.length
+          ? records
+              .sort((left, right) => left.priority - right.priority || left.weight - right.weight)
+              .map((record) => ({
+                priority: record.priority,
+                weight: record.weight,
+                port: record.port,
+                name: record.name
+              }))
+          : "No SRV records found"
+      }
+    ]
+  });
+}
+
+async function runDnssecDsCheck(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input);
+  const records = (await dns.resolve(host, "DS").catch(() => [])) as unknown[];
+  const rows = toDetailRows(records);
+
+  return result({
+    tool,
+    title,
+    target: host,
+    status: rows.length ? "ok" : "warning",
+    summary: rows.length ? `${host} publishes ${rows.length} DNSSEC DS record(s).` : `${host} does not publish DS records at the parent zone.`,
+    details: [
+      { label: "DS records", value: rows.length ? rows : "No DS records found" },
+      {
+        label: "Recommendation",
+        value: rows.length
+          ? "Confirm DS records match the active DNSKEY material and registrar/DNS provider process."
+          : "If DNSSEC is required, validate signing status and publish DS records through the registrar or parent zone."
+      }
     ]
   });
 }
@@ -244,6 +444,99 @@ async function runSpfDmarc(tool: string, title: string, input: string): Promise<
       { label: "DMARC record", value: dmarc || "Missing" },
       { label: "DMARC policy", value: dmarcPolicy },
       { label: "Recommendation", value: strongPolicy ? "Policy is enforcement-ready." : "Move toward quarantine or reject after monitoring." }
+    ]
+  });
+}
+
+async function runDkimCheck(tool: string, title: string, params: Record<string, string | number | boolean>): Promise<ToolResult> {
+  const selector = validateDnsPrefix(textParam(params, "selector", "default"), "DKIM selector");
+  const domain = normalizeHostname(textParam(params, "domain"));
+  const lookupName = `${selector}._domainkey.${domain}`;
+  const records = flattenTxt(await dns.resolveTxt(lookupName).catch(() => []));
+  const dkim = records.find((record) => /(^|;\s*)v=dkim1/i.test(record) || /(^|;\s*)p=/i.test(record));
+
+  return result({
+    tool,
+    title,
+    target: lookupName,
+    status: dkim ? "ok" : "warning",
+    summary: dkim ? `${lookupName} publishes a DKIM signing record.` : `${lookupName} does not return a DKIM record.`,
+    details: [
+      { label: "DKIM record", value: dkim || "Missing" },
+      { label: "TXT records", value: records.length ? records.slice(0, 5) : "No TXT records found" },
+      { label: "Recommendation", value: dkim ? "Confirm selector ownership and key rotation process." : "Confirm the active mail platform selector and publish the DKIM TXT record." }
+    ]
+  });
+}
+
+async function runDmarcAnalyzer(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input);
+  const records = flattenTxt(await dns.resolveTxt(`_dmarc.${host}`).catch(() => []));
+  const dmarc = records.find((record) => record.toLowerCase().startsWith("v=dmarc1"));
+  const tags = parseTagRecord(dmarc);
+  const policy = String(tags.p || "missing").toLowerCase();
+  const enforced = ["quarantine", "reject"].includes(policy);
+
+  return result({
+    tool,
+    title,
+    target: `_dmarc.${host}`,
+    status: dmarc ? (enforced ? "ok" : "warning") : "error",
+    summary: dmarc ? `${host} DMARC policy is ${policy}.` : `${host} does not publish a DMARC policy record.`,
+    details: [
+      { label: "DMARC record", value: dmarc || "Missing" },
+      {
+        label: "Parsed policy",
+        value: dmarc
+          ? [
+              {
+                policy,
+                subdomainPolicy: String(tags.sp || "not set"),
+                percentage: String(tags.pct || "100"),
+                aggregateReports: String(tags.rua || "not set"),
+                forensicReports: String(tags.ruf || "not set"),
+                dkimAlignment: String(tags.adkim || "relaxed"),
+                spfAlignment: String(tags.aspf || "relaxed")
+              }
+            ]
+          : "No DMARC tags found"
+      },
+      {
+        label: "Recommendation",
+        value: enforced ? "Policy is in enforcement mode. Keep monitoring reports and alignment." : "Use aggregate reporting, then move from none toward quarantine or reject."
+      }
+    ]
+  });
+}
+
+async function runBimiCheck(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input);
+  const lookupName = `default._bimi.${host}`;
+  const records = flattenTxt(await dns.resolveTxt(lookupName).catch(() => []));
+  const bimi = records.find((record) => record.toLowerCase().startsWith("v=bimi1"));
+  const tags = parseTagRecord(bimi);
+
+  return result({
+    tool,
+    title,
+    target: lookupName,
+    status: bimi && tags.l ? "ok" : bimi ? "warning" : "warning",
+    summary: bimi ? `${host} publishes a BIMI record.` : `${host} does not publish a default BIMI record.`,
+    details: [
+      { label: "BIMI record", value: bimi || "Missing" },
+      {
+        label: "Parsed BIMI",
+        value: bimi
+          ? [
+              {
+                version: String(tags.v || "BIMI1"),
+                logo: String(tags.l || "not set"),
+                authorityCertificate: String(tags.a || "not set")
+              }
+            ]
+          : "No BIMI tags found"
+      },
+      { label: "Recommendation", value: "BIMI typically depends on DMARC enforcement and a valid SVG logo/VMC process." }
     ]
   });
 }
@@ -457,6 +750,148 @@ async function runHttpHeaders(tool: string, title: string, input: string): Promi
   }
 }
 
+async function runHttpStatus(tool: string, title: string, input: string): Promise<ToolResult> {
+  const inputUrl = normalizeHttpUrl(input);
+  const host = normalizeHostname(inputUrl.href, { allowUrl: true });
+  await assertPublicResolvedHost(host);
+  const response = await fetchWithTimeout(inputUrl, { method: "GET", redirect: "manual" });
+  const redirectLocation = response.headers.get("location") || "";
+
+  return result({
+    tool,
+    title,
+    target: inputUrl.href,
+    status: response.status < 400 ? "ok" : response.status < 500 ? "warning" : "error",
+    summary: `${inputUrl.href} returned HTTP ${response.status}.`,
+    details: [
+      { label: "HTTP status", value: response.status },
+      { label: "Status text", value: response.statusText || "No status text" },
+      { label: "Redirect location", value: redirectLocation || "No redirect location" },
+      { label: "Server", value: response.headers.get("server") || "Not disclosed" },
+      { label: "Cache-Control", value: response.headers.get("cache-control") || "Not set" }
+    ]
+  });
+}
+
+async function runWebsiteAvailability(tool: string, title: string, input: string): Promise<ToolResult> {
+  const inputUrl = normalizeHttpUrl(input);
+  const host = normalizeHostname(inputUrl.href, { allowUrl: true });
+  await assertPublicResolvedHost(host);
+  const started = Date.now();
+  const response = await fetchWithTimeout(inputUrl, { method: "GET", redirect: "follow" }, 10_000);
+  const elapsedMs = Date.now() - started;
+  const available = response.status >= 200 && response.status < 400;
+
+  return result({
+    tool,
+    title,
+    target: inputUrl.href,
+    status: available ? "ok" : response.status < 500 ? "warning" : "error",
+    summary: available ? `${inputUrl.href} responded in ${elapsedMs} ms.` : `${inputUrl.href} returned HTTP ${response.status} in ${elapsedMs} ms.`,
+    details: [
+      { label: "HTTP status", value: response.status },
+      { label: "Elapsed milliseconds", value: elapsedMs },
+      { label: "Final URL", value: response.url },
+      { label: "Content-Type", value: response.headers.get("content-type") || "Not disclosed" },
+      { label: "Availability signal", value: available ? "Reachable with a successful response." : "Reachable, but the response should be reviewed." }
+    ]
+  });
+}
+
+async function runHstsReadiness(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input, { allowUrl: true });
+  await assertPublicResolvedHost(host);
+  const url = new URL(`https://${host}/`);
+  const response = await fetchWithTimeout(url, { method: "GET", redirect: "follow" });
+  const hsts = response.headers.get("strict-transport-security") || "";
+  const maxAge = Number(hsts.match(/max-age=(\d+)/i)?.[1] || 0);
+  const includeSubDomains = /includesubdomains/i.test(hsts);
+  const preload = /preload/i.test(hsts);
+  const ready = maxAge >= 31_536_000 && includeSubDomains;
+
+  return result({
+    tool,
+    title,
+    target: url.href,
+    status: ready ? "ok" : hsts ? "warning" : "error",
+    summary: hsts ? `${host} sends HSTS with max-age ${maxAge}.` : `${host} does not send an HSTS header.`,
+    details: [
+      { label: "HSTS header", value: hsts || "Missing" },
+      { label: "Max age seconds", value: maxAge },
+      { label: "includeSubDomains", value: includeSubDomains },
+      { label: "preload flag", value: preload },
+      {
+        label: "Recommendation",
+        value: ready ? "HSTS is strong enough for many production baselines." : "Use HTTPS everywhere first, then set long max-age with includeSubDomains when safe."
+      }
+    ]
+  });
+}
+
+async function runRobotsTxt(tool: string, title: string, input: string): Promise<ToolResult> {
+  const url = normalizeHttpUrl(input, "/robots.txt");
+  const host = normalizeHostname(url.href, { allowUrl: true });
+  await assertPublicResolvedHost(host);
+  const response = await fetchWithTimeout(url, { method: "GET", redirect: "follow" });
+  const text = response.ok ? await response.text() : "";
+  const disallowCount = (text.match(/^disallow:/gim) || []).length;
+  const sitemapCount = (text.match(/^sitemap:/gim) || []).length;
+
+  return result({
+    tool,
+    title,
+    target: url.href,
+    status: response.ok ? "ok" : "warning",
+    summary: response.ok ? `${host} publishes robots.txt with ${disallowCount} disallow rule(s).` : `${host} returned HTTP ${response.status} for robots.txt.`,
+    details: [
+      { label: "HTTP status", value: response.status },
+      { label: "File size bytes", value: text.length },
+      { label: "Disallow rules", value: disallowCount },
+      { label: "Sitemap references", value: sitemapCount },
+      { label: "Recommendation", value: response.ok ? "Review crawl rules before SEO migrations, staging exposure checks, or sensitive path reviews." : "Publish robots.txt when crawl guidance is required." }
+    ]
+  });
+}
+
+async function runSecurityTxt(tool: string, title: string, input: string): Promise<ToolResult> {
+  const base = normalizeHttpUrl(input, "/");
+  const host = normalizeHostname(base.href, { allowUrl: true });
+  await assertPublicResolvedHost(host);
+  const candidates = [new URL("/.well-known/security.txt", base), new URL("/security.txt", base)];
+  const attempts = [];
+  let foundText = "";
+  let foundUrl = "";
+
+  for (const candidate of candidates) {
+    const response = await fetchWithTimeout(candidate, { method: "GET", redirect: "follow" }).catch(() => null);
+    attempts.push({ url: candidate.href, status: response?.status || "fetch failed" });
+    if (response?.ok) {
+      foundText = await response.text();
+      foundUrl = candidate.href;
+      break;
+    }
+  }
+
+  const directives = ["Contact", "Expires", "Encryption", "Policy", "Hiring", "Preferred-Languages", "Canonical"];
+  const parsed = directives
+    .map((name) => ({ field: name, value: foundText.match(new RegExp(`^${name}:\\s*(.+)$`, "im"))?.[1]?.slice(0, 180) || "Missing" }))
+    .filter((item) => item.value !== "Missing");
+
+  return result({
+    tool,
+    title,
+    target: foundUrl || candidates[0].href,
+    status: foundText ? "ok" : "warning",
+    summary: foundText ? `${host} publishes security.txt metadata.` : `${host} does not publish security.txt at the standard paths checked.`,
+    details: [
+      { label: "Checked paths", value: attempts },
+      { label: "Security.txt fields", value: parsed.length ? parsed : "No fields found" },
+      { label: "File size bytes", value: foundText.length },
+      { label: "Recommendation", value: foundText ? "Confirm contact, expiry, policy, and encryption values are current." : "Publish /.well-known/security.txt for responsible disclosure routing." }
+    ]
+  });
+}
+
 async function runSslCertificate(tool: string, title: string, input: string): Promise<ToolResult> {
   const host = normalizeHostname(input, { allowUrl: true });
   await assertPublicResolvedHost(host);
@@ -514,23 +949,66 @@ async function runSslCertificate(tool: string, title: string, input: string): Pr
   });
 }
 
+async function testTlsVersion(host: string, version: tls.SecureVersion) {
+  return new Promise<Record<string, string | number | boolean>>((resolve) => {
+    const socket = tls.connect({
+      host,
+      port: 443,
+      servername: host,
+      minVersion: version,
+      maxVersion: version,
+      ALPNProtocols: ["h2", "http/1.1"],
+      rejectUnauthorized: false,
+      timeout: 8000
+    });
+
+    socket.once("secureConnect", () => {
+      const cipher = socket.getCipher();
+      resolve({
+        version,
+        supported: true,
+        negotiatedProtocol: socket.getProtocol() || version,
+        alpn: socket.alpnProtocol || "not negotiated",
+        cipher: cipher?.name || "not disclosed"
+      });
+      socket.end();
+    });
+    socket.once("timeout", () => {
+      socket.destroy();
+      resolve({ version, supported: false, error: "timeout" });
+    });
+    socket.once("error", (error) => {
+      resolve({ version, supported: false, error: error.message.slice(0, 120) });
+    });
+  });
+}
+
+async function runTlsVersionCheck(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input, { allowUrl: true });
+  await assertPublicResolvedHost(host);
+  const checks = await Promise.all([testTlsVersion(host, "TLSv1.3"), testTlsVersion(host, "TLSv1.2")]);
+  const supports13 = checks.some((check) => check.version === "TLSv1.3" && check.supported);
+  const supports12 = checks.some((check) => check.version === "TLSv1.2" && check.supported);
+
+  return result({
+    tool,
+    title,
+    target: `${host}:443`,
+    status: supports13 ? "ok" : supports12 ? "warning" : "error",
+    summary: supports13 ? `${host} supports TLS 1.3.` : supports12 ? `${host} supports TLS 1.2 but TLS 1.3 was not confirmed.` : `${host} did not negotiate TLS 1.2 or TLS 1.3.`,
+    details: [
+      { label: "TLS checks", value: checks },
+      { label: "Recommendation", value: supports13 ? "Modern TLS support is present. Review certificate, ciphers, and headers for the full exposure picture." : "Review TLS configuration and platform support for modern protocol readiness." }
+    ]
+  });
+}
+
 async function runPortCheck(tool: string, title: string, input: string, port?: number): Promise<ToolResult> {
   const host = normalizeHostname(input);
   const checkedPort = port || 443;
   await assertPublicResolvedHost(host);
 
-  const open = await new Promise<boolean>((resolve) => {
-    const socket = net.connect({ host, port: checkedPort, timeout: 5000 });
-    socket.once("connect", () => {
-      socket.end();
-      resolve(true);
-    });
-    socket.once("timeout", () => {
-      socket.destroy();
-      resolve(false);
-    });
-    socket.once("error", () => resolve(false));
-  });
+  const open = await checkTcpPort(host, checkedPort);
 
   return result({
     tool,
@@ -543,6 +1021,79 @@ async function runPortCheck(tool: string, title: string, input: string, port?: n
       { label: "Port", value: checkedPort },
       { label: "Reachable from QCS edge", value: open },
       { label: "Note", value: "This checks one public TCP port only; it is not a vulnerability scan." }
+    ]
+  });
+}
+
+async function runCommonPortExposure(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input);
+  await assertPublicResolvedHost(host);
+  const ports = [
+    { port: 21, service: "FTP" },
+    { port: 22, service: "SSH" },
+    { port: 25, service: "SMTP" },
+    { port: 53, service: "DNS" },
+    { port: 80, service: "HTTP" },
+    { port: 110, service: "POP3" },
+    { port: 143, service: "IMAP" },
+    { port: 443, service: "HTTPS" },
+    { port: 445, service: "SMB" },
+    { port: 3389, service: "RDP" },
+    { port: 8080, service: "HTTP alternate" },
+    { port: 8443, service: "HTTPS alternate" }
+  ];
+  const rows = await Promise.all(
+    ports.map(async (item) => ({
+      ...item,
+      reachable: await checkTcpPort(host, item.port, 1800)
+    }))
+  );
+  const openRows = rows.filter((item) => item.reachable);
+  const highRiskOpen = rows.filter((item) => item.reachable && [21, 22, 23, 25, 445, 3389].includes(item.port));
+
+  return result({
+    tool,
+    title,
+    target: host,
+    status: highRiskOpen.length ? "warning" : "ok",
+    summary: openRows.length ? `${host} has ${openRows.length} common TCP port(s) reachable from QCS edge.` : `${host} did not respond on the common TCP ports checked.`,
+    details: [
+      { label: "Port checks", value: rows },
+      { label: "High-review ports open", value: highRiskOpen.length ? highRiskOpen.map((item) => `${item.port}/${item.service}`) : "None observed" },
+      { label: "Note", value: "This is a limited reachability check, not a vulnerability scan." }
+    ]
+  });
+}
+
+async function runWildcardCalculator(tool: string, title: string, input: string): Promise<ToolResult> {
+  const [ipRaw, prefixRaw] = input.trim().split("/");
+  const parts = ipv4Parts(ipRaw || "");
+  const prefix = Number(prefixRaw);
+  if (!parts || !Number.isInteger(prefix) || prefix < 0 || prefix > 32) {
+    throw new Error("Enter IPv4 CIDR notation such as 192.168.10.0/24.");
+  }
+
+  const ip = ipv4ToInt(parts);
+  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+  const wildcard = (~mask) >>> 0;
+  const network = (ip & mask) >>> 0;
+  const broadcast = (network | wildcard) >>> 0;
+  const firstHost = prefix >= 31 ? network : network + 1;
+  const lastHost = prefix >= 31 ? broadcast : broadcast - 1;
+
+  return result({
+    tool,
+    title,
+    target: `${intToIpv4(network)}/${prefix}`,
+    status: "ok",
+    summary: `${intToIpv4(network)}/${prefix} uses wildcard mask ${intToIpv4(wildcard)}.`,
+    details: [
+      { label: "Network address", value: intToIpv4(network) },
+      { label: "Subnet mask", value: intToIpv4(mask) },
+      { label: "Wildcard mask", value: intToIpv4(wildcard) },
+      { label: "Usable host range", value: `${intToIpv4(firstHost)} - ${intToIpv4(lastHost)}` },
+      { label: "Cisco ACL example", value: `permit ip ${intToIpv4(network)} ${intToIpv4(wildcard)} any` },
+      { label: "Broadcast address", value: intToIpv4(broadcast) }
     ]
   });
 }
@@ -561,12 +1112,36 @@ function runVendorTaskGenerator(tool: string, title: string, params: Record<stri
 
 async function runTool(tool: string, title: string, target: string, port?: number, params: Record<string, string | number | boolean> = {}) {
   switch (tool) {
+    case "vendor-task-script-generator":
+      return runVendorTaskGenerator(tool, title, params);
     case "dns-lookup":
       return runDnsLookup(tool, title, target);
+    case "a-record-lookup":
+      return runDnsRecordLookup(tool, title, target, "A");
+    case "aaaa-record-lookup":
+      return runDnsRecordLookup(tool, title, target, "AAAA");
+    case "cname-lookup":
+      return runDnsRecordLookup(tool, title, target, "CNAME");
+    case "ns-lookup":
+      return runDnsRecordLookup(tool, title, target, "NS");
+    case "txt-record-lookup":
+      return runDnsRecordLookup(tool, title, target, "TXT");
+    case "soa-lookup":
+      return runSoaLookup(tool, title, target);
+    case "srv-record-lookup":
+      return runSrvLookup(tool, title, params);
+    case "dnssec-ds-check":
+      return runDnssecDsCheck(tool, title, target);
     case "mx-lookup":
       return runMxLookup(tool, title, target);
     case "spf-dmarc-check":
       return runSpfDmarc(tool, title, target);
+    case "dkim-record-check":
+      return runDkimCheck(tool, title, params);
+    case "dmarc-policy-analyzer":
+      return runDmarcAnalyzer(tool, title, target);
+    case "bimi-record-check":
+      return runBimiCheck(tool, title, target);
     case "reverse-dns-lookup":
       return runReverseDns(tool, title, target);
     case "caa-record-check":
@@ -575,14 +1150,28 @@ async function runTool(tool: string, title: string, target: string, port?: numbe
       return runRedirectChain(tool, title, target);
     case "ipv4-subnet-calculator":
       return runSubnetCalculator(tool, title, target);
+    case "ipv4-wildcard-mask-calculator":
+      return runWildcardCalculator(tool, title, target);
     case "http-header-check":
       return runHttpHeaders(tool, title, target);
+    case "hsts-readiness-check":
+      return runHstsReadiness(tool, title, target);
+    case "http-status-check":
+      return runHttpStatus(tool, title, target);
+    case "website-availability-check":
+      return runWebsiteAvailability(tool, title, target);
+    case "robots-txt-check":
+      return runRobotsTxt(tool, title, target);
+    case "security-txt-check":
+      return runSecurityTxt(tool, title, target);
     case "ssl-certificate-check":
       return runSslCertificate(tool, title, target);
+    case "tls-version-check":
+      return runTlsVersionCheck(tool, title, target);
     case "port-check":
       return runPortCheck(tool, title, target, port);
-    case "vendor-task-script-generator":
-      return runVendorTaskGenerator(tool, title, params);
+    case "common-port-exposure-check":
+      return runCommonPortExposure(tool, title, target);
     default:
       throw new Error("Unsupported network tool.");
   }

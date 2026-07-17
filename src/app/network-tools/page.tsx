@@ -8,9 +8,9 @@ import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Free Online Network Tools and Vendor Script Generator",
+  title: "Top 30 Free Online Network Tools and Vendor Script Generator",
   description:
-    "Run DNS, SSL, email, redirect, subnet, reverse DNS, CAA, port checks, and generate Cisco, FortiGate, and Juniper troubleshooting command plans.",
+    "Run top network tools for vendor scripts, DNS, email security, TLS, HTTP headers, ports, availability, redirects, subnet planning, and troubleshooting.",
   path: "/network-tools",
   keywords: [
     "online network tools",
@@ -20,6 +20,7 @@ export const metadata: Metadata = createPageMetadata({
     "port checker",
     "subnet calculator",
     "packet capture command generator",
+    "top network tools",
     "network troubleshooting tools"
   ]
 });
@@ -28,7 +29,7 @@ const toolHubFaqs = [
   {
     question: "Which free network tools are available here?",
     answer:
-      "The toolbox includes DNS lookup, MX lookup, SPF and DMARC checks, SSL certificate checks, HTTP security header checks, redirect chain checks, CAA lookup, reverse DNS lookup, port reachability, IPv4 subnet calculation, and vendor task script generation."
+      "The toolbox includes 30 practical network tools covering vendor task scripts, DNS record checks, email authentication, SSL/TLS, HTTP security, availability, redirects, port reachability, reverse DNS, CAA, subnet planning, and wildcard masks."
   },
   {
     question: "What should I check first during troubleshooting?",
@@ -50,7 +51,7 @@ export default function NetworkToolsPage() {
           {
             "@context": "https://schema.org",
             "@type": "CollectionPage",
-            name: "Free Online Network Tools",
+            name: "Top 30 Free Online Network Tools",
             description: metadata.description,
             url: `${siteConfig.url}/network-tools`,
             isPartOf: {
@@ -85,10 +86,10 @@ export default function NetworkToolsPage() {
       />
       <section className="page-hero tool-page-hero">
         <p className="eyebrow">Network utility hub</p>
-        <h1>Free online network tools for checks, subnet planning, and vendor task scripts.</h1>
+        <h1>Top 30 free online network tools for scripts, checks, planning, and troubleshooting.</h1>
         <p>
-          Use focused tools to check public network signals, calculate practical IPv4 ranges, and generate
-          operator-ready Cisco, FortiGate, and Juniper troubleshooting plans before deeper work begins.
+          Start with the vendor task script generator, then run focused DNS, email, TLS, HTTP, port, availability, and
+          subnet checks before deeper engineering work begins.
         </p>
         <div className="button-row">
           <a className="button primary" href="#network-tools">
