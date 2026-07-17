@@ -1669,7 +1669,7 @@ button {
   position: relative;
   isolation: isolate;
   display: grid;
-  min-height: clamp(250px, 23vw, 320px);
+  min-height: clamp(220px, 20vw, 280px);
   place-items: center;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -1713,7 +1713,7 @@ button {
   display: block;
   width: min(88%, 430px);
   height: auto;
-  max-height: 302px;
+  max-height: 262px;
   object-fit: contain;
   filter: saturate(1.08) contrast(1.04) drop-shadow(0 22px 34px rgba(0, 0, 0, 0.28));
 }
@@ -1728,17 +1728,17 @@ button {
 
 .motion-asset-stage.object .motion-asset-image {
   width: min(72%, 330px);
-  max-height: 285px;
+  max-height: 248px;
 }
 
 .motion-asset-stage.map .motion-asset-image {
   width: min(94%, 460px);
-  max-height: 318px;
+  max-height: 270px;
 }
 
 .motion-asset-stage.illustration .motion-asset-image {
   width: min(78%, 342px);
-  max-height: 292px;
+  max-height: 250px;
 }
 
 .motion-asset-stage.icon-cluster .motion-asset-image {
@@ -1902,14 +1902,14 @@ button {
 .section-motion-graphic h3 {
   margin: 0;
   color: white;
-  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  font-size: clamp(1.08rem, 1.72vw, 1.38rem);
   line-height: 1.08;
 }
 
 .motion-content p {
   margin: 0;
   color: #d8e1f3;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   line-height: 1.45;
 }
 
@@ -2040,7 +2040,7 @@ button {
   gap: clamp(18px, 3vw, 34px);
   width: min(1180px, calc(100% - 36px));
   margin-inline: auto;
-  padding: clamp(38px, 6vw, 76px) 0;
+  padding: clamp(30px, 5vw, 58px) 0;
 }
 
 .asset-command-inner > *,
@@ -2072,7 +2072,7 @@ button {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 460px;
+  min-height: 380px;
   overflow: hidden;
   border: 1px solid rgba(71, 85, 105, 0.14);
   border-radius: 8px;
@@ -2087,7 +2087,7 @@ button {
 
 .asset-command-visual img {
   object-fit: contain;
-  padding: clamp(18px, 2.8vw, 34px);
+  padding: clamp(14px, 2.2vw, 28px);
   filter: saturate(1.02) contrast(1.02) drop-shadow(0 24px 38px rgba(23, 32, 51, 0.14));
 }
 
@@ -2142,13 +2142,13 @@ button {
   grid-template-columns: minmax(82px, 0.22fr) minmax(0, 1fr);
   gap: 10px 18px;
   align-items: center;
-  min-height: 210px;
+  min-height: 178px;
   border: 1px solid rgba(71, 85, 105, 0.13);
   border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 249, 255, 0.88)),
     white;
-  padding: 18px;
+  padding: 16px;
   transition:
     transform 180ms ease,
     border-color 180ms ease,
@@ -2482,9 +2482,10 @@ button {
 
 .outcome-showcase {
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(320px, 0.62fr);
-  gap: clamp(18px, 3vw, 32px);
+  grid-template-columns: minmax(0, 0.96fr) minmax(300px, 0.54fr);
+  gap: clamp(14px, 2.4vw, 26px);
   align-items: center;
+  padding: clamp(30px, 4.5vw, 50px);
 }
 
 .outcome-showcase .section-heading {
@@ -2493,12 +2494,22 @@ button {
 
 .outcome-showcase .edge-grid {
   grid-column: 1 / -1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.showcase-video-panel {
+.outcome-showcase .section-heading h2 {
+  font-size: clamp(1.8rem, 2.7vw, 3rem);
+}
+
+.outcome-showcase .authority-card p {
+  font-size: 0.92rem;
+  line-height: 1.43;
+}
+
+.showcase-illustration-panel {
   position: relative;
   overflow: hidden;
-  min-height: 290px;
+  min-height: 230px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
   background:
@@ -2507,51 +2518,84 @@ button {
     #07111f;
   background-size: 34px 34px, 34px 34px, auto;
   box-shadow: 0 26px 64px rgba(0, 0, 0, 0.24);
+  padding: 12px;
 }
 
-.showcase-video-panel video {
-  position: absolute;
-  inset: 0;
+.showcase-illustration-image {
+  position: relative;
+  z-index: 1;
+  display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: saturate(1.05) contrast(1.05);
+  height: auto;
+  max-height: 228px;
+  object-fit: contain;
+  filter: saturate(1.05) contrast(1.04) drop-shadow(0 24px 38px rgba(0, 0, 0, 0.28));
 }
 
-.showcase-video-panel::after {
+.showcase-illustration-panel::after {
   content: "";
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(6, 12, 24, 0.1), rgba(6, 12, 24, 0.72)),
+    linear-gradient(180deg, rgba(6, 12, 24, 0.02), rgba(6, 12, 24, 0.4)),
     linear-gradient(90deg, rgba(242, 140, 56, 0.24), transparent 42%);
 }
 
-.showcase-video-overlay {
+.showcase-signal-stack {
   position: absolute;
-  right: 14px;
-  bottom: 14px;
-  left: 14px;
+  right: 12px;
+  top: 12px;
+  z-index: 3;
+  display: grid;
+  gap: 6px;
+}
+
+.showcase-signal-stack span {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 5px 9px;
+  color: var(--ink);
+  font-size: 0.74rem;
+  font-weight: 900;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.16);
+}
+
+.showcase-signal-stack img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.showcase-illustration-overlay {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
   z-index: 2;
   display: grid;
   gap: 5px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 8px;
   background: rgba(5, 5, 6, 0.72);
-  padding: 14px;
+  padding: 12px;
   backdrop-filter: blur(14px);
 }
 
-.showcase-video-overlay span {
+.showcase-illustration-overlay span {
   color: #ffbc80;
   font-size: 0.75rem;
   font-weight: 950;
   text-transform: uppercase;
 }
 
-.showcase-video-overlay strong {
+.showcase-illustration-overlay strong {
   color: white;
-  font-size: clamp(1.1rem, 1.7vw, 1.5rem);
+  font-size: clamp(1.02rem, 1.45vw, 1.28rem);
   line-height: 1.1;
 }
 
@@ -2562,13 +2606,13 @@ button {
 .authority-card {
   position: relative;
   overflow: hidden;
-  min-height: 245px;
+  min-height: 176px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.055)),
     rgba(255, 255, 255, 0.04);
-  padding: 20px;
+  padding: 17px;
   transition:
     transform 180ms ease,
     border-color 180ms ease,
@@ -4140,7 +4184,7 @@ td span {
   .motion-section > .section-motion-graphic,
   .asset-command-visual,
   .asset-intelligence-panel,
-  .showcase-video-panel,
+  .showcase-illustration-panel,
   .resource-command-panel {
     animation: mediaReveal both;
     animation-timeline: view();
@@ -4261,6 +4305,10 @@ td span {
 
   .process-timeline article::before {
     display: none;
+  }
+
+  .outcome-showcase .edge-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .footer-command-panel {
@@ -4651,8 +4699,35 @@ td span {
     width: 128px;
   }
 
-  .showcase-video-panel {
-    min-height: 230px;
+  .outcome-showcase .edge-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .showcase-illustration-panel {
+    min-height: 196px;
+  }
+
+  .showcase-illustration-image {
+    max-height: 158px;
+  }
+
+  .showcase-signal-stack {
+    position: relative;
+    inset: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 8px 0 0;
+  }
+
+  .showcase-signal-stack span {
+    justify-content: center;
+    min-height: 30px;
+    padding-inline: 6px;
+    font-size: 0.62rem;
+  }
+
+  .showcase-signal-stack img {
+    width: 18px;
+    height: 18px;
   }
 
   .coverage-visual-grid span {

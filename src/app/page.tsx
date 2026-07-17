@@ -186,19 +186,32 @@ export default function HomePage() {
           <p className="eyebrow">What makes QCS different</p>
           <h2>Practical network expertise, security discipline, and training depth in one place.</h2>
         </div>
-        <div className="showcase-video-panel" aria-label="Data center operations walkthrough preview">
-          <video
-            src="/brand/envato/video/data-center-walkthrough.mp4"
-            poster="/brand/envato/library/data-center-platform.webp"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
+        <div className="showcase-illustration-panel" aria-label="Network operating model illustration">
+          <Image
+            className="showcase-illustration-image"
+            src="/brand/envato/library/data-center-platform.webp"
+            alt="Isometric network operations map showing data center, cloud, evidence, and analytics systems"
+            width={620}
+            height={390}
+            sizes="(max-width: 900px) 92vw, 34vw"
           />
-          <div className="showcase-video-overlay">
-            <span>Managed network operations</span>
-            <strong>Live infrastructure visibility without tool sprawl.</strong>
+          <div className="showcase-signal-stack" aria-hidden="true">
+            <span>
+              <Image src="/brand/envato/icons/router-cloud-network.svg" alt="" width={26} height={26} />
+              Topology
+            </span>
+            <span>
+              <Image src="/brand/envato/icons/security-cloud-network.svg" alt="" width={26} height={26} />
+              Controls
+            </span>
+            <span>
+              <Image src="/brand/envato/icons/server-cloud-network.svg" alt="" width={26} height={26} />
+              Evidence
+            </span>
+          </div>
+          <div className="showcase-illustration-overlay">
+            <span>QCS operating map</span>
+            <strong>Topology, controls, and proof in one practical view.</strong>
           </div>
         </div>
         <div className="edge-grid">
