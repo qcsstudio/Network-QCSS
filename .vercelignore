@@ -1,0 +1,12 @@
+.git
+.next
+.vercel
+node_modules
+envato-assets
+.qa-screenshots
+.codex-artifacts
+.agents
+*.log
+*.tsbuildinfo
+.env*
+!.env.example
