@@ -12,7 +12,8 @@ const server = spawn(process.execPath, [nextBin, "start", "-p", String(port), "-
     ADMIN_EMAIL: "admin@example.test",
     ADMIN_API_TOKEN: adminToken,
     ADMIN_PASSWORD: "admin",
-    ADMIN_SESSION_SECRET: "smoke-session-secret"
+    ADMIN_SESSION_SECRET: "smoke-session-secret",
+    STORE_DRIVER: "file"
   },
   stdio: ["ignore", "pipe", "pipe"]
 });
