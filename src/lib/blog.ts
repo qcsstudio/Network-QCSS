@@ -41,6 +41,164 @@ export type TrendTopicSeed = {
 
 export const blogPosts: BlogPost[] = [
   {
+    slug: "cisco-roomos-security-hardening-release-july-2026",
+    title: "Cisco RoomOS Security Hardening Release: July 2026",
+    metaTitle: "Cisco RoomOS Security Hardening Release: July 2026",
+    description:
+      "Review Cisco's July 2026 RoomOS hardening advisory, affected deployments, fixed releases, evidence to collect, upgrade steps, and validation checks.",
+    excerpt:
+      "Cisco's July 2026 RoomOS hardening release addresses six vulnerability classes with no workarounds. Use this evidence-led plan to identify affected devices, choose the correct fixed release, upgrade, and validate the result.",
+    answer:
+      "Cisco RoomOS administrators should inventory every RoomOS device, identify whether it operates on-premises or cloud-aware, compare its installed version with Cisco's fixed-release table, and schedule the appropriate upgrade because the advisory affects RoomOS regardless of configuration and lists no workarounds.",
+    category: "Network Security",
+    audience: "IT heads, collaboration administrators, network teams, security teams, and managed service providers",
+    primaryKeyword: "Cisco RoomOS security hardening July 2026",
+    keywords: [
+      "Cisco RoomOS security advisory",
+      "RoomOS July 2026 hardening release",
+      "RoomOS fixed release",
+      "Cisco collaboration endpoint security",
+      "CVE-2026-20150",
+      "RoomOS upgrade checklist"
+    ],
+    publishedAt: "2026-07-21",
+    updatedAt: "2026-07-21",
+    readTime: "9 min read",
+    image: "/brand/envato/library/security-network-shield.webp",
+    imageAlt: "Network security shield representing Cisco RoomOS endpoint hardening and upgrade validation",
+    relatedTools: [
+      { label: "Common Port Exposure Check", href: "/network-tools/common-port-exposure-check" },
+      { label: "TLS Version Check", href: "/network-tools/tls-version-check" },
+      { label: "SSL Certificate Check", href: "/network-tools/ssl-certificate-check" }
+    ],
+    relatedServices: [
+      { label: "Managed Network Services", href: "/services/managed-network-services" },
+      { label: "Network Security Services", href: "/services/network-security-services" },
+      { label: "Network Troubleshooting", href: "/services/network-troubleshooting" }
+    ],
+    takeaways: [
+      "Cisco rates the advisory High, with a maximum CVSS base score of 8.8 across six grouped vulnerability classes.",
+      "The affected-product statement applies to Cisco RoomOS regardless of device configuration; operating mode and release train determine the correct fixed release.",
+      "Cisco reports no known malicious use, but it also provides no workaround, so upgrading to a fixed release is the remediation path.",
+      "A defensible change record should preserve inventory, version, ownership, backup, maintenance, and post-upgrade validation evidence."
+    ],
+    sections: [
+      {
+        heading: "What Cisco Disclosed on July 15, 2026",
+        body:
+          "Cisco published the RoomOS security hardening advisory after an internal security review identified multiple vulnerabilities. Cisco grouped the findings into six CVE records by their highest-level Common Weakness Enumeration class. The advisory is rated High, and the most severe grouped issue has a CVSS base score of 8.8. Cisco says the vulnerabilities were found through internal testing and that its PSIRT was not aware of public announcements or malicious use when the advisory was published."
+      },
+      {
+        heading: "The Six Vulnerability Classes in the Release",
+        body:
+          "The advisory covers more than one narrow defect. It groups findings across access control, input handling, memory safety, encryption, resource lifecycle, and exception handling. That breadth matters operationally because a device can be relevant even when a specific optional service appears disabled.",
+        bullets: [
+          "CVE-2026-20150: improper access control, with a highest listed CVSS score of 8.8.",
+          "CVE-2026-20153: improper input validation, including path and external-path controls, with a highest score of 7.5.",
+          "CVE-2026-20156: memory-buffer bounds issues, with a highest score of 8.1.",
+          "CVE-2026-20157: missing encryption, with a highest score of 7.5.",
+          "CVE-2026-20158: improper resource-lifecycle control, with a highest score of 7.5.",
+          "CVE-2026-20187: improper handling of exceptional conditions, with a highest score of 7.5."
+        ]
+      },
+      {
+        heading: "Which RoomOS Releases Need Attention",
+        body:
+          "Cisco states that RoomOS is affected regardless of device configuration. The first fixed release depends on both the software train and whether the device operates on-premises or in cloud-aware mode. For RoomOS 11 and earlier, Cisco lists 11.32.6.0 for on-premises operation and 11.39.1.1 for cloud-aware operation. For RoomOS 26, Cisco lists 26.5.2.2 for on-premises operation and the RoomOS June 2026 release, version 26.7.1.7, for cloud-aware operation. Administrators should verify the current Cisco advisory before a change in case the fixed-release guidance is revised."
+      },
+      {
+        heading: "Collect Evidence Before Scheduling the Upgrade",
+        body:
+          "Start with an inventory that can be reconciled after the maintenance window. Record the device name, model, serial number, site, owner, current RoomOS version, operating mode, management method, business use, network location, and external reachability. Also capture the configuration or Control Hub evidence needed to prove the starting state. This prevents a security task from becoming an untracked fleet-wide change.",
+        bullets: [
+          "Export the collaboration-device inventory and identify unowned or offline endpoints.",
+          "Separate on-premises and cloud-aware devices before selecting a target release.",
+          "Record current software, upgrade channel, maintenance policy, and deferred-update settings.",
+          "Confirm local administrative access, Control Hub access, configuration backup, and recovery ownership.",
+          "Map conference rooms and shared spaces where an outage would affect executive, client, teaching, or operational meetings."
+        ]
+      },
+      {
+        heading: "Use a Controlled Upgrade Sequence",
+        body:
+          "Test the fixed release on representative hardware before moving the full estate. Start with a low-impact room from each important model and operating mode, validate the normal collaboration workflow, and then expand in controlled batches. Cisco lists no workaround for these vulnerabilities. Restricting management access, reviewing exposed services, and increasing monitoring can reduce exposure while the change is prepared, but those measures should not be recorded as remediation or as a Cisco-supported workaround.",
+        bullets: [
+          "Confirm model support and target-release compatibility in Cisco's current release documentation.",
+          "Choose a pilot device that represents the production configuration without carrying a critical meeting dependency.",
+          "Save the pre-change configuration, current version, registration state, and peripheral inventory.",
+          "Upgrade the pilot, observe stability, then move by site or device group with a documented pause point.",
+          "Keep a recovery contact, console or local-access path, and rollback decision owner available during the window."
+        ]
+      },
+      {
+        heading: "Validate More Than the Version Number",
+        body:
+          "A successful software install is only the first validation signal. Confirm that the device returns to its expected registration state and that calling, content sharing, cameras, microphones, touch controllers, room booking, network access, certificates, integrations, and monitoring still work. Preserve the resulting evidence with the change record and investigate every device that did not complete the planned upgrade."
+      },
+      {
+        heading: "When to Escalate the RoomOS Upgrade",
+        body:
+          "Escalate when the inventory is incomplete, the operating mode is unclear, a listed fixed release conflicts with hardware or integration requirements, devices are externally reachable, critical rooms cannot tolerate an untested change, or a pilot shows registration, media, peripheral, or management failures. A focused network and security review can separate upgrade risk from exposure risk and produce a staged plan with owners and evidence."
+      }
+    ],
+    checklist: [
+      "Read the current Cisco advisory and record its version and revision date.",
+      "Inventory every RoomOS endpoint, model, owner, site, operating mode, and installed release.",
+      "Compare each device with Cisco's fixed-release table; do not use one target version for every operating mode.",
+      "Review management exposure and restrict unnecessary access while the upgrade is prepared.",
+      "Confirm backups, administrative access, maintenance approval, pilot devices, and recovery ownership.",
+      "Upgrade a representative pilot group before expanding by site or device class.",
+      "Validate registration, calls, content sharing, peripherals, certificates, integrations, and monitoring.",
+      "Record failed, offline, unsupported, or deferred devices with an owner and next action.",
+      "Retain before-and-after version evidence and close the change only after fleet reconciliation."
+    ],
+    questions: [
+      {
+        question: "Are only internet-facing Cisco RoomOS devices affected?",
+        answer:
+          "No. Cisco states that the vulnerabilities affect RoomOS regardless of device configuration. Internet exposure can change prioritization, but it does not determine whether a device is in scope."
+      },
+      {
+        question: "Is there a workaround for the July 2026 RoomOS advisory?",
+        answer:
+          "Cisco lists no workarounds. Network restrictions and tighter monitoring may reduce exposure during planning, but upgrading to an appropriate fixed release is the remediation described by Cisco."
+      },
+      {
+        question: "Which fixed RoomOS release should administrators install?",
+        answer:
+          "Use Cisco's table for the device's software train and operating mode. The advisory lists different first fixed releases for RoomOS 11 and earlier, RoomOS 26, on-premises operation, and cloud-aware operation."
+      },
+      {
+        question: "Does the absence of known exploitation make the upgrade optional?",
+        answer:
+          "No. It is useful prioritization evidence, but the advisory is rated High, covers multiple vulnerability classes, affects all configurations, and has no workaround. Teams should schedule a controlled upgrade based on exposure and business impact."
+      },
+      {
+        question: "What proof should be retained after the upgrade?",
+        answer:
+          "Keep the device inventory, previous and fixed versions, operating mode, change time, owner, backup reference, validation results, exceptions, and a list of devices that remain offline or deferred."
+      }
+    ],
+    sources: [
+      {
+        label: "Cisco RoomOS Security Hardening Release: July 2026",
+        url: "https://www.cisco.com/c/en/us/support/docs/csa/cisco-sa-hardening-roomos-AqNMbEq.html"
+      },
+      {
+        label: "Cisco advance notification for July 15, 2026 security advisories",
+        url: "https://www.cisco.com/c/en/us/support/docs/csa/cisco-sa-notice-ILh3ZrP5.html"
+      },
+      {
+        label: "Cisco RoomOS 26 release notes",
+        url: "https://roomos.cisco.com/doc/WhatsNew/ReleaseNotesRoomOS_26"
+      },
+      {
+        label: "Cisco RoomOS 26.5 administration guide",
+        url: "https://www.cisco.com/c/dam/en/us/td/docs/telepresence/endpoint/roomos-2605/desk-room-board-administration-guide-roomos-2605.pdf"
+      }
+    ]
+  },
+  {
     slug: "cisa-kev-network-patching-priority",
     title: "How Network Teams Should Use CISA KEV to Prioritize Firewall, VPN, and Edge Patching",
     metaTitle: "CISA KEV Patch Priority for Network, Firewall and VPN Teams",

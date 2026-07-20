@@ -94,3 +94,37 @@ model AuditLog {
   @@index([actor])
   @@index([createdAt])
 }
+
+model ContentPost {
+  id          String            @id @default(cuid())
+  slug        String            @unique
+  title       String
+  status      String            @default("draft")
+  content     Json
+  sourceUrl   String?
+  createdBy   String?
+  approvedBy  String?
+  approvedAt  DateTime?
+  publishedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  revisions   ContentRevision[]
+
+  @@index([status])
+  @@index([publishedAt])
+  @@index([updatedAt])
+}
+
+model ContentRevision {
+  id        String      @id @default(cuid())
+  postId    String
+  version   Int
+  action    String
+  actor     String?
+  content   Json
+  createdAt DateTime    @default(now())
+  post      ContentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, version])
+  @@index([postId, createdAt])
+}

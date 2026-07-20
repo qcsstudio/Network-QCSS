@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { ContentRadarPanel } from "@/components/content-radar-panel";
+import { ContentRadarPanel, type ContentPostRecord } from "@/components/content-radar-panel";
 import { OperatorDashboard } from "@/components/operator-dashboard";
 import { requireAdmin } from "@/lib/admin-auth";
 import { requestContext } from "@/lib/security";
 import { createAuditLog, getDashboardSnapshot, getEmptyDashboardSnapshot } from "@/lib/store";
+import { listContentPosts } from "@/lib/content-posts";
 
 export const metadata: Metadata = {
   title: "Operator Dashboard",
@@ -29,6 +30,10 @@ export default async function AdminPage() {
       return { snapshot: getEmptyDashboardSnapshot(), storageUnavailable: true };
     });
   const { snapshot, storageUnavailable } = dashboardResult;
+  const contentPosts = await listContentPosts().catch((error) => {
+    console.error("Content Studio storage is unavailable.", error);
+    return [] as ContentPostRecord[];
+  });
 
   return (
     <main>
@@ -58,7 +63,7 @@ export default async function AdminPage() {
             </div>
           </section>
         ) : null}
-        <ContentRadarPanel />
+        <ContentRadarPanel initialPosts={contentPosts} />
         <OperatorDashboard snapshot={snapshot} />
       </section>
     </main>

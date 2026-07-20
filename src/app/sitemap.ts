@@ -1,10 +1,13 @@
 import type { MetadataRoute } from "next";
-import { blogPosts } from "@/lib/blog";
 import { services, siteConfig, solutionPages, tools } from "@/lib/content";
+import { getAllPublishedBlogPosts } from "@/lib/content-posts";
 import { networkUtilityTools } from "@/lib/network-tools";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export const dynamic = "force-dynamic";
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const blogPosts = await getAllPublishedBlogPosts();
   const staticRoutes = [
     { path: "", priority: 1, changeFrequency: "weekly" as const },
     { path: "/solutions", priority: 0.92, changeFrequency: "weekly" as const },

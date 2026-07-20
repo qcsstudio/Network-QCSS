@@ -3,9 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { ResourceDownloads } from "@/components/resource-downloads";
 import { StructuredData } from "@/components/structured-data";
-import { blogPosts, weeklyBlogCadence } from "@/lib/blog";
+import { weeklyBlogCadence } from "@/lib/blog";
 import { siteConfig } from "@/lib/content";
+import { getAllPublishedBlogPosts } from "@/lib/content-posts";
 import { createPageMetadata } from "@/lib/seo";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Network Security Blog, Resources, Checklists and Troubleshooting Guides",
@@ -23,7 +26,8 @@ export const metadata: Metadata = createPageMetadata({
   ]
 });
 
-export default function ResourcesPage() {
+export default async function ResourcesPage() {
+  const posts = await getAllPublishedBlogPosts();
   return (
     <main>
       <StructuredData
@@ -44,7 +48,7 @@ export default function ResourcesPage() {
             "@context": "https://schema.org",
             "@type": "ItemList",
             name: "Network Security Blog Posts",
-            itemListElement: blogPosts.map((post, index) => ({
+            itemListElement: posts.map((post, index) => ({
               "@type": "ListItem",
               position: index + 1,
               name: post.title,
@@ -80,7 +84,7 @@ export default function ResourcesPage() {
           </p>
         </div>
         <div className="blog-grid">
-          {blogPosts.map((post, index) => (
+          {posts.map((post, index) => (
             <article className={index === 0 ? "blog-card featured" : "blog-card"} key={post.slug}>
               <Link aria-label={post.title} className="blog-card-media" href={`/resources/${post.slug}`}>
                 <Image
