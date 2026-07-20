@@ -15,14 +15,15 @@ export default function PrivacyPage() {
       <section className="page-hero">
         <p className="eyebrow">Privacy</p>
         <h1>Consent-aware tracking and lead capture policy.</h1>
-        <p>This production draft explains how the website should collect, store, and use visitor and lead data.</p>
+        <p>This page explains how QuantumCrafters Studio Pvt. Ltd. collects, stores, and uses website, tool, and lead data.</p>
       </section>
       <section className="section prose">
         <h2>What We Collect</h2>
         <p>
           We may collect contact details you submit, assessment answers, service interest, page interactions, campaign
           attribution, approximate country, browser details, and server request metadata. IP addresses are converted into
-          a one-way hash for operational records.
+          a one-way hash for operational records. Generated passwords and passphrases are returned in the tool response
+          and are not used for marketing personalization.
         </p>
         <h2>How Consent Works</h2>
         <p>
