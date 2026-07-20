@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/advisory-discovery",
-      "schedule": "*/5 * * * *"
+      "schedule": "17 3 * * *"
     }
   ]
 }
