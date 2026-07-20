@@ -9,6 +9,7 @@ const server = spawn(process.execPath, [nextBin, "start", "-p", String(port), "-
   cwd: process.cwd(),
   env: {
     ...process.env,
+    ADMIN_EMAIL: "admin@example.test",
     ADMIN_API_TOKEN: adminToken,
     ADMIN_PASSWORD: "admin",
     ADMIN_SESSION_SECRET: "smoke-session-secret"
@@ -63,6 +64,38 @@ try {
   }
   if (!/no-store/i.test(health.headers.get("cache-control") || "")) {
     throw new Error("Health endpoint should not be cached.");
+  }
+
+  const directLoginApi = await fetch(`${baseUrl}/api/admin/login`, { redirect: "manual" });
+  const directLoginLocation = directLoginApi.headers.get("location") || "";
+  if (directLoginApi.status !== 303 || new URL(directLoginLocation, baseUrl).pathname !== "/admin/login") {
+    throw new Error(`Direct login API request should redirect to the login page. Received ${directLoginApi.status}.`);
+  }
+
+  const invalidLogin = await fetch(`${baseUrl}/api/admin/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ email: "wrong@example.test", password: "wrong" }),
+    redirect: "manual"
+  });
+  if (invalidLogin.status !== 303 || !/\/admin\/login\?error=1$/.test(invalidLogin.headers.get("location") || "")) {
+    throw new Error(`Invalid admin login should return a controlled redirect. Received ${invalidLogin.status}.`);
+  }
+
+  const validLogin = await fetch(`${baseUrl}/api/admin/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ email: "admin@example.test", password: "admin" }),
+    redirect: "manual"
+  });
+  const adminCookie = validLogin.headers.get("set-cookie")?.split(";", 1)[0] || "";
+  if (validLogin.status !== 303 || !adminCookie.startsWith("network_qcss_admin=")) {
+    throw new Error(`Valid admin login should create a signed session cookie. Received ${validLogin.status}.`);
+  }
+
+  const adminPage = await fetch(`${baseUrl}/admin`, { headers: { cookie: adminCookie }, redirect: "manual" });
+  if (adminPage.status !== 200) {
+    throw new Error(`Authenticated admin page should load. Received ${adminPage.status}.`);
   }
 
   const invalidJson = await fetch(`${baseUrl}/api/leads`, {

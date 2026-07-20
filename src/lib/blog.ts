@@ -28,6 +28,7 @@ export type TrendSource = {
   url: string;
   focus: string[];
   weight: number;
+  format?: "feed" | "cisa-kev" | "cert-in";
 };
 
 export type TrendTopicSeed = {
@@ -549,10 +550,66 @@ export const blogPosts: BlogPost[] = [
 
 export const contentAutomationSources: TrendSource[] = [
   {
+    name: "CISA Known Exploited Vulnerabilities",
+    url: "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+    focus: ["known exploited vulnerabilities", "edge devices", "required remediation", "patch priority"],
+    weight: 12,
+    format: "cisa-kev"
+  },
+  {
+    name: "CISA Cybersecurity Advisories",
+    url: "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+    focus: ["cybersecurity advisories", "active exploitation", "critical infrastructure", "network defenders"],
+    weight: 11
+  },
+  {
     name: "CISA News and Alerts",
     url: "https://www.cisa.gov/news.xml",
     focus: ["known exploited vulnerabilities", "advisories", "critical infrastructure", "network defenders"],
     weight: 10
+  },
+  {
+    name: "CERT-In Advisories",
+    url: "https://www.cert-in.org.in/s2cMainServlet?pageid=PUBADVLIST02",
+    focus: ["India cybersecurity", "vulnerability advisories", "network products", "enterprise remediation"],
+    weight: 11,
+    format: "cert-in"
+  },
+  {
+    name: "NIST Cybersecurity Insights",
+    url: "https://www.nist.gov/blogs/cybersecurity-insights/rss.xml",
+    focus: ["cybersecurity framework", "zero trust", "standards", "risk management"],
+    weight: 9
+  },
+  {
+    name: "UK NCSC Guidance and Advisories",
+    url: "https://www.ncsc.gov.uk/api/1/services/v1/all-rss-feed.xml",
+    focus: ["security advisories", "network defence", "incident response", "security guidance"],
+    weight: 9
+  },
+  {
+    name: "Cisco PSIRT Advisories",
+    url: "https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml",
+    focus: ["Cisco security advisories", "IOS XE", "routers", "switches", "firewalls"],
+    weight: 10
+  },
+  {
+    name: "Fortinet PSIRT Advisories",
+    url: "https://fortiguard.fortinet.com/rss/ir.xml",
+    focus: ["FortiGate", "FortiOS", "VPN", "firewall vulnerabilities", "active exploitation"],
+    weight: 10
+  },
+  {
+    name: "Palo Alto Networks Security Advisories",
+    url: "https://security.paloaltonetworks.com/rss.xml",
+    focus: ["PAN-OS", "GlobalProtect", "firewall vulnerabilities", "cloud security"],
+    weight: 10
+  },
+  {
+    name: "Juniper Mist Security Alerts",
+    url: "https://www.mist.com/documentation/category/security-alerts/feed/",
+    focus: ["Juniper Mist", "wireless security", "cloud-managed networking", "security alerts"],
+    weight: 9
   },
   {
     name: "Cloudflare Blog",
@@ -573,15 +630,75 @@ export const contentAutomationSources: TrendSource[] = [
     weight: 7
   },
   {
+    name: "IETF Blog",
+    url: "https://www.ietf.org/blog/feed/",
+    focus: ["internet standards", "routing protocols", "DNS", "transport", "network operations"],
+    weight: 8
+  },
+  {
+    name: "SANS Internet Storm Center",
+    url: "https://isc.sans.edu/rssfeed_full.xml",
+    focus: ["internet threats", "network monitoring", "incident handling", "vulnerability activity"],
+    weight: 8
+  },
+  {
+    name: "Cisco Talos Intelligence",
+    url: "https://blog.talosintelligence.com/rss/",
+    focus: ["threat intelligence", "network threats", "malware", "vulnerability research"],
+    weight: 8
+  },
+  {
+    name: "Microsoft Security Blog",
+    url: "https://www.microsoft.com/en-us/security/blog/feed/",
+    focus: ["Microsoft security", "identity", "zero trust", "cloud threats"],
+    weight: 8
+  },
+  {
+    name: "Google Security Blog",
+    url: "https://security.googleblog.com/feeds/posts/default",
+    focus: ["Google security", "cloud security", "zero trust", "vulnerability research"],
+    weight: 8
+  },
+  {
+    name: "Palo Alto Unit 42",
+    url: "https://unit42.paloaltonetworks.com/feed/",
+    focus: ["threat research", "firewall threats", "cloud security", "incident response"],
+    weight: 8
+  },
+  {
+    name: "F5 Labs Threat Research",
+    url: "https://www.f5.com/labs/rss-feeds/threats.xml",
+    focus: ["application delivery", "TLS", "DDoS", "network threats", "load balancers"],
+    weight: 8
+  },
+  {
+    name: "Akamai Security and Network Blog",
+    url: "https://www.akamai.com/blog/rss.xml",
+    focus: ["edge security", "DDoS", "DNS", "application delivery", "internet traffic"],
+    weight: 7
+  },
+  {
     name: "AWS Networking and Content Delivery Blog",
     url: "https://aws.amazon.com/blogs/networking-and-content-delivery/feed/",
     focus: ["AWS networking", "VPC", "hybrid connectivity", "cloud routes"],
     weight: 7
   },
   {
-    name: "Microsoft Azure Networking Blog",
-    url: "https://techcommunity.microsoft.com/t5/azure-networking-blog/bg-p/AzureNetworkingBlog/rss",
-    focus: ["Azure networking", "NSG", "VPN", "private connectivity"],
+    name: "AWS Security Blog",
+    url: "https://aws.amazon.com/blogs/security/feed/",
+    focus: ["AWS security", "cloud network exposure", "identity", "incident response"],
+    weight: 8
+  },
+  {
+    name: "Microsoft Azure Blog",
+    url: "https://azure.microsoft.com/en-us/blog/feed/",
+    focus: ["Azure networking", "NSG", "VPN", "private connectivity", "cloud security"],
+    weight: 7
+  },
+  {
+    name: "Google Cloud VPC Release Notes",
+    url: "https://cloud.google.com/feeds/vpc-release-notes.xml",
+    focus: ["Google Cloud networking", "VPC", "cloud routing", "private connectivity"],
     weight: 7
   }
 ];

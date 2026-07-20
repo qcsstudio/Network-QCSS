@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getAdminSession } from "@/lib/admin-auth";
+import { adminCredentialsConfigured, getAdminSession } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
@@ -16,7 +16,12 @@ export default async function AdminLoginPage({
   if (session) redirect("/admin");
   const { error } = await searchParams;
   const errorMessage =
-    error === "rate" ? "Too many login attempts. Please wait a few minutes and try again." : "Invalid admin credentials.";
+    error === "rate"
+      ? "Too many login attempts. Please wait a few minutes and try again."
+      : error === "config"
+        ? "Admin access is not configured. Add the required admin environment variables in Vercel and redeploy."
+        : "Invalid admin credentials.";
+  const credentialsReady = adminCredentialsConfigured();
 
   return (
     <main>
@@ -39,7 +44,9 @@ export default async function AdminLoginPage({
             Sign in
           </button>
           {error ? <p className="form-note error">{errorMessage}</p> : null}
-          <p className="form-note">Development default is documented in README. Production must override it with env vars.</p>
+          {!credentialsReady ? (
+            <p className="form-note error">Production admin credentials have not been configured.</p>
+          ) : null}
         </form>
       </section>
     </main>

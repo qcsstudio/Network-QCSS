@@ -7,6 +7,7 @@ import { createAuditLog } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 type FeedItem = {
   title: string;
@@ -76,6 +77,72 @@ function parseFeed(xml: string, source: TrendSource): FeedItem[] {
     .slice(0, 12);
 }
 
+function parseCisaKev(json: string, source: TrendSource): FeedItem[] {
+  try {
+    const payload = JSON.parse(json) as {
+      vulnerabilities?: Array<{
+        cveID?: string;
+        vendorProject?: string;
+        product?: string;
+        vulnerabilityName?: string;
+        dateAdded?: string;
+        shortDescription?: string;
+        requiredAction?: string;
+        knownRansomwareCampaignUse?: string;
+      }>;
+    };
+
+    return (payload.vulnerabilities || [])
+      .filter((item) => item.cveID && item.vulnerabilityName)
+      .sort((a, b) => new Date(b.dateAdded || 0).getTime() - new Date(a.dateAdded || 0).getTime())
+      .slice(0, 20)
+      .map((item) => ({
+        title: `${item.cveID}: ${item.vulnerabilityName}`,
+        link: "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+        source: source.name,
+        sourceWeight: source.weight,
+        publishedAt: item.dateAdded ? new Date(`${item.dateAdded}T00:00:00Z`).toISOString() : new Date().toISOString(),
+        summary: [
+          item.vendorProject,
+          item.product,
+          item.shortDescription,
+          item.requiredAction,
+          item.knownRansomwareCampaignUse === "Known" ? "Known ransomware use" : ""
+        ]
+          .filter(Boolean)
+          .join(". ")
+      }));
+  } catch {
+    return [];
+  }
+}
+
+function parseCertIn(html: string, source: TrendSource): FeedItem[] {
+  const blocks = html.match(/<table[^>]*class=["']?content["']?[^>]*>[\s\S]*?<\/table>/gi) || [];
+
+  return blocks
+    .map((block) => {
+      const code = block.match(/VLCODE=(CIAD-\d{4}-\d+)/i)?.[1] || "";
+      const rawDate = block.match(/\(([A-Z][a-z]+\s+\d{1,2},\s+\d{4})\)/)?.[1] || "";
+      const rawTitle = block.match(/<div[^>]*overflow:\s*hidden[^>]*>[\s\S]*?<span[^>]*>([\s\S]*?)<\/span>/i)?.[1] || "";
+      const title = decodeXml(rawTitle);
+      const publishedAt = rawDate && !Number.isNaN(new Date(rawDate).getTime()) ? new Date(rawDate).toISOString() : new Date().toISOString();
+
+      return {
+        title: title ? `${title} (${code})` : code,
+        link: code
+          ? `https://www.cert-in.org.in/s2cMainServlet?pageid=PUBVLNOTES02&VLCODE=${encodeURIComponent(code)}`
+          : source.url,
+        source: source.name,
+        sourceWeight: source.weight,
+        publishedAt,
+        summary: title ? `Official CERT-In advisory for India: ${title}.` : ""
+      };
+    })
+    .filter((item) => item.title && item.link)
+    .slice(0, 20);
+}
+
 async function fetchSource(source: TrendSource) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
@@ -85,12 +152,18 @@ async function fetchSource(source: TrendSource) {
       signal: controller.signal,
       next: { revalidate: 3600 }
     });
-    const text = await response.text();
+    const body = await response.text();
+    const items =
+      source.format === "cisa-kev"
+        ? parseCisaKev(body, source)
+        : source.format === "cert-in"
+          ? parseCertIn(body, source)
+          : parseFeed(body, source);
     return {
       source: source.name,
       ok: response.ok,
       status: response.status,
-      items: response.ok ? parseFeed(text, source) : []
+      items: response.ok ? items : []
     };
   } catch (error) {
     return {
@@ -110,16 +183,64 @@ function daysSince(date: string) {
 }
 
 function scoreItem(item: FeedItem) {
-  const text = `${item.title} ${item.summary}`.toLowerCase();
-  const topicScore = trendTopicSeeds.reduce((total, seed) => {
-    const matches = seed.keywordCluster.filter((keyword) => text.includes(keyword.toLowerCase())).length;
-    return total + matches * 14 + (matches ? seed.priority / 10 : 0);
-  }, 0);
-  const intentBoost = /vulnerability|kev|firewall|vpn|bgp|rpki|route|cloud|zero trust|sase|dns|ddos|packet|security|outage/i.test(text)
-    ? 18
-    : 0;
+  const title = item.title.toLowerCase();
+  const summary = item.summary.toLowerCase().slice(0, 2000);
+  let titleTopicScore = 0;
+  let summaryTopicScore = 0;
+  let highestMatchedPriority = 0;
+
+  for (const seed of trendTopicSeeds) {
+    const titleMatches = seed.keywordCluster.filter((keyword) => title.includes(keyword.toLowerCase())).length;
+    const summaryMatches = seed.keywordCluster.filter((keyword) => summary.includes(keyword.toLowerCase())).length;
+    titleTopicScore += titleMatches * 18;
+    summaryTopicScore += summaryMatches * 4;
+    if (titleMatches || summaryMatches) highestMatchedPriority = Math.max(highestMatchedPriority, seed.priority);
+  }
+
+  const topicScore = titleTopicScore + Math.min(summaryTopicScore, 16) + highestMatchedPriority / 10;
+  const intentPattern = /vulnerability|kev|firewall|vpn|bgp|rpki|route|cloud|zero trust|sase|dns|ddos|packet|security|outage/i;
+  const intentBoost = intentPattern.test(title) ? 18 : intentPattern.test(summary) ? 7 : 0;
   const recencyBoost = Math.max(0, 18 - Math.floor(daysSince(item.publishedAt)));
   return Math.round(item.sourceWeight + topicScore + intentBoost + recencyBoost);
+}
+
+function isNetworkRelevant(item: FeedItem) {
+  const titlePattern =
+    /\b(network(?:ing)?|routing|router|switch(?:es)?|firewall|vpn|dns|dhcp|bgp|rpki|roa|ipv4|ipv6|tcp|udp|wi-?fi|wireless|lan|wan|sd-wan|sase|ztna|zero trust|vpc|vnet|subnet|gateway|load balancer|reverse proxy|cdn|ddos|tls|ssl|certificate|packet capture|netflow|sflow|telemetry|snmp|ipsec|mpls|fortigate|fortios|pan-os|globalprotect|junos|ios xe|cloudflare|network security group|security group|kubernetes networking|service mesh|catalyst|nexus|meraki|secure firewall|identity services engine|prisma access)\b/i;
+  const networkVendorPattern =
+    /\b(cisco|fortinet|palo alto|juniper|f5|ivanti|sonicwall|check point|netscaler|citrix adc|vmware nsx|aruba|arista|mikrotik|ubiquiti|zyxel|sophos firewall|watchguard|barracuda|pulse secure|zscaler)\b/i;
+  if (titlePattern.test(item.title) || networkVendorPattern.test(item.title)) return true;
+
+  if (/advisories|known exploited vulnerabilities/i.test(item.source)) return false;
+
+  const summary = item.summary.toLowerCase();
+  const highSignalTerms = [
+    "bgp",
+    "rpki",
+    "dns",
+    "firewall",
+    "virtual private network",
+    "vpn",
+    "routing",
+    "router",
+    "switching",
+    "wireless",
+    "wi-fi",
+    "sd-wan",
+    "zero trust network",
+    "network segmentation",
+    "network telemetry",
+    "cloud network",
+    "vpc",
+    "vnet",
+    "subnet",
+    "ipsec",
+    "ddos",
+    "load balancer",
+    "packet capture"
+  ];
+
+  return highSignalTerms.filter((term) => summary.includes(term)).length >= 2;
 }
 
 function slugify(value: string) {
@@ -208,21 +329,27 @@ export async function GET(request: Request) {
   const results = await Promise.all(contentAutomationSources.map(fetchSource));
   const liveTopics = results
     .flatMap((result) => result.items)
+    .filter(isNetworkRelevant)
     .map(topicFromItem)
     .filter((topic) => topic.score >= 22);
 
   const seenTopics = new Set<string>();
+  const sourceCounts = new Map<string, number>();
   const topics = (liveTopics.length ? liveTopics : fallbackTopics())
     .sort((a, b) => b.score - a.score)
     .filter((topic) => {
       const key = normalizedTitle(topic.topic);
-      if (seenTopics.has(key)) return false;
+      const sourceCount = sourceCounts.get(topic.source) || 0;
+      if (seenTopics.has(key) || sourceCount >= 2) return false;
       seenTopics.add(key);
+      sourceCounts.set(topic.source, sourceCount + 1);
       return true;
     })
     .slice(0, 12);
 
-  const drafts = topics.slice(0, 2).map(draftFromTopic);
+  const firstDraftTopic = topics[0];
+  const secondDraftTopic = topics.find((topic, index) => index > 0 && topic.source !== firstDraftTopic?.source) || topics[1];
+  const drafts = [firstDraftTopic, secondDraftTopic].filter((topic) => Boolean(topic)).map(draftFromTopic);
 
   await createAuditLog(
     {

@@ -3,7 +3,7 @@ import { ContentRadarPanel } from "@/components/content-radar-panel";
 import { OperatorDashboard } from "@/components/operator-dashboard";
 import { requireAdmin } from "@/lib/admin-auth";
 import { requestContext } from "@/lib/security";
-import { createAuditLog, getDashboardSnapshot } from "@/lib/store";
+import { createAuditLog, getDashboardSnapshot, getEmptyDashboardSnapshot } from "@/lib/store";
 
 export const metadata: Metadata = {
   title: "Operator Dashboard",
@@ -22,7 +22,13 @@ export default async function AdminPage() {
     },
     await requestContext()
   );
-  const snapshot = await getDashboardSnapshot();
+  const dashboardResult = await getDashboardSnapshot()
+    .then((snapshot) => ({ snapshot, storageUnavailable: false }))
+    .catch((error) => {
+      console.error("Admin dashboard storage is unavailable.", error);
+      return { snapshot: getEmptyDashboardSnapshot(), storageUnavailable: true };
+    });
+  const { snapshot, storageUnavailable } = dashboardResult;
 
   return (
     <main>
@@ -40,6 +46,18 @@ export default async function AdminPage() {
         </form>
       </section>
       <section className="section flush">
+        {storageUnavailable ? (
+          <section className="admin-panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Storage connection</p>
+                <h2>Dashboard data is temporarily unavailable.</h2>
+                <p>Configure PostgreSQL and run the production migration before relying on lead and assessment reporting.</p>
+              </div>
+              <span className="status-pill missing">Action required</span>
+            </div>
+          </section>
+        ) : null}
         <ContentRadarPanel />
         <OperatorDashboard snapshot={snapshot} />
       </section>

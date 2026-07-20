@@ -21,6 +21,11 @@ function adminPassword() {
   return process.env.NODE_ENV === "production" ? "" : "admin";
 }
 
+export function adminCredentialsConfigured() {
+  const stableSessionConfigured = process.env.NODE_ENV !== "production" || Boolean(process.env.ADMIN_SESSION_SECRET?.trim());
+  return Boolean(adminEmail() && adminPassword() && stableSessionConfigured);
+}
+
 function sessionSecret() {
   if (process.env.ADMIN_SESSION_SECRET) return process.env.ADMIN_SESSION_SECRET;
   return process.env.NODE_ENV === "production" ? productionFallbackSessionSecret : "development-session-secret-change-me";

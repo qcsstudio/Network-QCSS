@@ -198,11 +198,6 @@ export async function createResource(
 }
 
 export async function createAuditLog(input: AuditInput, context: { country: string; ipHash: string }) {
-  if (isPostgresStore()) {
-    const { createAuditLogPostgres } = await import("@/lib/postgres-store");
-    return createAuditLogPostgres(input, context);
-  }
-
   const auditLog: StoredAuditLog = {
     id: createId("audit"),
     action: input.action,
@@ -214,11 +209,38 @@ export async function createAuditLog(input: AuditInput, context: { country: stri
     createdAt: new Date().toISOString()
   };
 
-  const store = await readStore();
-  store.auditLogs ||= [];
-  store.auditLogs.push(auditLog);
-  await writeStore(store);
-  return auditLog;
+  try {
+    if (isPostgresStore()) {
+      const { createAuditLogPostgres } = await import("@/lib/postgres-store");
+      return await createAuditLogPostgres(input, context);
+    }
+
+    const store = await readStore();
+    store.auditLogs ||= [];
+    store.auditLogs.push(auditLog);
+    await writeStore(store);
+    return auditLog;
+  } catch (error) {
+    console.error("Audit log persistence failed.", error);
+    return auditLog;
+  }
+}
+
+export function getEmptyDashboardSnapshot(): DashboardSnapshot {
+  const now = new Date().toISOString();
+  return {
+    totals: { leads: 0, hotLeads: 0, events: 0, assessments: 0, resources: 0, auditLogs: 0, toolRuns: 0 },
+    funnel: { sessions: 0, toolRuns: 0, assessments: 0, resources: 0, leads: 0, hotLeads: 0, leadConversionRate: 0 },
+    byPipeline: {},
+    byCountry: {},
+    topUtilityTools: [],
+    latestLeads: [],
+    latestEvents: [],
+    latestAssessments: [],
+    latestAuditLogs: [],
+    readiness: getDeploymentReadiness(),
+    updatedAt: now
+  };
 }
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
