@@ -5,6 +5,8 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { requestContext } from "@/lib/security";
 import { createAuditLog, getDashboardSnapshot, getEmptyDashboardSnapshot } from "@/lib/store";
 import { listContentPosts } from "@/lib/content-posts";
+import { DistributionControlPanel } from "@/components/distribution-control-panel";
+import { getDistributionSnapshot } from "@/lib/distribution";
 
 export const metadata: Metadata = {
   title: "Operator Dashboard",
@@ -33,6 +35,10 @@ export default async function AdminPage() {
   const contentPosts = await listContentPosts().catch((error) => {
     console.error("Content Studio storage is unavailable.", error);
     return [] as ContentPostRecord[];
+  });
+  const distributionSnapshot = await getDistributionSnapshot().catch((error) => {
+    console.error("Distribution operations are unavailable.", error);
+    return null;
   });
 
   return (
@@ -63,6 +69,7 @@ export default async function AdminPage() {
             </div>
           </section>
         ) : null}
+        <DistributionControlPanel initialSnapshot={distributionSnapshot} />
         <ContentRadarPanel initialPosts={contentPosts} />
         <OperatorDashboard snapshot={snapshot} />
       </section>

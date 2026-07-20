@@ -3,6 +3,10 @@
     {
       "path": "/api/admin/content-radar",
       "schedule": "0 4 * * 1,4"
+    },
+    {
+      "path": "/api/cron/advisory-discovery",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

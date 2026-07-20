@@ -23,6 +23,7 @@ import {
   vendorCoverage
 } from "@/lib/content";
 import { networkUtilityTools } from "@/lib/network-tools";
+import { listSecurityAdvisories } from "@/lib/advisories";
 
 const coverageVisuals = [
   { src: "/brand/envato/icons/global-cloud-network.svg", label: "Global routing" },
@@ -37,7 +38,8 @@ const resourceVisuals = [
   { src: "/brand/envato/library/padlock-security.webp", label: "Security checklist" }
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const latestAdvisories = await listSecurityAdvisories(3);
   return (
     <main>
       <section className="hero-section futuristic-hero">
@@ -109,6 +111,22 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="live-advisory-strip" aria-label="Latest network security advisories">
+        <div>
+          <p className="eyebrow">QCS Security Advisory Desk</p>
+          <strong>{latestAdvisories.length ? "Official-source alerts, checked continuously." : "Official-source monitoring is active."}</strong>
+        </div>
+        <div className="live-advisory-items">
+          {latestAdvisories.map((advisory) => (
+            <Link href={`/security-advisories/${advisory.slug}`} key={advisory.id}>
+              <span className={`severity-pill severity-${advisory.severity}`}>{advisory.severity}</span>
+              <strong>{advisory.title}</strong>
+            </Link>
+          ))}
+        </div>
+        <Link className="button secondary" href="/security-advisories">Open desk</Link>
       </section>
 
       <section className="section mission-band motion-section">

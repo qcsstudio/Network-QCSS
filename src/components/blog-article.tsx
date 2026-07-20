@@ -31,7 +31,7 @@ export function BlogArticle({ post, showLeadForm = true }: BlogArticleProps) {
             </div>
           </div>
           <div className="blog-hero-media">
-            <Image alt={post.imageAlt} fill priority sizes="(max-width: 900px) 100vw, 42vw" src={post.image} />
+            <Image alt={post.imageAlt} fill priority sizes="(max-width: 900px) 100vw, 42vw" src={`/resources/${post.slug}/opengraph-image`} />
           </div>
         </section>
 

@@ -62,8 +62,8 @@ export default async function ResourcesPage() {
         <p className="eyebrow">Network security blog</p>
         <h1>Network security blog for practical infrastructure decisions.</h1>
         <p>
-          Read answer-first guides, run supporting tools, and use checklists to prepare the right evidence before a
-          technical review, incident call, audit, or service request.
+          Start with a direct answer. Run the supporting tools. Use each checklist to prepare evidence for a technical
+          review, incident call, audit, or service request.
         </p>
         <div className="button-row">
           <a className="button primary" href="#blog-posts">
@@ -72,6 +72,9 @@ export default async function ResourcesPage() {
           <a className="button secondary" href="#download-resources">
             Download Checklists
           </a>
+          <Link className="button secondary" href="/security-advisories">
+            Security Advisories
+          </Link>
         </div>
       </section>
 
@@ -92,7 +95,7 @@ export default async function ResourcesPage() {
                   fill
                   priority={index === 0}
                   sizes={index === 0 ? "(max-width: 900px) 100vw, 50vw" : "(max-width: 900px) 100vw, 33vw"}
-                  src={post.image}
+                  src={`/resources/${post.slug}/opengraph-image`}
                 />
               </Link>
               <div className="blog-card-body">
@@ -119,8 +122,8 @@ export default async function ResourcesPage() {
           <p className="eyebrow">Publishing cadence</p>
           <h2>Two high-intent posts every week.</h2>
           <p>
-            The private content radar scans network security, cloud networking, routing, vendor, and vulnerability
-            signals so the blog can stay topical without becoming generic.
+            The private content radar scans trusted network and security sources. It keeps each editorial brief topical,
+            practical, and tied to a real buyer or engineering question.
           </p>
         </div>
         <div className="outcome-list">

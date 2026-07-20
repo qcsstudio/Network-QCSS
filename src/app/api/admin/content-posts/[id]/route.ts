@@ -12,6 +12,7 @@ import {
 import { rateLimit } from "@/lib/rate-limit";
 import { requestContext } from "@/lib/security";
 import { createAuditLog } from "@/lib/store";
+import { processLinkedInQueue, queueLinkedInForContentPost } from "@/lib/social-publications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,6 +66,14 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       revalidatePath("/resources");
       revalidatePath(`/resources/${post.slug}`);
       revalidatePath("/sitemap.xml");
+    }
+    if (action === "publish") {
+      try {
+        await queueLinkedInForContentPost(post);
+        await processLinkedInQueue(1);
+      } catch (error) {
+        console.error("The article was published, but LinkedIn queueing failed.", error);
+      }
     }
     return NextResponse.json({ ok: true, post }, { headers: noStoreHeaders });
   } catch (error) {

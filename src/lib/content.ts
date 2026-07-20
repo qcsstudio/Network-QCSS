@@ -43,7 +43,7 @@ export const commandNavItems = [
   { label: "Assessments", href: "/diagnose" },
   { label: "Tools", href: "/network-tools" },
   { label: "Institute", href: "/institute" },
-  { label: "Resources", href: "/resources" }
+  { label: "Intelligence", href: "/intelligence" }
 ];
 
 export const commandLayers = [

@@ -2,18 +2,21 @@ import type { MetadataRoute } from "next";
 import { services, siteConfig, solutionPages, tools } from "@/lib/content";
 import { getAllPublishedBlogPosts } from "@/lib/content-posts";
 import { networkUtilityTools } from "@/lib/network-tools";
+import { listSecurityAdvisories } from "@/lib/advisories";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const blogPosts = await getAllPublishedBlogPosts();
+  const [blogPosts, advisories] = await Promise.all([getAllPublishedBlogPosts(), listSecurityAdvisories(250)]);
   const staticRoutes = [
     { path: "", priority: 1, changeFrequency: "weekly" as const },
     { path: "/solutions", priority: 0.92, changeFrequency: "weekly" as const },
     { path: "/diagnose", priority: 0.96, changeFrequency: "weekly" as const },
     { path: "/institute", priority: 0.88, changeFrequency: "weekly" as const },
     { path: "/resources", priority: 0.84, changeFrequency: "weekly" as const },
+    { path: "/intelligence", priority: 0.94, changeFrequency: "daily" as const },
+    { path: "/security-advisories", priority: 0.96, changeFrequency: "hourly" as const },
     { path: "/network-tools", priority: 0.94, changeFrequency: "weekly" as const },
     { path: "/privacy", priority: 0.3, changeFrequency: "yearly" as const }
   ].map((route) => ({
@@ -58,5 +61,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.82
   }));
 
-  return [...staticRoutes, ...blogRoutes, ...solutionRoutes, ...serviceRoutes, ...toolRoutes, ...networkToolRoutes];
+  const advisoryRoutes = advisories.map((advisory) => ({
+    url: `${siteConfig.url}/security-advisories/${advisory.slug}`,
+    lastModified: advisory.vendorUpdatedAt,
+    changeFrequency: "daily" as const,
+    priority: advisory.priorityScore >= 85 ? 0.94 : 0.86
+  }));
+
+  return [...staticRoutes, ...advisoryRoutes, ...blogRoutes, ...solutionRoutes, ...serviceRoutes, ...toolRoutes, ...networkToolRoutes];
 }

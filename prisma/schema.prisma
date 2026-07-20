@@ -109,10 +109,147 @@ model ContentPost {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   revisions   ContentRevision[]
+  approvals   ContentApproval[]
 
   @@index([status])
   @@index([publishedAt])
   @@index([updatedAt])
+}
+
+model ContentApproval {
+  id                String      @id @default(cuid())
+  postId            String
+  revisionVersion   Int
+  revisionHash      String
+  status            String      @default("pending")
+  publishToLinkedIn Boolean     @default(true)
+  actionTokenHash   String      @unique
+  whatsappMessageId String?
+  requestedAt       DateTime    @default(now())
+  expiresAt         DateTime
+  decidedAt         DateTime?
+  decidedBy         String?
+  feedback          String?
+  post              ContentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, status])
+  @@index([status, expiresAt])
+}
+
+model IntegrationConnection {
+  id                   String   @id @default(cuid())
+  provider             String   @unique
+  accountId            String
+  accountName          String
+  encryptedAccessToken String
+  scope                String
+  expiresAt            DateTime
+  status               String   @default("connected")
+  metadata             Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([provider, status])
+  @@index([expiresAt])
+}
+
+model SocialPublication {
+  id              String    @id @default(cuid())
+  channel         String
+  contentType     String
+  contentId       String
+  contentRevision String
+  status          String    @default("queued")
+  sourceUrl       String
+  commentary      String
+  imageUrl        String?
+  externalId      String?
+  attempts        Int       @default(0)
+  nextAttemptAt   DateTime  @default(now())
+  lastAttemptAt   DateTime?
+  lastError       String?
+  publishedAt     DateTime?
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([channel, contentType, contentId, contentRevision])
+  @@index([channel, status, nextAttemptAt])
+  @@index([contentType, contentId])
+}
+
+model AdvisorySource {
+  id                  String             @id @default(cuid())
+  slug                String             @unique
+  name                String
+  vendor              String
+  format              String
+  url                 String
+  officialHost        String
+  enabled             Boolean            @default(true)
+  priority            Int                @default(50)
+  etag                String?
+  lastModified        String?
+  lastSuccessAt       DateTime?
+  lastCheckedAt       DateTime?
+  lastError           String?
+  consecutiveFailures Int                @default(0)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  advisories          SecurityAdvisory[]
+
+  @@index([enabled, priority])
+  @@index([lastSuccessAt])
+}
+
+model SecurityAdvisory {
+  id                 String                     @id @default(cuid())
+  sourceId           String
+  externalId         String
+  slug               String                     @unique
+  title              String
+  vendor             String
+  summary            String
+  severity           String
+  cvssScore          Float?
+  priorityScore      Int
+  cves               Json
+  products           Json
+  affectedVersions   Json
+  fixedVersions      Json
+  remediation        String
+  workaround         String?
+  exploitationStatus String
+  sourceUrl          String
+  contentHash        String
+  status             String                     @default("published")
+  vendorPublishedAt  DateTime
+  vendorUpdatedAt    DateTime
+  firstSeenAt        DateTime                   @default(now())
+  lastVerifiedAt     DateTime                   @default(now())
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  source             AdvisorySource             @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  revisions          SecurityAdvisoryRevision[]
+
+  @@unique([sourceId, externalId])
+  @@index([status, vendorPublishedAt])
+  @@index([severity, priorityScore])
+  @@index([vendor])
+}
+
+model SecurityAdvisoryRevision {
+  id          String           @id @default(cuid())
+  advisoryId  String
+  version     Int
+  contentHash String
+  changes     Json?
+  payload     Json
+  createdAt   DateTime         @default(now())
+  advisory    SecurityAdvisory @relation(fields: [advisoryId], references: [id], onDelete: Cascade)
+
+  @@unique([advisoryId, version])
+  @@index([advisoryId, createdAt])
 }
 
 model ContentRevision {

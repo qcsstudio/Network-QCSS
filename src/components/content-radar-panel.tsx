@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Archive, Clipboard, ExternalLink, Eye, FilePlus2, RefreshCw, Save, ShieldCheck, Upload } from "lucide-react";
+import { Archive, Clipboard, ExternalLink, Eye, FilePlus2, MessageCircle, RefreshCw, Save, ShieldCheck, Upload } from "lucide-react";
 import type { BlogPost } from "@/lib/blog";
 
 type RadarDraft = {
@@ -224,6 +224,21 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     }
   }
 
+  async function requestWhatsAppReview() {
+    if (!selected) return;
+    setBusy("whatsapp-review");
+    try {
+      const response = await fetch(`/api/admin/content-posts/${selected.id}/approval`, { method: "POST" });
+      const result = (await response.json()) as { approval?: { expiresAt: string }; error?: string };
+      if (!response.ok || !result.approval) throw new Error(result.error || "Unable to send the WhatsApp review.");
+      setStatus(`WhatsApp review sent for revision ${selected.revisions[0]?.version || 1}. It expires ${new Date(result.approval.expiresAt).toLocaleString("en-IN")}.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Unable to send the WhatsApp review.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   function patchContent<K extends keyof BlogPost>(key: K, value: BlogPost[K]) {
     setDraft((current) => (current ? { ...current, [key]: value } : current));
   }
@@ -426,6 +441,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
             </div>
             <div className="content-action-row">
               <button className="button secondary" disabled={Boolean(busy)} type="submit"><Save aria-hidden="true" size={17} /> {busy === "save" ? "Saving..." : "Save draft"}</button>
+              <button className="button primary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={requestWhatsAppReview} type="button"><MessageCircle aria-hidden="true" size={17} /> {busy === "whatsapp-review" ? "Sending..." : "WhatsApp review"}</button>
               <button className="button secondary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={() => mutate("approve")} type="button"><ShieldCheck aria-hidden="true" size={17} /> Approve</button>
               <button className="button primary" disabled={Boolean(busy) || selected.status !== "approved"} onClick={() => mutate("publish")} type="button"><Upload aria-hidden="true" size={17} /> Publish</button>
               <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => mutate("archive")} title="Archive article" type="button"><Archive aria-hidden="true" size={18} /></button>

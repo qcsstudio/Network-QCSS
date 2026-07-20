@@ -39,7 +39,7 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
             "@type": "BlogPosting",
             headline: post.title,
             description: post.description,
-            image: `${siteConfig.url}${post.image}`,
+            image: `${siteConfig.url}/resources/${post.slug}/opengraph-image`,
             datePublished: post.publishedAt,
             dateModified: post.updatedAt,
             mainEntityOfPage: `${siteConfig.url}/resources/${post.slug}`,

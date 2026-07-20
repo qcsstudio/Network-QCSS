@@ -12,7 +12,7 @@ const navItems = [
   { href: "/diagnose", label: "Assessments", mobileLabel: "Assess" },
   { href: "/network-tools", label: "Tools" },
   { href: "/institute", label: "Institute" },
-  { href: "/resources", label: "Resources", mobileLabel: "Learn" }
+  { href: "/intelligence", label: "Intelligence", mobileLabel: "Intel" }
 ];
 
 export function SiteHeader() {
@@ -49,7 +49,9 @@ export function SiteHeader() {
     };
   }, [menuOpen]);
 
-  const isActive = (href: string) => href !== "/#services" && pathname === href;
+  const isActive = (href: string) =>
+    href !== "/#services" &&
+    (pathname === href || (href === "/intelligence" && (pathname.startsWith("/resources") || pathname.startsWith("/security-advisories"))));
 
   return (
     <header className={`site-header command-header ${scrolled ? "is-scrolled" : ""} ${menuOpen ? "is-menu-open" : ""}`}>

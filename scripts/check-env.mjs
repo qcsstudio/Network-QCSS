@@ -108,6 +108,31 @@ function groups() {
           { warning: true }
         )
       ]
+    },
+    {
+      label: "Content Distribution",
+      items: [
+        item(
+          "linkedin-publishing",
+          "LinkedIn profile publishing",
+          isConfigured("LINKEDIN_CLIENT_ID") &&
+            isConfigured("LINKEDIN_CLIENT_SECRET") &&
+            isConfigured("LINKEDIN_REDIRECT_URI") &&
+            isConfigured("LINKEDIN_TOKEN_ENCRYPTION_KEY"),
+          "LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET, LINKEDIN_REDIRECT_URI and LINKEDIN_TOKEN_ENCRYPTION_KEY",
+          { warning: true }
+        ),
+        item(
+          "whatsapp-editorial",
+          "WhatsApp editorial approval",
+          isConfigured("WHATSAPP_CONTENT_TEMPLATE_NAME") &&
+            isConfigured("WHATSAPP_WEBHOOK_VERIFY_TOKEN") &&
+            isConfigured("WHATSAPP_APP_SECRET") &&
+            isConfigured("WHATSAPP_APPROVER_NUMBERS"),
+          "WhatsApp content template, webhook verification, app secret and approver allowlist",
+          { warning: true }
+        )
+      ]
     }
   ];
 }
