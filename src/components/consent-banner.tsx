@@ -19,18 +19,18 @@ const optionalChoices: {
 }[] = [
   {
     key: "analytics",
-    label: "Performance analytics",
-    description: "Helps us understand which pages, tools, and resources are useful."
+    label: "Analytics",
+    description: "Page and tool usage."
   },
   {
     key: "marketing",
-    label: "Campaign measurement",
-    description: "Helps measure ads, referrals, and conversion paths without reading private browser data."
+    label: "Campaigns",
+    description: "Ad and referral performance."
   },
   {
     key: "personalization",
-    label: "Preference memory",
-    description: "Helps remember relevant choices and improve future website experiences."
+    label: "Preferences",
+    description: "Saved website choices."
   }
 ];
 
@@ -49,6 +49,7 @@ export function getStoredConsent(): ConsentState {
 export function ConsentBanner() {
   const [visible, setVisible] = useState(false);
   const [consent, setConsent] = useState<ConsentState>(defaultConsent);
+  const [showPreferences, setShowPreferences] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -96,48 +97,57 @@ export function ConsentBanner() {
       aria-describedby="cookie-consent-summary"
     >
       <div className="cookie-panel-header">
-        <p className="eyebrow">Privacy choices</p>
-        <h2 id="cookie-consent-title">Choose how QCS can improve your website experience.</h2>
+        <p className="eyebrow">Privacy</p>
+        <h2 id="cookie-consent-title">Choose optional tracking.</h2>
         <p id="cookie-consent-summary">
-          Essential storage keeps forms, diagnostics, security controls, and consent choices working. Optional tracking
-          starts only if you allow it.
+          QCS uses essential storage for tools, forms, security, and consent. Analytics and campaign tracking stay off
+          unless you allow them.
         </p>
-        <ul className="cookie-trust-list">
-          <li>We do not read your email, passwords, local files, or private browser data.</li>
-          <li>Tool inputs and generated passwords are not used for marketing personalization.</li>
-          <li>You can continue with only essential storage.</li>
-        </ul>
+        <p className="cookie-short-note">We do not read browser email, passwords, local files, or generated passwords.</p>
       </div>
 
-      <div className="cookie-options" aria-label="Consent preferences">
-        <label className="cookie-option locked">
-          <input checked readOnly type="checkbox" />
-          <span>
-            <strong>Essential</strong>
-            <small>Required for security, forms, tools, session state, and consent records.</small>
-          </span>
-        </label>
-        {optionalChoices.map((choice) => (
-          <label className="cookie-option" key={choice.key}>
-            <input
-              checked={Boolean(consent[choice.key])}
-              type="checkbox"
-              onChange={(event) => setConsent((current) => ({ ...current, [choice.key]: event.target.checked }))}
-            />
-            <span>
-              <strong>{choice.label}</strong>
-              <small>{choice.description}</small>
-            </span>
-          </label>
-        ))}
-      </div>
+      {showPreferences && (
+        <div className="cookie-preferences" id="cookie-preferences">
+          <div className="cookie-options" aria-label="Consent preferences">
+            <label className="cookie-option locked">
+              <input checked readOnly type="checkbox" />
+              <span>
+                <strong>Essential</strong>
+                <small>Required.</small>
+              </span>
+            </label>
+            {optionalChoices.map((choice) => (
+              <label className="cookie-option" key={choice.key}>
+                <input
+                  checked={Boolean(consent[choice.key])}
+                  type="checkbox"
+                  onChange={(event) => setConsent((current) => ({ ...current, [choice.key]: event.target.checked }))}
+                />
+                <span>
+                  <strong>{choice.label}</strong>
+                  <small>{choice.description}</small>
+                </span>
+              </label>
+            ))}
+          </div>
+          <button className="button secondary cookie-save" type="button" onClick={() => save(consent)}>
+            Save preferences
+          </button>
+        </div>
+      )}
 
       <div className="cookie-actions">
         <button className="button secondary cookie-choice" type="button" onClick={() => save(defaultConsent)}>
           Reject optional
         </button>
-        <button className="button secondary" type="button" onClick={() => save(consent)}>
-          Save preferences
+        <button
+          aria-controls="cookie-preferences"
+          aria-expanded={showPreferences}
+          className="button secondary cookie-choice"
+          type="button"
+          onClick={() => setShowPreferences((current) => !current)}
+        >
+          {showPreferences ? "Hide choices" : "Customize"}
         </button>
         <button
           className="button secondary cookie-choice"
@@ -149,7 +159,7 @@ export function ConsentBanner() {
       </div>
 
       <p className="cookie-footnote">
-        Review details in the <Link href="/privacy">Privacy Policy</Link>.
+        Details: <Link href="/privacy">Privacy Policy</Link>.
       </p>
     </aside>
   );
