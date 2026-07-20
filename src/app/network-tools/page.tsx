@@ -8,9 +8,9 @@ import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Top 30 Free Online Network Tools and Vendor Script Generator",
+  title: "Top 56 Free Online Network Tools and Vendor Script Generator",
   description:
-    "Run top network tools for vendor scripts, DNS, email security, TLS, HTTP headers, ports, availability, redirects, subnet planning, and troubleshooting.",
+    "Run prioritized network tools for vendor scripts, password generation, BGP/RPKI, cloud ranges, DNS, email security, TLS, HTTP, ports, subnet planning, and troubleshooting.",
   path: "/network-tools",
   keywords: [
     "online network tools",
@@ -20,6 +20,10 @@ export const metadata: Metadata = createPageMetadata({
     "port checker",
     "subnet calculator",
     "packet capture command generator",
+    "strong password generator",
+    "rpki validator",
+    "cloud ip range lookup",
+    "cidr overlap checker",
     "top network tools",
     "network troubleshooting tools"
   ]
@@ -29,12 +33,12 @@ const toolHubFaqs = [
   {
     question: "Which free network tools are available here?",
     answer:
-      "The toolbox includes 30 practical network tools covering vendor task scripts, DNS record checks, email authentication, SSL/TLS, HTTP security, availability, redirects, port reachability, reverse DNS, CAA, subnet planning, and wildcard masks."
+      "The toolbox includes 56 practical network tools covering vendor task scripts, strong password generation, BGP/RPKI, global path planning, cloud IP ranges, DNS record checks, email authentication, SSL/TLS, HTTP security, firewall/VPN analyzers, port reachability, subnet planning, and report parsing."
   },
   {
     question: "What should I check first during troubleshooting?",
     answer:
-      "Start with the tool that matches the visible symptom: DNS for resolution, MX and SPF/DMARC for email, SSL and headers for website exposure, port reachability for firewall access, subnet calculation for planning, and vendor scripts when an engineer needs controlled command evidence."
+      "Start with the vendor script generator when an engineer needs commands. Use RPKI/ASN/BGP tools for internet routing, cloud tools for allowlists, DNS propagation for record changes, MX and DMARC tools for email, TLS and HTTP tools for web exposure, and CIDR/MTU tools for design or VPN issues."
   },
   {
     question: "When should a tool result become a service request?",
@@ -51,7 +55,7 @@ export default function NetworkToolsPage() {
           {
             "@context": "https://schema.org",
             "@type": "CollectionPage",
-            name: "Top 30 Free Online Network Tools",
+            name: "Top 56 Free Online Network Tools",
             description: metadata.description,
             url: `${siteConfig.url}/network-tools`,
             isPartOf: {
@@ -86,10 +90,11 @@ export default function NetworkToolsPage() {
       />
       <section className="page-hero tool-page-hero">
         <p className="eyebrow">Network utility hub</p>
-        <h1>Top 30 free online network tools for scripts, checks, planning, and troubleshooting.</h1>
+        <h1>Top 56 free online network tools for scripts, passwords, routing, cloud, security, and troubleshooting.</h1>
         <p>
-          Start with the vendor task script generator, then run focused DNS, email, TLS, HTTP, port, availability, and
-          subnet checks before deeper engineering work begins.
+          Start with the vendor task script generator, generate strong credentials when needed, then run prioritized
+          BGP/RPKI, cloud, DNS, email, TLS, HTTP, firewall, VPN, port, availability, and subnet checks before deeper
+          engineering work begins.
         </p>
         <div className="button-row">
           <a className="button primary" href="#network-tools">
@@ -106,8 +111,8 @@ export default function NetworkToolsPage() {
           <p className="eyebrow">Choose a tool</p>
           <h2>Run the check that matches the symptom first.</h2>
           <p>
-            Each tool is built as a focused starting point: enter the domain, IP, URL, CIDR, port, or vendor context and
-            use the result to decide the next engineering action.
+            Each tool is built as a focused starting point: enter the domain, IP, URL, CIDR, report, rule, or vendor
+            context and use the result to decide the next engineering action.
           </p>
         </div>
         <div className="utility-grid">
@@ -131,9 +136,9 @@ export default function NetworkToolsPage() {
           <p className="eyebrow">Quick diagnosis</p>
           <h2>Use public checks to validate symptoms before a technical call.</h2>
           <p>
-            DNS, MX, SPF/DMARC, SSL, header, redirect, CAA, reverse DNS, subnet, port, and command-plan tools help
-            confirm whether the issue belongs to routing, firewall access, email delivery, website exposure, or network
-            planning.
+            BGP/RPKI, cloud range, DNS, MX, SPF/DMARC, SSL, header, redirect, CAA, reverse DNS, subnet, port, firewall,
+            VPN, and command-plan tools help confirm whether the issue belongs to routing, cloud access, firewall
+            policy, email delivery, website exposure, or network planning.
           </p>
         </div>
         <div className="answer-panel muted">

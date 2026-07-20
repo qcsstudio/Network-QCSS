@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import dns from "node:dns/promises";
 import net from "node:net";
 import tls from "node:tls";
@@ -238,6 +239,111 @@ async function checkTcpPort(host: string, checkedPort: number, timeoutMs = 5000)
     });
     socket.once("error", () => resolve(false));
   });
+}
+
+async function fetchJson(url: string, timeoutMs = 9000) {
+  const response = await fetchWithTimeout(new URL(url), { method: "GET" }, timeoutMs);
+  if (!response.ok) throw new Error(`Remote data source returned HTTP ${response.status}.`);
+  return response.json() as Promise<unknown>;
+}
+
+function normalizeAsn(input: string) {
+  const match = input.trim().toUpperCase().match(/^(?:AS)?(\d{1,10})$/);
+  if (!match) throw new Error("Enter an ASN such as AS15169 or 15169.");
+  return `AS${Number(match[1])}`;
+}
+
+function parseIpv4Cidr(input: string) {
+  const [ipRaw, prefixRaw] = input.trim().split("/");
+  const parts = ipv4Parts(ipRaw || "");
+  const prefix = Number(prefixRaw);
+  if (!parts || !Number.isInteger(prefix) || prefix < 0 || prefix > 32) {
+    throw new Error("Enter IPv4 CIDR notation such as 192.168.10.0/24.");
+  }
+  const ip = ipv4ToInt(parts);
+  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+  const wildcard = (~mask) >>> 0;
+  const start = (ip & mask) >>> 0;
+  const end = (start | wildcard) >>> 0;
+  return { input: input.trim(), prefix, start, end, network: intToIpv4(start), broadcast: intToIpv4(end), mask: intToIpv4(mask), wildcard: intToIpv4(wildcard) };
+}
+
+function parseCidrList(input: string) {
+  const cidrs = input
+    .split(/[\s,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 200);
+  if (!cidrs.length) throw new Error("Enter at least one IPv4 CIDR range.");
+  return cidrs.map(parseIpv4Cidr);
+}
+
+function ipv4InRange(ip: string, cidr: string) {
+  const parts = ipv4Parts(ip);
+  if (!parts) throw new Error("Enter a valid IPv4 address.");
+  const value = ipv4ToInt(parts);
+  const range = parseIpv4Cidr(cidr);
+  return value >= range.start && value <= range.end;
+}
+
+function rangeToCidrs(start: number, end: number) {
+  const output: string[] = [];
+  let current = start;
+  while (current <= end) {
+    let prefix = 32;
+    while (prefix > 0) {
+      const candidatePrefix = prefix - 1;
+      const size = 2 ** (32 - candidatePrefix);
+      if (current % size !== 0 || current + size - 1 > end) break;
+      prefix = candidatePrefix;
+    }
+    output.push(`${intToIpv4(current)}/${prefix}`);
+    current += 2 ** (32 - prefix);
+  }
+  return output;
+}
+
+function parseIpv6Address(input: string) {
+  const value = input.trim().toLowerCase();
+  if (!value || value.includes(".")) throw new Error("Enter a valid IPv6 address without embedded IPv4 notation.");
+  const halves = value.split("::");
+  if (halves.length > 2) throw new Error("Enter a valid IPv6 address.");
+  const left = halves[0] ? halves[0].split(":").filter(Boolean) : [];
+  const right = halves[1] ? halves[1].split(":").filter(Boolean) : [];
+  const missing = 8 - left.length - right.length;
+  if (missing < 0 || (halves.length === 1 && missing !== 0)) throw new Error("Enter a valid IPv6 address.");
+  const groups = [...left, ...Array(Math.max(missing, 0)).fill("0"), ...right];
+  if (groups.length !== 8 || groups.some((part) => !/^[0-9a-f]{1,4}$/.test(part))) throw new Error("Enter a valid IPv6 address.");
+  return groups.reduce((acc, part) => (acc << 16n) + BigInt(parseInt(part, 16)), 0n);
+}
+
+function formatIpv6(value: bigint) {
+  const groups: string[] = [];
+  for (let shift = 112n; shift >= 0n; shift -= 16n) {
+    groups.push(((value >> shift) & 0xffffn).toString(16));
+  }
+  return groups.join(":");
+}
+
+function parseIpv6Cidr(input: string) {
+  const [addressRaw, prefixRaw] = input.trim().split("/");
+  const prefix = Number(prefixRaw);
+  if (!Number.isInteger(prefix) || prefix < 0 || prefix > 128) throw new Error("Enter IPv6 CIDR notation such as 2001:db8:100::/48.");
+  const value = parseIpv6Address(addressRaw || "");
+  const full = (1n << 128n) - 1n;
+  const hostBits = BigInt(128 - prefix);
+  const mask = prefix === 0 ? 0n : (full << hostBits) & full;
+  const network = value & mask;
+  const last = network | (full ^ mask);
+  return { prefix, network, last, hostBits };
+}
+
+function textLines(input: string) {
+  return input
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"))
+    .slice(0, 500);
 }
 
 async function runDnsLookup(tool: string, title: string, input: string): Promise<ToolResult> {
@@ -1098,6 +1204,858 @@ async function runWildcardCalculator(tool: string, title: string, input: string)
   });
 }
 
+async function runRpkiValidator(tool: string, title: string, params: Record<string, string | number | boolean>): Promise<ToolResult> {
+  const prefix = parseIpv4Cidr(textParam(params, "prefix")).input;
+  const asn = normalizeAsn(textParam(params, "asn"));
+  const url = `https://stat.ripe.net/data/rpki-validation/data.json?resource=${encodeURIComponent(asn)}&prefix=${encodeURIComponent(prefix)}`;
+  const payload = (await fetchJson(url).catch((error) => ({ error: errorMessage(error) }))) as { data?: Record<string, unknown>; error?: string };
+  const data = payload.data || {};
+  const status = String(data.status || data.validation_status || (payload.error ? "remote check unavailable" : "unknown"));
+  const rows = [
+    {
+      prefix,
+      asn,
+      validation: status,
+      checkedBy: "RIPEstat RPKI validation API"
+    }
+  ];
+  const ok = /valid/i.test(status) && !/invalid/i.test(status);
+  const invalid = /invalid/i.test(status);
+
+  return result({
+    tool,
+    title,
+    target: `${prefix} ${asn}`,
+    status: invalid ? "error" : ok ? "ok" : "warning",
+    summary: invalid ? `${prefix} is RPKI invalid for ${asn}.` : ok ? `${prefix} appears RPKI valid for ${asn}.` : `RPKI status for ${prefix} and ${asn}: ${status}.`,
+    details: [
+      { label: "Route-origin validation", value: rows },
+      { label: "Remote source note", value: payload.error || "Validated through public routing intelligence." },
+      { label: "Next action", value: invalid ? "Treat this as urgent. Verify ROA, origin ASN, prefix length, and route announcements." : "Confirm ROA coverage, maxLength, and expected origin before route changes." }
+    ]
+  });
+}
+
+async function runAsnIntelligence(tool: string, title: string, input: string): Promise<ToolResult> {
+  const resource = /^as/i.test(input.trim()) || /^\d+$/.test(input.trim()) ? normalizeAsn(input) : normalizeHostname(input);
+  const encoded = encodeURIComponent(resource);
+  const [networkInfo, prefixes] = await Promise.all([
+    fetchJson(`https://stat.ripe.net/data/network-info/data.json?resource=${encoded}`).catch((error) => ({ error: errorMessage(error) })),
+    fetchJson(`https://stat.ripe.net/data/announced-prefixes/data.json?resource=${encoded}`).catch((error) => ({ error: errorMessage(error) }))
+  ]);
+  const infoData = ((networkInfo as { data?: Record<string, unknown> }).data || {}) as Record<string, unknown>;
+  const prefixData = ((prefixes as { data?: { prefixes?: unknown[] } }).data?.prefixes || []) as unknown[];
+  const rows = toDetailRows(prefixData.slice(0, 12));
+
+  return result({
+    tool,
+    title,
+    target: resource,
+    status: prefixData.length || Object.keys(infoData).length ? "ok" : "warning",
+    summary: prefixData.length ? `${resource} has ${prefixData.length} announced prefix signal(s) in RIPEstat.` : `Collected public ASN/routing context for ${resource}.`,
+    details: [
+      { label: "Network context", value: toDetailRows([infoData]).length ? toDetailRows([infoData]) : "No network info returned" },
+      { label: "Announced prefixes sample", value: rows.length ? rows : "No announced prefix sample returned" },
+      { label: "Evidence links", value: [`https://stat.ripe.net/${resource}`, `https://bgp.he.net/${resource}`] }
+    ]
+  });
+}
+
+async function runBgpRouteAnomaly(tool: string, title: string, input: string): Promise<ToolResult> {
+  const target = input.trim().toUpperCase();
+  if (!target) throw new Error("Enter an ASN or prefix.");
+  const resource = target.includes("/") ? parseIpv4Cidr(target).input : normalizeAsn(target);
+  const encoded = encodeURIComponent(resource);
+  const visibility = await fetchJson(`https://stat.ripe.net/data/routing-status/data.json?resource=${encoded}`).catch((error) => ({ error: errorMessage(error) }));
+  const data = ((visibility as { data?: Record<string, unknown> }).data || {}) as Record<string, unknown>;
+
+  return result({
+    tool,
+    title,
+    target: resource,
+    status: (visibility as { error?: string }).error ? "warning" : "ok",
+    summary: `Prepared BGP anomaly review for ${resource}.`,
+    details: [
+      { label: "Routing status", value: Object.keys(data).length ? toDetailRows([data]) : "No live routing-status payload returned" },
+      {
+        label: "Review checklist",
+        value: [
+          "Compare current origin ASN with expected origin and ROA.",
+          "Check recent path changes, new upstreams, and unexpected more-specific announcements.",
+          "Validate route filters, IRR objects, RPKI maxLength, and provider announcements.",
+          "Escalate with prefix, ASN, first-seen time, affected regions, and traceroute evidence."
+        ]
+      },
+      { label: "Evidence links", value: [`https://stat.ripe.net/${resource}`, `https://radar.cloudflare.com/routing/${resource}`] }
+    ]
+  });
+}
+
+async function runGlobalTraceroutePlanner(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input);
+  await assertPublicResolvedHost(host);
+  const probes = [
+    { region: "India", city: "Mumbai / Delhi", command: `traceroute ${host}` },
+    { region: "Singapore", city: "Singapore", command: `traceroute ${host}` },
+    { region: "Middle East", city: "Dubai", command: `traceroute ${host}` },
+    { region: "Europe", city: "Frankfurt / London", command: `traceroute ${host}` },
+    { region: "US", city: "Ashburn / Dallas", command: `traceroute ${host}` }
+  ];
+
+  return result({
+    tool,
+    title,
+    target: host,
+    status: "ok",
+    summary: `Created a multi-region traceroute evidence plan for ${host}.`,
+    details: [
+      { label: "Regional probes", value: probes },
+      { label: "Linux/macOS command", value: [`traceroute ${host}`, `mtr -rwzc 100 ${host}`] },
+      { label: "Windows command", value: [`tracert ${host}`, `pathping ${host}`] },
+      { label: "Evidence to capture", value: ["source region", "source ISP/cloud", "timestamp with timezone", "packet loss per hop", "last responding hop", "application symptom"] }
+    ]
+  });
+}
+
+async function runGlobalLatencyPlanner(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input);
+  await assertPublicResolvedHost(host);
+  const regions = [
+    { region: "India", target: host, threshold: "Business apps: <120 ms, voice: <80 ms preferred" },
+    { region: "Singapore", target: host, threshold: "APAC SaaS and cloud benchmark" },
+    { region: "Europe", target: host, threshold: "EU user and CDN path benchmark" },
+    { region: "US East", target: host, threshold: "US SaaS/cloud benchmark" },
+    { region: "Middle East", target: host, threshold: "Gulf user and branch benchmark" }
+  ];
+
+  return result({
+    tool,
+    title,
+    target: host,
+    status: "ok",
+    summary: `Created a global latency measurement plan for ${host}.`,
+    details: [
+      { label: "Regional latency plan", value: regions },
+      { label: "Commands", value: [`ping -c 20 ${host}`, `mtr -rwzc 100 ${host}`, `curl -w '%{time_connect} %{time_starttransfer} %{time_total}\\n' -o /dev/null -s https://${host}`] },
+      { label: "Interpretation", value: ["Track latency, jitter, loss, DNS time, TCP connect, TLS handshake, and first byte separately.", "Compare user regions against cloud/SASE/VPN egress location."] }
+    ]
+  });
+}
+
+async function runDnsPropagation(tool: string, title: string, params: Record<string, string | number | boolean>): Promise<ToolResult> {
+  const domain = normalizeHostname(textParam(params, "domain"));
+  const recordType = textParam(params, "recordType", "A").toUpperCase();
+  const resolvers = [
+    { name: "Google DNS", url: `https://dns.google/resolve?name=${domain}&type=${recordType}` },
+    { name: "Cloudflare DNS", url: `https://cloudflare-dns.com/dns-query?name=${domain}&type=${recordType}` },
+    { name: "Quad9 DNS", url: `https://dns.quad9.net:5053/dns-query?name=${domain}&type=${recordType}` }
+  ];
+  const rows = await Promise.all(
+    resolvers.map(async (resolver) => {
+      const response = await fetchWithTimeout(new URL(resolver.url), { headers: { accept: "application/dns-json" } }).catch(() => null);
+      const data = response?.ok ? ((await response.json().catch(() => ({}))) as { Status?: number; Answer?: { data?: string; TTL?: number }[] }) : {};
+      return {
+        resolver: resolver.name,
+        status: data.Status ?? "failed",
+        answers: data.Answer?.map((answer) => answer.data).join(", ") || "No answer",
+        lowestTtl: data.Answer?.reduce((min, answer) => Math.min(min, answer.TTL || min), Number.POSITIVE_INFINITY) || 0
+      };
+    })
+  );
+  const uniqueAnswers = new Set(rows.map((row) => row.answers));
+
+  return result({
+    tool,
+    title,
+    target: `${domain} ${recordType}`,
+    status: uniqueAnswers.size <= 1 ? "ok" : "warning",
+    summary: uniqueAnswers.size <= 1 ? `${domain} ${recordType} answers are consistent across checked resolvers.` : `${domain} ${recordType} answers differ across public resolvers.`,
+    details: [
+      { label: "Resolver comparison", value: rows },
+      { label: "Propagation signal", value: uniqueAnswers.size <= 1 ? "Consistent among checked resolvers." : "Resolver drift observed. Confirm TTL, recent changes, and authoritative records." }
+    ]
+  });
+}
+
+async function runStartTlsMail(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input);
+  const mxRecords = await dns.resolveMx(host).then((items) => items.sort((left, right) => left.priority - right.priority)).catch(() => []);
+  const checks = await Promise.all(
+    mxRecords.slice(0, 3).map(async (mx) => ({
+      mx: mx.exchange,
+      priority: mx.priority,
+      port25Reachable: await checkTcpPort(mx.exchange, 25, 4000)
+    }))
+  );
+
+  return result({
+    tool,
+    title,
+    target: host,
+    status: mxRecords.length && checks.some((check) => check.port25Reachable) ? "ok" : "warning",
+    summary: mxRecords.length ? `${host} has ${mxRecords.length} MX record(s); checked port 25 reachability for the first ${checks.length}.` : `${host} does not publish MX records.`,
+    details: [
+      { label: "MX STARTTLS pre-check", value: checks.length ? checks : "No MX records found" },
+      { label: "STARTTLS review steps", value: ["Confirm EHLO advertises STARTTLS.", "Validate TLS certificate name and expiry.", "Check MTA-STS, TLS-RPT, and DANE where required.", "Capture SMTP transcript during an approved troubleshooting window."] }
+    ]
+  });
+}
+
+async function runDaneTlsa(tool: string, title: string, params: Record<string, string | number | boolean>): Promise<ToolResult> {
+  const host = normalizeHostname(textParam(params, "hostname"));
+  const port = Number(textParam(params, "port", "25"));
+  const protocol = textParam(params, "protocol", "_tcp") === "_udp" ? "_udp" : "_tcp";
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Enter a valid TLS port.");
+  const lookupName = `_${port}.${protocol}.${host}`;
+  const records = (await dns.resolveTlsa(lookupName).catch(() => [])) as unknown[];
+  const rows = toDetailRows(records);
+
+  return result({
+    tool,
+    title,
+    target: lookupName,
+    status: rows.length ? "ok" : "warning",
+    summary: rows.length ? `${lookupName} publishes ${rows.length} TLSA record(s).` : `${lookupName} does not publish TLSA records.`,
+    details: [
+      { label: "TLSA records", value: rows.length ? rows : "No TLSA records found" },
+      { label: "Recommendation", value: rows.length ? "Confirm DNSSEC validation, certificate rollover process, and service binding." : "DANE requires DNSSEC-signed TLSA records and compatible client/server policy." }
+    ]
+  });
+}
+
+async function runMtaStsTlsRpt(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input);
+  const [mtaTxt, tlsRptTxt] = await Promise.all([
+    dns.resolveTxt(`_mta-sts.${host}`).then(flattenTxt).catch(() => []),
+    dns.resolveTxt(`_smtp._tls.${host}`).then(flattenTxt).catch(() => [])
+  ]);
+  const policyUrl = new URL(`https://mta-sts.${host}/.well-known/mta-sts.txt`);
+  const policyResponse = await fetchWithTimeout(policyUrl, { method: "GET", redirect: "follow" }, 8000).catch(() => null);
+  const policyText = policyResponse?.ok ? await policyResponse.text() : "";
+  const mode = policyText.match(/^mode:\s*(.+)$/im)?.[1]?.trim() || "missing";
+  const mxRules = (policyText.match(/^mx:\s*(.+)$/gim) || []).map((line) => line.replace(/^mx:\s*/i, ""));
+
+  return result({
+    tool,
+    title,
+    target: host,
+    status: mtaTxt.length && tlsRptTxt.length && policyText ? "ok" : "warning",
+    summary: `MTA-STS mode for ${host}: ${mode}. TLS-RPT record ${tlsRptTxt.length ? "found" : "missing"}.`,
+    details: [
+      { label: "MTA-STS TXT", value: mtaTxt.length ? mtaTxt : "Missing" },
+      { label: "TLS-RPT TXT", value: tlsRptTxt.length ? tlsRptTxt : "Missing" },
+      { label: "Policy file", value: policyText ? policyText.slice(0, 1200) : "Missing or unreachable" },
+      { label: "MX policy rules", value: mxRules.length ? mxRules : "No mx rules found" },
+      { label: "Recommendation", value: mode === "enforce" ? "Policy is enforcing. Monitor TLS-RPT reports and certificate changes." : "Use testing mode before enforce and verify all MX hosts support valid TLS." }
+    ]
+  });
+}
+
+async function runDeepMxHealth(tool: string, title: string, input: string): Promise<ToolResult> {
+  const host = normalizeHostname(input);
+  const [mx, txt, dmarcTxt, mtaTxt, tlsRptTxt] = await Promise.all([
+    dns.resolveMx(host).then((items) => items.sort((left, right) => left.priority - right.priority)).catch(() => []),
+    dns.resolveTxt(host).then(flattenTxt).catch(() => []),
+    dns.resolveTxt(`_dmarc.${host}`).then(flattenTxt).catch(() => []),
+    dns.resolveTxt(`_mta-sts.${host}`).then(flattenTxt).catch(() => []),
+    dns.resolveTxt(`_smtp._tls.${host}`).then(flattenTxt).catch(() => [])
+  ]);
+  const spf = txt.find((record) => record.toLowerCase().startsWith("v=spf1"));
+  const dmarc = dmarcTxt.find((record) => record.toLowerCase().startsWith("v=dmarc1"));
+  const mxRows = await Promise.all(
+    mx.slice(0, 5).map(async (record) => {
+      const addresses = await dns.lookup(record.exchange, { all: true }).catch(() => []);
+      const ptr = addresses[0]?.address ? await dns.reverse(addresses[0].address).catch(() => []) : [];
+      return { priority: record.priority, exchange: record.exchange, address: addresses[0]?.address || "unresolved", ptr: ptr[0] || "missing" };
+    })
+  );
+  const score = [mx.length > 0, Boolean(spf), Boolean(dmarc), mtaTxt.length > 0, tlsRptTxt.length > 0].filter(Boolean).length;
+
+  return result({
+    tool,
+    title,
+    target: host,
+    status: score >= 4 ? "ok" : score >= 2 ? "warning" : "error",
+    summary: `${host} mail health score: ${score}/5 core signals present.`,
+    details: [
+      { label: "MX hosts", value: mxRows.length ? mxRows : "No MX records found" },
+      { label: "SPF", value: spf || "Missing" },
+      { label: "DMARC", value: dmarc || "Missing" },
+      { label: "MTA-STS", value: mtaTxt.length ? mtaTxt : "Missing" },
+      { label: "TLS-RPT", value: tlsRptTxt.length ? tlsRptTxt : "Missing" },
+      { label: "Priority fixes", value: ["MX reachability", "SPF correctness", "DMARC reporting/enforcement", "MTA-STS policy", "TLS-RPT visibility", "PTR alignment for sending IPs"] }
+    ]
+  });
+}
+
+async function runIpReputation(tool: string, title: string, input: string): Promise<ToolResult> {
+  const ip = normalizeHostname(input);
+  if (!net.isIP(ip)) throw new Error("Enter one public IP address.");
+  const reversed = ip.split(".").reverse().join(".");
+  const lists = [
+    { name: "Spamhaus ZEN", query: `${reversed}.zen.spamhaus.org` },
+    { name: "Spamcop", query: `${reversed}.bl.spamcop.net` }
+  ];
+  const rows = await Promise.all(
+    lists.map(async (list) => ({
+      list: list.name,
+      listed: Boolean((await dns.resolve4(list.query).catch(() => [])).length)
+    }))
+  );
+  const listed = rows.filter((row) => row.listed);
+
+  return result({
+    tool,
+    title,
+    target: ip,
+    status: listed.length ? "warning" : "ok",
+    summary: listed.length ? `${ip} appears on ${listed.length} DNSBL-style list(s) checked.` : `${ip} was not listed on the DNSBL-style checks run.`,
+    details: [
+      { label: "DNSBL-style checks", value: rows },
+      { label: "Evidence links", value: [`https://check.spamhaus.org/listed/?searchterm=${ip}`, `https://www.abuseipdb.com/check/${ip}`] },
+      { label: "Recommendation", value: listed.length ? "Confirm sending source, abuse reports, compromised hosts, and delisting requirements." : "Continue monitoring reputation if mail delivery or abuse complaints are involved." }
+    ]
+  });
+}
+
+type CloudRange = {
+  provider: string;
+  cidr: string;
+  service: string;
+  region: string;
+};
+
+async function loadCloudRanges(provider: string): Promise<CloudRange[]> {
+  if (provider === "aws") {
+    const data = (await fetchJson("https://ip-ranges.amazonaws.com/ip-ranges.json")) as { prefixes?: { ip_prefix?: string; service?: string; region?: string }[] };
+    return (data.prefixes || []).map((item) => ({
+      provider: "AWS",
+      cidr: item.ip_prefix || "",
+      service: item.service || "unknown",
+      region: item.region || "GLOBAL"
+    })).filter((item) => item.cidr);
+  }
+
+  if (provider === "gcp") {
+    const data = (await fetchJson("https://www.gstatic.com/ipranges/cloud.json")) as { prefixes?: { ipv4Prefix?: string; service?: string; scope?: string }[] };
+    return (data.prefixes || []).map((item) => ({
+      provider: "Google Cloud",
+      cidr: item.ipv4Prefix || "",
+      service: item.service || "cloud",
+      region: item.scope || "GLOBAL"
+    })).filter((item) => item.cidr);
+  }
+
+  const [v4] = await Promise.all([fetchWithTimeout(new URL("https://www.cloudflare.com/ips-v4")).then((response) => response.text())]);
+  return textLines(v4).map((cidr) => ({ provider: "Cloudflare", cidr, service: "Cloudflare edge", region: "GLOBAL" }));
+}
+
+async function runCloudIpRangeLookup(tool: string, title: string, params: Record<string, string | number | boolean>): Promise<ToolResult> {
+  const provider = textParam(params, "provider", "aws");
+  const ip = textParam(params, "ip");
+  if (!ipv4Parts(ip)) throw new Error("Enter a public IPv4 address for cloud range lookup.");
+  const ranges = await loadCloudRanges(provider);
+  const matches = ranges.filter((range) => ipv4InRange(ip, range.cidr)).slice(0, 20);
+
+  return result({
+    tool,
+    title,
+    target: `${provider} ${ip}`,
+    status: matches.length ? "ok" : "warning",
+    summary: matches.length ? `${ip} matched ${matches.length} ${matches[0].provider} public range(s).` : `${ip} did not match the selected provider ranges.`,
+    details: [
+      { label: "Matching ranges", value: matches.length ? matches : "No provider range match" },
+      { label: "Ranges checked", value: ranges.length },
+      { label: "Recommendation", value: matches.length ? "Use provider metadata to confirm firewall allowlist, logging, and ownership." : "Try another provider or confirm whether this IP is customer-owned, CDN, ISP, or another cloud." }
+    ]
+  });
+}
+
+function formatAllowlist(vendor: string, ranges: CloudRange[]) {
+  if (vendor === "cisco") {
+    return ["object-group network QCS_CLOUD_ALLOWLIST", ...ranges.map((range) => ` network-object ${range.cidr}`)];
+  }
+  if (vendor === "fortigate") {
+    return ranges.flatMap((range, index) => [`config firewall address`, ` edit "qcs_cloud_${index + 1}"`, `  set subnet ${range.cidr}`, " next", "end"]);
+  }
+  if (vendor === "paloalto") {
+    return ranges.map((range, index) => `<entry name="qcs-cloud-${index + 1}"><ip-netmask>${range.cidr}</ip-netmask></entry>`);
+  }
+  return ranges.map((range) => `${range.cidr} # ${range.provider} ${range.service} ${range.region}`);
+}
+
+async function runCloudAllowlist(tool: string, title: string, params: Record<string, string | number | boolean>): Promise<ToolResult> {
+  const provider = textParam(params, "provider", "aws");
+  const region = textParam(params, "region").toLowerCase();
+  const service = textParam(params, "service").toLowerCase();
+  const vendor = textParam(params, "vendor", "generic");
+  const limit = Math.min(50, Math.max(1, Number(textParam(params, "limit", "12")) || 12));
+  const ranges = (await loadCloudRanges(provider))
+    .filter((range) => !region || range.region.toLowerCase().includes(region))
+    .filter((range) => !service || range.service.toLowerCase().includes(service))
+    .slice(0, limit);
+
+  return result({
+    tool,
+    title,
+    target: `${provider} ${region || "all-regions"} ${service || "all-services"}`,
+    status: ranges.length ? "ok" : "warning",
+    summary: ranges.length ? `Generated ${ranges.length} ${vendor} allowlist item(s).` : "No matching cloud ranges found for the selected filters.",
+    details: [
+      { label: "Matched ranges", value: ranges.length ? ranges : "No ranges matched" },
+      { label: "Generated allowlist", value: ranges.length ? formatAllowlist(vendor, ranges) : "Adjust provider, region, or service filters." },
+      { label: "Change-control note", value: "Validate provider JSON timestamp, object naming, rule direction, and business owner before deploying." }
+    ]
+  });
+}
+
+function runCidrOverlap(tool: string, title: string, params: Record<string, string | number | boolean>): ToolResult {
+  const ranges = parseCidrList(textParam(params, "cidrs"));
+  const overlaps: Record<string, string | number | boolean>[] = [];
+  for (let i = 0; i < ranges.length; i += 1) {
+    for (let j = i + 1; j < ranges.length; j += 1) {
+      const left = ranges[i];
+      const right = ranges[j];
+      if (left.start <= right.end && right.start <= left.end) {
+        overlaps.push({ left: left.input, right: right.input, overlapStart: intToIpv4(Math.max(left.start, right.start)), overlapEnd: intToIpv4(Math.min(left.end, right.end)) });
+      }
+    }
+  }
+
+  return result({
+    tool,
+    title,
+    target: `${ranges.length} CIDR ranges`,
+    status: overlaps.length ? "warning" : "ok",
+    summary: overlaps.length ? `Found ${overlaps.length} overlapping CIDR pair(s).` : "No overlapping IPv4 CIDR ranges were found.",
+    details: [
+      { label: "Normalized ranges", value: ranges.map((range) => ({ cidr: range.input, start: intToIpv4(range.start), end: intToIpv4(range.end) })) },
+      { label: "Overlaps", value: overlaps.length ? overlaps : "No overlaps detected" },
+      { label: "Planning note", value: "Resolve overlaps before VPN, VPC/VNet peering, route exchange, or firewall object migration." }
+    ]
+  });
+}
+
+function runCidrSummarizer(tool: string, title: string, params: Record<string, string | number | boolean>): ToolResult {
+  const ranges = parseCidrList(textParam(params, "cidrs")).sort((left, right) => left.start - right.start);
+  const merged: { start: number; end: number }[] = [];
+  for (const range of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && range.start <= last.end + 1) last.end = Math.max(last.end, range.end);
+    else merged.push({ start: range.start, end: range.end });
+  }
+  const summarized = merged.flatMap((range) => rangeToCidrs(range.start, range.end));
+
+  return result({
+    tool,
+    title,
+    target: `${ranges.length} input ranges`,
+    status: "ok",
+    summary: `Reduced ${ranges.length} input range(s) into ${summarized.length} summarized CIDR range(s).`,
+    details: [
+      { label: "Summarized CIDRs", value: summarized },
+      { label: "Merged ranges", value: merged.map((range) => ({ start: intToIpv4(range.start), end: intToIpv4(range.end) })) },
+      { label: "Review note", value: "Only deploy summaries when every address in the aggregate is owned and intended for the same route or policy." }
+    ]
+  });
+}
+
+function runIpv6Subnet(tool: string, title: string, input: string): ToolResult {
+  const parsed = parseIpv6Cidr(input);
+  const count = parsed.hostBits > 64n ? `2^${parsed.hostBits.toString()}` : (1n << parsed.hostBits).toString();
+
+  return result({
+    tool,
+    title,
+    target: `${formatIpv6(parsed.network)}/${parsed.prefix}`,
+    status: "ok",
+    summary: `IPv6 prefix /${parsed.prefix} contains ${count} address(es).`,
+    details: [
+      { label: "Network address", value: formatIpv6(parsed.network) },
+      { label: "Last address", value: formatIpv6(parsed.last) },
+      { label: "Prefix length", value: parsed.prefix },
+      { label: "Address count", value: count },
+      { label: "Planning note", value: parsed.prefix <= 48 ? "Suitable for organization-level allocation planning." : parsed.prefix <= 64 ? "Common LAN/VLAN subnet size." : "Host or point-to-point style allocation." }
+    ]
+  });
+}
+
+function runMtuMss(tool: string, title: string, params: Record<string, string | number | boolean>): ToolResult {
+  const baseMtu = Math.min(9216, Math.max(576, Number(textParam(params, "baseMtu", "1500")) || 1500));
+  const encapsulation = textParam(params, "encapsulation", "ipsec-nat-t");
+  const extra = Math.min(400, Math.max(0, Number(textParam(params, "extraOverhead", "0")) || 0));
+  const overheads: Record<string, number> = {
+    "ipsec-nat-t": 74,
+    ipsec: 58,
+    "gre-ipsec": 82,
+    vxlan: 50,
+    wireguard: 80,
+    pppoe: 8,
+    custom: 0
+  };
+  const overhead = (overheads[encapsulation] ?? 0) + extra;
+  const effectiveMtu = Math.max(576, baseMtu - overhead);
+  const tcpMss = Math.max(536, effectiveMtu - 40);
+
+  return result({
+    tool,
+    title,
+    target: `${baseMtu} MTU ${encapsulation}`,
+    status: effectiveMtu >= 1280 ? "ok" : "warning",
+    summary: `Estimated effective MTU is ${effectiveMtu}; recommended IPv4 TCP MSS is ${tcpMss}.`,
+    details: [
+      { label: "Calculation", value: [{ baseMtu, encapsulation, overheadBytes: overhead, effectiveMtu, recommendedTcpMss: tcpMss }] },
+      { label: "Troubleshooting note", value: "Confirm with DF-bit ping, PMTUD behavior, tunnel vendor overhead, and application packet captures before changing MSS clamp." }
+    ]
+  });
+}
+
+async function runHttp3Quic(tool: string, title: string, input: string): Promise<ToolResult> {
+  const url = normalizeHttpUrl(input);
+  const host = normalizeHostname(url.href, { allowUrl: true });
+  await assertPublicResolvedHost(host);
+  const response = await fetchWithTimeout(url, { method: "GET", redirect: "follow" });
+  const altSvc = response.headers.get("alt-svc") || "";
+  const httpsRecords = (await dns.resolve(host, "HTTPS").catch(() => [])) as unknown[];
+  const h3 = /h3/i.test(altSvc) || JSON.stringify(httpsRecords).toLowerCase().includes("h3");
+
+  return result({
+    tool,
+    title,
+    target: url.href,
+    status: h3 ? "ok" : "warning",
+    summary: h3 ? `${host} advertises HTTP/3 or QUIC readiness signals.` : `${host} did not expose HTTP/3 signals in the checks run.`,
+    details: [
+      { label: "Alt-Svc header", value: altSvc || "Missing" },
+      { label: "HTTPS/SVCB DNS records", value: httpsRecords.length ? toDetailRows(httpsRecords) : "No HTTPS/SVCB records returned" },
+      { label: "Recommendation", value: h3 ? "Confirm CDN/browser telemetry and fallback behavior." : "Enable HTTP/3 at CDN/edge if it fits browser and application requirements." }
+    ]
+  });
+}
+
+async function runCspAnalyzer(tool: string, title: string, input: string): Promise<ToolResult> {
+  const url = normalizeHttpUrl(input);
+  const host = normalizeHostname(url.href, { allowUrl: true });
+  await assertPublicResolvedHost(host);
+  const response = await fetchWithTimeout(url, { method: "GET", redirect: "follow" });
+  const csp = response.headers.get("content-security-policy") || "";
+  const lower = csp.toLowerCase();
+  const findings = [
+    !csp && "Missing Content-Security-Policy header.",
+    lower.includes("'unsafe-inline'") && "unsafe-inline is present.",
+    lower.includes("'unsafe-eval'") && "unsafe-eval is present.",
+    /(^|;)\s*default-src\s+[^;]*\*/i.test(csp) && "default-src includes wildcard.",
+    !/frame-ancestors/i.test(csp) && "frame-ancestors directive is missing.",
+    !/report-uri|report-to/i.test(csp) && "CSP reporting endpoint is missing."
+  ].filter(Boolean) as string[];
+
+  return result({
+    tool,
+    title,
+    target: url.href,
+    status: !csp || findings.length ? "warning" : "ok",
+    summary: csp ? `CSP found with ${findings.length} review finding(s).` : "No CSP header was found.",
+    details: [
+      { label: "CSP header", value: csp || "Missing" },
+      { label: "Findings", value: findings.length ? findings : "No common CSP issues detected" },
+      { label: "Recommendation", value: "Tune CSP in report-only mode first, then enforce after testing critical user journeys." }
+    ]
+  });
+}
+
+async function runCorsChecker(tool: string, title: string, input: string): Promise<ToolResult> {
+  const url = normalizeHttpUrl(input);
+  const host = normalizeHostname(url.href, { allowUrl: true });
+  await assertPublicResolvedHost(host);
+  const testOrigin = "https://qcs-cors-test.example";
+  const response = await fetchWithTimeout(url, { method: "GET", redirect: "manual", headers: { origin: testOrigin } });
+  const allowOrigin = response.headers.get("access-control-allow-origin") || "";
+  const allowCredentials = response.headers.get("access-control-allow-credentials") || "";
+  const reflected = allowOrigin === testOrigin;
+  const wildcard = allowOrigin === "*";
+  const risky = reflected || (wildcard && /true/i.test(allowCredentials));
+
+  return result({
+    tool,
+    title,
+    target: url.href,
+    status: risky ? "warning" : "ok",
+    summary: risky ? "CORS policy needs review for reflected or credentialed exposure." : "No high-risk CORS pattern was observed in this simple check.",
+    details: [
+      { label: "CORS headers", value: [{ allowOrigin: allowOrigin || "missing", allowCredentials: allowCredentials || "missing", vary: response.headers.get("vary") || "missing" }] },
+      { label: "Finding", value: risky ? "Review origin allowlist and credential behavior." : "Simple origin reflection was not observed." },
+      { label: "Note", value: "This is a non-invasive header check, not a full API authorization test." }
+    ]
+  });
+}
+
+function runFirewallShadow(tool: string, title: string, params: Record<string, string | number | boolean>): ToolResult {
+  const lines = textLines(textParam(params, "rules"));
+  const seen = new Map<string, number>();
+  const findings: Record<string, string | number | boolean>[] = [];
+  lines.forEach((line, index) => {
+    const normalized = line.toLowerCase().replace(/\s+/g, " ");
+    if (seen.has(normalized)) findings.push({ line: index + 1, severity: "medium", finding: `Duplicate of line ${seen.get(normalized)}` });
+    seen.set(normalized, index + 1);
+    if (/\b(any\s+any|0\.0\.0\.0\/0|permit\s+ip\s+any\s+any|allow\s+all)\b/i.test(line)) findings.push({ line: index + 1, severity: "high", finding: "Broad any-any or allow-all pattern" });
+    if (/\bdisabled\b|\bunused\b/i.test(line)) findings.push({ line: index + 1, severity: "low", finding: "Disabled/unused marker found" });
+  });
+
+  return result({
+    tool,
+    title,
+    target: `${lines.length} rule line(s)`,
+    status: findings.some((item) => item.severity === "high") ? "warning" : "ok",
+    summary: `Analyzed ${lines.length} rule line(s) and found ${findings.length} cleanup signal(s).`,
+    details: [
+      { label: "Findings", value: findings.length ? findings : "No duplicate or broad-rule patterns detected" },
+      { label: "Cleanup priorities", value: ["Review broad allow rules first.", "Group duplicate objects and services.", "Confirm hit counts before removal.", "Keep rollback and evidence for every policy change."] }
+    ]
+  });
+}
+
+function runVpnIpsec(tool: string, title: string, params: Record<string, string | number | boolean>): ToolResult {
+  const ikeVersion = textParam(params, "ikeVersion", "ikev2");
+  const encryption = textParam(params, "encryption", "aes-256").toLowerCase();
+  const integrity = textParam(params, "integrity", "sha256").toLowerCase();
+  const dhGroup = Number(textParam(params, "dhGroup", "14"));
+  const pfs = textParam(params, "pfs", "yes");
+  const lifetime = Number(textParam(params, "lifetimeSeconds", "3600"));
+  const findings = [
+    ikeVersion === "ikev1" && "IKEv1 is legacy; use IKEv2 where possible.",
+    /3des|des|md5|sha1/.test(`${encryption} ${integrity}`) && "Legacy crypto detected.",
+    dhGroup < 14 && "DH group below 14 should be reviewed.",
+    pfs !== "yes" && "PFS is disabled.",
+    (lifetime < 900 || lifetime > 28800) && "Phase 2 lifetime is outside common operational ranges."
+  ].filter(Boolean) as string[];
+
+  return result({
+    tool,
+    title,
+    target: `${ikeVersion} ${encryption} ${integrity} DH${dhGroup}`,
+    status: findings.length ? "warning" : "ok",
+    summary: findings.length ? `Found ${findings.length} VPN/IPsec proposal review item(s).` : "VPN/IPsec proposal looks reasonable for common modern baselines.",
+    details: [
+      { label: "Proposal", value: [{ ikeVersion, encryption, integrity, dhGroup, pfs, lifetimeSeconds: lifetime }] },
+      { label: "Findings", value: findings.length ? findings : "No common proposal risks detected" },
+      { label: "Evidence to collect", value: ["IKE SA details", "IPsec SA counters", "NAT-T status", "proxy IDs/selectors", "logs around negotiation time", "packet capture if selectors or NAT are suspected"] }
+    ]
+  });
+}
+
+function captureFilter(protocol: string, sourceIp: string, destinationIp: string, port?: number) {
+  const parts: string[] = [];
+  if (protocol !== "ip") parts.push(protocol);
+  if (sourceIp && destinationIp) parts.push(`host ${sourceIp} and host ${destinationIp}`);
+  else if (sourceIp) parts.push(`src host ${sourceIp}`);
+  else if (destinationIp) parts.push(`dst host ${destinationIp}`);
+  if ((protocol === "tcp" || protocol === "udp") && port) parts.push(`port ${port}`);
+  return parts.length ? parts.join(" and ") : "ip";
+}
+
+function runPacketCaptureFilter(tool: string, title: string, params: Record<string, string | number | boolean>): ToolResult {
+  const sourceIp = textParam(params, "sourceIp");
+  const destinationIp = textParam(params, "destinationIp");
+  if (sourceIp && !net.isIP(sourceIp)) throw new Error("Source IP must be valid.");
+  if (destinationIp && !net.isIP(destinationIp)) throw new Error("Destination IP must be valid.");
+  const protocol = textParam(params, "protocol", "tcp");
+  const portRaw = textParam(params, "port");
+  const port = portRaw ? Number(portRaw) : undefined;
+  if (port && (!Number.isInteger(port) || port < 1 || port > 65535)) throw new Error("Port must be 1-65535.");
+  const iface = textParam(params, "interfaceName", "<interface>");
+  const bpf = captureFilter(protocol, sourceIp, destinationIp, port);
+
+  return result({
+    tool,
+    title,
+    target: bpf,
+    status: !sourceIp && !destinationIp ? "warning" : "ok",
+    summary: `Generated capture filters for: ${bpf}.`,
+    details: [
+      { label: "BPF / tcpdump", value: [`tcpdump -ni ${iface} '${bpf}'`] },
+      { label: "Wireshark display filter", value: [bpf.replace(/\band\b/g, "&&").replace(/\bhost\s+/g, "ip.addr == ").replace(/\bport\s+(\d+)/g, "tcp.port == $1 || udp.port == $1")] },
+      { label: "FortiGate sniffer", value: [`diagnose sniffer packet ${iface} '${bpf}' 4 100 a`] },
+      { label: "Cisco ACL capture filter", value: [`permit ${protocol} ${sourceIp ? `host ${sourceIp}` : "any"} ${destinationIp ? `host ${destinationIp}` : "any"}${port ? ` eq ${port}` : ""}`] },
+      { label: "Safety note", value: "Keep filters narrow and treat packet captures as sensitive evidence." }
+    ]
+  });
+}
+
+function runSdwanSla(tool: string, title: string, params: Record<string, string | number | boolean>): ToolResult {
+  const app = textParam(params, "appProfile", "voice");
+  const latency = Number(textParam(params, "latencyMs", "80"));
+  const jitter = Number(textParam(params, "jitterMs", "10"));
+  const loss = Number(textParam(params, "lossPercent", "0.5"));
+  const profiles: Record<string, { latency: number; jitter: number; loss: number }> = {
+    voice: { latency: 150, jitter: 30, loss: 1 },
+    video: { latency: 180, jitter: 40, loss: 1 },
+    saas: { latency: 250, jitter: 80, loss: 2 },
+    erp: { latency: 180, jitter: 50, loss: 1 },
+    bulk: { latency: 400, jitter: 150, loss: 3 }
+  };
+  const target = profiles[app] || profiles.saas;
+  const score = Math.max(0, Math.round(100 - (latency / target.latency) * 35 - (jitter / target.jitter) * 30 - (loss / target.loss) * 35));
+
+  return result({
+    tool,
+    title,
+    target: app,
+    status: score >= 75 ? "ok" : score >= 50 ? "warning" : "error",
+    summary: `${app.toUpperCase()} path score is ${score}/100.`,
+    details: [
+      { label: "Measured metrics", value: [{ latencyMs: latency, jitterMs: jitter, lossPercent: loss, score }] },
+      { label: "Recommended policy", value: score >= 75 ? "Eligible for preferred path." : score >= 50 ? "Use as secondary path or monitor closely." : "Avoid for this application unless no better path exists." },
+      { label: "Tuning notes", value: ["Measure both directions if possible.", "Separate underlay loss from tunnel loss.", "Track DNS, TCP, TLS, and application response separately for SaaS."] }
+    ]
+  });
+}
+
+function runDmarcXmlAnalyzer(tool: string, title: string, params: Record<string, string | number | boolean>): ToolResult {
+  const xml = textParam(params, "xml");
+  if (!xml.includes("<feedback")) throw new Error("Paste a DMARC aggregate XML report.");
+  const org = xml.match(/<org_name>([\s\S]*?)<\/org_name>/i)?.[1]?.trim() || "Unknown reporter";
+  const domain = xml.match(/<policy_published>[\s\S]*?<domain>([\s\S]*?)<\/domain>[\s\S]*?<\/policy_published>/i)?.[1]?.trim() || "Unknown domain";
+  const records = Array.from(xml.matchAll(/<record>([\s\S]*?)<\/record>/gi)).slice(0, 200);
+  const rows = records.map((match) => {
+    const block = match[1];
+    const sourceIp = block.match(/<source_ip>([\s\S]*?)<\/source_ip>/i)?.[1]?.trim() || "unknown";
+    const count = Number(block.match(/<count>([\s\S]*?)<\/count>/i)?.[1]?.trim() || 0);
+    const disposition = block.match(/<disposition>([\s\S]*?)<\/disposition>/i)?.[1]?.trim() || "unknown";
+    const dkim = block.match(/<dkim>([\s\S]*?)<\/dkim>/i)?.[1]?.trim() || "unknown";
+    const spf = block.match(/<spf>([\s\S]*?)<\/spf>/i)?.[1]?.trim() || "unknown";
+    return { sourceIp, count, disposition, dkim, spf };
+  });
+  const total = rows.reduce((sum, row) => sum + row.count, 0);
+  const failed = rows.filter((row) => row.dkim !== "pass" && row.spf !== "pass").reduce((sum, row) => sum + row.count, 0);
+
+  return result({
+    tool,
+    title,
+    target: domain,
+    status: failed ? "warning" : "ok",
+    summary: `Parsed ${records.length} DMARC row(s) from ${org}; ${failed}/${total} message(s) failed both DKIM and SPF alignment signals.`,
+    details: [
+      { label: "Report summary", value: [{ reporter: org, domain, rows: records.length, totalMessages: total, failedBoth: failed }] },
+      { label: "Source rows", value: rows.length ? rows.slice(0, 30) : "No record rows found" },
+      { label: "Recommendation", value: failed ? "Investigate failing sources before moving DMARC toward reject." : "Use report trend data to move policy toward stronger enforcement." }
+    ]
+  });
+}
+
+const passwordWords = [
+  "atlas",
+  "brisk",
+  "cipher",
+  "delta",
+  "ember",
+  "frost",
+  "harbor",
+  "ion",
+  "juniper",
+  "kernel",
+  "lumen",
+  "matrix",
+  "nebula",
+  "orbit",
+  "packet",
+  "quartz",
+  "relay",
+  "signal",
+  "tunnel",
+  "uplink",
+  "vector",
+  "warden",
+  "zenith",
+  "anchor",
+  "bridge",
+  "cobalt",
+  "domain",
+  "fabric",
+  "gateway",
+  "helium",
+  "isotope",
+  "keystone",
+  "lattice",
+  "meridian",
+  "nimbus",
+  "operator",
+  "prefix",
+  "radius",
+  "segment",
+  "topology"
+];
+
+function chooseRandom(chars: string) {
+  return chars[randomInt(0, chars.length)];
+}
+
+function shuffled(value: string[]) {
+  const items = [...value];
+  for (let index = items.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomInt(0, index + 1);
+    [items[index], items[swapIndex]] = [items[swapIndex], items[index]];
+  }
+  return items;
+}
+
+function runStrongPasswordGenerator(tool: string, title: string, params: Record<string, string | number | boolean>): ToolResult {
+  const mode = textParam(params, "mode", "password");
+  const length = Math.min(80, Math.max(12, Number(textParam(params, "length", "20")) || 20));
+  const quantity = Math.min(20, Math.max(1, Number(textParam(params, "quantity", "5")) || 5));
+  const words = Math.min(8, Math.max(4, Number(textParam(params, "words", "5")) || 5));
+  const includeSymbols = textParam(params, "includeSymbols", "yes") !== "no";
+  const excludeAmbiguous = textParam(params, "excludeAmbiguous", "yes") !== "no";
+  const ambiguous = /[Il1O0]/g;
+  const lower = excludeAmbiguous ? "abcdefghijkmnopqrstuvwxyz" : "abcdefghijklmnopqrstuvwxyz";
+  const upper = excludeAmbiguous ? "ABCDEFGHJKLMNPQRSTUVWXYZ" : "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const numbers = excludeAmbiguous ? "23456789" : "0123456789";
+  const symbols = "!@#$%^&*()-_=+[]{};:,.?";
+  const pools = [lower, upper, numbers, includeSymbols ? symbols : ""].filter(Boolean);
+  const fullPool = pools.join("");
+
+  if (mode === "passphrase") {
+    const outputs = Array.from({ length: quantity }, () => {
+      const selected = Array.from({ length: words }, () => passwordWords[randomInt(0, passwordWords.length)]);
+      return `${selected.join("-")}-${randomInt(10, 99)}${includeSymbols ? chooseRandom(symbols) : ""}`;
+    });
+    const entropy = Math.round(words * Math.log2(passwordWords.length) + Math.log2(90) + (includeSymbols ? Math.log2(symbols.length) : 0));
+    return result({
+      tool,
+      title,
+      target: `Generated ${quantity} passphrase(s)`,
+      status: entropy >= 70 ? "ok" : "warning",
+      summary: `Generated ${quantity} memorable passphrase(s) with about ${entropy} bits of estimated entropy each.`,
+      details: [
+        { label: "Generated passphrases", value: outputs },
+        { label: "Estimated entropy bits", value: entropy },
+        { label: "Safe handling notes", value: ["Generate passwords only on trusted devices.", "Use a password manager.", "Do not reuse generated passwords across accounts.", "Rotate shared handover credentials after first use."] }
+      ]
+    });
+  }
+
+  const outputs = Array.from({ length: quantity }, () => {
+    const required = pools.map((pool) => chooseRandom(pool));
+    const remaining = Array.from({ length: Math.max(0, length - required.length) }, () => chooseRandom(fullPool));
+    const password = shuffled([...required, ...remaining]).join("");
+    return excludeAmbiguous ? password.replace(ambiguous, () => chooseRandom(fullPool.replace(ambiguous, ""))) : password;
+  });
+  const entropy = Math.round(length * Math.log2(fullPool.length));
+
+  return result({
+    tool,
+    title,
+    target: `Generated ${quantity} password(s)`,
+    status: entropy >= 90 ? "ok" : entropy >= 70 ? "warning" : "error",
+    summary: `Generated ${quantity} strong random password(s) with about ${entropy} bits of estimated entropy each.`,
+    details: [
+      { label: "Generated passwords", value: outputs },
+      { label: "Character pool size", value: fullPool.length },
+      { label: "Estimated entropy bits", value: entropy },
+      { label: "Safe handling notes", value: ["Generate passwords only on trusted devices.", "Use a password manager.", "Do not send passwords over chat or email.", "Use unique passwords for every account, VPN, Wi-Fi, and service credential."] }
+    ]
+  });
+}
+
 function runVendorTaskGenerator(tool: string, title: string, params: Record<string, string | number | boolean>): ToolResult {
   const generated = generateVendorTaskScript(params);
   return result({
@@ -1114,6 +2072,58 @@ async function runTool(tool: string, title: string, target: string, port?: numbe
   switch (tool) {
     case "vendor-task-script-generator":
       return runVendorTaskGenerator(tool, title, params);
+    case "strong-password-generator":
+      return runStrongPasswordGenerator(tool, title, params);
+    case "rpki-roa-validator":
+      return runRpkiValidator(tool, title, params);
+    case "asn-intelligence-tool":
+      return runAsnIntelligence(tool, title, target);
+    case "bgp-route-anomaly-check":
+      return runBgpRouteAnomaly(tool, title, target);
+    case "global-traceroute-planner":
+      return runGlobalTraceroutePlanner(tool, title, target);
+    case "global-latency-map-planner":
+      return runGlobalLatencyPlanner(tool, title, target);
+    case "dns-propagation-checker":
+      return runDnsPropagation(tool, title, params);
+    case "starttls-mail-checker":
+      return runStartTlsMail(tool, title, target);
+    case "dane-tlsa-checker":
+      return runDaneTlsa(tool, title, params);
+    case "mta-sts-tls-rpt-checker":
+      return runMtaStsTlsRpt(tool, title, target);
+    case "deep-mx-health-analyzer":
+      return runDeepMxHealth(tool, title, target);
+    case "ip-reputation-abuse-check":
+      return runIpReputation(tool, title, target);
+    case "cloud-ip-range-lookup":
+      return runCloudIpRangeLookup(tool, title, params);
+    case "cloud-allowlist-generator":
+      return runCloudAllowlist(tool, title, params);
+    case "cidr-overlap-checker":
+      return runCidrOverlap(tool, title, params);
+    case "cidr-summarizer":
+      return runCidrSummarizer(tool, title, params);
+    case "ipv6-subnet-calculator":
+      return runIpv6Subnet(tool, title, target);
+    case "mtu-mss-vpn-calculator":
+      return runMtuMss(tool, title, params);
+    case "http3-quic-checker":
+      return runHttp3Quic(tool, title, target);
+    case "csp-analyzer":
+      return runCspAnalyzer(tool, title, target);
+    case "cors-misconfiguration-checker":
+      return runCorsChecker(tool, title, target);
+    case "firewall-rule-shadow-analyzer":
+      return runFirewallShadow(tool, title, params);
+    case "vpn-ipsec-config-checker":
+      return runVpnIpsec(tool, title, params);
+    case "packet-capture-filter-generator":
+      return runPacketCaptureFilter(tool, title, params);
+    case "sdwan-sla-calculator":
+      return runSdwanSla(tool, title, params);
+    case "dmarc-xml-report-analyzer":
+      return runDmarcXmlAnalyzer(tool, title, params);
     case "dns-lookup":
       return runDnsLookup(tool, title, target);
     case "a-record-lookup":

@@ -58,7 +58,7 @@ function renderValue(value: DetailValue, label = "") {
       );
     }
 
-    if (/command|cleanup|prepare|validate|evidence/i.test(label)) {
+    if (/command|cleanup|prepare|validate|evidence|password|passphrase|secret|token/i.test(label)) {
       return (
         <ol className="command-result-list">
           {value.map((item) => (
@@ -152,6 +152,14 @@ export function NetworkToolRunner({ slug }: { slug: string }) {
                       </option>
                     ))}
                   </select>
+                ) : field.type === "textarea" ? (
+                  <textarea
+                    value={fieldValues[field.name] ?? ""}
+                    required={field.required}
+                    placeholder={field.placeholder}
+                    rows={7}
+                    onChange={(event) => setFieldValues((current) => ({ ...current, [field.name]: event.target.value }))}
+                  />
                 ) : (
                   <input
                     type={field.type}

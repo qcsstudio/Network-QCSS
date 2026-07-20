@@ -3451,6 +3451,10 @@ body.mobile-menu-locked {
   gap: 14px;
 }
 
+.tool-field-grid label:has(textarea) {
+  grid-column: 1 / -1;
+}
+
 .network-tool-result {
   min-height: 280px;
 }
