@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { blogPosts } from "@/lib/blog";
 import { services, siteConfig, solutionPages, tools } from "@/lib/content";
 import { networkUtilityTools } from "@/lib/network-tools";
 
@@ -47,5 +48,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.88
   }));
 
-  return [...staticRoutes, ...solutionRoutes, ...serviceRoutes, ...toolRoutes, ...networkToolRoutes];
+  const blogRoutes = blogPosts.map((post) => ({
+    url: `${siteConfig.url}/resources/${post.slug}`,
+    lastModified: new Date(post.updatedAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.82
+  }));
+
+  return [...staticRoutes, ...blogRoutes, ...solutionRoutes, ...serviceRoutes, ...toolRoutes, ...networkToolRoutes];
 }

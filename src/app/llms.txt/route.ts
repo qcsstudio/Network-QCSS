@@ -1,4 +1,5 @@
 import { networkUtilityTools } from "@/lib/network-tools";
+import { blogPosts } from "@/lib/blog";
 import { services, siteConfig, solutionPages, tools } from "@/lib/content";
 
 export const dynamic = "force-static";
@@ -22,6 +23,9 @@ export function GET() {
     "",
     "## Free Online Network Utility Tools",
     ...networkUtilityTools.map((tool) => `- ${tool.title}: ${siteConfig.url}/network-tools/${tool.slug} - ${tool.description}`),
+    "",
+    "## Blog and Resource Guides",
+    ...blogPosts.map((post) => `- ${post.title}: ${siteConfig.url}/resources/${post.slug} - ${post.answer}`),
     "",
     "## Positioning",
     "- Evidence-first network command studio: diagnose, operate, secure, modernize, test, and train.",

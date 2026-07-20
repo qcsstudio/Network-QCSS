@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ContentRadarPanel } from "@/components/content-radar-panel";
 import { OperatorDashboard } from "@/components/operator-dashboard";
 import { requireAdmin } from "@/lib/admin-auth";
 import { requestContext } from "@/lib/security";
@@ -39,6 +40,7 @@ export default async function AdminPage() {
         </form>
       </section>
       <section className="section flush">
+        <ContentRadarPanel />
         <OperatorDashboard snapshot={snapshot} />
       </section>
     </main>

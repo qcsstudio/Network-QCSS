@@ -57,7 +57,8 @@ function groups() {
           required: true
         }),
         item("admin-session", "Stable session secret", isConfigured("ADMIN_SESSION_SECRET"), "ADMIN_SESSION_SECRET", { required: true }),
-        item("admin-api-token", "Admin API token", isConfigured("ADMIN_API_TOKEN"), "ADMIN_API_TOKEN", { required: true })
+        item("admin-api-token", "Admin API token", isConfigured("ADMIN_API_TOKEN"), "ADMIN_API_TOKEN", { required: true }),
+        item("cron-secret", "Content cron secret", isConfigured("CRON_SECRET"), "CRON_SECRET", { required: true })
       ]
     },
     {

@@ -365,7 +365,7 @@ export const networkUtilityTools: NetworkUtilityTool[] = [
     title: "DANE / TLSA Checker",
     shortTitle: "DANE TLSA",
     category: "Email security tools",
-    description: "Check TLSA records for DANE-enabled SMTP, HTTPS, or custom TLS services.",
+    description: "Check TLSA records for DANE-enabled SMTP, HTTPS, or custom TLS services and review DNSSEC-backed certificate binding signals.",
     inputLabel: "TLSA target",
     placeholder: "_25._tcp.mail.example.com",
     serviceIntent: "Network Security",
