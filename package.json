@@ -16,6 +16,7 @@
     "deploy:check": "npm run env:check && npm run prisma:generate && npm run typecheck && npm run build",
     "smoke": "node scripts/smoke.mjs",
     "site:qa": "node scripts/site-qa.mjs",
+    "test:verifygrid": "node --experimental-strip-types --test tests/verifygrid-domain.test.mjs",
     "content:seed": "node scripts/seed-content-studio.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

@@ -9,6 +9,8 @@ import { DistributionControlPanel } from "@/components/distribution-control-pane
 import { getDistributionSnapshot } from "@/lib/distribution";
 import { AdvisoryManagementPanel } from "@/components/advisory-management-panel";
 import { listAdminSecurityAdvisories, type AdminAdvisoryRecord } from "@/lib/advisories";
+import { VerifyGridControlPanel } from "@/components/verifygrid-control-panel";
+import { getEmptyVerifyGridPortfolio, getVerifyGridPortfolio, type VerifyGridPortfolio } from "@/lib/verifygrid";
 
 export const metadata: Metadata = {
   title: "Operator Dashboard",
@@ -46,6 +48,11 @@ export default async function AdminPage() {
     console.error("Advisory management storage is unavailable.", error);
     return [] as AdminAdvisoryRecord[];
   });
+  const verifyGridPortfolio = await getVerifyGridPortfolio().catch((error) => {
+    if (process.env.NODE_ENV === "production") console.error("VerifyGrid storage is unavailable.", error);
+    else console.warn("VerifyGrid development database is not migrated; rendering an empty portfolio.");
+    return process.env.NODE_ENV === "development" ? getEmptyVerifyGridPortfolio() : null as VerifyGridPortfolio | null;
+  });
 
   return (
     <main>
@@ -62,7 +69,7 @@ export default async function AdminPage() {
           </button>
         </form>
       </section>
-      <section className="section flush">
+      <section className="section flush admin-dashboard-section">
         {storageUnavailable ? (
           <section className="admin-panel">
             <div className="panel-heading">
@@ -75,6 +82,7 @@ export default async function AdminPage() {
             </div>
           </section>
         ) : null}
+        <VerifyGridControlPanel initialPortfolio={verifyGridPortfolio} />
         <DistributionControlPanel initialSnapshot={distributionSnapshot} />
         <AdvisoryManagementPanel initialAdvisories={advisories} />
         <ContentRadarPanel initialPosts={contentPosts} />
