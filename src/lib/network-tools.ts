@@ -168,77 +168,25 @@ export const networkUtilityTools: NetworkUtilityTool[] = [
   },
   {
     slug: "strong-password-generator",
-    title: "Strong Password Generator",
+    title: "Strong Password and Passphrase Generator",
     shortTitle: "Password Gen",
     category: "Cybersecurity tools",
     description:
-      "Generate cryptographically strong random passwords or memorable passphrases for administrators, VPN users, Wi-Fi keys, service accounts, and client handovers.",
+      "Generate private random passwords, passphrases, Wi-Fi keys, recovery codes, PINs, and API tokens locally in your browser for real security workflows.",
     inputLabel: "Password generation options",
     placeholder: "20 characters",
     serviceIntent: "Network Security",
-    searchIntent: ["strong password generator", "secure password generator", "random password generator"],
-    outputPromise: "Returns strong generated passwords or passphrases with entropy guidance and safe handling notes.",
+    searchIntent: [
+      "strong password generator",
+      "secure password generator",
+      "random password generator",
+      "passphrase generator",
+      "Wi-Fi password generator",
+      "API token generator"
+    ],
+    outputPromise: "Creates scenario-specific secrets locally with Web Crypto, practical strength guidance, and no server transmission or storage.",
     cta: "Improve password and access hygiene",
-    icon: KeyRound,
-    fields: [
-      {
-        name: "mode",
-        label: "Generation mode",
-        type: "select",
-        defaultValue: "password",
-        required: true,
-        options: [
-          { label: "Random password", value: "password" },
-          { label: "Memorable passphrase", value: "passphrase" }
-        ]
-      },
-      {
-        name: "length",
-        label: "Password length",
-        type: "number",
-        defaultValue: 20,
-        min: 12,
-        max: 80,
-        helper: "Used for random passwords."
-      },
-      {
-        name: "quantity",
-        label: "How many",
-        type: "number",
-        defaultValue: 5,
-        min: 1,
-        max: 20
-      },
-      {
-        name: "includeSymbols",
-        label: "Include symbols",
-        type: "select",
-        defaultValue: "yes",
-        options: [
-          { label: "Yes", value: "yes" },
-          { label: "No", value: "no" }
-        ]
-      },
-      {
-        name: "excludeAmbiguous",
-        label: "Avoid ambiguous characters",
-        type: "select",
-        defaultValue: "yes",
-        options: [
-          { label: "Yes", value: "yes" },
-          { label: "No", value: "no" }
-        ]
-      },
-      {
-        name: "words",
-        label: "Passphrase words",
-        type: "number",
-        defaultValue: 5,
-        min: 4,
-        max: 8,
-        helper: "Used for memorable passphrases."
-      }
-    ]
+    icon: KeyRound
   },
   {
     slug: "rpki-roa-validator",

@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { getStoredConsent } from "@/components/consent-banner";
+import { StrongPasswordGenerator } from "@/components/strong-password-generator";
 import { trackBrowserEvent } from "@/lib/client-tracking";
 import { getNetworkUtilityTool } from "@/lib/network-tools";
 
@@ -83,7 +84,7 @@ function renderValue(value: DetailValue, label = "") {
   return String(value);
 }
 
-export function NetworkToolRunner({ slug }: { slug: string }) {
+function GenericNetworkToolRunner({ slug }: { slug: string }) {
   const tool = useMemo(() => getNetworkUtilityTool(slug), [slug]);
   const [target, setTarget] = useState("");
   const [port, setPort] = useState(443);
@@ -246,4 +247,9 @@ export function NetworkToolRunner({ slug }: { slug: string }) {
       </div>
     </div>
   );
+}
+
+export function NetworkToolRunner({ slug }: { slug: string }) {
+  if (slug === "strong-password-generator") return <StrongPasswordGenerator />;
+  return <GenericNetworkToolRunner slug={slug} />;
 }
