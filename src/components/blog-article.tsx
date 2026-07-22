@@ -31,7 +31,7 @@ export function BlogArticle({ post, showLeadForm = true }: BlogArticleProps) {
             </div>
           </div>
           <div className="blog-hero-media">
-            <Image alt={post.imageAlt} fill priority sizes="(max-width: 900px) 100vw, 42vw" src={`/resources/${post.slug}/opengraph-image`} />
+            <Image alt={post.imageAlt} fill priority sizes="(max-width: 900px) 100vw, 42vw" src={`/resources/${post.slug}/visual`} />
           </div>
         </section>
 
@@ -65,7 +65,7 @@ export function BlogArticle({ post, showLeadForm = true }: BlogArticleProps) {
 
           <div className="blog-article">
             <section className="answer-panel blog-answer">
-              <p className="eyebrow">Short answer</p>
+              <p className="eyebrow">{post.contentType === "resource" ? "Resource outcome" : "Short answer"}</p>
               <h2>{post.answer}</h2>
             </section>
 

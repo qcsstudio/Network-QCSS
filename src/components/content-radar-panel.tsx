@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Archive, Clipboard, ExternalLink, Eye, FilePlus2, MessageCircle, RefreshCw, Save, ShieldCheck, Upload } from "lucide-react";
+import { Archive, BookOpen, Clipboard, ExternalLink, Eye, FilePlus2, FileText, MessageCircle, RefreshCw, RotateCcw, Save, ShieldCheck, Trash2, Upload } from "lucide-react";
 import type { BlogPost } from "@/lib/blog";
 
 type RadarDraft = {
@@ -40,7 +40,7 @@ export type ContentPostRecord = {
   id: string;
   slug: string;
   title: string;
-  status: "draft" | "approved" | "published" | "archived";
+  status: "draft" | "approved" | "published" | "archived" | "deleted";
   content: BlogPost;
   sourceUrl: string;
   approvedBy: string;
@@ -145,6 +145,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
   const [sourceUrl, setSourceUrl] = useState("");
   const [status, setStatus] = useState("Content Studio is ready. Scan sources or continue a saved draft.");
   const [busy, setBusy] = useState("");
+  const [contentFilter, setContentFilter] = useState<"all" | "blog" | "resource">("all");
 
   async function loadPosts() {
     const response = await fetch("/api/admin/content-posts", { cache: "no-store" });
@@ -171,8 +172,8 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     }
   }
 
-  async function createPost(payload: { draft?: RadarDraft; staticSlug?: string }) {
-    setBusy(payload.staticSlug || payload.draft?.slug || "create");
+  async function createPost(payload: { draft?: RadarDraft; staticSlug?: string; kind?: "blog" | "resource" }) {
+    setBusy(payload.staticSlug || payload.draft?.slug || payload.kind || "create");
     try {
       const response = await fetch("/api/admin/content-posts", {
         method: "POST",
@@ -193,6 +194,25 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     }
   }
 
+  async function syncSiteLibrary() {
+    setBusy("sync-library");
+    try {
+      const response = await fetch("/api/admin/content-posts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ importCatalog: true })
+      });
+      const result = (await response.json()) as { imported?: number; posts?: ContentPostRecord[]; error?: string };
+      if (!response.ok || !result.posts) throw new Error(result.error || "Unable to synchronize the public site library.");
+      setPosts(result.posts);
+      setStatus(result.imported ? `${result.imported} public article(s) imported. Every live guide is now manageable here.` : "The public site library is already fully managed.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Unable to synchronize the public site library.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   function editPost(post: ContentPostRecord) {
     setSelected(post);
     setDraft(structuredClone(post.content));
@@ -201,7 +221,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     window.setTimeout(() => document.querySelector("#content-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
-  async function mutate(action: "save" | "approve" | "publish" | "archive") {
+  async function mutate(action: "save" | "approve" | "publish" | "archive" | "restore") {
     if (!selected || !draft) return;
     setBusy(action);
     try {
@@ -219,6 +239,49 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
       setStatus(`${result.post.title} is now ${result.post.status}.`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : `Unable to ${action} the article.`);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function deletePost(post: ContentPostRecord) {
+    const contentType = post.content.contentType || "blog";
+    if (!window.confirm(`Delete this ${contentType} from the public content system? Revision history will be retained for recovery.`)) return;
+    setBusy(`delete-${post.id}`);
+    try {
+      const response = await fetch(`/api/admin/content-posts/${post.id}`, { method: "DELETE" });
+      const result = (await response.json()) as { post?: ContentPostRecord; error?: string };
+      if (!response.ok || !result.post) throw new Error(result.error || `Unable to delete the ${contentType}.`);
+      await loadPosts();
+      if (selected?.id === post.id) {
+        setSelected(result.post);
+        setDraft(structuredClone(result.post.content));
+      }
+      setStatus(`${post.title} is deleted from public content. Use Restore to continue editing it.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : `Unable to delete the ${contentType}.`);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function restorePost(post: ContentPostRecord) {
+    setBusy(`restore-${post.id}`);
+    try {
+      const response = await fetch(`/api/admin/content-posts/${post.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "restore" })
+      });
+      const result = (await response.json()) as { post?: ContentPostRecord; error?: string };
+      if (!response.ok || !result.post) throw new Error(result.error || "Unable to restore the content item.");
+      setSelected(result.post);
+      setDraft(structuredClone(result.post.content));
+      setSourceUrl(result.post.sourceUrl);
+      await loadPosts();
+      setStatus(`${result.post.title} is restored as a draft.`);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Unable to restore the content item.");
     } finally {
       setBusy("");
     }
@@ -243,6 +306,8 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     setDraft((current) => (current ? { ...current, [key]: value } : current));
   }
 
+  const filteredPosts = posts.filter((post) => contentFilter === "all" || (post.content.contentType || "blog") === contentFilter);
+
   return (
     <section className="admin-panel content-radar-panel" id="content-studio">
       <div className="panel-heading">
@@ -258,6 +323,15 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
           <button className="button primary" disabled={Boolean(busy)} onClick={scan} type="button">
             <RefreshCw aria-hidden="true" size={17} /> {busy === "scan" ? "Scanning..." : "Scan topics"}
           </button>
+          <button className="button secondary" disabled={Boolean(busy)} onClick={() => createPost({ kind: "blog" })} type="button">
+            <FileText aria-hidden="true" size={17} /> New blog
+          </button>
+          <button className="button secondary" disabled={Boolean(busy)} onClick={() => createPost({ kind: "resource" })} type="button">
+            <BookOpen aria-hidden="true" size={17} /> New resource
+          </button>
+          <button className="button secondary" disabled={Boolean(busy)} onClick={syncSiteLibrary} type="button">
+            <RefreshCw aria-hidden="true" size={17} /> {busy === "sync-library" ? "Syncing..." : "Sync site library"}
+          </button>
         </div>
       </div>
 
@@ -268,29 +342,41 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
           <h3>Editorial queue</h3>
           <p>{posts.length} saved article(s), with approval and revision history.</p>
         </div>
-        {!posts.some((post) => post.slug === "cisco-roomos-security-hardening-release-july-2026") ? (
-          <button className="button secondary" disabled={Boolean(busy)} onClick={() => createPost({ staticSlug: "cisco-roomos-security-hardening-release-july-2026" })} type="button">
-            <FilePlus2 aria-hidden="true" size={17} /> Add Cisco article
-          </button>
-        ) : null}
+        <div className="content-filter-tabs" aria-label="Filter editorial queue">
+          {(["all", "blog", "resource"] as const).map((filter) => (
+            <button aria-pressed={contentFilter === filter} key={filter} onClick={() => setContentFilter(filter)} type="button">{filter}</button>
+          ))}
+        </div>
       </div>
 
       <div className="content-queue">
-        {posts.length ? (
-          posts.map((post) => (
+        {filteredPosts.length ? (
+          filteredPosts.map((post) => (
             <article className="content-queue-card" key={post.id}>
               <div>
-                <span className={`status-pill content-status-${post.status}`}>{post.status}</span>
+                <div className="content-card-statuses">
+                  <span className={`status-pill content-status-${post.status}`}>{post.status}</span>
+                  <span className="status-pill content-kind-pill">{post.content.contentType || "blog"}</span>
+                </div>
                 <h4>{post.title}</h4>
                 <p>Updated {new Date(post.updatedAt).toLocaleString("en-IN")} | Revision {post.revisions[0]?.version || 1}</p>
               </div>
               <div className="content-action-row">
-                <button className="button secondary compact-button" onClick={() => editPost(post)} type="button">
-                  <Save aria-hidden="true" size={16} /> Edit
-                </button>
-                <a className="icon-button" href={`/admin/content/preview/${post.id}`} rel="noreferrer" target="_blank" title="Preview article">
-                  <Eye aria-hidden="true" size={18} />
-                </a>
+                {post.status === "deleted" ? (
+                  <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => restorePost(post)} type="button">
+                    <RotateCcw aria-hidden="true" size={16} /> Restore
+                  </button>
+                ) : (
+                  <>
+                    <button className="button secondary compact-button" onClick={() => editPost(post)} type="button">
+                      <Save aria-hidden="true" size={16} /> Edit
+                    </button>
+                    <a className="icon-button" href={`/admin/content/preview/${post.id}`} rel="noreferrer" target="_blank" title="Preview article">
+                      <Eye aria-hidden="true" size={18} />
+                    </a>
+                    <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => deletePost(post)} title={`Delete ${post.content.contentType || "blog"}`} type="button"><Trash2 aria-hidden="true" size={18} /></button>
+                  </>
+                )}
               </div>
             </article>
           ))
@@ -375,6 +461,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
               <label className="content-field content-field-wide"><span>Title</span><input value={draft.title} onChange={(event) => patchContent("title", event.target.value)} /></label>
               <label className="content-field"><span>Slug</span><input value={draft.slug} onChange={(event) => patchContent("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))} /></label>
               <label className="content-field"><span>Category</span><input value={draft.category} onChange={(event) => patchContent("category", event.target.value)} /></label>
+              <label className="content-field"><span>Content type</span><select value={draft.contentType || "blog"} onChange={(event) => patchContent("contentType", event.target.value as "blog" | "resource")}><option value="blog">Blog</option><option value="resource">Resource</option></select></label>
               <label className="content-field content-field-wide"><span>Meta title ({draft.metaTitle.length}/60)</span><input value={draft.metaTitle} onChange={(event) => patchContent("metaTitle", event.target.value)} /></label>
               <label className="content-field content-field-wide"><span>Meta description ({draft.description.length}/160)</span><textarea rows={3} value={draft.description} onChange={(event) => patchContent("description", event.target.value)} /></label>
               <label className="content-field content-field-wide"><span>Card excerpt</span><textarea rows={3} value={draft.excerpt} onChange={(event) => patchContent("excerpt", event.target.value)} /></label>
@@ -440,11 +527,18 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
               <small>Save, review the private preview, approve, then publish. Every step is recorded.</small>
             </div>
             <div className="content-action-row">
-              <button className="button secondary" disabled={Boolean(busy)} type="submit"><Save aria-hidden="true" size={17} /> {busy === "save" ? "Saving..." : "Save draft"}</button>
-              <button className="button primary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={requestWhatsAppReview} type="button"><MessageCircle aria-hidden="true" size={17} /> {busy === "whatsapp-review" ? "Sending..." : "WhatsApp review"}</button>
-              <button className="button secondary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={() => mutate("approve")} type="button"><ShieldCheck aria-hidden="true" size={17} /> Approve</button>
-              <button className="button primary" disabled={Boolean(busy) || selected.status !== "approved"} onClick={() => mutate("publish")} type="button"><Upload aria-hidden="true" size={17} /> Publish</button>
-              <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => mutate("archive")} title="Archive article" type="button"><Archive aria-hidden="true" size={18} /></button>
+              {selected.status === "deleted" ? (
+                <button className="button secondary" disabled={Boolean(busy)} onClick={() => restorePost(selected)} type="button"><RotateCcw aria-hidden="true" size={17} /> Restore draft</button>
+              ) : (
+                <>
+                  <button className="button secondary" disabled={Boolean(busy)} type="submit"><Save aria-hidden="true" size={17} /> {busy === "save" ? "Saving..." : "Save draft"}</button>
+                  <button className="button primary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={requestWhatsAppReview} type="button"><MessageCircle aria-hidden="true" size={17} /> {busy === "whatsapp-review" ? "Sending..." : "WhatsApp review"}</button>
+                  <button className="button secondary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={() => mutate("approve")} type="button"><ShieldCheck aria-hidden="true" size={17} /> Approve</button>
+                  <button className="button primary" disabled={Boolean(busy) || selected.status !== "approved"} onClick={() => mutate("publish")} type="button"><Upload aria-hidden="true" size={17} /> Publish</button>
+                  <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => mutate("archive")} title="Archive article" type="button"><Archive aria-hidden="true" size={18} /></button>
+                  <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => deletePost(selected)} title={`Delete ${draft.contentType || "blog"}`} type="button"><Trash2 aria-hidden="true" size={18} /></button>
+                </>
+              )}
             </div>
           </div>
         </form>

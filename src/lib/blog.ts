@@ -1,4 +1,5 @@
 export type BlogPost = {
+  contentType?: "blog" | "resource";
   slug: string;
   title: string;
   metaTitle: string;

@@ -36,7 +36,7 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
         data={[
           {
             "@context": "https://schema.org",
-            "@type": "BlogPosting",
+            "@type": post.contentType === "resource" ? "TechArticle" : "BlogPosting",
             headline: post.title,
             description: post.description,
             image: `${siteConfig.url}/resources/${post.slug}/opengraph-image`,

@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import type { Prisma, SecurityAdvisory } from "@prisma/client";
+import { z } from "zod";
 import { getPrismaClient } from "@/lib/prisma";
 import { queueLinkedInForAdvisory } from "@/lib/social-publications";
 
@@ -34,6 +35,60 @@ type AdvisoryCandidate = {
   vendorUpdatedAt: Date;
   payload: Prisma.InputJsonValue;
   contentHash: string;
+};
+
+const advisoryEditorSchema = z.object({
+  slug: z.string().trim().min(3).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  title: z.string().trim().min(10).max(220),
+  vendor: z.string().trim().min(2).max(120),
+  summary: z.string().trim().min(50).max(1600),
+  severity: z.enum(["critical", "high", "medium", "low", "unrated"]),
+  cvssScore: z.number().min(0).max(10).nullable(),
+  priorityScore: z.number().int().min(0).max(100),
+  cves: z.array(z.string().trim().min(3).max(40)).max(30),
+  products: z.array(z.string().trim().min(2).max(180)).min(1).max(40),
+  affectedVersions: z.array(z.string().trim().min(1).max(180)).max(40),
+  fixedVersions: z.array(z.string().trim().min(1).max(180)).max(40),
+  remediation: z.string().trim().min(30).max(2400),
+  workaround: z.string().trim().max(2400),
+  exploitationStatus: z.string().trim().min(10).max(500),
+  sourceUrl: z.string().trim().url().max(1200).refine((value) => value.startsWith("https://"), "The source URL must use HTTPS."),
+  status: z.enum(["draft", "published", "withdrawn"]).default("draft"),
+  vendorPublishedAt: z.coerce.date(),
+  vendorUpdatedAt: z.coerce.date()
+});
+
+export type AdvisoryEditorInput = z.input<typeof advisoryEditorSchema>;
+
+export type AdminAdvisoryRecord = {
+  id: string;
+  sourceName: string;
+  sourceSlug: string;
+  externalId: string;
+  slug: string;
+  title: string;
+  vendor: string;
+  summary: string;
+  severity: string;
+  cvssScore: number | null;
+  priorityScore: number;
+  cves: string[];
+  products: string[];
+  affectedVersions: string[];
+  fixedVersions: string[];
+  remediation: string;
+  workaround: string;
+  exploitationStatus: string;
+  sourceUrl: string;
+  status: string;
+  editorialOverride: boolean;
+  createdBy: string;
+  updatedBy: string;
+  vendorPublishedAt: string;
+  vendorUpdatedAt: string;
+  lastVerifiedAt: string;
+  updatedAt: string;
+  revision: number;
 };
 
 export const advisorySourceDefinitions: AdvisorySourceDefinition[] = [
@@ -81,16 +136,25 @@ const networkPattern =
 function inputJson(value: unknown) {
   return value as Prisma.InputJsonValue;
 }
+
+function jsonStrings(value: Prisma.JsonValue) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function adminContentHash(value: z.output<typeof advisoryEditorSchema>) {
+  return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
 function cleanText(value: string) {
   return value
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&nbsp;|&#160;|&#xA0;/gi, " ")
     .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 16)))
     .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number.parseInt(code, 10)))
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&#x27;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&#x27;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -314,6 +378,10 @@ async function storeCandidate(sourceId: string, item: AdvisoryCandidate) {
     where: { OR: [{ sourceId, externalId: item.externalId }, { slug: item.slug }] },
     include: { revisions: { orderBy: { version: "desc" }, take: 1 } }
   });
+  if (existing?.editorialOverride) {
+    await prisma.securityAdvisory.update({ where: { id: existing.id }, data: { lastVerifiedAt: new Date() } });
+    return { advisory: existing, revision: existing.revisions[0]?.version || 1, changed: false };
+  }
   if (existing?.contentHash === item.contentHash) {
     await prisma.securityAdvisory.update({ where: { id: existing.id }, data: { lastVerifiedAt: new Date() } });
     return { advisory: existing, revision: existing.revisions[0]?.version || 1, changed: false };
@@ -446,10 +514,239 @@ export async function listSecurityAdvisories(limit = 100) {
 
 export async function getSecurityAdvisory(slug: string) {
   if (process.env.STORE_DRIVER !== "postgres" || !process.env.DATABASE_URL) return null;
-  return getPrismaClient().securityAdvisory.findUnique({
-    where: { slug },
+  return getPrismaClient().securityAdvisory.findFirst({
+    where: { slug, status: { in: ["published", "withdrawn"] } },
     include: { source: { select: { name: true, officialHost: true, lastSuccessAt: true } }, revisions: { orderBy: { version: "desc" }, take: 20 } }
   });
+}
+
+function mapAdminAdvisory(record: SecurityAdvisory & {
+  source: { name: string; slug: string };
+  revisions: { version: number }[];
+}): AdminAdvisoryRecord {
+  return {
+    id: record.id,
+    sourceName: record.source.name,
+    sourceSlug: record.source.slug,
+    externalId: record.externalId,
+    slug: record.slug,
+    title: record.title,
+    vendor: record.vendor,
+    summary: record.summary,
+    severity: record.severity,
+    cvssScore: record.cvssScore,
+    priorityScore: record.priorityScore,
+    cves: jsonStrings(record.cves),
+    products: jsonStrings(record.products),
+    affectedVersions: jsonStrings(record.affectedVersions),
+    fixedVersions: jsonStrings(record.fixedVersions),
+    remediation: record.remediation,
+    workaround: record.workaround || "",
+    exploitationStatus: record.exploitationStatus,
+    sourceUrl: record.sourceUrl,
+    status: record.status,
+    editorialOverride: record.editorialOverride,
+    createdBy: record.createdBy || "",
+    updatedBy: record.updatedBy || "",
+    vendorPublishedAt: record.vendorPublishedAt.toISOString(),
+    vendorUpdatedAt: record.vendorUpdatedAt.toISOString(),
+    lastVerifiedAt: record.lastVerifiedAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+    revision: record.revisions[0]?.version || 1
+  };
+}
+
+const adminAdvisoryInclude = {
+  source: { select: { name: true, slug: true } },
+  revisions: { orderBy: { version: "desc" as const }, take: 1, select: { version: true } }
+};
+
+export async function listAdminSecurityAdvisories() {
+  const records = await getPrismaClient().securityAdvisory.findMany({
+    orderBy: [{ updatedAt: "desc" }],
+    include: adminAdvisoryInclude
+  });
+  return records.map(mapAdminAdvisory);
+}
+
+export async function getAdminSecurityAdvisory(id: string) {
+  const record = await getPrismaClient().securityAdvisory.findUnique({ where: { id }, include: adminAdvisoryInclude });
+  return record ? mapAdminAdvisory(record) : null;
+}
+
+async function ensureManualAdvisorySource() {
+  return getPrismaClient().advisorySource.upsert({
+    where: { slug: "qcs-editorial" },
+    update: { name: "QCS Editorial Advisory Desk", enabled: false },
+    create: {
+      slug: "qcs-editorial",
+      name: "QCS Editorial Advisory Desk",
+      vendor: "QCS",
+      format: "manual",
+      url: "https://www.qcsstudio.com/security-advisories",
+      officialHost: "www.qcsstudio.com",
+      enabled: false,
+      priority: 10
+    }
+  });
+}
+
+function revisionPayload(content: z.output<typeof advisoryEditorSchema>, actor: string, action: string) {
+  return inputJson({ origin: "admin", actor, action, content: { ...content, vendorPublishedAt: content.vendorPublishedAt.toISOString(), vendorUpdatedAt: content.vendorUpdatedAt.toISOString() } });
+}
+
+export async function createAdminSecurityAdvisory(value: unknown, actor: string) {
+  const content = advisoryEditorSchema.parse(value);
+  const prisma = getPrismaClient();
+  const source = await ensureManualAdvisorySource();
+  const externalId = `QCS-${crypto.createHash("sha256").update(`${content.slug}|${Date.now()}`).digest("hex").slice(0, 12).toUpperCase()}`;
+  const hash = adminContentHash(content);
+  const record = await prisma.securityAdvisory.create({
+    data: {
+      sourceId: source.id,
+      externalId,
+      slug: content.slug,
+      title: content.title,
+      vendor: content.vendor,
+      summary: content.summary,
+      severity: content.severity,
+      cvssScore: content.cvssScore,
+      priorityScore: content.priorityScore,
+      cves: inputJson(content.cves),
+      products: inputJson(content.products),
+      affectedVersions: inputJson(content.affectedVersions),
+      fixedVersions: inputJson(content.fixedVersions),
+      remediation: content.remediation,
+      workaround: content.workaround,
+      exploitationStatus: content.exploitationStatus,
+      sourceUrl: content.sourceUrl,
+      contentHash: hash,
+      status: content.status,
+      editorialOverride: true,
+      createdBy: actor,
+      updatedBy: actor,
+      vendorPublishedAt: content.vendorPublishedAt,
+      vendorUpdatedAt: content.vendorUpdatedAt,
+      revisions: { create: { version: 1, contentHash: hash, changes: inputJson(["created_by_admin"]), payload: revisionPayload(content, actor, "created") } }
+    },
+    include: adminAdvisoryInclude
+  });
+  return mapAdminAdvisory(record);
+}
+
+export async function updateAdminSecurityAdvisory(id: string, value: unknown, actor: string) {
+  const content = advisoryEditorSchema.parse(value);
+  const prisma = getPrismaClient();
+  const existing = await prisma.securityAdvisory.findUnique({
+    where: { id },
+    include: { revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true } } }
+  });
+  if (!existing) return null;
+  const version = (existing.revisions[0]?.version || 0) + 1;
+  const hash = adminContentHash(content);
+  const record = await prisma.securityAdvisory.update({
+    where: { id },
+    data: {
+      slug: content.slug,
+      title: content.title,
+      vendor: content.vendor,
+      summary: content.summary,
+      severity: content.severity,
+      cvssScore: content.cvssScore,
+      priorityScore: content.priorityScore,
+      cves: inputJson(content.cves),
+      products: inputJson(content.products),
+      affectedVersions: inputJson(content.affectedVersions),
+      fixedVersions: inputJson(content.fixedVersions),
+      remediation: content.remediation,
+      workaround: content.workaround,
+      exploitationStatus: content.exploitationStatus,
+      sourceUrl: content.sourceUrl,
+      contentHash: hash,
+      status: content.status,
+      editorialOverride: true,
+      updatedBy: actor,
+      deletedAt: null,
+      vendorPublishedAt: content.vendorPublishedAt,
+      vendorUpdatedAt: content.vendorUpdatedAt,
+      revisions: { create: { version, contentHash: hash, changes: inputJson(["edited_by_admin"]), payload: revisionPayload(content, actor, "updated") } }
+    },
+    include: adminAdvisoryInclude
+  });
+  return mapAdminAdvisory(record);
+}
+
+export async function setAdminAdvisoryState(id: string, action: "publish" | "withdraw" | "restore" | "resume_sync", actor: string) {
+  const prisma = getPrismaClient();
+  const existing = await prisma.securityAdvisory.findUnique({
+    where: { id },
+    include: { source: { select: { slug: true } }, revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true } } }
+  });
+  if (!existing) return null;
+  if (action === "resume_sync" && existing.source.slug === "qcs-editorial") throw new Error("Manually created advisories do not have a vendor feed to resume.");
+  if (action === "publish") {
+    const publishText = `${existing.title} ${existing.summary} ${existing.remediation} ${existing.workaround || ""} ${existing.exploitationStatus}`;
+    if (/draft required|placeholder|vendor name|affected network product/i.test(publishText)) {
+      throw new Error("Replace every draft placeholder before publishing the advisory.");
+    }
+    if (existing.source.slug === "qcs-editorial" && existing.sourceUrl === "https://www.qcsstudio.com/security-advisories") {
+      throw new Error("Add the authoritative external source URL before publishing the advisory.");
+    }
+  }
+  const status = action === "withdraw" ? "withdrawn" : action === "restore" ? "draft" : "published";
+  const version = (existing.revisions[0]?.version || 0) + 1;
+  const record = await prisma.securityAdvisory.update({
+    where: { id },
+    data: {
+      status,
+      editorialOverride: action === "resume_sync" ? false : true,
+      deletedAt: null,
+      updatedBy: actor,
+      revisions: {
+        create: {
+          version,
+          contentHash: existing.contentHash,
+          changes: inputJson([action]),
+          payload: inputJson({ origin: "admin", actor, action })
+        }
+      }
+    },
+    include: adminAdvisoryInclude
+  });
+  return mapAdminAdvisory(record);
+}
+
+export async function deleteAdminSecurityAdvisory(id: string, actor: string) {
+  const prisma = getPrismaClient();
+  const existing = await prisma.securityAdvisory.findUnique({
+    where: { id },
+    include: { revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true } } }
+  });
+  if (!existing) return null;
+  const version = (existing.revisions[0]?.version || 0) + 1;
+  const record = await prisma.securityAdvisory.update({
+    where: { id },
+    data: {
+      status: "deleted",
+      editorialOverride: true,
+      deletedAt: new Date(),
+      updatedBy: actor,
+      revisions: {
+        create: {
+          version,
+          contentHash: existing.contentHash,
+          changes: inputJson(["deleted"]),
+          payload: inputJson({ origin: "admin", actor, action: "deleted" })
+        }
+      }
+    },
+    include: adminAdvisoryInclude
+  });
+  return mapAdminAdvisory(record);
+}
+
+export async function getSecurityAdvisoryForDistribution(id: string) {
+  return getPrismaClient().securityAdvisory.findUnique({ where: { id } });
 }
 
 export async function getAdvisoryOperationsSummary() {

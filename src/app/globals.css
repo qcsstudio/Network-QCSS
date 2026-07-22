@@ -4155,11 +4155,19 @@ td span {
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1fr);
 }
 
+.blog-card.featured .blog-card-media {
+  height: 100%;
+  min-height: 280px;
+  aspect-ratio: auto;
+}
+
 .blog-card-media,
 .blog-hero-media {
   position: relative;
   display: block;
-  min-height: 220px;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  overflow: hidden;
   background: #eaf0f8;
 }
 
@@ -4217,8 +4225,8 @@ td span {
 }
 
 .blog-hero-media {
-  min-height: clamp(260px, 34vw, 430px);
-  overflow: hidden;
+  width: 100%;
+  min-height: 0;
   border: 1px solid rgba(71, 85, 105, 0.14);
   border-radius: 8px;
   box-shadow: 0 24px 60px rgba(23, 32, 51, 0.13);
@@ -4463,6 +4471,51 @@ td span {
   color: #64748b;
 }
 
+.content-status-deleted {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.content-kind-pill {
+  background: #fff4e8;
+  color: #9a4d13;
+}
+
+.content-card-statuses,
+.content-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.content-filter-tabs {
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--soft);
+}
+
+.content-filter-tabs button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  padding: 7px 11px;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 850;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.content-filter-tabs button[aria-pressed="true"] {
+  background: white;
+  color: var(--ink);
+  box-shadow: 0 3px 10px rgba(23, 32, 51, 0.1);
+}
+
 .content-editor {
   display: grid;
   gap: 16px;
@@ -4520,7 +4573,8 @@ td span {
 }
 
 .content-editor input,
-.content-editor textarea {
+.content-editor textarea,
+.content-editor select {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -4536,7 +4590,8 @@ td span {
 }
 
 .content-editor input:focus,
-.content-editor textarea:focus {
+.content-editor textarea:focus,
+.content-editor select:focus {
   border-color: var(--blue);
   outline: 3px solid rgba(65, 105, 201, 0.12);
 }
@@ -4632,6 +4687,12 @@ td span {
   .blog-hero,
   .blog-layout {
     grid-template-columns: 1fr;
+  }
+
+  .blog-card.featured .blog-card-media {
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 16 / 9;
   }
 
   .blog-sidebar {
@@ -6046,7 +6107,7 @@ td span {
 
 .advisory-card {
   display: grid;
-  grid-template-rows: 190px 1fr;
+  grid-template-rows: auto 1fr;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -6057,7 +6118,8 @@ td span {
 .advisory-card-media {
   position: relative;
   display: block;
-  min-height: 190px;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
   overflow: hidden;
   background: #081525;
 }
@@ -6134,11 +6196,28 @@ td span {
 }
 
 .advisory-article-hero {
-  display: block;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.62fr);
+  gap: clamp(24px, 4vw, 58px);
 }
 
 .advisory-article-hero > div {
-  max-width: 1080px;
+  min-width: 0;
+}
+
+.advisory-article-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid rgba(71, 85, 105, 0.16);
+  border-radius: 8px;
+  background: #eaf0f8;
+  box-shadow: 0 24px 60px rgba(23, 32, 51, 0.13);
+}
+
+.advisory-article-media img {
+  object-fit: cover;
 }
 
 .advisory-article-hero .advisory-card-meta {
@@ -6240,6 +6319,7 @@ td span {
 
 @media (max-width: 1080px) {
   .advisory-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .advisory-article-hero { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {
@@ -6250,8 +6330,19 @@ td span {
   .advisory-facts { position: static; }
   .advisory-version-grid { grid-template-columns: 1fr; }
   .official-source-panel { grid-template-columns: 1fr; justify-items: start; }
-  .advisory-card { grid-template-rows: 170px 1fr; }
-  .advisory-card-media { min-height: 170px; }
+  .advisory-card { grid-template-rows: auto 1fr; }
+  .advisory-card-media { min-height: 0; }
+}
+
+.advisory-management-panel {
+  display: grid;
+  gap: 22px;
+}
+
+.advisory-admin-queue {
+  max-height: 620px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .distribution-panel {

@@ -95,11 +95,11 @@ export default async function ResourcesPage() {
                   fill
                   priority={index === 0}
                   sizes={index === 0 ? "(max-width: 900px) 100vw, 50vw" : "(max-width: 900px) 100vw, 33vw"}
-                  src={`/resources/${post.slug}/opengraph-image`}
+                  src={`/resources/${post.slug}/visual`}
                 />
               </Link>
               <div className="blog-card-body">
-                <p className="eyebrow">{post.category}</p>
+                <p className="eyebrow">{post.contentType === "resource" ? `Resource | ${post.category}` : post.category}</p>
                 <h2>
                   <Link href={`/resources/${post.slug}`}>{post.title}</Link>
                 </h2>

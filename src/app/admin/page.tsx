@@ -7,6 +7,8 @@ import { createAuditLog, getDashboardSnapshot, getEmptyDashboardSnapshot } from 
 import { listContentPosts } from "@/lib/content-posts";
 import { DistributionControlPanel } from "@/components/distribution-control-panel";
 import { getDistributionSnapshot } from "@/lib/distribution";
+import { AdvisoryManagementPanel } from "@/components/advisory-management-panel";
+import { listAdminSecurityAdvisories, type AdminAdvisoryRecord } from "@/lib/advisories";
 
 export const metadata: Metadata = {
   title: "Operator Dashboard",
@@ -40,6 +42,10 @@ export default async function AdminPage() {
     console.error("Distribution operations are unavailable.", error);
     return null;
   });
+  const advisories = await listAdminSecurityAdvisories().catch((error) => {
+    console.error("Advisory management storage is unavailable.", error);
+    return [] as AdminAdvisoryRecord[];
+  });
 
   return (
     <main>
@@ -70,6 +76,7 @@ export default async function AdminPage() {
           </section>
         ) : null}
         <DistributionControlPanel initialSnapshot={distributionSnapshot} />
+        <AdvisoryManagementPanel initialAdvisories={advisories} />
         <ContentRadarPanel initialPosts={contentPosts} />
         <OperatorDashboard snapshot={snapshot} />
       </section>

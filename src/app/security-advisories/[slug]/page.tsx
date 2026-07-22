@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Clock3, ExternalLink, ShieldCheck } from "lucide-react";
@@ -16,7 +17,7 @@ function strings(value: unknown) {
 }
 
 function practicalMetaTitle(title: string) {
-  const suffix = " | QCS Advisory";
+  const suffix = " | Advisory";
   if (`${title}${suffix}`.length <= 60) return `${title}${suffix}`;
   const available = 60 - suffix.length;
   const shortened = title.slice(0, available).replace(/\s+\S*$/, "").trim();
@@ -58,7 +59,12 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
             dateModified: advisory.vendorUpdatedAt.toISOString(),
             mainEntityOfPage: `${siteConfig.url}/security-advisories/${advisory.slug}`,
             author: { "@type": "Organization", name: siteConfig.name, url: siteConfig.url },
-            publisher: { "@type": "Organization", name: siteConfig.name, url: siteConfig.url },
+            publisher: {
+              "@type": "Organization",
+              name: siteConfig.name,
+              url: siteConfig.url,
+              logo: { "@type": "ImageObject", url: `${siteConfig.url}/brand/quantumcrafters-logo.png` }
+            },
             citation: advisory.sourceUrl,
             about: [...cves, ...products]
           },
@@ -90,6 +96,15 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
               <span>Verified {advisory.lastVerifiedAt.toLocaleString("en-IN")}</span>
               <span>Revision {advisory.revisions[0]?.version || 1}</span>
             </div>
+          </div>
+          <div className="advisory-article-media">
+            <Image
+              alt={`${advisory.vendor} ${advisory.severity} network security advisory visual`}
+              fill
+              priority
+              sizes="(max-width: 900px) 100vw, 42vw"
+              src={`/security-advisories/${advisory.slug}/visual`}
+            />
           </div>
         </section>
 

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { blogPosts, type BlogPost } from "@/lib/blog";
 import { getPrismaClient } from "@/lib/prisma";
 
-export const contentPostStatuses = ["draft", "approved", "published", "archived"] as const;
+export const contentPostStatuses = ["draft", "approved", "published", "archived", "deleted"] as const;
 export type ContentPostStatus = (typeof contentPostStatuses)[number];
 
 const internalLinkSchema = z.object({
@@ -17,6 +17,7 @@ const sourceLinkSchema = z.object({
 });
 
 export const blogPostSchema = z.object({
+  contentType: z.enum(["blog", "resource"]).default("blog"),
   slug: z.string().trim().min(3).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   title: z.string().trim().min(10).max(180),
   metaTitle: z.string().trim().min(10).max(70),
@@ -43,7 +44,7 @@ export const blogPostSchema = z.object({
         bullets: z.array(z.string().trim().min(10).max(700)).min(2).max(15).optional()
       })
     )
-    .min(4)
+    .min(3)
     .max(20),
   checklist: z.array(z.string().trim().min(12).max(500)).min(5).max(20),
   questions: z
@@ -162,7 +163,7 @@ export function publicationIssues(post: BlogPost) {
   if (/draft required|replace this|todo|placeholder/i.test(allText)) issues.push("Replace all draft placeholders.");
   if (post.metaTitle.length > 60) issues.push("Keep the meta title at 60 characters or fewer.");
   if (post.description.length > 160) issues.push("Keep the meta description at 160 characters or fewer.");
-  if (post.sections.length < 4) issues.push("Add at least four substantive sections.");
+  if (post.sections.length < 3) issues.push("Add at least three substantive sections.");
   if (post.sources.length < 1) issues.push("Add at least one authoritative source.");
   return issues;
 }
@@ -181,6 +182,7 @@ export function starterPostFromRadar(draft: RadarDraftInput): BlogPost {
       .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
       .join(" ") || "QCS Resource";
   return {
+    contentType: "blog",
     slug: draft.slug,
     title: draft.title,
     metaTitle: draft.metaTitle.slice(0, 60),
@@ -225,6 +227,54 @@ export function starterPostFromRadar(draft: RadarDraftInput): BlogPost {
   };
 }
 
+export function starterContentPost(kind: "blog" | "resource"): BlogPost {
+  const today = new Date().toISOString().slice(0, 10);
+  const unique = Date.now().toString(36);
+  const label = kind === "resource" ? "Network Operations Resource" : "Network Engineering Article";
+  return {
+    contentType: kind,
+    slug: `new-${kind}-${unique}`,
+    title: `New ${label}`,
+    metaTitle: `New ${label} | QCS`,
+    description: `Draft required: add a concise search description explaining the practical network outcome delivered by this ${kind}.`,
+    excerpt: `Draft required: summarize the operational question, the evidence readers need, and the useful next action this ${kind} provides.`,
+    answer: `Draft required: give readers a direct, evidence-based answer before expanding into technical context, validation, and next steps.`,
+    category: kind === "resource" ? "Network Resource" : "Network Engineering",
+    audience: "IT leaders, network engineers, security teams, cloud teams, and managed service providers",
+    primaryKeyword: kind === "resource" ? "network operations resource" : "network engineering guide",
+    keywords: ["network engineering", "network security", kind === "resource" ? "network resource" : "network guide"],
+    publishedAt: today,
+    updatedAt: today,
+    readTime: "7 min read",
+    image: kind === "resource" ? "/brand/envato/library/data-center-platform.webp" : "/brand/envato/library/security-network-shield.webp",
+    imageAlt: `QCS ${label.toLowerCase()} visual for practical network and security teams`,
+    relatedTools: [{ label: "Network Tools", href: "/network-tools" }],
+    relatedServices: [{ label: "Managed Network Services", href: "/services/managed-network-services" }],
+    takeaways: [
+      "Draft required: state the primary technical or operational finding for the reader.",
+      "Draft required: identify the evidence, ownership, and risk that shape the decision.",
+      "Draft required: provide a specific next action that can be validated and recorded."
+    ],
+    sections: ["Short answer", "Why this matters", "Evidence to collect", "Recommended next action"].map((heading) => ({
+      heading,
+      body: `Draft required: develop ${heading.toLowerCase()} with verified facts, practical network context, accountable ownership, and a clear validation step before publication.`
+    })),
+    checklist: [
+      "Draft required: confirm the scope, affected assets, and accountable owner.",
+      "Draft required: collect current configuration, version, and topology evidence.",
+      "Draft required: validate the authoritative technical source and publication date.",
+      "Draft required: document the controlled change or troubleshooting sequence.",
+      "Draft required: record validation results, exceptions, and the next review date."
+    ],
+    questions: [
+      { question: "Draft required: who should use this guidance?", answer: "Draft required: define the intended team, environment, and decision context clearly." },
+      { question: "Draft required: what evidence is needed?", answer: "Draft required: list the minimum technical evidence required before action." },
+      { question: "Draft required: when should QCS be engaged?", answer: "Draft required: identify the risk, complexity, or ownership conditions that justify escalation." }
+    ],
+    sources: [{ label: "QCS editorial source placeholder", url: "https://www.qcsstudio.com" }]
+  };
+}
+
 export async function listContentPosts() {
   const prisma = getPrismaClient();
   const records = await prisma.contentPost.findMany({
@@ -232,6 +282,43 @@ export async function listContentPosts() {
     include: { revisions: { orderBy: { version: "desc" }, take: 8 } }
   });
   return records.map(mapContentPost);
+}
+
+export async function importBuiltInContentPosts(actor: string) {
+  const prisma = getPrismaClient();
+  const existing = await prisma.contentPost.findMany({
+    where: { slug: { in: blogPosts.map((post) => post.slug) } },
+    select: { slug: true }
+  });
+  const existingSlugs = new Set(existing.map((post) => post.slug));
+  const missing = blogPosts.filter((post) => !existingSlugs.has(post.slug));
+
+  for (const builtInPost of missing) {
+    const content = parsePost(builtInPost);
+    await prisma.contentPost.create({
+      data: {
+        slug: content.slug,
+        title: content.title,
+        status: "published",
+        content: inputJson(content),
+        sourceUrl: content.sources[0]?.url || "",
+        createdBy: "site-library-import",
+        approvedBy: actor,
+        approvedAt: new Date(),
+        publishedAt: new Date(`${content.publishedAt}T00:00:00.000Z`),
+        revisions: {
+          create: {
+            version: 1,
+            action: "site_library_imported",
+            actor,
+            content: inputJson(content)
+          }
+        }
+      }
+    });
+  }
+
+  return { imported: missing.length, posts: await listContentPosts() };
 }
 
 export async function getContentPost(id: string) {
@@ -320,6 +407,24 @@ export async function archiveContentPost(id: string, actor: string) {
   return getContentPost(id);
 }
 
+export async function deleteContentPost(id: string, actor: string) {
+  const prisma = getPrismaClient();
+  const existing = await getContentPost(id);
+  if (!existing) return null;
+  await prisma.contentPost.update({ where: { id }, data: { status: "deleted", approvedAt: null, approvedBy: null } });
+  await addRevision(id, existing.content, "deleted", actor);
+  return getContentPost(id);
+}
+
+export async function restoreContentPost(id: string, actor: string) {
+  const prisma = getPrismaClient();
+  const existing = await getContentPost(id);
+  if (!existing) return null;
+  await prisma.contentPost.update({ where: { id }, data: { status: "draft", approvedAt: null, approvedBy: null } });
+  await addRevision(id, existing.content, "restored", actor);
+  return getContentPost(id);
+}
+
 export async function getPublishedDatabasePosts() {
   if (process.env.STORE_DRIVER !== "postgres" || !process.env.DATABASE_URL) return [];
   try {
@@ -339,9 +444,24 @@ export async function getPublishedDatabasePosts() {
 }
 
 export async function getAllPublishedBlogPosts() {
-  const databasePosts = await getPublishedDatabasePosts();
   const merged = new Map(blogPosts.map((post) => [post.slug, post]));
-  for (const post of databasePosts) merged.set(post.slug, post);
+  if (process.env.STORE_DRIVER === "postgres" && process.env.DATABASE_URL) {
+    try {
+      const records = await getPrismaClient().contentPost.findMany({ orderBy: { publishedAt: "desc" } });
+      for (const record of records) {
+        if (record.status === "archived" || record.status === "deleted") {
+          merged.delete(record.slug);
+          continue;
+        }
+        if (record.status !== "published") continue;
+        const parsed = blogPostSchema.safeParse(record.content);
+        if (parsed.success) merged.set(record.slug, parsed.data as BlogPost);
+        else console.error(`Published content post ${record.id} is invalid.`, parsed.error.flatten());
+      }
+    } catch (error) {
+      console.error("Published database posts are unavailable.", error);
+    }
+  }
   return [...merged.values()].sort((left, right) => right.publishedAt.localeCompare(left.publishedAt));
 }
 

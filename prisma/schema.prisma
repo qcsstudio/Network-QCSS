@@ -223,6 +223,10 @@ model SecurityAdvisory {
   sourceUrl          String
   contentHash        String
   status             String                     @default("published")
+  editorialOverride  Boolean                    @default(false)
+  createdBy          String?
+  updatedBy          String?
+  deletedAt          DateTime?
   vendorPublishedAt  DateTime
   vendorUpdatedAt    DateTime
   firstSeenAt        DateTime                   @default(now())
@@ -236,6 +240,7 @@ model SecurityAdvisory {
   @@index([status, vendorPublishedAt])
   @@index([severity, priorityScore])
   @@index([vendor])
+  @@index([editorialOverride, status])
 }
 
 model SecurityAdvisoryRevision {

@@ -5,8 +5,10 @@ import { jsonError, noStoreHeaders, readJsonBody } from "@/lib/api";
 import {
   approveContentPost,
   archiveContentPost,
+  deleteContentPost,
   getContentPost,
   publishContentPost,
+  restoreContentPost,
   updateContentPost
 } from "@/lib/content-posts";
 import { rateLimit } from "@/lib/rate-limit";
@@ -55,6 +57,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
           ? await publishContentPost(id, actor)
           : action === "archive"
             ? await archiveContentPost(id, actor)
+            : action === "restore"
+              ? await restoreContentPost(id, actor)
             : await updateContentPost(id, payload.content, String(payload.sourceUrl || ""), actor);
     if (!post) return jsonError("Post not found.", 404);
 
@@ -79,5 +83,28 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   } catch (error) {
     console.error("Unable to update content post.", error);
     return jsonError(error instanceof Error ? error.message : "Unable to update content post.", 400);
+  }
+}
+
+export async function DELETE(request: Request, { params }: RouteContext) {
+  const limited = rateLimit(request, { keyPrefix: "content-post-delete", max: 20, windowMs: 60_000 });
+  if (limited) return limited;
+  const actor = await adminActor(request);
+  if (!actor) return jsonError("Unauthorized", 401);
+  const { id } = await params;
+  try {
+    const post = await deleteContentPost(id, actor);
+    if (!post) return jsonError("Post not found.", 404);
+    await createAuditLog(
+      { action: "content.post_deleted", actor, target: id, metadata: { slug: post.slug, contentType: post.content.contentType || "blog" } },
+      await requestContext()
+    );
+    revalidatePath("/resources");
+    revalidatePath(`/resources/${post.slug}`);
+    revalidatePath("/sitemap.xml");
+    return NextResponse.json({ ok: true, post }, { headers: noStoreHeaders });
+  } catch (error) {
+    console.error("Unable to delete content post.", error);
+    return jsonError(error instanceof Error ? error.message : "Unable to delete content post.", 400);
   }
 }
