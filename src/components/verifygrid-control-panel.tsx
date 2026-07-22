@@ -4,9 +4,13 @@ import { useState } from "react";
 import {
   Activity,
   AlertTriangle,
+  Ban,
   CheckCircle2,
   Clock3,
+  DatabaseZap,
   FilePlus2,
+  FileSearch,
+  FileText,
   Fingerprint,
   LockKeyhole,
   Pause,
@@ -17,11 +21,13 @@ import {
   ShieldCheck,
   Target,
   Trash2,
+  Upload,
   Wrench
 } from "lucide-react";
+import { capabilityCatalog, connectorCatalog, type VerifyGridConnector } from "@/lib/verifygrid-catalog";
 import type { VerifyGridEngagementRecord, VerifyGridPortfolio } from "@/lib/verifygrid";
 
-type View = "command" | "scope" | "findings" | "activity";
+type View = "command" | "scope" | "evidence" | "findings" | "execution" | "reports" | "activity";
 
 function localDateTime(date = new Date()) {
   const offset = date.getTimezoneOffset() * 60_000;
@@ -104,8 +110,33 @@ function initialAuthorizationDraft() {
   };
 }
 
+function initialImportDraft() {
+  return { connector: "nessus_xml" as VerifyGridConnector, fileName: "", content: "", enrich: true };
+}
+
+function initialExecutionDraft() {
+  const start = new Date(Date.now() + 10 * 60_000);
+  return {
+    capability: "asset_inventory",
+    targetIds: [] as string[],
+    rationale: "Validate the approved target posture within the current rules of engagement.",
+    requestedStartAt: localDateTime(start),
+    validUntil: localDateTime(new Date(start.getTime() + 2 * 60 * 60_000)),
+    acknowledgeNonDestructive: false
+  };
+}
+
 async function responseJson(response: Response) {
-  return response.json() as Promise<{ error?: string; portfolio?: VerifyGridPortfolio; engagement?: VerifyGridEngagementRecord }>;
+  return response.json() as Promise<{
+    error?: string;
+    portfolio?: VerifyGridPortfolio;
+    engagement?: VerifyGridEngagementRecord;
+    batchId?: string;
+    promoted?: number;
+    duplicates?: number;
+    jobId?: string;
+    reportId?: string;
+  }>;
 }
 
 export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio: VerifyGridPortfolio | null }) {
@@ -117,6 +148,9 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
   const [scopeDraft, setScopeDraft] = useState(initialScopeDraft);
   const [findingDraft, setFindingDraft] = useState(initialFindingDraft);
   const [authorizationDraft, setAuthorizationDraft] = useState(initialAuthorizationDraft);
+  const [importDraft, setImportDraft] = useState(initialImportDraft);
+  const [executionDraft, setExecutionDraft] = useState(initialExecutionDraft);
+  const [reportType, setReportType] = useState("executive");
   const [resolution, setResolution] = useState({ findingId: "", note: "" });
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState(initialPortfolio ? "VerifyGrid operations are current." : "Apply the VerifyGrid database migration to activate this workspace.");
@@ -131,7 +165,7 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
     setSelectedId(result.portfolio.engagements.some((item) => item.id === preferredId) ? preferredId : result.portfolio.engagements[0]?.id || "");
   }
 
-  async function mutate(path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown) {
+  async function mutateResult(path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown) {
     const response = await fetch(path, {
       method,
       headers: body === undefined ? undefined : { "content-type": "application/json" },
@@ -139,7 +173,11 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
     });
     const result = await responseJson(response);
     if (!response.ok) throw new Error(result.error || "VerifyGrid operation failed.");
-    return result.engagement;
+    return result;
+  }
+
+  async function mutate(path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown) {
+    return (await mutateResult(path, method, body)).engagement;
   }
 
   async function createEngagement(event: React.FormEvent<HTMLFormElement>) {
@@ -281,6 +319,107 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
     }
   }
 
+  async function selectImportFile(file?: File) {
+    if (!file) return;
+    if (file.size > 2_000_000) {
+      setMessage("Scanner exports must be 2 MB or smaller for direct control-plane import.");
+      return;
+    }
+    const content = await file.text();
+    setImportDraft((current) => ({ ...current, fileName: file.name, content }));
+    setMessage(`${file.name} loaded locally. It will be hashed and reconciled when you import it.`);
+  }
+
+  async function importEvidence(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    setBusy("import");
+    try {
+      const result = await mutateResult(`/api/admin/verifygrid/engagements/${selected.id}/imports`, "POST", importDraft);
+      await load(selected.id);
+      setImportDraft(initialImportDraft());
+      setMessage(`Evidence batch ${result.batchId || "created"} imported. Review scope disposition before promotion.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to import scanner evidence.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function promoteBatch(batchId: string) {
+    if (!selected || !window.confirm("Promote pending in-scope observations at low severity or higher into the remediation queue?")) return;
+    setBusy(`promote-${batchId}`);
+    try {
+      const result = await mutateResult(`/api/admin/verifygrid/imports/${batchId}/promote`, "POST", {
+        minimumSeverity: "low",
+        includeInformational: false
+      });
+      await load(selected.id);
+      setMessage(`${result.promoted || 0} observation(s) promoted; ${result.duplicates || 0} reconciled with existing findings.`);
+      setView("findings");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to promote scanner observations.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  function toggleExecutionTarget(targetId: string) {
+    setExecutionDraft((current) => ({
+      ...current,
+      targetIds: current.targetIds.includes(targetId)
+        ? current.targetIds.filter((id) => id !== targetId)
+        : [...current.targetIds, targetId]
+    }));
+  }
+
+  async function createExecutionRecord(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    setBusy("execution");
+    try {
+      const result = await mutateResult(`/api/admin/verifygrid/engagements/${selected.id}/execution-jobs`, "POST", executionDraft);
+      await load(selected.id);
+      setExecutionDraft(initialExecutionDraft());
+      setMessage(`Execution manifest ${result.jobId || "created"} validated against the current scope and authorization.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to prepare the execution manifest.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function cancelExecutionRecord(jobId: string) {
+    if (!selected) return;
+    const reason = window.prompt("Record the cancellation reason (at least 20 characters):");
+    if (!reason) return;
+    setBusy(`cancel-${jobId}`);
+    try {
+      await mutate(`/api/admin/verifygrid/execution-jobs/${jobId}`, "PATCH", { reason });
+      await load(selected.id);
+      setMessage("Execution record cancelled and retained in the activity trail.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to cancel the execution record.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function generateReport(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    setBusy("report");
+    try {
+      const result = await mutateResult(`/api/admin/verifygrid/engagements/${selected.id}/reports`, "POST", { reportType });
+      await load(selected.id);
+      setMessage(`${label(reportType)} report ${result.reportId || "snapshot"} generated. Open it from the report list.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to generate the assurance report.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   const lifecycleActions = selected ? {
     authorized: ["schedule", "start", "cancel"],
     scheduled: ["start", "pause", "cancel"],
@@ -314,6 +453,8 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
           <div><span>Critical</span><strong>{portfolio.metrics.criticalFindings}</strong></div>
           <div><span>Known exploited</span><strong>{portfolio.metrics.knownExploited}</strong></div>
           <div><span>Overdue</span><strong>{portfolio.metrics.overdueFindings}</strong></div>
+          <div><span>Pending evidence</span><strong>{portfolio.metrics.pendingObservations}</strong></div>
+          <div><span>Prepared checks</span><strong>{portfolio.metrics.preparedJobs}</strong></div>
         </div>
       ) : null}
 
@@ -346,7 +487,7 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
         <div className="verifygrid-layout">
           <aside className="verifygrid-rail" aria-label="Engagements">
             {portfolio.engagements.map((engagement) => (
-              <button aria-current={selected?.id === engagement.id ? "true" : undefined} key={engagement.id} onClick={() => { setSelectedId(engagement.id); setView("command"); }} type="button">
+              <button aria-current={selected?.id === engagement.id ? "true" : undefined} key={engagement.id} onClick={() => { setSelectedId(engagement.id); setView("command"); setImportDraft(initialImportDraft()); setExecutionDraft(initialExecutionDraft()); }} type="button">
                 <span><strong>{engagement.workspace.name}</strong><em>{engagement.reference}</em></span>
                 <span className={`verifygrid-state state-${engagement.status}`}>{label(engagement.status)}</span>
                 <small>{engagement.title}</small>
@@ -364,7 +505,7 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
               </header>
 
               <div className="content-filter-tabs verifygrid-tabs" aria-label="Engagement views">
-                {(["command", "scope", "findings", "activity"] as const).map((item) => <button aria-pressed={view === item} key={item} onClick={() => setView(item)} type="button">{item}</button>)}
+                {(["command", "scope", "evidence", "findings", "execution", "reports", "activity"] as const).map((item) => <button aria-pressed={view === item} key={item} onClick={() => setView(item)} type="button">{item}</button>)}
               </div>
 
               {view === "command" ? (
@@ -385,10 +526,92 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
                 </div>
               ) : null}
 
+              {view === "evidence" ? (
+                <div className="verifygrid-evidence-view">
+                  <section className="verifygrid-import-list">
+                    <div className="verifygrid-section-heading"><DatabaseZap aria-hidden="true" size={20} /><div><h4>Evidence batches</h4><p>Integrity-hashed, scope-reconciled scanner exports</p></div></div>
+                    {selected.importBatches.length ? selected.importBatches.map((batch) => (
+                      <article className="verifygrid-import-batch" key={batch.id}>
+                        <div className="verifygrid-record-top"><div><strong>{connectorCatalog[batch.connector as VerifyGridConnector]?.label || label(batch.connector)}</strong><span>{batch.fileName} | {new Date(batch.createdAt).toLocaleString()}</span></div><span className="status-pill content-status-published">{label(batch.status)}</span></div>
+                        <dl className="verifygrid-facts compact"><div><dt>Observed</dt><dd>{batch.observationCount}</dd></div><div><dt>In scope</dt><dd>{batch.inScopeCount}</dd></div><div><dt>Excluded</dt><dd>{batch.outOfScopeCount}</dd></div><div><dt>Unmatched</dt><dd>{batch.unmatchedCount}</dd></div><div><dt>Promoted</dt><dd>{batch.promotedCount}</dd></div><div><dt>Duplicates</dt><dd>{batch.duplicateCount}</dd></div></dl>
+                        <div className="verifygrid-record-footer"><small>SHA-256 {batch.contentSha256.slice(0, 20)}... | enrichment {label(batch.enrichmentStatus)}</small>{batch.inScopeCount > batch.promotedCount + batch.duplicateCount ? <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => promoteBatch(batch.id)} type="button"><FileSearch aria-hidden="true" size={15} /> Promote in-scope</button> : null}</div>
+                      </article>
+                    )) : <p className="content-empty-state">No scanner evidence imported.</p>}
+                  </section>
+
+                  <form className="content-editor verifygrid-compact-form" onSubmit={importEvidence}>
+                    <fieldset className="content-editor-section">
+                      <legend>Import scanner evidence</legend>
+                      <div className="content-field-grid">
+                        <label className="content-field content-field-wide"><span>Connector</span><select value={importDraft.connector} onChange={(event) => setImportDraft({ ...importDraft, connector: event.target.value as VerifyGridConnector, fileName: "", content: "" })}>{Object.entries(connectorCatalog).map(([value, connector]) => <option key={value} value={value}>{connector.label}</option>)}</select></label>
+                        <label className="content-field content-field-wide verifygrid-file-field"><span>Export file</span><input accept={connectorCatalog[importDraft.connector].accepted} key={`${importDraft.connector}-${importDraft.fileName || "empty"}`} onChange={(event) => selectImportFile(event.target.files?.[0]).catch((error) => setMessage(String(error)))} type="file" /></label>
+                        <label className="verifygrid-check content-field-wide"><input checked={importDraft.enrich} onChange={(event) => setImportDraft({ ...importDraft, enrich: event.target.checked })} type="checkbox" /><span>Enrich CVEs with CISA KEV and FIRST EPSS</span></label>
+                      </div>
+                      {importDraft.fileName ? <p className="form-note"><Upload aria-hidden="true" size={15} /> {importDraft.fileName} | {(new Blob([importDraft.content]).size / 1024).toFixed(1)} KB ready</p> : null}
+                      <button className="button primary compact-button" disabled={busy === "import" || !importDraft.content} type="submit"><Upload aria-hidden="true" size={16} /> {busy === "import" ? "Reconciling..." : "Import and reconcile"}</button>
+                    </fieldset>
+                  </form>
+
+                  <section className="verifygrid-observation-list">
+                    <div className="verifygrid-section-heading"><FileSearch aria-hidden="true" size={20} /><div><h4>Observation queue</h4><p>Latest evidence remains separate from validated findings</p></div></div>
+                    {selected.observations.length ? selected.observations.map((observation) => (
+                      <div className="verifygrid-observation" key={observation.id}><span className={`severity-pill severity-${observation.severity}`}>{observation.severity}</span><div><strong>{observation.title}</strong><span>{observation.assetIdentifier} | {label(observation.scopeDisposition)} | {label(observation.promotionStatus)}</span><small>{observation.dispositionReason}</small></div>{observation.knownExploited ? <span className="status-pill content-status-deleted">KEV</span> : null}</div>
+                    )) : <p className="content-empty-state">No normalized observations recorded.</p>}
+                  </section>
+                </div>
+              ) : null}
+
               {view === "findings" ? (
                 <div className="verifygrid-findings-view">
                   <div className="verifygrid-finding-list"><div className="verifygrid-section-heading"><Fingerprint aria-hidden="true" size={20} /><div><h4>Evidence-led findings</h4><p>Ranked by exploitability, confidence, and business criticality</p></div></div>{selected.findings.length ? selected.findings.map((finding) => <article className={`verifygrid-finding severity-${finding.severity}`} key={finding.id}><div className="verifygrid-finding-top"><div><span className={`severity-pill severity-${finding.severity}`}>{finding.severity}</span><span className="status-pill content-kind-pill">risk {finding.riskScore}</span>{finding.knownExploited ? <span className="status-pill content-status-deleted">known exploited</span> : null}<h5>{finding.title}</h5><p>{finding.businessImpact}</p></div><strong>{label(finding.status)}</strong></div><div className="verifygrid-finding-actions">{finding.status === "open" ? <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => updateFinding(finding.id, "validated")} type="button"><CheckCircle2 aria-hidden="true" size={15} /> Validate</button> : null}{finding.status === "validated" ? <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => updateFinding(finding.id, "remediation_in_progress")} type="button"><Wrench aria-hidden="true" size={15} /> Start remediation</button> : null}{finding.status === "remediation_in_progress" ? <button className="button secondary compact-button" onClick={() => setResolution({ findingId: finding.id, note: "" })} type="button"><CheckCircle2 aria-hidden="true" size={15} /> Mark resolved</button> : null}{finding.status === "resolved" ? <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => requestRetest(finding.id)} type="button"><RotateCcw aria-hidden="true" size={15} /> Request retest</button> : null}</div>{resolution.findingId === finding.id ? <form className="verifygrid-resolution" onSubmit={(event) => { event.preventDefault(); updateFinding(finding.id, "resolved", resolution.note); }}><label className="content-field"><span>Resolution evidence</span><textarea required minLength={20} rows={2} value={resolution.note} onChange={(event) => setResolution({ findingId: finding.id, note: event.target.value })} /></label><button className="button primary compact-button" type="submit">Confirm resolution</button></form> : null}</article>) : <p className="content-empty-state">No findings recorded.</p>}</div>
                   <form className="content-editor verifygrid-compact-form" onSubmit={addFinding}><fieldset className="content-editor-section"><legend>Add finding</legend><div className="content-field-grid"><label className="content-field content-field-wide"><span>Title</span><input required value={findingDraft.title} onChange={(event) => setFindingDraft({ ...findingDraft, title: event.target.value })} /></label><label className="content-field"><span>Severity</span><select value={findingDraft.severity} onChange={(event) => setFindingDraft({ ...findingDraft, severity: event.target.value })}><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option><option value="informational">Informational</option></select></label><label className="content-field"><span>Confidence</span><select value={findingDraft.confidence} onChange={(event) => setFindingDraft({ ...findingDraft, confidence: event.target.value })}><option value="unverified">Unverified</option><option value="likely">Likely</option><option value="validated">Validated</option></select></label><label className="content-field content-field-wide"><span>Technical observation</span><textarea required rows={3} value={findingDraft.description} onChange={(event) => setFindingDraft({ ...findingDraft, description: event.target.value })} /></label><label className="content-field content-field-wide"><span>Business impact</span><textarea required rows={2} value={findingDraft.businessImpact} onChange={(event) => setFindingDraft({ ...findingDraft, businessImpact: event.target.value })} /></label><label className="content-field content-field-wide"><span>Remediation</span><textarea required rows={3} value={findingDraft.remediation} onChange={(event) => setFindingDraft({ ...findingDraft, remediation: event.target.value })} /></label><label className="content-field"><span>CVSS</span><input max="10" min="0" step="0.1" type="number" value={findingDraft.cvssScore} onChange={(event) => setFindingDraft({ ...findingDraft, cvssScore: event.target.value })} /></label><label className="content-field"><span>EPSS</span><input max="1" min="0" step="0.001" type="number" value={findingDraft.epssScore} onChange={(event) => setFindingDraft({ ...findingDraft, epssScore: event.target.value })} /></label><label className="verifygrid-check content-field-wide"><input checked={findingDraft.knownExploited} onChange={(event) => setFindingDraft({ ...findingDraft, knownExploited: event.target.checked })} type="checkbox" /><span>Known exploited vulnerability</span></label></div><button className="button primary compact-button" disabled={busy === "finding"} type="submit"><Plus aria-hidden="true" size={16} /> Add finding</button></fieldset></form>
+                </div>
+              ) : null}
+
+              {view === "execution" ? (
+                <div className="verifygrid-execution-view">
+                  <section className="verifygrid-job-list">
+                    <div className="verifygrid-section-heading"><ShieldCheck aria-hidden="true" size={20} /><div><h4>Governed execution records</h4><p>Validated manifests only; worker dispatch is not connected</p></div></div>
+                    {selected.executionJobs.length ? selected.executionJobs.map((job) => (
+                      <article className="verifygrid-job" key={job.id}>
+                        <div className="verifygrid-record-top"><div><strong>{capabilityCatalog[job.capability as keyof typeof capabilityCatalog]?.label || label(job.capability)}</strong><span>{label(job.capabilityLevel)} | {job.targetIds.length} target(s)</span></div><span className={`status-pill ${job.status === "cancelled" ? "content-status-deleted" : "content-status-draft"}`}>{label(job.status)}</span></div>
+                        <p>{new Date(job.requestedStartAt).toLocaleString()} to {new Date(job.validUntil).toLocaleString()}</p>
+                        <div className="verifygrid-record-footer"><small>Manifest {job.manifestSha256.slice(0, 20)}... | {label(job.dispatchStatus)}</small>{!["cancelled", "completed", "expired"].includes(job.status) ? <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => cancelExecutionRecord(job.id)} title="Cancel execution record" type="button"><Ban aria-hidden="true" size={16} /></button> : null}</div>
+                      </article>
+                    )) : <p className="content-empty-state">No execution manifests prepared.</p>}
+                  </section>
+
+                  <form className="content-editor verifygrid-compact-form" onSubmit={createExecutionRecord}>
+                    <fieldset className="content-editor-section">
+                      <legend>Prepare a controlled check</legend>
+                      <div className="content-field-grid">
+                        <label className="content-field content-field-wide"><span>Capability</span><select value={executionDraft.capability} onChange={(event) => setExecutionDraft({ ...executionDraft, capability: event.target.value })}>{Object.entries(capabilityCatalog).map(([value, capability]) => <option key={value} value={value}>{capability.label} | {label(capability.level)}</option>)}</select><small>{capabilityCatalog[executionDraft.capability as keyof typeof capabilityCatalog]?.description}</small></label>
+                        <div className="content-field content-field-wide"><span>Authorized targets</span><div className="verifygrid-target-picker">{selected.scopeTargets.filter((target) => target.inScope).map((target) => <label className="verifygrid-check" key={target.id}><input checked={executionDraft.targetIds.includes(target.id)} onChange={() => toggleExecutionTarget(target.id)} type="checkbox" /><span>{target.value} | {label(target.permission)}</span></label>)}</div></div>
+                        <label className="content-field"><span>Requested start</span><input required type="datetime-local" value={executionDraft.requestedStartAt} onChange={(event) => setExecutionDraft({ ...executionDraft, requestedStartAt: event.target.value })} /></label>
+                        <label className="content-field"><span>Valid until</span><input required type="datetime-local" value={executionDraft.validUntil} onChange={(event) => setExecutionDraft({ ...executionDraft, validUntil: event.target.value })} /></label>
+                        <label className="content-field content-field-wide"><span>Technical rationale</span><textarea minLength={20} required rows={3} value={executionDraft.rationale} onChange={(event) => setExecutionDraft({ ...executionDraft, rationale: event.target.value })} /></label>
+                        <label className="verifygrid-check content-field-wide"><input checked={executionDraft.acknowledgeNonDestructive} onChange={(event) => setExecutionDraft({ ...executionDraft, acknowledgeNonDestructive: event.target.checked })} type="checkbox" /><span>This record is non-destructive and remains bound to the current authorization, target permissions, stop conditions, and request ceiling.</span></label>
+                      </div>
+                      <button className="button primary compact-button" disabled={busy === "execution" || !executionDraft.acknowledgeNonDestructive || !executionDraft.targetIds.length} type="submit"><ShieldCheck aria-hidden="true" size={16} /> Validate manifest</button>
+                    </fieldset>
+                  </form>
+                </div>
+              ) : null}
+
+              {view === "reports" ? (
+                <div className="verifygrid-reports-view">
+                  <section className="verifygrid-report-list">
+                    <div className="verifygrid-section-heading"><FileText aria-hidden="true" size={20} /><div><h4>Assurance reports</h4><p>Immutable, versioned snapshots with integrity hashes</p></div></div>
+                    {selected.reports.length ? selected.reports.map((report) => <a className="verifygrid-report-link" href={`/admin/verifygrid/reports/${report.id}`} key={report.id} rel="noreferrer" target="_blank"><div><strong>{report.title}</strong><span>{new Date(report.generatedAt).toLocaleString()} | {label(report.reportType)} v{report.version}</span></div><small>{report.snapshotSha256.slice(0, 24)}...</small></a>) : <p className="content-empty-state">No report snapshots generated.</p>}
+                  </section>
+                  <form className="content-editor verifygrid-compact-form" onSubmit={generateReport}>
+                    <fieldset className="content-editor-section">
+                      <legend>Generate report snapshot</legend>
+                      <label className="content-field"><span>Report type</span><select value={reportType} onChange={(event) => setReportType(event.target.value)}><option value="executive">Executive assurance</option><option value="technical">Technical findings</option><option value="retest">Retest and closure</option></select></label>
+                      <p className="form-note">The report captures current scope, authority, evidence provenance, findings, remediation, retests, and prepared execution records.</p>
+                      <button className="button primary compact-button" disabled={busy === "report"} type="submit"><FileText aria-hidden="true" size={16} /> {busy === "report" ? "Generating..." : "Generate version"}</button>
+                    </fieldset>
+                  </form>
                 </div>
               ) : null}
 

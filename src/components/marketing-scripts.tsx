@@ -6,10 +6,11 @@ export function MarketingScripts() {
 
   return (
     <>
-      <script
+      <Script
         id="consent-mode-default"
-        dangerouslySetInnerHTML={{
-          __html: `
+        strategy="beforeInteractive"
+      >
+        {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){window.dataLayer.push(arguments);}
           gtag('consent', 'default', {
@@ -20,9 +21,8 @@ export function MarketingScripts() {
             functionality_storage: 'granted',
             security_storage: 'granted'
           });
-        `
-        }}
-      />
+        `}
+      </Script>
 
       {gtmId ? (
         <Script id="google-tag-manager" strategy="afterInteractive">

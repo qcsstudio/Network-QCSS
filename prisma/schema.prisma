@@ -272,21 +272,25 @@ model ContentRevision {
 }
 
 model VerifyGridWorkspace {
-  id                  String                 @id @default(cuid())
-  slug                String                 @unique
+  id                  String                   @id @default(cuid())
+  slug                String                   @unique
   name                String
   legalName           String?
   primaryContactName  String
   primaryContactEmail String
   countryCode         String?
-  timezone            String                 @default("Asia/Kolkata")
-  status              String                 @default("active")
+  timezone            String                   @default("Asia/Kolkata")
+  status              String                   @default("active")
   createdBy           String?
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
   engagements         VerifyGridEngagement[]
   assets              VerifyGridAsset[]
   findings            VerifyGridFinding[]
+  importBatches       VerifyGridImportBatch[]
+  observations        VerifyGridObservation[]
+  executionJobs       VerifyGridExecutionJob[]
+  reports             VerifyGridReport[]
   activities          VerifyGridActivity[]
 
   @@index([status, updatedAt])
@@ -318,6 +322,10 @@ model VerifyGridEngagement {
   authorizations        VerifyGridAuthorization[]
   assets                VerifyGridAsset[]
   findings              VerifyGridFinding[]
+  importBatches         VerifyGridImportBatch[]
+  observations          VerifyGridObservation[]
+  executionJobs         VerifyGridExecutionJob[]
+  reports               VerifyGridReport[]
   activities            VerifyGridActivity[]
 
   @@index([workspaceId, status])
@@ -346,26 +354,27 @@ model VerifyGridScopeTarget {
 }
 
 model VerifyGridAuthorization {
-  id                 String               @id @default(cuid())
+  id                 String                   @id @default(cuid())
   engagementId       String
-  status             String               @default("active")
+  status             String                   @default("active")
   scopeHash          String
   approvedByName     String
   approvedByEmail    String
   approvedByTitle    String?
-  authorityConfirmed Boolean              @default(false)
-  approvalMethod     String               @default("recorded_admin")
+  authorityConfirmed Boolean                  @default(false)
+  approvalMethod     String                   @default("recorded_admin")
   validFrom          DateTime
   validUntil         DateTime
   artifactUrl        String?
   artifactSha256     String?
   notes              String?
   authorizedBy       String?
-  authorizedAt       DateTime             @default(now())
+  authorizedAt       DateTime                 @default(now())
   revokedAt          DateTime?
   revokedBy          String?
   revocationReason   String?
-  engagement         VerifyGridEngagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  engagement         VerifyGridEngagement     @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  executionJobs      VerifyGridExecutionJob[]
 
   @@index([engagementId, status, validUntil])
   @@index([scopeHash])
@@ -403,22 +412,22 @@ model VerifyGridAsset {
 }
 
 model VerifyGridFinding {
-  id                 String               @id @default(cuid())
+  id                 String                  @id @default(cuid())
   workspaceId        String
   engagementId       String
   assetId            String?
   fingerprint        String
   title              String
   description        String
-  status             String               @default("open")
+  status             String                  @default("open")
   severity           String
-  confidence         String               @default("unverified")
-  source             String               @default("manual")
+  confidence         String                  @default("unverified")
+  source             String                  @default("manual")
   sourceReference    String?
   advisoryExternalId String?
   cvssScore          Float?
   epssScore          Float?
-  knownExploited     Boolean              @default(false)
+  knownExploited     Boolean                 @default(false)
   attackPath         String?
   businessImpact     String
   evidenceSummary    String?
@@ -426,18 +435,19 @@ model VerifyGridFinding {
   ownerName          String?
   ownerEmail         String?
   dueAt              DateTime?
-  firstDetectedAt    DateTime             @default(now())
-  lastObservedAt     DateTime             @default(now())
+  firstDetectedAt    DateTime                @default(now())
+  lastObservedAt     DateTime                @default(now())
   resolvedAt         DateTime?
   createdBy          String?
   updatedBy          String?
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  workspace          VerifyGridWorkspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  engagement         VerifyGridEngagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
-  asset              VerifyGridAsset?     @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  workspace          VerifyGridWorkspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  engagement         VerifyGridEngagement    @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  asset              VerifyGridAsset?        @relation(fields: [assetId], references: [id], onDelete: SetNull)
   evidence           VerifyGridEvidence[]
   retests            VerifyGridRetest[]
+  observations       VerifyGridObservation[]
   activities         VerifyGridActivity[]
 
   @@unique([workspaceId, fingerprint])
@@ -502,4 +512,141 @@ model VerifyGridActivity {
   @@index([workspaceId, createdAt])
   @@index([engagementId, createdAt])
   @@index([findingId, createdAt])
+}
+
+model VerifyGridImportBatch {
+  id                String                  @id @default(cuid())
+  workspaceId       String
+  engagementId      String
+  connector         String
+  format            String
+  status            String                  @default("processing")
+  fileName          String?
+  contentSha256     String
+  scopeHash         String
+  authorizationId   String?
+  observationCount  Int                     @default(0)
+  inScopeCount      Int                     @default(0)
+  outOfScopeCount   Int                     @default(0)
+  unmatchedCount    Int                     @default(0)
+  promotedCount     Int                     @default(0)
+  duplicateCount    Int                     @default(0)
+  rejectedCount     Int                     @default(0)
+  enrichmentStatus  String                  @default("not_requested")
+  sourceStartedAt   DateTime?
+  sourceCompletedAt DateTime?
+  summary           Json?
+  errorMessage      String?
+  importedBy        String?
+  createdAt         DateTime                @default(now())
+  completedAt       DateTime?
+  workspace         VerifyGridWorkspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  engagement        VerifyGridEngagement    @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  observations      VerifyGridObservation[]
+
+  @@unique([engagementId, connector, contentSha256])
+  @@index([workspaceId, createdAt])
+  @@index([engagementId, status, createdAt])
+}
+
+model VerifyGridObservation {
+  id                 String                @id @default(cuid())
+  batchId            String
+  workspaceId        String
+  engagementId       String
+  promotedFindingId  String?
+  fingerprint        String
+  assetIdentifier    String
+  assetName          String
+  assetKind          String                @default("host")
+  environment        String                @default("production")
+  assetCriticality   String                @default("medium")
+  title              String
+  description        String
+  severity           String
+  confidence         String                @default("unverified")
+  sourceReference    String?
+  advisoryExternalId String?
+  cvssScore          Float?
+  epssScore          Float?
+  epssPercentile     Float?
+  knownExploited     Boolean               @default(false)
+  port               Int?
+  protocol           String?
+  service            String?
+  evidenceSummary    String?
+  remediation        String
+  scopeDisposition   String                @default("unmatched")
+  scopeTargetId      String?
+  dispositionReason  String?
+  promotionStatus    String                @default("pending")
+  rawMetadata        Json?
+  firstObservedAt    DateTime?
+  lastObservedAt     DateTime?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  batch              VerifyGridImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  workspace          VerifyGridWorkspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  engagement         VerifyGridEngagement  @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  promotedFinding    VerifyGridFinding?    @relation(fields: [promotedFindingId], references: [id], onDelete: SetNull)
+
+  @@unique([batchId, fingerprint])
+  @@index([engagementId, scopeDisposition, promotionStatus])
+  @@index([workspaceId, advisoryExternalId])
+  @@index([promotedFindingId])
+}
+
+model VerifyGridExecutionJob {
+  id                   String                  @id @default(cuid())
+  workspaceId          String
+  engagementId         String
+  authorizationId      String
+  capability           String
+  capabilityLevel      String
+  status               String                  @default("validated")
+  scopeHash            String
+  targetIds            Json
+  targetSnapshot       Json
+  rationale            String
+  requestedStartAt     DateTime
+  validUntil           DateTime
+  maxRequestsPerSecond Int
+  manifest             Json
+  manifestSha256       String
+  dispatchStatus       String                  @default("worker_not_connected")
+  requestedBy          String?
+  cancelledBy          String?
+  cancelledAt          DateTime?
+  cancellationReason   String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  workspace            VerifyGridWorkspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  engagement           VerifyGridEngagement    @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  authorization        VerifyGridAuthorization @relation(fields: [authorizationId], references: [id], onDelete: Restrict)
+
+  @@index([engagementId, status, requestedStartAt])
+  @@index([authorizationId])
+  @@index([manifestSha256])
+}
+
+model VerifyGridReport {
+  id             String               @id @default(cuid())
+  workspaceId    String
+  engagementId   String
+  version        Int
+  reportType     String
+  status         String               @default("final")
+  title          String
+  scopeHash      String
+  snapshot       Json
+  snapshotSha256 String
+  generatedBy    String?
+  generatedAt    DateTime             @default(now())
+  workspace      VerifyGridWorkspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  engagement     VerifyGridEngagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@unique([engagementId, reportType, version])
+  @@index([workspaceId, generatedAt])
+  @@index([engagementId, generatedAt])
+  @@index([snapshotSha256])
 }

@@ -1,6 +1,6 @@
 # QCS VerifyGrid Product Roadmap
 
-Status: implementation baseline, 22 July 2026. The working product name requires brand and trademark review before public launch.
+Status: Phase 2 control-plane baseline, 22 July 2026. The working product name requires brand and trademark review before public launch.
 
 ## Product position
 
@@ -42,6 +42,18 @@ Exit criteria: QCS can manage a real engagement from intake through remediation 
 - Event-triggered checks for new assets, critical advisories, firewall changes, identity changes, and cloud drift
 
 Exit criteria: imported observations become a stable remediation queue instead of duplicate scanner tickets.
+
+Implemented baseline:
+
+- Integrity-hashed import batches for Nmap XML, Nessus XML, Burp issue XML, Qualys CSV, Rapid7 CSV, Greenbone CSV, and VerifyGrid normalized JSON
+- XML entity rejection, 2 MB direct-import limit, 5,000-observation ceiling, and omission of raw Burp request/response material
+- Exclusion-first scope reconciliation for exact hosts, URLs, IPv4/IPv6 CIDRs, and named targets
+- Optional CISA KEV and FIRST EPSS enrichment with partial-failure recording
+- Observation staging, analyst promotion, cross-batch finding deduplication, asset refresh, and evidence integrity metadata
+- Authorization-bound execution manifests with capability and target permission checks; no Vercel-side scanner dispatch
+- Versioned executive, technical, and retest report snapshots with SHA-256 integrity
+
+Still required before the Phase 2 exit gate: credentialed vendor API polling, durable background workflows, NVD/CPE product matching, scanner-specific fixture certification, and queue-level operational monitoring.
 
 ### Phase 3: Network and identity graph
 

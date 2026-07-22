@@ -1,0 +1,114 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft, Download, Fingerprint, ShieldCheck } from "lucide-react";
+import { PrintReportButton } from "@/components/print-report-button";
+import { requireAdmin } from "@/lib/admin-auth";
+import { getVerifyGridReport } from "@/lib/verifygrid-pipeline";
+
+export const metadata: Metadata = {
+  title: "VerifyGrid Assurance Report",
+  robots: { index: false, follow: false }
+};
+
+export const dynamic = "force-dynamic";
+
+function record(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function list(value: unknown) {
+  return Array.isArray(value) ? value.map(record) : [];
+}
+
+function text(value: unknown, fallback = "Not recorded") {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function count(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function label(value: unknown) {
+  return text(value).replace(/_/g, " ");
+}
+
+export default async function VerifyGridReportPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdmin();
+  const { id } = await params;
+  const report = await getVerifyGridReport(id);
+  if (!report) notFound();
+
+  const snapshot = report.snapshot;
+  const engagement = record(snapshot.engagement);
+  const client = record(engagement.client);
+  const summary = record(snapshot.summary);
+  const scope = list(snapshot.scope);
+  const findings = list(snapshot.findings);
+  const evidenceSources = list(snapshot.evidenceSources);
+  const executionRecords = list(snapshot.executionRecords);
+
+  return (
+    <main className="verifygrid-report-page">
+      <section className="verifygrid-report-toolbar">
+        <Link className="button secondary compact-button" href="/admin#verifygrid"><ArrowLeft aria-hidden="true" size={17} /> Back to VerifyGrid</Link>
+        <div className="content-action-row">
+          <a className="button secondary compact-button" href={`/api/admin/verifygrid/reports/${report.id}`}><Download aria-hidden="true" size={17} /> JSON evidence</a>
+          <PrintReportButton />
+        </div>
+      </section>
+
+      <article className="verifygrid-report-document">
+        <header className="verifygrid-report-cover">
+          <div><p className="eyebrow">QCS VerifyGrid assurance</p><h1>{report.title}</h1><p>{text(client.name)} | {text(engagement.reference)} | {label(engagement.serviceType)}</p></div>
+          <ShieldCheck aria-hidden="true" size={48} />
+        </header>
+
+        <section className="verifygrid-report-integrity">
+          <div><span>Generated</span><strong>{new Date(report.generatedAt).toLocaleString()}</strong></div>
+          <div><span>Scope hash</span><strong>{report.scopeHash}</strong></div>
+          <div><span>Snapshot SHA-256</span><strong>{report.snapshotSha256}</strong></div>
+        </section>
+
+        <section className="verifygrid-report-section">
+          <div className="verifygrid-section-heading"><Fingerprint aria-hidden="true" size={20} /><div><h2>Assurance summary</h2><p>Versioned state at report generation</p></div></div>
+          <div className="verifygrid-report-metrics">
+            <div><span>In-scope targets</span><strong>{count(summary.inScopeTargets)}</strong></div>
+            <div><span>Findings</span><strong>{count(summary.findings)}</strong></div>
+            <div><span>Critical / high</span><strong>{count(summary.critical)} / {count(summary.high)}</strong></div>
+            <div><span>Known exploited</span><strong>{count(summary.knownExploited)}</strong></div>
+            <div><span>Closed</span><strong>{count(summary.closed)}</strong></div>
+            <div><span>Imported observations</span><strong>{count(summary.importedObservations)}</strong></div>
+          </div>
+        </section>
+
+        <section className="verifygrid-report-section">
+          <h2>Scope and authority</h2>
+          <p>{text(engagement.scopeSummary)}</p>
+          <div className="verifygrid-report-table" role="table" aria-label="Engagement scope">
+            <div className="verifygrid-report-row header" role="row"><span>Target</span><span>Environment</span><span>Permission</span><span>Disposition</span></div>
+            {scope.map((target, index) => <div className="verifygrid-report-row" key={`${text(target.value)}-${index}`} role="row"><strong>{text(target.value)}</strong><span>{label(target.environment)}</span><span>{label(target.permission)}</span><span>{label(target.disposition)}</span></div>)}
+          </div>
+        </section>
+
+        <section className="verifygrid-report-section">
+          <h2>Findings and remediation</h2>
+          {findings.length ? findings.map((finding, index) => (
+            <article className={`verifygrid-report-finding severity-${text(finding.severity, "informational")}`} key={`${text(finding.id)}-${index}`}>
+              <div><span className={`severity-pill severity-${text(finding.severity, "informational")}`}>{label(finding.severity)}</span><span className="status-pill content-kind-pill">{label(finding.status)}</span>{finding.knownExploited === true ? <span className="status-pill content-status-deleted">known exploited</span> : null}</div>
+              <h3>{text(finding.title)}</h3>
+              <p><strong>Impact:</strong> {text(finding.businessImpact)}</p>
+              <p><strong>Remediation:</strong> {text(finding.remediation)}</p>
+              <p className="verifygrid-report-meta">Owner: {text(finding.ownerName, "Unassigned")} | CVE: {text(finding.advisoryExternalId, "None")} | Evidence: {count(finding.evidenceCount)}</p>
+            </article>
+          )) : <p>No reportable findings were present in this snapshot.</p>}
+        </section>
+
+        <section className="verifygrid-report-section verifygrid-report-columns">
+          <div><h2>Evidence provenance</h2>{evidenceSources.length ? evidenceSources.map((source, index) => <div className="verifygrid-report-record" key={`${text(source.contentSha256)}-${index}`}><strong>{label(source.connector)}</strong><span>{count(source.observations)} observations | {count(source.inScope)} in scope</span><small>{text(source.contentSha256)}</small></div>) : <p>No scanner batches recorded.</p>}</div>
+          <div><h2>Execution records</h2>{executionRecords.length ? executionRecords.map((job, index) => <div className="verifygrid-report-record" key={`${text(job.manifestSha256)}-${index}`}><strong>{label(job.capability)}</strong><span>{label(job.status)} | {label(job.capabilityLevel)}</span><small>{text(job.manifestSha256)}</small></div>) : <p>No governed execution records prepared.</p>}</div>
+        </section>
+      </article>
+    </main>
+  );
+}

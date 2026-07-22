@@ -27,6 +27,29 @@ const engagementInclude = {
       retests: { orderBy: { requestedAt: "desc" as const }, take: 3 }
     }
   },
+  importBatches: { orderBy: { createdAt: "desc" as const }, take: 12 },
+  observations: {
+    orderBy: [{ knownExploited: "desc" as const }, { createdAt: "desc" as const }],
+    take: 60,
+    select: {
+      id: true,
+      batchId: true,
+      title: true,
+      assetIdentifier: true,
+      severity: true,
+      confidence: true,
+      advisoryExternalId: true,
+      epssScore: true,
+      knownExploited: true,
+      scopeDisposition: true,
+      dispositionReason: true,
+      promotionStatus: true,
+      promotedFindingId: true,
+      createdAt: true
+    }
+  },
+  executionJobs: { orderBy: { createdAt: "desc" as const }, take: 20 },
+  reports: { orderBy: { generatedAt: "desc" as const }, take: 20 },
   activities: { orderBy: { createdAt: "desc" as const }, take: 20 }
 } satisfies Prisma.VerifyGridEngagementInclude;
 
@@ -149,6 +172,53 @@ function mapEngagement(engagement: EngagementWithRelations) {
         completedAt: finding.retests[0].completedAt?.toISOString() || ""
       } : null
     })).sort((left, right) => right.riskScore - left.riskScore),
+    importBatches: engagement.importBatches.map((batch) => ({
+      id: batch.id,
+      connector: batch.connector,
+      format: batch.format,
+      status: batch.status,
+      fileName: batch.fileName || "",
+      contentSha256: batch.contentSha256,
+      observationCount: batch.observationCount,
+      inScopeCount: batch.inScopeCount,
+      outOfScopeCount: batch.outOfScopeCount,
+      unmatchedCount: batch.unmatchedCount,
+      promotedCount: batch.promotedCount,
+      duplicateCount: batch.duplicateCount,
+      rejectedCount: batch.rejectedCount,
+      enrichmentStatus: batch.enrichmentStatus,
+      createdAt: batch.createdAt.toISOString(),
+      completedAt: batch.completedAt?.toISOString() || ""
+    })),
+    observations: engagement.observations.map((observation) => ({
+      ...observation,
+      createdAt: observation.createdAt.toISOString()
+    })),
+    executionJobs: engagement.executionJobs.map((job) => ({
+      id: job.id,
+      capability: job.capability,
+      capabilityLevel: job.capabilityLevel,
+      status: job.status,
+      scopeHash: job.scopeHash,
+      targetIds: Array.isArray(job.targetIds) ? job.targetIds.filter((item): item is string => typeof item === "string") : [],
+      requestedStartAt: job.requestedStartAt.toISOString(),
+      validUntil: job.validUntil.toISOString(),
+      maxRequestsPerSecond: job.maxRequestsPerSecond,
+      manifestSha256: job.manifestSha256,
+      dispatchStatus: job.dispatchStatus,
+      cancelledAt: job.cancelledAt?.toISOString() || "",
+      createdAt: job.createdAt.toISOString()
+    })),
+    reports: engagement.reports.map((report) => ({
+      id: report.id,
+      version: report.version,
+      reportType: report.reportType,
+      status: report.status,
+      title: report.title,
+      scopeHash: report.scopeHash,
+      snapshotSha256: report.snapshotSha256,
+      generatedAt: report.generatedAt.toISOString()
+    })),
     activities: engagement.activities.map((activity) => ({
       id: activity.id,
       action: activity.action,
@@ -169,13 +239,15 @@ export type VerifyGridEngagementRecord = ReturnType<typeof mapEngagement>;
 
 export async function getVerifyGridPortfolio() {
   const prisma = getPrismaClient();
-  const [engagements, workspaceCount, openFindingCount, criticalFindingCount, knownExploitedCount, overdueFindingCount] = await Promise.all([
+  const [engagements, workspaceCount, openFindingCount, criticalFindingCount, knownExploitedCount, overdueFindingCount, pendingObservationCount, readyJobCount] = await Promise.all([
     prisma.verifyGridEngagement.findMany({ orderBy: { updatedAt: "desc" }, take: 60, include: engagementInclude }),
     prisma.verifyGridWorkspace.count({ where: { status: "active" } }),
     prisma.verifyGridFinding.count({ where: { status: { in: ["open", "validated", "remediation_in_progress", "resolved", "retest_requested"] } } }),
     prisma.verifyGridFinding.count({ where: { severity: "critical", status: { notIn: ["closed", "false_positive", "duplicate"] } } }),
     prisma.verifyGridFinding.count({ where: { knownExploited: true, status: { notIn: ["closed", "false_positive", "duplicate"] } } }),
-    prisma.verifyGridFinding.count({ where: { dueAt: { lt: new Date() }, status: { notIn: ["closed", "accepted_risk", "false_positive", "duplicate"] } } })
+    prisma.verifyGridFinding.count({ where: { dueAt: { lt: new Date() }, status: { notIn: ["closed", "accepted_risk", "false_positive", "duplicate"] } } }),
+    prisma.verifyGridObservation.count({ where: { scopeDisposition: "in_scope", promotionStatus: "pending" } }),
+    prisma.verifyGridExecutionJob.count({ where: { status: { in: ["validated", "manual_approval_required"] } } })
   ]);
   const records = engagements.map(mapEngagement);
   return {
@@ -188,7 +260,9 @@ export async function getVerifyGridPortfolio() {
       openFindings: openFindingCount,
       criticalFindings: criticalFindingCount,
       knownExploited: knownExploitedCount,
-      overdueFindings: overdueFindingCount
+      overdueFindings: overdueFindingCount,
+      pendingObservations: pendingObservationCount,
+      preparedJobs: readyJobCount
     },
     engagements: records
   };
@@ -207,7 +281,9 @@ export function getEmptyVerifyGridPortfolio(): VerifyGridPortfolio {
       openFindings: 0,
       criticalFindings: 0,
       knownExploited: 0,
-      overdueFindings: 0
+      overdueFindings: 0,
+      pendingObservations: 0,
+      preparedJobs: 0
     },
     engagements: []
   };
