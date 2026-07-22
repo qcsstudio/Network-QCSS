@@ -69,6 +69,14 @@ function groups() {
       ]
     },
     {
+      label: "VerifyGrid Security Assurance",
+      items: [
+        item("verifygrid-portal-session", "Dedicated portal session secret", isConfigured("VERIFYGRID_PORTAL_SESSION_SECRET"), "VERIFYGRID_PORTAL_SESSION_SECRET", { required: true }),
+        item("verifygrid-nvd", "NVD API enrichment", isConfigured("NVD_API_KEY"), "NVD_API_KEY", { warning: true }),
+        item("verifygrid-operations", "Operations scheduler secret", isConfigured("CRON_SECRET"), "CRON_SECRET", { required: true })
+      ]
+    },
+    {
       label: "Growth Tracking",
       items: [
         item("gtm", "Google Tag Manager", isConfigured("NEXT_PUBLIC_GTM_ID"), "NEXT_PUBLIC_GTM_ID", { warning: true }),

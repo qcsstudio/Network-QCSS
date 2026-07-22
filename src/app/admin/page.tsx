@@ -55,7 +55,7 @@ export default async function AdminPage() {
   });
 
   return (
-    <main>
+    <main className="admin-page">
       <section className="page-hero dark">
         <p className="eyebrow">Private layer</p>
         <h1>Lead intelligence, assessment signals, and pipeline activity.</h1>

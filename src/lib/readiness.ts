@@ -92,6 +92,21 @@ function buildGroups(): ReadinessGroup[] {
       ]
     },
     {
+      key: "verifygrid",
+      label: "VerifyGrid Security Assurance",
+      items: [
+        item("verifygrid-portal-session", "Dedicated portal session secret", isConfigured("VERIFYGRID_PORTAL_SESSION_SECRET"), "Separates client portal sessions from administrative sessions.", {
+          required: true
+        }),
+        item("verifygrid-nvd", "NVD API enrichment", isConfigured("NVD_API_KEY"), "Raises NVD enrichment throughput while the no-key path remains deliberately bounded.", {
+          warning: true
+        }),
+        item("verifygrid-cron", "VerifyGrid operations scheduler", isConfigured("CRON_SECRET"), "Protects connector scheduling and sensor lease reconciliation.", {
+          required: true
+        })
+      ]
+    },
+    {
       key: "growth",
       label: "Growth Tracking",
       items: [

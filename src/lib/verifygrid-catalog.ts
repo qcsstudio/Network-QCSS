@@ -5,19 +5,27 @@ export const verifyGridConnectors = [
   "qualys_csv",
   "rapid7_csv",
   "greenbone_csv",
+  "tenable_api",
+  "qualys_api",
+  "rapid7_api",
+  "greenbone_api",
   "normalized_json"
 ] as const;
 
 export type VerifyGridConnector = typeof verifyGridConnectors[number];
 
-export const connectorCatalog: Record<VerifyGridConnector, { label: string; format: string; accepted: string }> = {
-  nmap_xml: { label: "Nmap XML", format: "xml", accepted: ".xml" },
-  nessus_xml: { label: "Tenable Nessus XML", format: "xml", accepted: ".nessus,.xml" },
-  burp_xml: { label: "Burp issue XML", format: "xml", accepted: ".xml" },
-  qualys_csv: { label: "Qualys VMDR CSV", format: "csv", accepted: ".csv" },
-  rapid7_csv: { label: "Rapid7 InsightVM CSV", format: "csv", accepted: ".csv" },
-  greenbone_csv: { label: "Greenbone CSV", format: "csv", accepted: ".csv" },
-  normalized_json: { label: "VerifyGrid normalized JSON", format: "json", accepted: ".json" }
+export const connectorCatalog: Record<VerifyGridConnector, { label: string; format: string; accepted: string; directImport: boolean }> = {
+  nmap_xml: { label: "Nmap XML", format: "xml", accepted: ".xml", directImport: true },
+  nessus_xml: { label: "Tenable Nessus XML", format: "xml", accepted: ".nessus,.xml", directImport: true },
+  burp_xml: { label: "Burp issue XML", format: "xml", accepted: ".xml", directImport: true },
+  qualys_csv: { label: "Qualys VMDR CSV", format: "csv", accepted: ".csv", directImport: true },
+  rapid7_csv: { label: "Rapid7 InsightVM CSV", format: "csv", accepted: ".csv", directImport: true },
+  greenbone_csv: { label: "Greenbone CSV", format: "csv", accepted: ".csv", directImport: true },
+  tenable_api: { label: "Tenable API", format: "json", accepted: ".json", directImport: false },
+  qualys_api: { label: "Qualys API", format: "json", accepted: ".json", directImport: false },
+  rapid7_api: { label: "Rapid7 sensor API", format: "json", accepted: ".json", directImport: false },
+  greenbone_api: { label: "Greenbone sensor API", format: "json", accepted: ".json", directImport: false },
+  normalized_json: { label: "VerifyGrid normalized JSON", format: "json", accepted: ".json", directImport: true }
 };
 
 export const verifyGridCapabilities = [

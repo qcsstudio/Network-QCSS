@@ -272,18 +272,18 @@ model ContentRevision {
 }
 
 model VerifyGridWorkspace {
-  id                  String                   @id @default(cuid())
-  slug                String                   @unique
+  id                  String                       @id @default(cuid())
+  slug                String                       @unique
   name                String
   legalName           String?
   primaryContactName  String
   primaryContactEmail String
   countryCode         String?
-  timezone            String                   @default("Asia/Kolkata")
-  status              String                   @default("active")
+  timezone            String                       @default("Asia/Kolkata")
+  status              String                       @default("active")
   createdBy           String?
-  createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
   engagements         VerifyGridEngagement[]
   assets              VerifyGridAsset[]
   findings            VerifyGridFinding[]
@@ -291,6 +291,9 @@ model VerifyGridWorkspace {
   observations        VerifyGridObservation[]
   executionJobs       VerifyGridExecutionJob[]
   reports             VerifyGridReport[]
+  connectorProfiles   VerifyGridConnectorProfile[]
+  sensors             VerifyGridSensor[]
+  memberships         VerifyGridMembership[]
   activities          VerifyGridActivity[]
 
   @@index([status, updatedAt])
@@ -298,14 +301,14 @@ model VerifyGridWorkspace {
 }
 
 model VerifyGridEngagement {
-  id                    String                    @id @default(cuid())
+  id                    String                       @id @default(cuid())
   workspaceId           String
-  reference             String                    @unique
+  reference             String                       @unique
   title                 String
   serviceType           String
-  status                String                    @default("draft")
-  testMode              String                    @default("safe_checks")
-  riskTier              String                    @default("standard")
+  status                String                       @default("draft")
+  testMode              String                       @default("safe_checks")
+  riskTier              String                       @default("standard")
   scopeSummary          String
   rulesOfEngagement     Json?
   plannedStartAt        DateTime?
@@ -315,9 +318,9 @@ model VerifyGridEngagement {
   emergencyContactPhone String?
   createdBy             String?
   updatedBy             String?
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
-  workspace             VerifyGridWorkspace       @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  workspace             VerifyGridWorkspace          @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
   scopeTargets          VerifyGridScopeTarget[]
   authorizations        VerifyGridAuthorization[]
   assets                VerifyGridAsset[]
@@ -326,6 +329,8 @@ model VerifyGridEngagement {
   observations          VerifyGridObservation[]
   executionJobs         VerifyGridExecutionJob[]
   reports               VerifyGridReport[]
+  connectorProfiles     VerifyGridConnectorProfile[]
+  connectorRuns         VerifyGridConnectorRun[]
   activities            VerifyGridActivity[]
 
   @@index([workspaceId, status])
@@ -614,6 +619,17 @@ model VerifyGridExecutionJob {
   manifest             Json
   manifestSha256       String
   dispatchStatus       String                  @default("worker_not_connected")
+  sensorId             String?
+  attempt              Int                     @default(0)
+  maxAttempts          Int                     @default(3)
+  queuedAt             DateTime?
+  claimedAt            DateTime?
+  leaseUntil           DateTime?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  resultBatchId        String?
+  resultSummary        Json?
+  lastError            String?
   requestedBy          String?
   cancelledBy          String?
   cancelledAt          DateTime?
@@ -623,9 +639,12 @@ model VerifyGridExecutionJob {
   workspace            VerifyGridWorkspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   engagement           VerifyGridEngagement    @relation(fields: [engagementId], references: [id], onDelete: Cascade)
   authorization        VerifyGridAuthorization @relation(fields: [authorizationId], references: [id], onDelete: Restrict)
+  sensor               VerifyGridSensor?       @relation(fields: [sensorId], references: [id], onDelete: SetNull)
 
   @@index([engagementId, status, requestedStartAt])
   @@index([authorizationId])
+  @@index([sensorId, status, requestedStartAt])
+  @@index([dispatchStatus, leaseUntil])
   @@index([manifestSha256])
 }
 
@@ -649,4 +668,126 @@ model VerifyGridReport {
   @@index([workspaceId, generatedAt])
   @@index([engagementId, generatedAt])
   @@index([snapshotSha256])
+}
+
+model VerifyGridConnectorProfile {
+  id                  String                   @id @default(cuid())
+  workspaceId         String
+  engagementId        String?
+  provider            String
+  label               String
+  status              String                   @default("active")
+  baseUrl             String
+  credentialRef       String
+  syncMode            String                   @default("differential")
+  scheduleMinutes     Int                      @default(1440)
+  settings            Json?
+  cursor              Json?
+  lastSyncAt          DateTime?
+  nextSyncAt          DateTime                 @default(now())
+  lastSuccessAt       DateTime?
+  consecutiveFailures Int                      @default(0)
+  lastError           String?
+  createdBy           String?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  workspace           VerifyGridWorkspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  engagement          VerifyGridEngagement?    @relation(fields: [engagementId], references: [id], onDelete: SetNull)
+  runs                VerifyGridConnectorRun[]
+
+  @@unique([workspaceId, label])
+  @@index([status, nextSyncAt])
+  @@index([workspaceId, provider])
+  @@index([engagementId])
+}
+
+model VerifyGridConnectorRun {
+  id             String                     @id @default(cuid())
+  connectorId    String
+  engagementId   String
+  status         String                     @default("queued")
+  trigger        String                     @default("scheduled")
+  attempt        Int                        @default(0)
+  maxAttempts    Int                        @default(5)
+  nextAttemptAt  DateTime                   @default(now())
+  leaseTokenHash String?
+  leaseUntil     DateTime?
+  remoteJobId    String?
+  cursorBefore   Json?
+  cursorAfter    Json?
+  summary        Json?
+  errorMessage   String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdBy      String?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  connector      VerifyGridConnectorProfile @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+  engagement     VerifyGridEngagement       @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
+  @@index([connectorId, createdAt])
+  @@index([engagementId, createdAt])
+}
+
+model VerifyGridSensor {
+  id            String                   @id @default(cuid())
+  workspaceId   String
+  name          String
+  status        String                   @default("active")
+  tokenHash     String                   @unique
+  tokenLastFour String
+  capabilities  Json
+  version       String?
+  region        String?
+  lastSeenAt    DateTime?
+  createdBy     String?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  revokedAt     DateTime?
+  revokedBy     String?
+  workspace     VerifyGridWorkspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  executionJobs VerifyGridExecutionJob[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, status])
+  @@index([lastSeenAt])
+}
+
+model VerifyGridMembership {
+  id           String                  @id @default(cuid())
+  workspaceId  String
+  email        String
+  displayName  String?
+  role         String                  @default("client_viewer")
+  status       String                  @default("invited")
+  invitedBy    String?
+  invitedAt    DateTime                @default(now())
+  acceptedAt   DateTime?
+  lastAccessAt DateTime?
+  revokedAt    DateTime?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  workspace    VerifyGridWorkspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accessTokens VerifyGridAccessToken[]
+
+  @@unique([workspaceId, email])
+  @@index([email, status])
+  @@index([workspaceId, role, status])
+}
+
+model VerifyGridAccessToken {
+  id           String               @id @default(cuid())
+  membershipId String
+  tokenHash    String               @unique
+  purpose      String               @default("portal_access")
+  expiresAt    DateTime
+  usedAt       DateTime?
+  revokedAt    DateTime?
+  createdBy    String?
+  createdAt    DateTime             @default(now())
+  membership   VerifyGridMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([membershipId, expiresAt])
+  @@index([expiresAt, usedAt])
 }

@@ -5,20 +5,27 @@ import {
   Activity,
   AlertTriangle,
   Ban,
+  Cable,
   CheckCircle2,
   Clock3,
+  CloudCog,
+  Copy,
+  Cpu,
   DatabaseZap,
   FilePlus2,
   FileSearch,
   FileText,
   Fingerprint,
   LockKeyhole,
+  MailPlus,
   Pause,
   Play,
   Plus,
   RefreshCw,
   RotateCcw,
+  Send,
   ShieldCheck,
+  Siren,
   Target,
   Trash2,
   Upload,
@@ -27,7 +34,31 @@ import {
 import { capabilityCatalog, connectorCatalog, type VerifyGridConnector } from "@/lib/verifygrid-catalog";
 import type { VerifyGridEngagementRecord, VerifyGridPortfolio } from "@/lib/verifygrid";
 
-type View = "command" | "scope" | "evidence" | "findings" | "execution" | "reports" | "activity";
+type View = "command" | "scope" | "evidence" | "findings" | "execution" | "automation" | "reports" | "activity";
+
+type VerifyGridAutomation = {
+  connectors: Array<{
+    id: string;
+    engagementId: string;
+    provider: string;
+    label: string;
+    status: string;
+    baseUrl: string;
+    credentialRef: string;
+    connectorMode: "cloud_api" | "sensor_api";
+    syncMode: string;
+    scheduleMinutes: number;
+    credentialsReady: boolean;
+    lastSyncAt: string;
+    nextSyncAt: string;
+    lastSuccessAt: string;
+    consecutiveFailures: number;
+    lastError: string;
+    runs: Array<{ id: string; status: string; trigger: string; attempt: number; errorMessage: string; createdAt: string; completedAt: string }>;
+  }>;
+  sensors: Array<{ id: string; name: string; status: string; tokenLastFour: string; capabilities: string[]; version: string; region: string; lastSeenAt: string; createdAt: string }>;
+  memberships: Array<{ id: string; email: string; displayName: string; role: string; status: string; invitedAt: string; acceptedAt: string; lastAccessAt: string }>;
+};
 
 function localDateTime(date = new Date()) {
   const offset = date.getTimezoneOffset() * 60_000;
@@ -36,6 +67,18 @@ function localDateTime(date = new Date()) {
 
 function label(value: string) {
   return value.replace(/_/g, " ");
+}
+
+const verifyGridDateTime = new Intl.DateTimeFormat("en-GB", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: "Asia/Kolkata",
+  hour12: false
+});
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Not recorded" : verifyGridDateTime.format(date);
 }
 
 function initialEngagementDraft() {
@@ -126,6 +169,34 @@ function initialExecutionDraft() {
   };
 }
 
+const providerDefaults = {
+  tenable: { label: "Tenable Vulnerability Management", baseUrl: "https://cloud.tenable.com", credentialRef: "VERIFYGRID_TENABLE" },
+  qualys: { label: "Qualys VMDR", baseUrl: "https://qualysapi.qualys.com", credentialRef: "VERIFYGRID_QUALYS" },
+  rapid7: { label: "Rapid7 InsightVM", baseUrl: "https://insightvm.example.com", credentialRef: "VERIFYGRID_RAPID7" },
+  greenbone: { label: "Greenbone GMP", baseUrl: "https://greenbone.local", credentialRef: "VERIFYGRID_GREENBONE" }
+} as const;
+
+type ConnectorDraft = {
+  provider: keyof typeof providerDefaults;
+  label: string;
+  baseUrl: string;
+  credentialRef: string;
+  syncMode: string;
+  scheduleMinutes: string;
+};
+
+function initialConnectorDraft(): ConnectorDraft {
+  return { provider: "tenable" as keyof typeof providerDefaults, ...providerDefaults.tenable, syncMode: "differential", scheduleMinutes: "1440" };
+}
+
+function initialSensorDraft() {
+  return { name: "QCS client sensor", capabilities: ["asset_inventory", "dns_posture", "tls_posture", "tcp_service_validation", "http_security_headers"] };
+}
+
+function initialMemberDraft() {
+  return { email: "", displayName: "", role: "client_viewer", expiresInHours: "48" };
+}
+
 async function responseJson(response: Response) {
   return response.json() as Promise<{
     error?: string;
@@ -136,6 +207,18 @@ async function responseJson(response: Response) {
     duplicates?: number;
     jobId?: string;
     reportId?: string;
+  }>;
+}
+
+async function automationJson(response: Response) {
+  return response.json() as Promise<{
+    error?: string;
+    automation?: VerifyGridAutomation;
+    token?: string;
+    accessUrl?: string;
+    sensor?: { id: string; name: string };
+    membership?: { id: string; email: string };
+    run?: { id: string; status: string };
   }>;
 }
 
@@ -150,6 +233,14 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
   const [authorizationDraft, setAuthorizationDraft] = useState(initialAuthorizationDraft);
   const [importDraft, setImportDraft] = useState(initialImportDraft);
   const [executionDraft, setExecutionDraft] = useState(initialExecutionDraft);
+  const [automation, setAutomation] = useState<VerifyGridAutomation | null>(null);
+  const [automationWorkspaceId, setAutomationWorkspaceId] = useState("");
+  const [connectorDraft, setConnectorDraft] = useState(initialConnectorDraft);
+  const [sensorDraft, setSensorDraft] = useState(initialSensorDraft);
+  const [memberDraft, setMemberDraft] = useState(initialMemberDraft);
+  const [jobSensors, setJobSensors] = useState<Record<string, string>>({});
+  const [emergencyReason, setEmergencyReason] = useState("");
+  const [oneTimeValue, setOneTimeValue] = useState<{ title: string; value: string } | null>(null);
   const [reportType, setReportType] = useState("executive");
   const [resolution, setResolution] = useState({ findingId: "", note: "" });
   const [busy, setBusy] = useState("");
@@ -163,6 +254,19 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
     if (!response.ok || !result.portfolio) throw new Error(result.error || "Unable to load VerifyGrid.");
     setPortfolio(result.portfolio);
     setSelectedId(result.portfolio.engagements.some((item) => item.id === preferredId) ? preferredId : result.portfolio.engagements[0]?.id || "");
+  }
+
+  async function loadAutomation(workspaceId: string) {
+    setBusy("automation-load");
+    try {
+      const response = await fetch(`/api/admin/verifygrid/workspaces/${workspaceId}/automation`, { cache: "no-store" });
+      const result = await automationJson(response);
+      if (!response.ok || !result.automation) throw new Error(result.error || "Unable to load automation controls.");
+      setAutomation(result.automation);
+      setAutomationWorkspaceId(workspaceId);
+    } finally {
+      setBusy("");
+    }
   }
 
   async function mutateResult(path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown) {
@@ -420,6 +524,165 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
     }
   }
 
+  async function automationMutation(path: string, method: "POST" | "PATCH", body: unknown) {
+    const response = await fetch(path, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const result = await automationJson(response);
+    if (!response.ok) throw new Error(result.error || "VerifyGrid automation operation failed.");
+    return result;
+  }
+
+  function changeConnectorProvider(provider: keyof typeof providerDefaults) {
+    setConnectorDraft((current) => ({ ...current, provider, ...providerDefaults[provider] }));
+  }
+
+  async function createConnector(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    setBusy("connector-create");
+    try {
+      await automationMutation(`/api/admin/verifygrid/workspaces/${selected.workspace.id}/connectors`, "POST", {
+        ...connectorDraft,
+        engagementId: selected.id,
+        scheduleMinutes: Number(connectorDraft.scheduleMinutes)
+      });
+      await loadAutomation(selected.workspace.id);
+      setConnectorDraft(initialConnectorDraft());
+      setMessage("Connector profile created. The status below shows whether its environment-backed credentials are ready.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to create connector profile.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function syncConnector(connectorId: string) {
+    if (!selected) return;
+    setBusy(`connector-${connectorId}`);
+    try {
+      const result = await automationMutation(`/api/admin/verifygrid/connectors/${connectorId}/runs`, "POST", { trigger: "admin" });
+      await loadAutomation(selected.workspace.id);
+      setMessage(`Connector run ${result.run?.id || "queued"} is ${label(result.run?.status || "queued")}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to queue connector synchronization.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  function toggleSensorCapability(capability: string) {
+    setSensorDraft((current) => ({
+      ...current,
+      capabilities: current.capabilities.includes(capability)
+        ? current.capabilities.filter((item) => item !== capability)
+        : [...current.capabilities, capability]
+    }));
+  }
+
+  async function enrollSensor(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    setBusy("sensor-create");
+    try {
+      const result = await automationMutation(`/api/admin/verifygrid/workspaces/${selected.workspace.id}/sensors`, "POST", sensorDraft);
+      if (result.token) setOneTimeValue({ title: `${result.sensor?.name || "Sensor"} enrollment token`, value: result.token });
+      await loadAutomation(selected.workspace.id);
+      setSensorDraft(initialSensorDraft());
+      setMessage("Sensor enrolled. Store the one-time token on the client sensor before dismissing it.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to enroll sensor.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function revokeSensor(sensorId: string) {
+    if (!selected) return;
+    const reason = window.prompt("Record why this sensor is being revoked (at least 10 characters):");
+    if (!reason) return;
+    setBusy(`sensor-${sensorId}`);
+    try {
+      await automationMutation(`/api/admin/verifygrid/sensors/${sensorId}`, "PATCH", { reason });
+      await loadAutomation(selected.workspace.id);
+      setMessage("Sensor revoked and its active jobs cancelled.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to revoke sensor.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function inviteMember(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    setBusy("member-invite");
+    try {
+      const result = await automationMutation(`/api/admin/verifygrid/workspaces/${selected.workspace.id}/memberships`, "POST", { ...memberDraft, expiresInHours: Number(memberDraft.expiresInHours) });
+      if (result.accessUrl) setOneTimeValue({ title: `${result.membership?.email || "Client"} one-time access link`, value: result.accessUrl });
+      await loadAutomation(selected.workspace.id);
+      setMemberDraft(initialMemberDraft());
+      setMessage("Client access issued. Send the one-time link through an approved secure channel.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to issue client access.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function revokeMember(membershipId: string) {
+    if (!selected) return;
+    const reason = window.prompt("Record why this client access is being revoked (at least 10 characters):");
+    if (!reason) return;
+    setBusy(`member-${membershipId}`);
+    try {
+      await automationMutation(`/api/admin/verifygrid/memberships/${membershipId}`, "PATCH", { reason });
+      await loadAutomation(selected.workspace.id);
+      setMessage("Client access revoked immediately.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to revoke client access.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function queueExecutionJob(jobId: string, sensorId: string) {
+    if (!selected || !sensorId) return;
+    setBusy(`queue-${jobId}`);
+    try {
+      const response = await fetch(`/api/admin/verifygrid/execution-jobs/${jobId}/queue`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sensorId }) });
+      const result = await responseJson(response);
+      if (!response.ok) throw new Error(result.error || "Unable to queue execution record.");
+      await load(selected.id);
+      setMessage("The validated manifest is queued to the selected outbound sensor.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to queue execution record.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function emergencyStop() {
+    if (!selected || emergencyReason.trim().length < 20 || !window.confirm("Stop this engagement and cancel every queued or running sensor job?")) return;
+    setBusy("emergency-stop");
+    try {
+      const response = await fetch(`/api/admin/verifygrid/engagements/${selected.id}/kill-switch`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ reason: emergencyReason }) });
+      const result = await responseJson(response);
+      if (!response.ok) throw new Error(result.error || "Unable to stop the engagement.");
+      await load(selected.id);
+      setEmergencyReason("");
+      setMessage("Emergency stop recorded. The engagement is paused and every active dispatch is cancelled.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to stop the engagement.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function copyOneTimeValue() {
+    if (!oneTimeValue) return;
+    await navigator.clipboard.writeText(oneTimeValue.value);
+    setMessage(`${oneTimeValue.title} copied.`);
+  }
+
   const lifecycleActions = selected ? {
     authorized: ["schedule", "start", "cancel"],
     scheduled: ["start", "pause", "cancel"],
@@ -442,6 +705,14 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
         </div>
       </div>
       <p aria-live="polite" className="form-note verifygrid-message">{message}</p>
+
+      {oneTimeValue ? (
+        <div className="verifygrid-one-time" role="status">
+          <div><strong>{oneTimeValue.title}</strong><span>This value cannot be recovered after this notice is dismissed.</span></div>
+          <code>{oneTimeValue.value}</code>
+          <div className="content-action-row"><button className="button primary compact-button" onClick={copyOneTimeValue} type="button"><Copy aria-hidden="true" size={15} /> Copy</button><button className="button secondary compact-button" onClick={() => setOneTimeValue(null)} type="button">Dismiss</button></div>
+        </div>
+      ) : null}
 
       {portfolio ? (
         <div className="verifygrid-metrics" aria-label="VerifyGrid portfolio metrics">
@@ -487,7 +758,7 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
         <div className="verifygrid-layout">
           <aside className="verifygrid-rail" aria-label="Engagements">
             {portfolio.engagements.map((engagement) => (
-              <button aria-current={selected?.id === engagement.id ? "true" : undefined} key={engagement.id} onClick={() => { setSelectedId(engagement.id); setView("command"); setImportDraft(initialImportDraft()); setExecutionDraft(initialExecutionDraft()); }} type="button">
+              <button aria-current={selected?.id === engagement.id ? "true" : undefined} key={engagement.id} onClick={() => { setSelectedId(engagement.id); setView("command"); setAutomation(null); setAutomationWorkspaceId(""); setImportDraft(initialImportDraft()); setExecutionDraft(initialExecutionDraft()); }} type="button">
                 <span><strong>{engagement.workspace.name}</strong><em>{engagement.reference}</em></span>
                 <span className={`verifygrid-state state-${engagement.status}`}>{label(engagement.status)}</span>
                 <small>{engagement.title}</small>
@@ -505,13 +776,13 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
               </header>
 
               <div className="content-filter-tabs verifygrid-tabs" aria-label="Engagement views">
-                {(["command", "scope", "evidence", "findings", "execution", "reports", "activity"] as const).map((item) => <button aria-pressed={view === item} key={item} onClick={() => setView(item)} type="button">{item}</button>)}
+                {(["command", "scope", "evidence", "findings", "execution", "automation", "reports", "activity"] as const).map((item) => <button aria-pressed={view === item} key={item} onClick={() => { setView(item); if (["execution", "automation"].includes(item) && automationWorkspaceId !== selected.workspace.id) loadAutomation(selected.workspace.id).catch((error) => setMessage(error instanceof Error ? error.message : "Unable to load automation controls.")); }} type="button">{item}</button>)}
               </div>
 
               {view === "command" ? (
                 <div className="verifygrid-command-grid">
                   <section><div className="verifygrid-section-heading"><ShieldCheck aria-hidden="true" size={20} /><div><h4>Execution gate</h4><p>{selected.gate.scopeHash.slice(0, 16)}...</p></div></div>{selected.gate.blockers.length ? <ul className="verifygrid-blockers">{selected.gate.blockers.map((blocker) => <li key={blocker}><AlertTriangle aria-hidden="true" size={16} />{blocker}</li>)}</ul> : <p className="verifygrid-success"><CheckCircle2 aria-hidden="true" size={18} /> Scope, authority, and time window are current.</p>}</section>
-                  <section><div className="verifygrid-section-heading"><Clock3 aria-hidden="true" size={20} /><div><h4>Operating window</h4><p>{selected.plannedStartAt ? new Date(selected.plannedStartAt).toLocaleString() : "Not scheduled"}</p></div></div><dl className="verifygrid-facts"><div><dt>Status</dt><dd>{label(selected.status)}</dd></div><div><dt>Emergency owner</dt><dd>{selected.emergencyContactName}</dd></div><div><dt>Targets</dt><dd>{selected.scopeTargets.filter((target) => target.inScope).length} in / {selected.scopeTargets.filter((target) => !target.inScope).length} out</dd></div><div><dt>Findings</dt><dd>{selected.findings.length}</dd></div></dl></section>
+                  <section><div className="verifygrid-section-heading"><Clock3 aria-hidden="true" size={20} /><div><h4>Operating window</h4><p>{selected.plannedStartAt ? formatDate(selected.plannedStartAt) : "Not scheduled"}</p></div></div><dl className="verifygrid-facts"><div><dt>Status</dt><dd>{label(selected.status)}</dd></div><div><dt>Emergency owner</dt><dd>{selected.emergencyContactName}</dd></div><div><dt>Targets</dt><dd>{selected.scopeTargets.filter((target) => target.inScope).length} in / {selected.scopeTargets.filter((target) => !target.inScope).length} out</dd></div><div><dt>Findings</dt><dd>{selected.findings.length}</dd></div></dl></section>
                 </div>
               ) : null}
 
@@ -532,7 +803,7 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
                     <div className="verifygrid-section-heading"><DatabaseZap aria-hidden="true" size={20} /><div><h4>Evidence batches</h4><p>Integrity-hashed, scope-reconciled scanner exports</p></div></div>
                     {selected.importBatches.length ? selected.importBatches.map((batch) => (
                       <article className="verifygrid-import-batch" key={batch.id}>
-                        <div className="verifygrid-record-top"><div><strong>{connectorCatalog[batch.connector as VerifyGridConnector]?.label || label(batch.connector)}</strong><span>{batch.fileName} | {new Date(batch.createdAt).toLocaleString()}</span></div><span className="status-pill content-status-published">{label(batch.status)}</span></div>
+                        <div className="verifygrid-record-top"><div><strong>{connectorCatalog[batch.connector as VerifyGridConnector]?.label || label(batch.connector)}</strong><span>{batch.fileName} | {formatDate(batch.createdAt)}</span></div><span className="status-pill content-status-published">{label(batch.status)}</span></div>
                         <dl className="verifygrid-facts compact"><div><dt>Observed</dt><dd>{batch.observationCount}</dd></div><div><dt>In scope</dt><dd>{batch.inScopeCount}</dd></div><div><dt>Excluded</dt><dd>{batch.outOfScopeCount}</dd></div><div><dt>Unmatched</dt><dd>{batch.unmatchedCount}</dd></div><div><dt>Promoted</dt><dd>{batch.promotedCount}</dd></div><div><dt>Duplicates</dt><dd>{batch.duplicateCount}</dd></div></dl>
                         <div className="verifygrid-record-footer"><small>SHA-256 {batch.contentSha256.slice(0, 20)}... | enrichment {label(batch.enrichmentStatus)}</small>{batch.inScopeCount > batch.promotedCount + batch.duplicateCount ? <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => promoteBatch(batch.id)} type="button"><FileSearch aria-hidden="true" size={15} /> Promote in-scope</button> : null}</div>
                       </article>
@@ -543,9 +814,9 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
                     <fieldset className="content-editor-section">
                       <legend>Import scanner evidence</legend>
                       <div className="content-field-grid">
-                        <label className="content-field content-field-wide"><span>Connector</span><select value={importDraft.connector} onChange={(event) => setImportDraft({ ...importDraft, connector: event.target.value as VerifyGridConnector, fileName: "", content: "" })}>{Object.entries(connectorCatalog).map(([value, connector]) => <option key={value} value={value}>{connector.label}</option>)}</select></label>
+                        <label className="content-field content-field-wide"><span>Connector</span><select value={importDraft.connector} onChange={(event) => setImportDraft({ ...importDraft, connector: event.target.value as VerifyGridConnector, fileName: "", content: "" })}>{Object.entries(connectorCatalog).filter(([, connector]) => connector.directImport).map(([value, connector]) => <option key={value} value={value}>{connector.label}</option>)}</select></label>
                         <label className="content-field content-field-wide verifygrid-file-field"><span>Export file</span><input accept={connectorCatalog[importDraft.connector].accepted} key={`${importDraft.connector}-${importDraft.fileName || "empty"}`} onChange={(event) => selectImportFile(event.target.files?.[0]).catch((error) => setMessage(String(error)))} type="file" /></label>
-                        <label className="verifygrid-check content-field-wide"><input checked={importDraft.enrich} onChange={(event) => setImportDraft({ ...importDraft, enrich: event.target.checked })} type="checkbox" /><span>Enrich CVEs with CISA KEV and FIRST EPSS</span></label>
+                        <label className="verifygrid-check content-field-wide"><input checked={importDraft.enrich} onChange={(event) => setImportDraft({ ...importDraft, enrich: event.target.checked })} type="checkbox" /><span>Enrich CVEs with NVD CPE/CVSS, CISA KEV, and FIRST EPSS</span></label>
                       </div>
                       {importDraft.fileName ? <p className="form-note"><Upload aria-hidden="true" size={15} /> {importDraft.fileName} | {(new Blob([importDraft.content]).size / 1024).toFixed(1)} KB ready</p> : null}
                       <button className="button primary compact-button" disabled={busy === "import" || !importDraft.content} type="submit"><Upload aria-hidden="true" size={16} /> {busy === "import" ? "Reconciling..." : "Import and reconcile"}</button>
@@ -571,12 +842,14 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
               {view === "execution" ? (
                 <div className="verifygrid-execution-view">
                   <section className="verifygrid-job-list">
-                    <div className="verifygrid-section-heading"><ShieldCheck aria-hidden="true" size={20} /><div><h4>Governed execution records</h4><p>Validated manifests only; worker dispatch is not connected</p></div></div>
+                    <div className="verifygrid-section-heading"><ShieldCheck aria-hidden="true" size={20} /><div><h4>Governed execution records</h4><p>Scope-bound manifests dispatched only through an enrolled outbound sensor</p></div></div>
                     {selected.executionJobs.length ? selected.executionJobs.map((job) => (
                       <article className="verifygrid-job" key={job.id}>
                         <div className="verifygrid-record-top"><div><strong>{capabilityCatalog[job.capability as keyof typeof capabilityCatalog]?.label || label(job.capability)}</strong><span>{label(job.capabilityLevel)} | {job.targetIds.length} target(s)</span></div><span className={`status-pill ${job.status === "cancelled" ? "content-status-deleted" : "content-status-draft"}`}>{label(job.status)}</span></div>
-                        <p>{new Date(job.requestedStartAt).toLocaleString()} to {new Date(job.validUntil).toLocaleString()}</p>
-                        <div className="verifygrid-record-footer"><small>Manifest {job.manifestSha256.slice(0, 20)}... | {label(job.dispatchStatus)}</small>{!["cancelled", "completed", "expired"].includes(job.status) ? <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => cancelExecutionRecord(job.id)} title="Cancel execution record" type="button"><Ban aria-hidden="true" size={16} /></button> : null}</div>
+                        <p>{formatDate(job.requestedStartAt)} to {formatDate(job.validUntil)}</p>
+                        <div className="verifygrid-record-footer"><small>Manifest {job.manifestSha256.slice(0, 20)}... | {label(job.dispatchStatus)}{job.attempt ? ` | attempt ${job.attempt}/${job.maxAttempts}` : ""}</small>{!["cancelled", "completed", "expired", "failed"].includes(job.status) ? <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => cancelExecutionRecord(job.id)} title="Cancel execution record" type="button"><Ban aria-hidden="true" size={16} /></button> : null}</div>
+                        {job.lastError ? <p className="form-note verifygrid-error-note">{job.lastError}</p> : null}
+                        {job.status === "validated" ? <div className="verifygrid-dispatch-row"><label className="content-field"><span>Outbound sensor</span><select value={jobSensors[job.id] || ""} onChange={(event) => setJobSensors((current) => ({ ...current, [job.id]: event.target.value }))}><option value="">Select a capable sensor</option>{automation?.sensors.filter((sensor) => sensor.status === "active" && sensor.capabilities.includes(job.capability)).map((sensor) => <option key={sensor.id} value={sensor.id}>{sensor.name}{sensor.lastSeenAt ? ` | seen ${formatDate(sensor.lastSeenAt)}` : " | not connected"}</option>)}</select></label><button className="button primary compact-button" disabled={!jobSensors[job.id] || Boolean(busy)} onClick={() => queueExecutionJob(job.id, jobSensors[job.id])} type="button"><Send aria-hidden="true" size={15} /> Queue manifest</button></div> : null}
                       </article>
                     )) : <p className="content-empty-state">No execution manifests prepared.</p>}
                   </section>
@@ -598,11 +871,57 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
                 </div>
               ) : null}
 
+              {view === "automation" ? (
+                <div className="verifygrid-automation-view">
+                  {busy === "automation-load" && !automation ? <p className="content-empty-state">Loading workspace automation...</p> : null}
+                  {automation ? (
+                    <>
+                      <div className="verifygrid-automation-metrics">
+                        <div><span>Connector profiles</span><strong>{automation.connectors.length}</strong></div>
+                        <div><span>Active sensors</span><strong>{automation.sensors.filter((sensor) => sensor.status === "active").length}</strong></div>
+                        <div><span>Client members</span><strong>{automation.memberships.filter((member) => member.status === "active").length}</strong></div>
+                        <div><span>Connector alerts</span><strong>{automation.connectors.filter((connector) => connector.lastError || !connector.credentialsReady).length}</strong></div>
+                      </div>
+
+                      <section className="verifygrid-automation-section">
+                        <div className="verifygrid-section-heading"><CloudCog aria-hidden="true" size={20} /><div><h4>Scanner connectors</h4><p>Scheduled differential evidence ingestion with bounded retries and integrity reconciliation</p></div></div>
+                        <div className="verifygrid-automation-records">
+                          {automation.connectors.length ? automation.connectors.map((connector) => <article className="verifygrid-automation-record" key={connector.id}><div className="verifygrid-record-top"><div><strong>{connector.label}</strong><span>{connector.baseUrl} | every {connector.scheduleMinutes} minutes</span></div><span className={`status-pill ${connector.credentialsReady && !connector.lastError ? "content-status-published" : "content-status-draft"}`}>{label(connector.status)}</span></div><dl className="verifygrid-facts compact"><div><dt>Provider</dt><dd>{label(connector.provider)}</dd></div><div><dt>Mode</dt><dd>{label(connector.connectorMode)}</dd></div><div><dt>Credentials</dt><dd>{connector.connectorMode === "sensor_api" ? "sensor-local" : connector.credentialsReady ? "ready" : "missing"}</dd></div><div><dt>Last success</dt><dd>{connector.lastSuccessAt ? formatDate(connector.lastSuccessAt) : "never"}</dd></div></dl>{connector.lastError ? <p className="form-note verifygrid-error-note">{connector.lastError}</p> : null}<div className="verifygrid-record-footer"><small>{connector.runs[0] ? `Latest run ${label(connector.runs[0].status)} | ${formatDate(connector.runs[0].createdAt)}` : `Next evaluation ${formatDate(connector.nextSyncAt)}`}</small><button className="button secondary compact-button" disabled={Boolean(busy) || !connector.credentialsReady} onClick={() => syncConnector(connector.id)} type="button"><RefreshCw aria-hidden="true" size={15} /> Sync now</button></div></article>) : <p className="content-empty-state">No scanner connector profiles for this client workspace.</p>}
+                        </div>
+                        <form className="content-editor verifygrid-compact-form" onSubmit={createConnector}><fieldset className="content-editor-section"><legend>Add scanner connector</legend><div className="content-field-grid"><label className="content-field"><span>Provider</span><select value={connectorDraft.provider} onChange={(event) => changeConnectorProvider(event.target.value as keyof typeof providerDefaults)}><option value="tenable">Tenable Vulnerability Management</option><option value="qualys">Qualys VMDR</option><option value="rapid7">Rapid7 InsightVM</option><option value="greenbone">Greenbone GMP via sensor</option></select></label><label className="content-field"><span>Profile label</span><input required value={connectorDraft.label} onChange={(event) => setConnectorDraft({ ...connectorDraft, label: event.target.value })} /></label><label className="content-field content-field-wide"><span>API origin</span><input required type="url" value={connectorDraft.baseUrl} onChange={(event) => setConnectorDraft({ ...connectorDraft, baseUrl: event.target.value })} /></label><label className="content-field"><span>Credential prefix</span><input pattern="[A-Z][A-Z0-9_]{2,60}" required value={connectorDraft.credentialRef} onChange={(event) => setConnectorDraft({ ...connectorDraft, credentialRef: event.target.value.toUpperCase() })} /></label><label className="content-field"><span>Schedule</span><select value={connectorDraft.scheduleMinutes} onChange={(event) => setConnectorDraft({ ...connectorDraft, scheduleMinutes: event.target.value })}><option value="60">Hourly</option><option value="360">Every 6 hours</option><option value="720">Every 12 hours</option><option value="1440">Daily</option><option value="10080">Weekly</option></select></label><label className="content-field"><span>Sync mode</span><select value={connectorDraft.syncMode} onChange={(event) => setConnectorDraft({ ...connectorDraft, syncMode: event.target.value })}><option value="differential">Differential</option><option value="full">Full baseline</option></select></label><p className="form-note content-field-wide">{connectorDraft.provider === "tenable" ? `Configure ${connectorDraft.credentialRef}_ACCESS_KEY and ${connectorDraft.credentialRef}_SECRET_KEY in Vercel.` : connectorDraft.provider === "greenbone" ? "The endpoint and credentials remain inside the client sensor environment; the QCS control plane does not connect to the private GMP service." : `Configure ${connectorDraft.credentialRef}_USERNAME and ${connectorDraft.credentialRef}_PASSWORD in Vercel.`}</p></div><button className="button primary compact-button" disabled={busy === "connector-create"} type="submit"><Plus aria-hidden="true" size={15} /> Add connector</button></fieldset></form>
+                      </section>
+
+                      <section className="verifygrid-automation-section">
+                        <div className="verifygrid-section-heading"><Cpu aria-hidden="true" size={20} /><div><h4>Outbound sensors</h4><p>Pull-only workers for approved, non-destructive checks; no inbound client firewall rule required</p></div></div>
+                        <div className="verifygrid-automation-records">
+                          {automation.sensors.length ? automation.sensors.map((sensor) => <article className="verifygrid-automation-record" key={sensor.id}><div className="verifygrid-record-top"><div><strong>{sensor.name}</strong><span>Token ending {sensor.tokenLastFour} | {sensor.region || "region not reported"}</span></div><span className={`status-pill ${sensor.status === "active" ? "content-status-published" : "content-status-deleted"}`}>{label(sensor.status)}</span></div><p>{sensor.capabilities.map(label).join(" | ")}</p><div className="verifygrid-record-footer"><small>{sensor.lastSeenAt ? `Last heartbeat ${formatDate(sensor.lastSeenAt)}${sensor.version ? ` | v${sensor.version}` : ""}` : "Enrollment issued; first heartbeat pending"}</small>{sensor.status === "active" ? <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => revokeSensor(sensor.id)} title="Revoke sensor" type="button"><Ban aria-hidden="true" size={16} /></button> : null}</div></article>) : <p className="content-empty-state">No outbound sensors enrolled.</p>}
+                        </div>
+                        <form className="content-editor verifygrid-compact-form" onSubmit={enrollSensor}><fieldset className="content-editor-section"><legend>Enroll outbound sensor</legend><div className="content-field-grid"><label className="content-field content-field-wide"><span>Sensor name</span><input required value={sensorDraft.name} onChange={(event) => setSensorDraft({ ...sensorDraft, name: event.target.value })} /></label><div className="content-field content-field-wide"><span>Non-destructive capabilities</span><div className="verifygrid-target-picker">{Object.entries(capabilityCatalog).filter(([, capability]) => !capability.humanApprovalRequired).map(([value, capability]) => <label className="verifygrid-check" key={value}><input checked={sensorDraft.capabilities.includes(value)} onChange={() => toggleSensorCapability(value)} type="checkbox" /><span>{capability.label}</span></label>)}</div></div><p className="form-note content-field-wide"><Cable aria-hidden="true" size={15} /> The token is displayed once. Run the bundled sensor with the production site URL and store the token as a protected environment variable.</p></div><button className="button primary compact-button" disabled={busy === "sensor-create" || !sensorDraft.capabilities.length} type="submit"><Plus aria-hidden="true" size={15} /> Enroll sensor</button></fieldset></form>
+                      </section>
+
+                      <section className="verifygrid-automation-section">
+                        <div className="verifygrid-section-heading"><MailPlus aria-hidden="true" size={20} /><div><h4>Client portal access</h4><p>Workspace-scoped reports and remediation visibility with revocable roles</p></div></div>
+                        <div className="verifygrid-automation-records">
+                          {automation.memberships.length ? automation.memberships.map((member) => <article className="verifygrid-automation-record" key={member.id}><div className="verifygrid-record-top"><div><strong>{member.displayName || member.email}</strong><span>{member.email} | {label(member.role)}</span></div><span className={`status-pill ${member.status === "active" ? "content-status-published" : "content-status-deleted"}`}>{label(member.status)}</span></div><div className="verifygrid-record-footer"><small>{member.lastAccessAt ? `Last access ${formatDate(member.lastAccessAt)}` : `Invited ${formatDate(member.invitedAt)}`}</small>{member.status === "active" ? <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => revokeMember(member.id)} title="Revoke client access" type="button"><Ban aria-hidden="true" size={16} /></button> : null}</div></article>) : <p className="content-empty-state">No client portal members.</p>}
+                        </div>
+                        <form className="content-editor verifygrid-compact-form" onSubmit={inviteMember}><fieldset className="content-editor-section"><legend>Issue one-time access link</legend><div className="content-field-grid"><label className="content-field"><span>Name</span><input value={memberDraft.displayName} onChange={(event) => setMemberDraft({ ...memberDraft, displayName: event.target.value })} /></label><label className="content-field"><span>Email</span><input required type="email" value={memberDraft.email} onChange={(event) => setMemberDraft({ ...memberDraft, email: event.target.value })} /></label><label className="content-field"><span>Role</span><select value={memberDraft.role} onChange={(event) => setMemberDraft({ ...memberDraft, role: event.target.value })}><option value="client_viewer">Viewer</option><option value="client_analyst">Analyst</option><option value="client_owner">Owner</option></select></label><label className="content-field"><span>Link expiry</span><select value={memberDraft.expiresInHours} onChange={(event) => setMemberDraft({ ...memberDraft, expiresInHours: event.target.value })}><option value="24">24 hours</option><option value="48">48 hours</option><option value="72">72 hours</option><option value="168">7 days</option></select></label></div><button className="button primary compact-button" disabled={busy === "member-invite"} type="submit"><MailPlus aria-hidden="true" size={15} /> Issue access</button></fieldset></form>
+                      </section>
+
+                      <section className="verifygrid-emergency-section">
+                        <div className="verifygrid-section-heading"><Siren aria-hidden="true" size={20} /><div><h4>Emergency stop</h4><p>Pause this engagement and cancel every queued, claimed, running, or retrying job</p></div></div>
+                        <label className="content-field"><span>Accountable stop reason</span><textarea minLength={20} placeholder="Describe the operational or authorization condition requiring an immediate stop." rows={2} value={emergencyReason} onChange={(event) => setEmergencyReason(event.target.value)} /></label>
+                        <button className="button secondary compact-button verifygrid-stop-button" disabled={busy === "emergency-stop" || emergencyReason.trim().length < 20} onClick={emergencyStop} type="button"><Siren aria-hidden="true" size={15} /> Stop all execution</button>
+                      </section>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
+
               {view === "reports" ? (
                 <div className="verifygrid-reports-view">
                   <section className="verifygrid-report-list">
                     <div className="verifygrid-section-heading"><FileText aria-hidden="true" size={20} /><div><h4>Assurance reports</h4><p>Immutable, versioned snapshots with integrity hashes</p></div></div>
-                    {selected.reports.length ? selected.reports.map((report) => <a className="verifygrid-report-link" href={`/admin/verifygrid/reports/${report.id}`} key={report.id} rel="noreferrer" target="_blank"><div><strong>{report.title}</strong><span>{new Date(report.generatedAt).toLocaleString()} | {label(report.reportType)} v{report.version}</span></div><small>{report.snapshotSha256.slice(0, 24)}...</small></a>) : <p className="content-empty-state">No report snapshots generated.</p>}
+                    {selected.reports.length ? selected.reports.map((report) => <a className="verifygrid-report-link" href={`/admin/verifygrid/reports/${report.id}`} key={report.id} rel="noreferrer" target="_blank"><div><strong>{report.title}</strong><span>{formatDate(report.generatedAt)} | {label(report.reportType)} v{report.version}</span></div><small>{report.snapshotSha256.slice(0, 24)}...</small></a>) : <p className="content-empty-state">No report snapshots generated.</p>}
                   </section>
                   <form className="content-editor verifygrid-compact-form" onSubmit={generateReport}>
                     <fieldset className="content-editor-section">
@@ -615,7 +934,7 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
                 </div>
               ) : null}
 
-              {view === "activity" ? <div className="verifygrid-activity"><div className="verifygrid-section-heading"><Activity aria-hidden="true" size={20} /><div><h4>Engagement activity</h4><p>Latest accountable product events</p></div></div>{selected.activities.length ? selected.activities.map((item) => <div key={item.id}><span>{new Date(item.createdAt).toLocaleString()}</span><strong>{label(item.action)}</strong><em>{item.actor}</em></div>) : <p className="content-empty-state">No activity recorded.</p>}</div> : null}
+              {view === "activity" ? <div className="verifygrid-activity"><div className="verifygrid-section-heading"><Activity aria-hidden="true" size={20} /><div><h4>Engagement activity</h4><p>Latest accountable product events</p></div></div>{selected.activities.length ? selected.activities.map((item) => <div key={item.id}><span>{formatDate(item.createdAt)}</span><strong>{label(item.action)}</strong><em>{item.actor}</em></div>) : <p className="content-empty-state">No activity recorded.</p>}</div> : null}
             </div>
           ) : null}
         </div>

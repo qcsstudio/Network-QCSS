@@ -16,6 +16,16 @@ import {
   buildExecutionManifest,
   validateExecutionBoundary
 } from "../src/lib/verifygrid-execution-domain.ts";
+import {
+  parseSensorToken,
+  retryDelayMinutes,
+  safeEqual,
+  sensorCreateSchema,
+  sensorToken,
+  signSensorManifest,
+  validateConnectorBaseUrl
+} from "../src/lib/verifygrid-automation-domain.ts";
+import { matchObservationToCpes } from "../src/lib/verifygrid-nvd.ts";
 
 const firstTarget = {
   targetType: "domain",
@@ -176,4 +186,52 @@ test("execution manifest hash is deterministic across target ordering", () => {
   assert.equal(first.manifestSha256, second.manifestSha256);
   assert.equal(first.manifest.controls.denialOfServiceAllowed, false);
   assert.equal(first.manifest.controls.dispatchPolicy, "outbound_sensor_only");
+});
+
+test("cloud connector origins reject SSRF targets while sensor endpoints may remain private", () => {
+  assert.throws(() => validateConnectorBaseUrl("https://127.0.0.1", "tenable"), /private addresses/i);
+  assert.throws(() => validateConnectorBaseUrl("http://cloud.tenable.com", "tenable"), /HTTPS/i);
+  assert.equal(validateConnectorBaseUrl("https://greenbone.local:9392", "greenbone"), "https://greenbone.local:9392");
+});
+
+test("sensor enrollment tokens are parseable without storing the bearer secret", () => {
+  const enrollment = sensorToken("12345678-test-sensor");
+  const parsed = parseSensorToken(enrollment.token);
+  assert.equal(parsed?.sensorId, "12345678-test-sensor");
+  assert.equal(parsed?.tokenHash, enrollment.tokenHash);
+  assert.notEqual(enrollment.tokenHash, parsed?.secret);
+  assert.equal(signSensorManifest(parsed.secret, "manifest"), signSensorManifest(parsed.secret, "manifest"));
+});
+
+test("sensor capability policy refuses manual and exploit-validation work", () => {
+  assert.equal(sensorCreateSchema.safeParse({ name: "Safe sensor", capabilities: ["dns_posture", "tls_posture"] }).success, true);
+  assert.equal(sensorCreateSchema.safeParse({ name: "Unsafe sensor", capabilities: ["controlled_exploit_validation"] }).success, false);
+  assert.equal(sensorCreateSchema.safeParse({ name: "Manual sensor", capabilities: ["configuration_analysis"] }).success, false);
+});
+
+test("retry backoff is bounded", () => {
+  assert.equal(retryDelayMinutes(1), 5);
+  assert.equal(retryDelayMinutes(4), 40);
+  assert.equal(retryDelayMinutes(20), 360);
+});
+
+test("secret comparison rejects different values and lengths", () => {
+  assert.equal(safeEqual("same-secret", "same-secret"), true);
+  assert.equal(safeEqual("same-secret", "other-value"), false);
+  assert.equal(safeEqual("short", "longer-secret"), false);
+});
+
+test("NVD CPE matching requires vendor, product, and reported version evidence", () => {
+  const observation = { service: "https nginx", title: "Nginx web service", rawMetadata: { vendor: "f5", product: "nginx", version: "1.26.1" } };
+  const exact = matchObservationToCpes(observation, ["cpe:2.3:a:f5:nginx:1.26.1:*:*:*:*:*:*:*"]);
+  const mismatch = matchObservationToCpes(observation, ["cpe:2.3:a:apache:http_server:2.4.62:*:*:*:*:*:*:*"]);
+  assert.equal(exact.disposition, "exact");
+  assert.equal(mismatch.disposition, "unmatched");
+});
+
+test("API connector payloads reuse the normalized observation boundary", () => {
+  const observations = parseScannerImport("tenable_api", JSON.stringify([{ assetIdentifier: "203.0.113.55", title: "API imported exposure", severity: "high", sourceReference: "tenable:plugin:42", remediation: "Apply the verified vendor fix.", metadata: { product: "ios xe", version: "17.12" } }]));
+  assert.equal(observations.length, 1);
+  assert.equal(observations[0].sourceReference, "tenable:plugin:42");
+  assert.equal(observations[0].rawMetadata.version, "17.12");
 });

@@ -1,0 +1,13 @@
+{
+  "name": "@qcs/verifygrid-sensor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node verifygrid-sensor.mjs",
+    "check": "node --check verifygrid-sensor.mjs"
+  }
+}

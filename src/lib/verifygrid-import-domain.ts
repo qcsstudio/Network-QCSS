@@ -200,7 +200,9 @@ function parseNmapXml(content: string): NormalizedObservation[] {
       const portNumber = numberOrNull(port["@portid"], 65535);
       const protocol = plain(port["@protocol"], 20) || "tcp";
       const serviceName = plain(service["@name"], 100) || "unknown";
-      const product = [plain(service["@product"], 120), plain(service["@version"], 80), plain(service["@extrainfo"], 160)].filter(Boolean).join(" ");
+      const productName = plain(service["@product"], 120);
+      const version = plain(service["@version"], 80);
+      const product = [productName, version, plain(service["@extrainfo"], 160)].filter(Boolean).join(" ");
       const scripts = list(port.script).map((script) => {
         const item = object(script);
         return `${plain(item["@id"], 100)}: ${plain(item["@output"], 1000)}`;
@@ -225,7 +227,14 @@ function parseNmapXml(content: string): NormalizedObservation[] {
         service: [serviceName, product].filter(Boolean).join(" "),
         evidenceSummary: [`State reason: ${plain(state["@reason"], 100) || "not supplied"}.`, ...scripts].join(" "),
         remediation: "Confirm that the exposed service is required, access-controlled, patched, monitored, and restricted to the smallest necessary source range.",
-        rawMetadata: { state: stateName, reason: plain(state["@reason"], 100), serviceConfidence: plain(service["@conf"], 20) },
+        rawMetadata: {
+          state: stateName,
+          reason: plain(state["@reason"], 100),
+          serviceConfidence: plain(service["@conf"], 20),
+          product: productName,
+          version,
+          cpe: list(service.cpe).map((item) => plain(item, 300)).filter(Boolean)
+        },
         firstObservedAt: dateOrNull(nmap["@startstr"]),
         lastObservedAt: dateOrNull(nmap["@startstr"])
       }));
@@ -368,14 +377,20 @@ function parseScannerCsv(connector: Extract<VerifyGridConnector, "qualys_csv" | 
       service: plain(firstColumn(columns, ["service", "servicename", "product"]), 160),
       evidenceSummary: plain(evidence, 3000),
       remediation: plain(remediation, 5000) || "Validate the vulnerable product and apply the vendor-supported patch, configuration correction, or compensating control.",
-      rawMetadata: { sourceId, cve },
+      rawMetadata: {
+        sourceId,
+        cve,
+        vendor: plain(firstColumn(columns, ["vendor", "publisher", "manufacturer"]), 160),
+        product: plain(firstColumn(columns, ["product", "productname", "software"]), 160),
+        version: plain(firstColumn(columns, ["version", "productversion", "softwareversion"]), 120)
+      },
       firstObservedAt: dateOrNull(firstColumn(columns, ["firstfound", "firstseen", "firstdiscovered"])),
       lastObservedAt: dateOrNull(firstColumn(columns, ["lastfound", "lastseen", "lastobserved", "scandate"]))
     });
   });
 }
 
-function parseNormalizedJson(content: string): NormalizedObservation[] {
+function parseNormalizedJson(connector: VerifyGridConnector, content: string): NormalizedObservation[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(content);
@@ -389,7 +404,7 @@ function parseNormalizedJson(content: string): NormalizedObservation[] {
     const identifier = plain(row.assetIdentifier, 1000);
     const title = plain(row.title, 220);
     if (!identifier || !title) throw new Error(`Observation ${index + 1} requires assetIdentifier and title.`);
-    return finishObservation("normalized_json", {
+    return finishObservation(connector, {
       assetIdentifier: identifier,
       assetName: plain(row.assetName, 220) || identifier,
       assetKind: plain(row.assetKind, 80) || "host",
@@ -422,9 +437,9 @@ export function parseScannerImport(connector: VerifyGridConnector, content: stri
       ? parseNessusXml(content)
       : connector === "burp_xml"
         ? parseBurpXml(content)
-        : connector === "normalized_json"
-          ? parseNormalizedJson(content)
-          : parseScannerCsv(connector, content);
+        : connector === "normalized_json" || connector.endsWith("_api")
+          ? parseNormalizedJson(connector, content)
+          : parseScannerCsv(connector as Extract<VerifyGridConnector, "qualys_csv" | "rapid7_csv" | "greenbone_csv">, content);
   if (!observations.length) throw new Error("No usable observations were found in the scanner export.");
   const unique = new Map(observations.map((item) => [item.fingerprint, item]));
   return [...unique.values()].slice(0, 5000);

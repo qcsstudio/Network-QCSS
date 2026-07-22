@@ -18,3 +18,6 @@ envato-assets/**
 !envato-assets/asset-register.csv
 
 .vercel/
+
+# Local browser QA captures.
+artifacts/verifygrid-automation-*.png

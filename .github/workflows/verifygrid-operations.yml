@@ -1,0 +1,46 @@
+name: VerifyGrid operations scheduler
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verifygrid-production-operations
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Process connector queue and sensor leases
+        env:
+          VERIFYGRID_CRON_SECRET: ${{ secrets.VERIFYGRID_CRON_SECRET }}
+        run: |
+          if [ -z "$VERIFYGRID_CRON_SECRET" ]; then
+            echo "VERIFYGRID_CRON_SECRET is not configured."
+            exit 1
+          fi
+
+          status=$(curl \
+            --silent \
+            --show-error \
+            --output response.json \
+            --write-out "%{http_code}" \
+            --max-time 180 \
+            --retry 2 \
+            --retry-all-errors \
+            --header "Authorization: Bearer $VERIFYGRID_CRON_SECRET" \
+            https://www.qcsstudio.com/api/cron/verifygrid-operations)
+
+          if [ "$status" != "200" ]; then
+            echo "VerifyGrid operations endpoint returned HTTP $status."
+            cat response.json
+            exit 1
+          fi
+
+          node -e 'const r=require("./response.json"); console.log(JSON.stringify({ok:r.ok,processedAt:r.processedAt,leases:r.leases,connectors:r.connectors},null,2))'

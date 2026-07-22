@@ -8,7 +8,7 @@ export function MarketingScripts() {
     <>
       <Script
         id="consent-mode-default"
-        strategy="beforeInteractive"
+        strategy="afterInteractive"
       >
         {`
           window.dataLayer = window.dataLayer || [];

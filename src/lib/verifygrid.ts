@@ -206,6 +206,16 @@ function mapEngagement(engagement: EngagementWithRelations) {
       maxRequestsPerSecond: job.maxRequestsPerSecond,
       manifestSha256: job.manifestSha256,
       dispatchStatus: job.dispatchStatus,
+      sensorId: job.sensorId || "",
+      attempt: job.attempt,
+      maxAttempts: job.maxAttempts,
+      queuedAt: job.queuedAt?.toISOString() || "",
+      claimedAt: job.claimedAt?.toISOString() || "",
+      leaseUntil: job.leaseUntil?.toISOString() || "",
+      startedAt: job.startedAt?.toISOString() || "",
+      completedAt: job.completedAt?.toISOString() || "",
+      resultBatchId: job.resultBatchId || "",
+      lastError: job.lastError || "",
       cancelledAt: job.cancelledAt?.toISOString() || "",
       createdAt: job.createdAt.toISOString()
     })),
@@ -247,7 +257,7 @@ export async function getVerifyGridPortfolio() {
     prisma.verifyGridFinding.count({ where: { knownExploited: true, status: { notIn: ["closed", "false_positive", "duplicate"] } } }),
     prisma.verifyGridFinding.count({ where: { dueAt: { lt: new Date() }, status: { notIn: ["closed", "accepted_risk", "false_positive", "duplicate"] } } }),
     prisma.verifyGridObservation.count({ where: { scopeDisposition: "in_scope", promotionStatus: "pending" } }),
-    prisma.verifyGridExecutionJob.count({ where: { status: { in: ["validated", "manual_approval_required"] } } })
+    prisma.verifyGridExecutionJob.count({ where: { status: { in: ["validated", "queued", "claimed", "running", "retry", "manual_approval_required"] } } })
   ]);
   const records = engagements.map(mapEngagement);
   return {

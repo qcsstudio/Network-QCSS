@@ -21,6 +21,7 @@ import {
 } from "@/lib/verifygrid-import-domain";
 import { findingFingerprint, scopeHash } from "@/lib/verifygrid-domain";
 import { getVerifyGridEngagement } from "@/lib/verifygrid";
+import { fetchNvdEvidence, matchObservationToCpes, type NvdEvidence } from "@/lib/verifygrid-nvd";
 
 function json(value: unknown) {
   return value as Prisma.InputJsonValue;
@@ -39,7 +40,7 @@ function contentHash(content: string) {
   return crypto.createHash("sha256").update(content, "utf8").digest("hex");
 }
 
-type EnrichmentRecord = { epssScore?: number; epssPercentile?: number; knownExploited?: boolean };
+type EnrichmentRecord = { epssScore?: number; epssPercentile?: number; knownExploited?: boolean; nvd?: NvdEvidence };
 
 let kevCache: { expiresAt: number; cves: Set<string> } | null = null;
 
@@ -84,7 +85,7 @@ async function fetchEpss(cves: string[]) {
 }
 
 async function enrichObservations(observations: NormalizedObservation[]) {
-  const cves = [...new Set(observations.map((item) => item.advisoryExternalId).filter(Boolean))];
+  const cves = [...new Set(observations.map((item) => item.advisoryExternalId).filter((item): item is string => Boolean(item)))];
   if (!cves.length) return { observations, status: "not_applicable", sources: [] as string[] };
   const records = new Map<string, EnrichmentRecord>();
   const sources: string[] = [];
@@ -97,17 +98,25 @@ async function enrichObservations(observations: NormalizedObservation[]) {
     fetchEpss(cves).then((epss) => {
       sources.push("first_epss");
       for (const [cve, value] of epss) records.set(cve, { ...records.get(cve), ...value });
-    }).catch((error) => errors.push(error instanceof Error ? error.message : "FIRST EPSS unavailable."))
+    }).catch((error) => errors.push(error instanceof Error ? error.message : "FIRST EPSS unavailable.")),
+    fetchNvdEvidence(cves).then((nvd) => {
+      if (nvd.records.size) sources.push("nist_nvd");
+      for (const [cve, value] of nvd.records) records.set(cve, { ...records.get(cve), nvd: value });
+      errors.push(...nvd.errors);
+      if (nvd.truncated) errors.push("NVD enrichment was bounded; remaining CVEs stay eligible for a scheduled enrichment pass.");
+    }).catch((error) => errors.push(error instanceof Error ? error.message : "NVD unavailable."))
   ]);
   return {
     observations: observations.map((item) => {
       const enrichment = records.get(item.advisoryExternalId);
+      const cpeMatch = enrichment?.nvd ? matchObservationToCpes(item, enrichment.nvd.cpes) : null;
       return enrichment ? {
         ...item,
+        cvssScore: item.cvssScore ?? enrichment.nvd?.cvssScore,
         epssScore: enrichment.epssScore ?? item.epssScore,
         epssPercentile: enrichment.epssPercentile ?? item.epssPercentile,
         knownExploited: enrichment.knownExploited ?? item.knownExploited,
-        rawMetadata: { ...item.rawMetadata, enrichmentSources: sources }
+        rawMetadata: { ...item.rawMetadata, enrichmentSources: sources, nvd: enrichment.nvd, cpeMatch }
       } : item;
     }),
     status: errors.length ? sources.length ? "partial" : "unavailable" : "complete",

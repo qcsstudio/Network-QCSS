@@ -1,6 +1,6 @@
 # QCS VerifyGrid Product Roadmap
 
-Status: Phase 2 control-plane baseline, 22 July 2026. The working product name requires brand and trademark review before public launch.
+Status: Phase 2 production baseline with governed Phase 4 sensor execution, 22 July 2026. The working product name requires brand and trademark review before public launch.
 
 ## Product position
 
@@ -48,12 +48,17 @@ Implemented baseline:
 - Integrity-hashed import batches for Nmap XML, Nessus XML, Burp issue XML, Qualys CSV, Rapid7 CSV, Greenbone CSV, and VerifyGrid normalized JSON
 - XML entity rejection, 2 MB direct-import limit, 5,000-observation ceiling, and omission of raw Burp request/response material
 - Exclusion-first scope reconciliation for exact hosts, URLs, IPv4/IPv6 CIDRs, and named targets
-- Optional CISA KEV and FIRST EPSS enrichment with partial-failure recording
+- Optional NVD CPE/CVSS, CISA KEV, and FIRST EPSS enrichment with bounded requests and partial-failure recording
 - Observation staging, analyst promotion, cross-batch finding deduplication, asset refresh, and evidence integrity metadata
-- Authorization-bound execution manifests with capability and target permission checks; no Vercel-side scanner dispatch
+- Credentialed Tenable, Qualys, and Rapid7 connector profiles with scheduled differential runs, leases, retries, failure state, and environment-backed secrets
+- Greenbone sensor-side connector contract so private GMP endpoints are never contacted by the Vercel control plane
+- Authorization-bound execution manifests with capability and target permission checks; no Vercel-side scanner execution
+- Outbound-only Node.js sensor for asset, DNS, TLS, explicit TCP, and HTTP-header checks with signed manifests and result integrity hashes
+- Workspace-scoped client portal with one-time fragment links, signed sessions, role records, immediate revocation, and final-report isolation
+- Operator controls for connector sync, sensor enrollment/revocation, job dispatch, portal access, and emergency stop
 - Versioned executive, technical, and retest report snapshots with SHA-256 integrity
 
-Still required before the Phase 2 exit gate: credentialed vendor API polling, durable background workflows, NVD/CPE product matching, scanner-specific fixture certification, and queue-level operational monitoring.
+Still required before the Phase 2 exit gate: customer-authorized production connector credentials, Greenbone deployment certification against the customer GMP version, broader scanner fixture certification, and external alerting for repeated queue failures.
 
 ### Phase 3: Network and identity graph
 
@@ -67,7 +72,7 @@ Exit criteria: each priority finding explains a plausible path and the smallest 
 
 ### Phase 4: Governed validation
 
-- Outbound-only customer sensor with mTLS identity
+- Outbound-only customer sensor with bearer identity in the baseline and mTLS rotation for enterprise deployments
 - Isolated worker pools with per-engagement network policy and egress restrictions
 - Signed job manifests, approval gates, kill switch, concurrency ceilings, and time windows
 - Safe control checks by default; intrusive validation requires a separate approval event
@@ -107,7 +112,8 @@ Exit criteria: approved checks can run repeatedly without broad standing access 
 
 - Every operational record belongs to a client workspace
 - API queries derive workspace membership from the authenticated session, never from a trusted client parameter
-- The current single-admin release uses server-side admin authorization on every route; customer RBAC and PostgreSQL row-level security arrive before external portal access
+- Administrative routes use server-side admin authorization; portal queries derive workspace identity from a signed, revocable membership session and never accept a workspace ID from the browser
+- PostgreSQL row-level security remains an additional defense-in-depth gate for multi-tenant enterprise rollout
 - Evidence URLs are short-lived and logged; secrets and credential material are never stored as finding evidence
 
 ## Core state machines
@@ -129,6 +135,16 @@ Exception states: `accepted_risk`, `false_positive`, and `duplicate` require act
 - `POST /api/admin/verifygrid/engagements/:id/findings`
 - `PATCH /api/admin/verifygrid/findings/:id`
 - `POST /api/admin/verifygrid/findings/:id/retests`
+- `GET /api/admin/verifygrid/workspaces/:id/automation`
+- `POST /api/admin/verifygrid/workspaces/:id/connectors`
+- `POST /api/admin/verifygrid/connectors/:id/runs`
+- `POST /api/admin/verifygrid/workspaces/:id/sensors`
+- `POST /api/admin/verifygrid/execution-jobs/:id/queue`
+- `POST /api/admin/verifygrid/engagements/:id/kill-switch`
+- `POST /api/admin/verifygrid/workspaces/:id/memberships`
+- `POST /api/verifygrid/sensor/jobs/claim`
+- `POST /api/verifygrid/sensor/jobs/:state`
+- `POST /api/portal/access`
 
 All routes use the existing signed admin session or admin API token, rate limiting, schema validation, no-store responses, and audit logging.
 

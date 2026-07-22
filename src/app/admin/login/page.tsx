@@ -24,7 +24,7 @@ export default async function AdminLoginPage({
   const credentialsReady = adminCredentialsConfigured();
 
   return (
-    <main>
+    <main className="admin-login-page">
       <section className="page-hero">
         <p className="eyebrow">Private layer</p>
         <h1>Admin login</h1>

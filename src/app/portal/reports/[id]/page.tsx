@@ -1,0 +1,50 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft, Download, ShieldCheck } from "lucide-react";
+import { PrintReportButton } from "@/components/print-report-button";
+import { getPrismaClient } from "@/lib/prisma";
+import { requireVerifyGridPortalSession } from "@/lib/verifygrid-portal-auth";
+
+export const metadata: Metadata = { title: "VerifyGrid Client Report", robots: { index: false, follow: false } };
+export const dynamic = "force-dynamic";
+
+function record(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function list(value: unknown) {
+  return Array.isArray(value) ? value.map(record) : [];
+}
+
+function text(value: unknown, fallback = "Not recorded") {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function count(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+export default async function VerifyGridClientReportPage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await requireVerifyGridPortalSession();
+  const { id } = await params;
+  const report = await getPrismaClient().verifyGridReport.findFirst({ where: { id, workspaceId: session.workspaceId, status: "final" }, include: { engagement: { select: { reference: true, title: true } } } });
+  if (!report) notFound();
+  const snapshot = record(report.snapshot);
+  const summary = record(snapshot.summary);
+  const findings = list(snapshot.findings);
+  return (
+    <main className="verifygrid-report-page portal-report-page">
+      <section className="verifygrid-report-toolbar">
+        <Link className="button secondary compact-button" href="/portal"><ArrowLeft aria-hidden="true" size={17} /> Back to workspace</Link>
+        <div className="content-action-row"><a className="button secondary compact-button" href={`/api/portal/reports/${report.id}`}><Download aria-hidden="true" size={17} /> JSON evidence</a><PrintReportButton /></div>
+      </section>
+      <article className="verifygrid-report-document">
+        <header className="verifygrid-report-cover"><div><p className="eyebrow">QCS VerifyGrid client assurance</p><h1>{report.title}</h1><p>{report.engagement.reference} | {report.engagement.title}</p></div><ShieldCheck aria-hidden="true" size={48} /></header>
+        <section className="verifygrid-report-integrity"><div><span>Generated</span><strong>{report.generatedAt.toLocaleString()}</strong></div><div><span>Scope hash</span><strong>{report.scopeHash}</strong></div><div><span>Snapshot SHA-256</span><strong>{report.snapshotSha256}</strong></div></section>
+        <section className="verifygrid-report-section"><h2>Assurance summary</h2><div className="verifygrid-report-metrics"><div><span>In-scope targets</span><strong>{count(summary.inScopeTargets)}</strong></div><div><span>Findings</span><strong>{count(summary.findings)}</strong></div><div><span>Critical / high</span><strong>{count(summary.critical)} / {count(summary.high)}</strong></div><div><span>Known exploited</span><strong>{count(summary.knownExploited)}</strong></div><div><span>Closed</span><strong>{count(summary.closed)}</strong></div><div><span>Imported observations</span><strong>{count(summary.importedObservations)}</strong></div></div></section>
+        <section className="verifygrid-report-section"><h2>Findings and remediation</h2>{findings.length ? findings.map((finding) => <article className={`verifygrid-report-finding severity-${text(finding.severity, "informational")}`} key={text(finding.id)}><div><span className={`severity-pill severity-${text(finding.severity, "informational")}`}>{text(finding.severity)}</span><span className="status-pill content-kind-pill">{text(finding.status)}</span></div><h3>{text(finding.title)}</h3><p><strong>Impact:</strong> {text(finding.businessImpact)}</p><p><strong>Remediation:</strong> {text(finding.remediation)}</p></article>) : <p>No reportable findings were present in this snapshot.</p>}</section>
+      </article>
+    </main>
+  );
+}
