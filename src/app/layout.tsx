@@ -44,6 +44,11 @@ export const metadata: Metadata = {
   creator: "QuantumCrafters Studio Pvt. Ltd.",
   publisher: "QuantumCrafters Studio Pvt. Ltd.",
   category: "Managed network services and network security",
+  icons: {
+    icon: [{ url: "/brand/quantumcrafters-logo.png", type: "image/png" }],
+    shortcut: "/brand/quantumcrafters-logo.png",
+    apple: "/brand/quantumcrafters-logo.png"
+  },
   formatDetection: {
     telephone: false,
     email: false,
