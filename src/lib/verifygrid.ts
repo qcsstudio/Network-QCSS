@@ -14,6 +14,7 @@ import {
   scopeHash,
   scopeTargetSchema
 } from "@/lib/verifygrid-domain";
+import { seedVerifyGridTestPlan, testCaseUpdateSchema } from "@/lib/verifygrid-methodology";
 
 const engagementInclude = {
   workspace: { select: { id: true, slug: true, name: true, primaryContactName: true, primaryContactEmail: true, countryCode: true } },
@@ -49,6 +50,7 @@ const engagementInclude = {
     }
   },
   executionJobs: { orderBy: { createdAt: "desc" as const }, take: 20 },
+  testCases: { orderBy: [{ category: "asc" as const }, { code: "asc" as const }] },
   reports: { orderBy: { generatedAt: "desc" as const }, take: 20 },
   activities: { orderBy: { createdAt: "desc" as const }, take: 20 }
 } satisfies Prisma.VerifyGridEngagementInclude;
@@ -215,9 +217,28 @@ function mapEngagement(engagement: EngagementWithRelations) {
       startedAt: job.startedAt?.toISOString() || "",
       completedAt: job.completedAt?.toISOString() || "",
       resultBatchId: job.resultBatchId || "",
+      approvedBy: job.approvedBy || "",
+      approvedAt: job.approvedAt?.toISOString() || "",
+      approvalNote: job.approvalNote || "",
       lastError: job.lastError || "",
       cancelledAt: job.cancelledAt?.toISOString() || "",
       createdAt: job.createdAt.toISOString()
+    })),
+    testCases: engagement.testCases.map((testCase) => ({
+      id: testCase.id,
+      code: testCase.code,
+      standardRef: testCase.standardRef,
+      category: testCase.category,
+      title: testCase.title,
+      objective: testCase.objective,
+      executionMode: testCase.executionMode,
+      capability: testCase.capability || "",
+      status: testCase.status,
+      resultSummary: testCase.resultSummary || "",
+      assignedTo: testCase.assignedTo || "",
+      startedAt: testCase.startedAt?.toISOString() || "",
+      completedAt: testCase.completedAt?.toISOString() || "",
+      updatedAt: testCase.updatedAt.toISOString()
     })),
     reports: engagement.reports.map((report) => ({
       id: report.id,
@@ -249,7 +270,7 @@ export type VerifyGridEngagementRecord = ReturnType<typeof mapEngagement>;
 
 export async function getVerifyGridPortfolio() {
   const prisma = getPrismaClient();
-  const [engagements, workspaceCount, openFindingCount, criticalFindingCount, knownExploitedCount, overdueFindingCount, pendingObservationCount, readyJobCount] = await Promise.all([
+  const [initialEngagements, workspaceCount, openFindingCount, criticalFindingCount, knownExploitedCount, overdueFindingCount, pendingObservationCount, readyJobCount] = await Promise.all([
     prisma.verifyGridEngagement.findMany({ orderBy: { updatedAt: "desc" }, take: 60, include: engagementInclude }),
     prisma.verifyGridWorkspace.count({ where: { status: "active" } }),
     prisma.verifyGridFinding.count({ where: { status: { in: ["open", "validated", "remediation_in_progress", "resolved", "retest_requested"] } } }),
@@ -259,6 +280,16 @@ export async function getVerifyGridPortfolio() {
     prisma.verifyGridObservation.count({ where: { scopeDisposition: "in_scope", promotionStatus: "pending" } }),
     prisma.verifyGridExecutionJob.count({ where: { status: { in: ["validated", "queued", "claimed", "running", "retry", "manual_approval_required"] } } })
   ]);
+  let engagements = initialEngagements;
+  const missingTestPlans = engagements.filter((engagement) => engagement.testCases.length === 0);
+  if (missingTestPlans.length) {
+    await prisma.$transaction(async (tx) => {
+      for (const engagement of missingTestPlans) {
+        await seedVerifyGridTestPlan(tx, engagement.id, engagement.serviceType);
+      }
+    });
+    engagements = await prisma.verifyGridEngagement.findMany({ orderBy: { updatedAt: "desc" }, take: 60, include: engagementInclude });
+  }
   const records = engagements.map(mapEngagement);
   return {
     generatedAt: new Date().toISOString(),
@@ -353,12 +384,44 @@ export async function createVerifyGridEngagement(value: unknown, actor: string) 
         updatedBy: actor
       }
     });
+    await seedVerifyGridTestPlan(tx, created.id, created.serviceType);
     await tx.verifyGridActivity.create({
       data: { workspaceId: workspace.id, engagementId: created.id, action: "engagement.created", actor, metadata: json({ reference: created.reference, serviceType: created.serviceType }) }
     });
     return created;
   });
   return getVerifyGridEngagement(engagement.id);
+}
+
+export async function updateVerifyGridTestCase(id: string, value: unknown, actor: string) {
+  const input = testCaseUpdateSchema.parse(value);
+  const prisma = getPrismaClient();
+  const testCase = await prisma.verifyGridTestCase.findUnique({ where: { id }, include: { engagement: true } });
+  if (!testCase) throw new Error("VerifyGrid methodology test case not found.");
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.verifyGridTestCase.update({
+      where: { id },
+      data: {
+        status: input.status,
+        resultSummary: input.resultSummary || null,
+        assignedTo: input.assignedTo || testCase.assignedTo,
+        startedAt: input.status === "running" && !testCase.startedAt ? now : testCase.startedAt,
+        completedAt: ["passed", "finding", "not_applicable"].includes(input.status) ? now : null,
+        updatedBy: actor
+      }
+    }),
+    prisma.verifyGridActivity.create({
+      data: {
+        workspaceId: testCase.engagement.workspaceId,
+        engagementId: testCase.engagementId,
+        action: "methodology.test_case_updated",
+        actor,
+        metadata: json({ testCaseId: id, code: testCase.code, previousStatus: testCase.status, status: input.status })
+      }
+    })
+  ]);
+  return getVerifyGridEngagement(testCase.engagementId);
 }
 
 async function invalidateAuthorization(tx: Prisma.TransactionClient, engagement: { id: string; workspaceId: string; status: string }, actor: string, reason: string) {

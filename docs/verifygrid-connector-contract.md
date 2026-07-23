@@ -4,7 +4,7 @@
 
 Scanner files are evidence, not instructions. The Next.js control plane parses supported exports, removes unnecessary raw material, computes an import SHA-256, classifies each observation against the current scope, and stores normalized records. It never executes commands found in an imported file.
 
-Direct imports are limited to 2 MB and 5,000 unique observations. Larger and credentialed integrations belong in the future durable connector worker.
+Direct imports are limited to 2 MB and 5,000 unique observations. Credentialed integrations run through leased connector jobs; larger artifacts should be retained in approved encrypted evidence storage and normalized before import.
 
 ## Supported direct imports
 
@@ -70,4 +70,4 @@ FIRST EPSS API: https://api.first.org/epss/
 
 An execution record contains the engagement and workspace IDs, current scope hash, active authorization ID and window, selected target snapshot, capability level, request ceiling, prohibited actions, stop conditions, and a deterministic manifest SHA-256.
 
-The current release does not dispatch scanner jobs. Safe capabilities are marked `validated`; configuration analysis and controlled exploit validation are marked `manual_approval_required`. A future customer sensor must verify the manifest and current authorization again immediately before any action.
+The current release dispatches signed manifests only to an enrolled outbound scanner node whose authorized and runtime-attested capabilities both include the requested profile. Higher-impact Nmap and Nuclei profiles require a separate accountable approval that reseals the manifest. Configuration analysis and bespoke exploit validation remain supervised manual records and are never dispatched. Every node verifies the manifest, scope-bound authorization, approval, time window, limits, and kill-switch lease immediately before and during execution.

@@ -22,6 +22,7 @@ import {
 import { findingFingerprint, scopeHash } from "@/lib/verifygrid-domain";
 import { getVerifyGridEngagement } from "@/lib/verifygrid";
 import { fetchNvdEvidence, matchObservationToCpes, type NvdEvidence } from "@/lib/verifygrid-nvd";
+import { executionApprovalSchema } from "@/lib/verifygrid-automation-domain";
 
 function json(value: unknown) {
   return value as Prisma.InputJsonValue;
@@ -397,6 +398,9 @@ export async function createVerifyGridExecutionJob(engagementId: string, value: 
     stopConditions: strings(engagement.rulesOfEngagement, "stopConditions")
   });
   const status = built.capability.humanApprovalRequired ? "manual_approval_required" : "validated";
+  const dispatchStatus = built.capability.sensorDispatch
+    ? built.capability.humanApprovalRequired ? "approval_required" : "sensor_not_selected"
+    : "manual_review_only";
   const job = await prisma.$transaction(async (tx) => {
     const created = await tx.verifyGridExecutionJob.create({
       data: {
@@ -415,6 +419,7 @@ export async function createVerifyGridExecutionJob(engagementId: string, value: 
         maxRequestsPerSecond,
         manifest: json(built.manifest),
         manifestSha256: built.manifestSha256,
+        dispatchStatus,
         requestedBy: actor
       }
     });
@@ -430,6 +435,74 @@ export async function createVerifyGridExecutionJob(engagementId: string, value: 
     return created;
   });
   return { jobId: job.id, engagement: await getVerifyGridEngagement(engagementId) };
+}
+
+export async function approveVerifyGridExecutionJob(jobId: string, value: unknown, actor: string) {
+  const input = executionApprovalSchema.parse(value);
+  const prisma = getPrismaClient();
+  const job = await prisma.verifyGridExecutionJob.findUnique({
+    where: { id: jobId },
+    include: { engagement: { include: { scopeTargets: true } }, authorization: true }
+  });
+  if (!job) throw new Error("VerifyGrid execution record not found.");
+  if (job.status !== "manual_approval_required") throw new Error("Only a pending controlled-validation record can be approved.");
+  const capability = capabilityCatalog[job.capability as keyof typeof capabilityCatalog];
+  if (!capability?.sensorDispatch) throw new Error("This capability is retained as a supervised manual record and cannot be dispatched to a sensor.");
+  if (!capability.humanApprovalRequired) throw new Error("This execution record does not require a separate approval event.");
+  const targets = job.engagement.scopeTargets.filter((target) => Array.isArray(job.targetIds) && job.targetIds.includes(target.id));
+  const currentHash = scopeHash(job.engagement.scopeTargets);
+  const boundary = validateExecutionBoundary({
+    engagementStatus: job.engagement.status,
+    testMode: job.engagement.testMode,
+    scopeHash: currentHash,
+    capability: job.capability as Parameters<typeof validateExecutionBoundary>[0]["capability"],
+    targets,
+    authorization: job.authorization,
+    requestedStartAt: job.requestedStartAt,
+    validUntil: job.validUntil
+  });
+  if (!boundary.allowed || job.scopeHash !== currentHash) throw new Error(`Approval blocked: ${[...boundary.blockers, ...(job.scopeHash !== currentHash ? ["The scope changed after manifest creation."] : [])].join(" ")}`);
+  const approvedAt = new Date();
+  const manifest = record(job.manifest);
+  const controls = record(manifest.controls);
+  const approvedManifest = {
+    ...manifest,
+    controls: {
+      ...controls,
+      approval: {
+        required: true,
+        approvedBy: actor,
+        approvedAt: approvedAt.toISOString(),
+        noteSha256: crypto.createHash("sha256").update(input.approvalNote, "utf8").digest("hex")
+      }
+    }
+  };
+  const manifestSha256 = sha256Json(approvedManifest);
+  await prisma.$transaction([
+    prisma.verifyGridExecutionJob.update({
+      where: { id: job.id },
+      data: {
+        status: "validated",
+        dispatchStatus: "sensor_not_selected",
+        manifest: json(approvedManifest),
+        manifestSha256,
+        approvedBy: actor,
+        approvedAt,
+        approvalNote: input.approvalNote,
+        lastError: null
+      }
+    }),
+    prisma.verifyGridActivity.create({
+      data: {
+        workspaceId: job.workspaceId,
+        engagementId: job.engagementId,
+        action: "execution.controlled_validation_approved",
+        actor,
+        metadata: json({ jobId: job.id, capability: job.capability, previousManifestSha256: job.manifestSha256, manifestSha256 })
+      }
+    })
+  ]);
+  return getVerifyGridEngagement(job.engagementId);
 }
 
 export async function cancelVerifyGridExecutionJob(jobId: string, value: unknown, actor: string) {
@@ -462,6 +535,7 @@ export async function createVerifyGridReport(engagementId: string, value: unknow
       findings: { orderBy: [{ knownExploited: "desc" }, { severity: "asc" }, { updatedAt: "desc" }], include: { evidence: true, retests: true } },
       importBatches: { orderBy: { createdAt: "desc" }, take: 20 },
       executionJobs: { orderBy: { createdAt: "desc" }, take: 20 },
+      testCases: { orderBy: [{ category: "asc" }, { code: "asc" }] },
       reports: { where: { reportType: input.reportType }, orderBy: { version: "desc" }, take: 1 }
     }
   });
@@ -502,7 +576,10 @@ export async function createVerifyGridReport(engagementId: string, value: unknow
       knownExploited: findings.filter((finding) => finding.knownExploited).length,
       closed: findings.filter((finding) => finding.status === "closed").length,
       importedObservations: engagement.importBatches.reduce((sum, batch) => sum + batch.observationCount, 0),
-      preparedExecutionRecords: engagement.executionJobs.length
+      preparedExecutionRecords: engagement.executionJobs.length,
+      methodologyTests: engagement.testCases.length,
+      methodologyCompleted: engagement.testCases.filter((item) => ["passed", "finding", "not_applicable"].includes(item.status)).length,
+      methodologyWithFindings: engagement.testCases.filter((item) => item.status === "finding").length
     },
     scope: engagement.scopeTargets.map((target) => ({
       type: target.targetType,
@@ -511,6 +588,19 @@ export async function createVerifyGridReport(engagementId: string, value: unknow
       criticality: target.criticality,
       permission: target.permission,
       disposition: target.inScope ? "in_scope" : "excluded"
+    })),
+    methodology: engagement.testCases.map((testCase) => ({
+      code: testCase.code,
+      standardRef: testCase.standardRef,
+      category: testCase.category,
+      title: testCase.title,
+      executionMode: testCase.executionMode,
+      capability: testCase.capability,
+      status: testCase.status,
+      resultSummary: testCase.resultSummary,
+      assignedTo: testCase.assignedTo,
+      startedAt: testCase.startedAt?.toISOString() || null,
+      completedAt: testCase.completedAt?.toISOString() || null
     })),
     findings: findings.map((finding) => ({
       id: finding.id,

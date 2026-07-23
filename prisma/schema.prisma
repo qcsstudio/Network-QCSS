@@ -329,6 +329,7 @@ model VerifyGridEngagement {
   observations          VerifyGridObservation[]
   executionJobs         VerifyGridExecutionJob[]
   reports               VerifyGridReport[]
+  testCases             VerifyGridTestCase[]
   connectorProfiles     VerifyGridConnectorProfile[]
   connectorRuns         VerifyGridConnectorRun[]
   activities            VerifyGridActivity[]
@@ -336,6 +337,31 @@ model VerifyGridEngagement {
   @@index([workspaceId, status])
   @@index([status, plannedStartAt])
   @@index([updatedAt])
+}
+
+model VerifyGridTestCase {
+  id            String               @id @default(cuid())
+  engagementId  String
+  code          String
+  standardRef   String
+  category      String
+  title         String
+  objective     String
+  executionMode String
+  capability    String?
+  status        String               @default("planned")
+  resultSummary String?
+  assignedTo    String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  updatedBy     String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  engagement    VerifyGridEngagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@unique([engagementId, code])
+  @@index([engagementId, status, category])
+  @@index([capability])
 }
 
 model VerifyGridScopeTarget {
@@ -631,6 +657,9 @@ model VerifyGridExecutionJob {
   resultSummary        Json?
   lastError            String?
   requestedBy          String?
+  approvedBy           String?
+  approvedAt           DateTime?
+  approvalNote         String?
   cancelledBy          String?
   cancelledAt          DateTime?
   cancellationReason   String?
@@ -738,6 +767,9 @@ model VerifyGridSensor {
   tokenHash     String                   @unique
   tokenLastFour String
   capabilities  Json
+  runtimeCapabilities Json?
+  healthStatus  String                   @default("enrolled")
+  lastError     String?
   version       String?
   region        String?
   lastSeenAt    DateTime?

@@ -17,6 +17,7 @@ import {
   FileText,
   Fingerprint,
   LockKeyhole,
+  ListChecks,
   MailPlus,
   Pause,
   Play,
@@ -34,7 +35,7 @@ import {
 import { capabilityCatalog, connectorCatalog, type VerifyGridConnector } from "@/lib/verifygrid-catalog";
 import type { VerifyGridEngagementRecord, VerifyGridPortfolio } from "@/lib/verifygrid";
 
-type View = "command" | "scope" | "evidence" | "findings" | "execution" | "automation" | "reports" | "activity";
+type View = "command" | "scope" | "methodology" | "evidence" | "findings" | "execution" | "automation" | "reports" | "activity";
 
 type VerifyGridAutomation = {
   connectors: Array<{
@@ -56,7 +57,7 @@ type VerifyGridAutomation = {
     lastError: string;
     runs: Array<{ id: string; status: string; trigger: string; attempt: number; errorMessage: string; createdAt: string; completedAt: string }>;
   }>;
-  sensors: Array<{ id: string; name: string; status: string; tokenLastFour: string; capabilities: string[]; version: string; region: string; lastSeenAt: string; createdAt: string }>;
+  sensors: Array<{ id: string; name: string; status: string; tokenLastFour: string; capabilities: string[]; runtimeCapabilities: string[]; healthStatus: string; lastError: string; version: string; region: string; lastSeenAt: string; createdAt: string }>;
   memberships: Array<{ id: string; email: string; displayName: string; role: string; status: string; invitedAt: string; acceptedAt: string; lastAccessAt: string }>;
 };
 
@@ -67,6 +68,13 @@ function localDateTime(date = new Date()) {
 
 function label(value: string) {
   return value.replace(/_/g, " ");
+}
+
+function groupTestCases(testCases: VerifyGridEngagementRecord["testCases"]) {
+  return Object.entries(testCases.reduce<Record<string, VerifyGridEngagementRecord["testCases"]>>((groups, testCase) => {
+    (groups[testCase.category] ||= []).push(testCase);
+    return groups;
+  }, {}));
 }
 
 const verifyGridDateTime = new Intl.DateTimeFormat("en-GB", {
@@ -190,7 +198,7 @@ function initialConnectorDraft(): ConnectorDraft {
 }
 
 function initialSensorDraft() {
-  return { name: "QCS client sensor", capabilities: ["asset_inventory", "dns_posture", "tls_posture", "tcp_service_validation", "http_security_headers"] };
+  return { name: "QCS scanner node", capabilities: ["asset_inventory", "dns_posture", "tls_posture", "tcp_service_validation", "http_security_headers", "network_service_scan", "web_passive_scan", "template_vulnerability_scan"] };
 }
 
 function initialMemberDraft() {
@@ -409,6 +417,36 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
     }
   }
 
+  async function updateTestCase(testCaseId: string, status: string, currentSummary: string, currentAssignee: string) {
+    if (!selected) return;
+    let resultSummary = currentSummary;
+    let assignedTo = currentAssignee;
+    if (["passed", "finding", "not_applicable"].includes(status)) {
+      const summary = window.prompt("Record the test evidence and conclusion (at least 20 characters):", currentSummary);
+      if (summary === null) return;
+      if (summary.trim().length < 20) {
+        setMessage("Completed methodology tests require an evidence summary of at least 20 characters.");
+        return;
+      }
+      resultSummary = summary.trim();
+    }
+    if (status === "running" && !assignedTo) {
+      const assignee = window.prompt("Assign the analyst responsible for this test:");
+      if (assignee === null) return;
+      assignedTo = assignee.trim();
+    }
+    setBusy(`test-case-${testCaseId}`);
+    try {
+      await mutate(`/api/admin/verifygrid/test-cases/${testCaseId}`, "PATCH", { status, resultSummary, assignedTo });
+      await load(selected.id);
+      setMessage(`Methodology test moved to ${label(status)} with an accountable evidence trail.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to update the methodology test.");
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function requestRetest(findingId: string) {
     if (!selected) return;
     setBusy(`retest-${findingId}`);
@@ -504,6 +542,23 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
       setMessage("Execution record cancelled and retained in the activity trail.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to cancel the execution record.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function approveExecutionRecord(jobId: string) {
+    if (!selected) return;
+    const approvalNote = window.prompt("Record why this controlled validation is necessary, expected, and within the approved window (at least 30 characters):");
+    if (!approvalNote) return;
+    if (!window.confirm("Approve this bounded scanner job for the exact targets and authorization shown in its signed manifest?")) return;
+    setBusy(`approve-${jobId}`);
+    try {
+      await mutate(`/api/admin/verifygrid/execution-jobs/${jobId}/approve`, "POST", { approvalNote, acknowledgeControlledValidation: true });
+      await load(selected.id);
+      setMessage("Controlled validation approved. The manifest was resealed and is ready for a capable connected scanner node.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to approve the execution record.");
     } finally {
       setBusy("");
     }
@@ -691,6 +746,9 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
     remediation: ["close", "cancel"]
   }[selected.status] || [] : [];
 
+  const methodologyCategories = selected ? groupTestCases(selected.testCases) : [];
+  const methodologyComplete = selected?.testCases.filter((testCase) => ["passed", "finding", "not_applicable"].includes(testCase.status)).length || 0;
+
   return (
     <section className="admin-panel verifygrid-panel" id="verifygrid">
       <div className="panel-heading verifygrid-heading">
@@ -776,7 +834,7 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
               </header>
 
               <div className="content-filter-tabs verifygrid-tabs" aria-label="Engagement views">
-                {(["command", "scope", "evidence", "findings", "execution", "automation", "reports", "activity"] as const).map((item) => <button aria-pressed={view === item} key={item} onClick={() => { setView(item); if (["execution", "automation"].includes(item) && automationWorkspaceId !== selected.workspace.id) loadAutomation(selected.workspace.id).catch((error) => setMessage(error instanceof Error ? error.message : "Unable to load automation controls.")); }} type="button">{item}</button>)}
+                {(["command", "scope", "methodology", "evidence", "findings", "execution", "automation", "reports", "activity"] as const).map((item) => <button aria-pressed={view === item} key={item} onClick={() => { setView(item); if (["execution", "automation"].includes(item) && automationWorkspaceId !== selected.workspace.id) loadAutomation(selected.workspace.id).catch((error) => setMessage(error instanceof Error ? error.message : "Unable to load automation controls.")); }} type="button">{item}</button>)}
               </div>
 
               {view === "command" ? (
@@ -794,6 +852,32 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
                   </div>
                   <form className="content-editor verifygrid-compact-form" onSubmit={addScope}><fieldset className="content-editor-section"><legend>Add target or exclusion</legend><div className="content-field-grid"><label className="content-field"><span>Type</span><select value={scopeDraft.targetType} onChange={(event) => setScopeDraft({ ...scopeDraft, targetType: event.target.value })}><option value="domain">Domain</option><option value="hostname">Hostname</option><option value="ip">IP address</option><option value="cidr">CIDR</option><option value="url">URL</option><option value="cloud_account">Cloud account</option><option value="site">Site</option><option value="wireless_ssid">Wireless SSID</option><option value="application">Application</option></select></label><label className="content-field"><span>Target</span><input required value={scopeDraft.value} onChange={(event) => setScopeDraft({ ...scopeDraft, value: event.target.value })} /></label><label className="content-field"><span>Permission</span><select value={scopeDraft.permission} onChange={(event) => setScopeDraft({ ...scopeDraft, permission: event.target.value })}><option value="observe">Observe only</option><option value="safe_checks">Safe checks</option><option value="controlled_validation">Controlled validation</option><option value="manual_only">Manual only</option></select></label><label className="content-field"><span>Criticality</span><select value={scopeDraft.criticality} onChange={(event) => setScopeDraft({ ...scopeDraft, criticality: event.target.value })}><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label><label className="verifygrid-check"><input checked={scopeDraft.inScope} onChange={(event) => setScopeDraft({ ...scopeDraft, inScope: event.target.checked, ownershipConfirmed: event.target.checked ? scopeDraft.ownershipConfirmed : false })} type="checkbox" /><span>In scope</span></label><label className="verifygrid-check"><input checked={scopeDraft.ownershipConfirmed} disabled={!scopeDraft.inScope} onChange={(event) => setScopeDraft({ ...scopeDraft, ownershipConfirmed: event.target.checked })} type="checkbox" /><span>Ownership confirmed</span></label></div><button className="button primary compact-button" disabled={busy === "scope"} type="submit"><Plus aria-hidden="true" size={16} /> Save scope</button></fieldset></form>
                   <form className="content-editor verifygrid-compact-form" onSubmit={authorize}><fieldset className="content-editor-section"><legend>Record authorization</legend><div className="content-field-grid"><label className="content-field"><span>Approver</span><input required value={authorizationDraft.approvedByName} onChange={(event) => setAuthorizationDraft({ ...authorizationDraft, approvedByName: event.target.value })} /></label><label className="content-field"><span>Approver email</span><input required type="email" value={authorizationDraft.approvedByEmail} onChange={(event) => setAuthorizationDraft({ ...authorizationDraft, approvedByEmail: event.target.value })} /></label><label className="content-field"><span>Valid from</span><input required type="datetime-local" value={authorizationDraft.validFrom} onChange={(event) => setAuthorizationDraft({ ...authorizationDraft, validFrom: event.target.value })} /></label><label className="content-field"><span>Valid until</span><input required type="datetime-local" value={authorizationDraft.validUntil} onChange={(event) => setAuthorizationDraft({ ...authorizationDraft, validUntil: event.target.value })} /></label><label className="content-field content-field-wide"><span>Authorization artifact URL</span><input type="url" value={authorizationDraft.artifactUrl} onChange={(event) => setAuthorizationDraft({ ...authorizationDraft, artifactUrl: event.target.value })} /></label><label className="verifygrid-check content-field-wide"><input checked={authorizationDraft.authorityConfirmed} onChange={(event) => setAuthorizationDraft({ ...authorizationDraft, authorityConfirmed: event.target.checked })} type="checkbox" /><span>I verified that this approver can legally authorize testing of the recorded targets.</span></label></div><button className="button primary compact-button" disabled={busy === "authorize" || !authorizationDraft.authorityConfirmed} type="submit"><LockKeyhole aria-hidden="true" size={16} /> Bind authorization</button></fieldset></form>
+                </div>
+              ) : null}
+
+              {view === "methodology" ? (
+                <div className="verifygrid-methodology-view">
+                  <div className="verifygrid-methodology-heading">
+                    <div className="verifygrid-section-heading"><ListChecks aria-hidden="true" size={20} /><div><h4>Assessment test plan</h4><p>Service-specific coverage with standards references, ownership, evidence, and conclusions</p></div></div>
+                    <div className="verifygrid-methodology-metrics" aria-label="Methodology coverage">
+                      <div><span>Tests</span><strong>{selected.testCases.length}</strong></div>
+                      <div><span>Complete</span><strong>{methodologyComplete}</strong></div>
+                      <div><span>Running</span><strong>{selected.testCases.filter((testCase) => testCase.status === "running").length}</strong></div>
+                      <div><span>Findings</span><strong>{selected.testCases.filter((testCase) => testCase.status === "finding").length}</strong></div>
+                    </div>
+                  </div>
+                  {methodologyCategories.length ? methodologyCategories.map(([category, testCases]) => (
+                    <section className="verifygrid-methodology-category" key={category}>
+                      <div className="verifygrid-methodology-category-heading"><h5>{category}</h5><span>{testCases?.length || 0} test(s)</span></div>
+                      {testCases?.map((testCase) => (
+                        <article className="verifygrid-test-case" key={testCase.id}>
+                          <div className="verifygrid-test-case-code"><strong>{testCase.code}</strong><span>{testCase.standardRef}</span></div>
+                          <div className="verifygrid-test-case-body"><h6>{testCase.title}</h6><p>{testCase.objective}</p>{testCase.resultSummary ? <small><strong>Result:</strong> {testCase.resultSummary}</small> : null}</div>
+                          <div className="verifygrid-test-case-control"><span>{testCase.assignedTo || (testCase.executionMode === "automated" ? "Scanner + analyst" : "Unassigned")}</span><select aria-label={`Status for ${testCase.title}`} disabled={Boolean(busy)} onChange={(event) => updateTestCase(testCase.id, event.target.value, testCase.resultSummary, testCase.assignedTo)} value={testCase.status}><option value="planned">Planned</option><option value="running">Running</option><option value="passed">Passed</option><option value="finding">Finding</option><option value="not_applicable">Not applicable</option></select></div>
+                        </article>
+                      ))}
+                    </section>
+                  )) : <p className="content-empty-state">No methodology test plan is available for this engagement.</p>}
                 </div>
               ) : null}
 
@@ -849,7 +933,8 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
                         <p>{formatDate(job.requestedStartAt)} to {formatDate(job.validUntil)}</p>
                         <div className="verifygrid-record-footer"><small>Manifest {job.manifestSha256.slice(0, 20)}... | {label(job.dispatchStatus)}{job.attempt ? ` | attempt ${job.attempt}/${job.maxAttempts}` : ""}</small>{!["cancelled", "completed", "expired", "failed"].includes(job.status) ? <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => cancelExecutionRecord(job.id)} title="Cancel execution record" type="button"><Ban aria-hidden="true" size={16} /></button> : null}</div>
                         {job.lastError ? <p className="form-note verifygrid-error-note">{job.lastError}</p> : null}
-                        {job.status === "validated" ? <div className="verifygrid-dispatch-row"><label className="content-field"><span>Outbound sensor</span><select value={jobSensors[job.id] || ""} onChange={(event) => setJobSensors((current) => ({ ...current, [job.id]: event.target.value }))}><option value="">Select a capable sensor</option>{automation?.sensors.filter((sensor) => sensor.status === "active" && sensor.capabilities.includes(job.capability)).map((sensor) => <option key={sensor.id} value={sensor.id}>{sensor.name}{sensor.lastSeenAt ? ` | seen ${formatDate(sensor.lastSeenAt)}` : " | not connected"}</option>)}</select></label><button className="button primary compact-button" disabled={!jobSensors[job.id] || Boolean(busy)} onClick={() => queueExecutionJob(job.id, jobSensors[job.id])} type="button"><Send aria-hidden="true" size={15} /> Queue manifest</button></div> : null}
+                        {job.status === "manual_approval_required" && capabilityCatalog[job.capability as keyof typeof capabilityCatalog]?.sensorDispatch ? <div className="verifygrid-dispatch-row"><p className="form-note">A separate accountable approval is required for this controlled validation.</p><button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => approveExecutionRecord(job.id)} type="button"><ShieldCheck aria-hidden="true" size={15} /> Approve validation</button></div> : null}
+                        {job.status === "validated" ? <div className="verifygrid-dispatch-row"><label className="content-field"><span>Scanner node</span><select value={jobSensors[job.id] || ""} onChange={(event) => setJobSensors((current) => ({ ...current, [job.id]: event.target.value }))}><option value="">Select a connected capable node</option>{automation?.sensors.filter((sensor) => sensor.status === "active" && sensor.healthStatus === "connected" && sensor.capabilities.includes(job.capability) && sensor.runtimeCapabilities.includes(job.capability)).map((sensor) => <option key={sensor.id} value={sensor.id}>{sensor.name} | {sensor.region || "region not reported"} | seen {formatDate(sensor.lastSeenAt)}</option>)}</select></label><button className="button primary compact-button" disabled={!jobSensors[job.id] || Boolean(busy)} onClick={() => queueExecutionJob(job.id, jobSensors[job.id])} type="button"><Send aria-hidden="true" size={15} /> Queue manifest</button></div> : null}
                       </article>
                     )) : <p className="content-empty-state">No execution manifests prepared.</p>}
                   </section>
@@ -878,7 +963,7 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
                     <>
                       <div className="verifygrid-automation-metrics">
                         <div><span>Connector profiles</span><strong>{automation.connectors.length}</strong></div>
-                        <div><span>Active sensors</span><strong>{automation.sensors.filter((sensor) => sensor.status === "active").length}</strong></div>
+                        <div><span>Connected scanner nodes</span><strong>{automation.sensors.filter((sensor) => sensor.status === "active" && sensor.healthStatus === "connected").length}</strong></div>
                         <div><span>Client members</span><strong>{automation.memberships.filter((member) => member.status === "active").length}</strong></div>
                         <div><span>Connector alerts</span><strong>{automation.connectors.filter((connector) => connector.lastError || !connector.credentialsReady).length}</strong></div>
                       </div>
@@ -894,9 +979,9 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
                       <section className="verifygrid-automation-section">
                         <div className="verifygrid-section-heading"><Cpu aria-hidden="true" size={20} /><div><h4>Outbound sensors</h4><p>Pull-only workers for approved, non-destructive checks; no inbound client firewall rule required</p></div></div>
                         <div className="verifygrid-automation-records">
-                          {automation.sensors.length ? automation.sensors.map((sensor) => <article className="verifygrid-automation-record" key={sensor.id}><div className="verifygrid-record-top"><div><strong>{sensor.name}</strong><span>Token ending {sensor.tokenLastFour} | {sensor.region || "region not reported"}</span></div><span className={`status-pill ${sensor.status === "active" ? "content-status-published" : "content-status-deleted"}`}>{label(sensor.status)}</span></div><p>{sensor.capabilities.map(label).join(" | ")}</p><div className="verifygrid-record-footer"><small>{sensor.lastSeenAt ? `Last heartbeat ${formatDate(sensor.lastSeenAt)}${sensor.version ? ` | v${sensor.version}` : ""}` : "Enrollment issued; first heartbeat pending"}</small>{sensor.status === "active" ? <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => revokeSensor(sensor.id)} title="Revoke sensor" type="button"><Ban aria-hidden="true" size={16} /></button> : null}</div></article>) : <p className="content-empty-state">No outbound sensors enrolled.</p>}
+                          {automation.sensors.length ? automation.sensors.map((sensor) => <article className="verifygrid-automation-record" key={sensor.id}><div className="verifygrid-record-top"><div><strong>{sensor.name}</strong><span>Token ending {sensor.tokenLastFour} | {sensor.region || "region not reported"}</span></div><span className={`status-pill ${sensor.status === "active" && sensor.healthStatus === "connected" ? "content-status-published" : sensor.status === "revoked" ? "content-status-deleted" : "content-status-draft"}`}>{label(sensor.status === "active" ? sensor.healthStatus : sensor.status)}</span></div><p>Authorized: {sensor.capabilities.map(label).join(" | ")}</p><p>Installed: {sensor.runtimeCapabilities.length ? sensor.runtimeCapabilities.map(label).join(" | ") : "waiting for runtime attestation"}</p>{sensor.lastError ? <p className="form-note verifygrid-error-note">{sensor.lastError}</p> : null}<div className="verifygrid-record-footer"><small>{sensor.lastSeenAt ? `Last heartbeat ${formatDate(sensor.lastSeenAt)}${sensor.version ? ` | v${sensor.version}` : ""}` : "Enrollment issued; first heartbeat pending"}</small>{sensor.status === "active" ? <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => revokeSensor(sensor.id)} title="Revoke sensor" type="button"><Ban aria-hidden="true" size={16} /></button> : null}</div></article>) : <p className="content-empty-state">No outbound sensors enrolled.</p>}
                         </div>
-                        <form className="content-editor verifygrid-compact-form" onSubmit={enrollSensor}><fieldset className="content-editor-section"><legend>Enroll outbound sensor</legend><div className="content-field-grid"><label className="content-field content-field-wide"><span>Sensor name</span><input required value={sensorDraft.name} onChange={(event) => setSensorDraft({ ...sensorDraft, name: event.target.value })} /></label><div className="content-field content-field-wide"><span>Non-destructive capabilities</span><div className="verifygrid-target-picker">{Object.entries(capabilityCatalog).filter(([, capability]) => !capability.humanApprovalRequired).map(([value, capability]) => <label className="verifygrid-check" key={value}><input checked={sensorDraft.capabilities.includes(value)} onChange={() => toggleSensorCapability(value)} type="checkbox" /><span>{capability.label}</span></label>)}</div></div><p className="form-note content-field-wide"><Cable aria-hidden="true" size={15} /> The token is displayed once. Run the bundled sensor with the production site URL and store the token as a protected environment variable.</p></div><button className="button primary compact-button" disabled={busy === "sensor-create" || !sensorDraft.capabilities.length} type="submit"><Plus aria-hidden="true" size={15} /> Enroll sensor</button></fieldset></form>
+                        <form className="content-editor verifygrid-compact-form" onSubmit={enrollSensor}><fieldset className="content-editor-section"><legend>Enroll scanner node</legend><div className="content-field-grid"><label className="content-field content-field-wide"><span>Node name</span><input required value={sensorDraft.name} onChange={(event) => setSensorDraft({ ...sensorDraft, name: event.target.value })} /></label><div className="content-field content-field-wide"><span>Authorized capabilities</span><div className="verifygrid-target-picker">{Object.entries(capabilityCatalog).filter(([, capability]) => capability.sensorDispatch).map(([value, capability]) => <label className="verifygrid-check" key={value}><input checked={sensorDraft.capabilities.includes(value)} onChange={() => toggleSensorCapability(value)} type="checkbox" /><span>{capability.label}{capability.humanApprovalRequired ? " | approval required" : ""}</span></label>)}</div></div><p className="form-note content-field-wide"><Cable aria-hidden="true" size={15} /> The token is displayed once. The container reports installed scanners at runtime; a job cannot queue unless authorization, approval, enrollment, and runtime capability all agree.</p></div><button className="button primary compact-button" disabled={busy === "sensor-create" || !sensorDraft.capabilities.length} type="submit"><Plus aria-hidden="true" size={15} /> Enroll node</button></fieldset></form>
                       </section>
 
                       <section className="verifygrid-automation-section">

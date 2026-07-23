@@ -1,6 +1,6 @@
 # QCS VerifyGrid Product Roadmap
 
-Status: Phase 2 production baseline with governed Phase 4 sensor execution, 22 July 2026. The working product name requires brand and trademark review before public launch.
+Status: Operational scanner-node baseline with governed execution, 24 July 2026. The working product name requires brand and trademark review before public launch.
 
 ## Product position
 
@@ -54,11 +54,12 @@ Implemented baseline:
 - Greenbone sensor-side connector contract so private GMP endpoints are never contacted by the Vercel control plane
 - Authorization-bound execution manifests with capability and target permission checks; no Vercel-side scanner execution
 - Outbound-only Node.js sensor for asset, DNS, TLS, explicit TCP, and HTTP-header checks with signed manifests and result integrity hashes
+- Hardened scanner-node container with runtime capability attestation, Nmap safe service assessment, OWASP ZAP Baseline, bounded signed-template Nuclei validation, controlled-validation approval, and process cancellation on kill-switch heartbeat failure
 - Workspace-scoped client portal with one-time fragment links, signed sessions, role records, immediate revocation, and final-report isolation
 - Operator controls for connector sync, sensor enrollment/revocation, job dispatch, portal access, and emergency stop
 - Versioned executive, technical, and retest report snapshots with SHA-256 integrity
 
-Still required before the Phase 2 exit gate: customer-authorized production connector credentials, Greenbone deployment certification against the customer GMP version, broader scanner fixture certification, and external alerting for repeated queue failures.
+Client activation still requires a scanner host, client authorization and scope, and any selected commercial connector credentials. Greenbone certification, mTLS enterprise identity, encrypted object evidence storage, and external queue-failure alerting remain hardening work beyond the operational scanner-node baseline.
 
 ### Phase 3: Network and identity graph
 

@@ -31,6 +31,7 @@ import {
   verifyGridOnboardingRequestSchema,
   verifyGridOnboardingReviewSchema
 } from "../src/lib/verifygrid-onboarding-domain.ts";
+import { methodologyForService, testCaseUpdateSchema } from "../src/lib/verifygrid-methodology.ts";
 
 const firstTarget = {
   targetType: "domain",
@@ -191,6 +192,18 @@ test("execution manifest hash is deterministic across target ordering", () => {
   assert.equal(first.manifestSha256, second.manifestSha256);
   assert.equal(first.manifest.controls.denialOfServiceAllowed, false);
   assert.equal(first.manifest.controls.dispatchPolicy, "outbound_sensor_only");
+  assert.equal(first.manifest.controls.approval.required, false);
+});
+
+test("controlled scanner manifests require approval while remaining sensor dispatchable", () => {
+  const authorization = { id: "auth", status: "active", scopeHash: "scope", validFrom: new Date("2026-07-22T09:00:00.000Z"), validUntil: new Date("2026-07-22T18:00:00.000Z"), authorityConfirmed: true };
+  const target = { ...firstTarget, id: "target", permission: "controlled_validation" };
+  const built = buildExecutionManifest({ engagementId: "eng", engagementReference: "VG-2026-SCAN", workspaceId: "workspace", scopeHash: "scope", authorization, capability: "template_vulnerability_scan", targets: [target], rationale: "Run the approved bounded signed-template validation against the explicit URL.", requestedStartAt: new Date("2026-07-22T10:00:00.000Z"), validUntil: new Date("2026-07-22T11:00:00.000Z"), maxRequestsPerSecond: 5, prohibitedActions: ["Denial of service"], stopConditions: ["Client stop request"] });
+  assert.equal(built.capability.sensorDispatch, true);
+  assert.equal(built.capability.humanApprovalRequired, true);
+  assert.equal(built.manifest.controls.dispatchPolicy, "outbound_sensor_only");
+  assert.equal(built.manifest.controls.approval.required, true);
+  assert.equal(built.manifest.controls.approval.approvedAt, null);
 });
 
 test("cloud connector origins reject SSRF targets while sensor endpoints may remain private", () => {
@@ -208,10 +221,25 @@ test("sensor enrollment tokens are parseable without storing the bearer secret",
   assert.equal(signSensorManifest(parsed.secret, "manifest"), signSensorManifest(parsed.secret, "manifest"));
 });
 
-test("sensor capability policy refuses manual and exploit-validation work", () => {
+test("sensor capability policy allows packaged scanners and refuses manual work", () => {
   assert.equal(sensorCreateSchema.safeParse({ name: "Safe sensor", capabilities: ["dns_posture", "tls_posture"] }).success, true);
+  assert.equal(sensorCreateSchema.safeParse({ name: "Scanner node", capabilities: ["network_service_scan", "web_passive_scan", "template_vulnerability_scan"] }).success, true);
   assert.equal(sensorCreateSchema.safeParse({ name: "Unsafe sensor", capabilities: ["controlled_exploit_validation"] }).success, false);
   assert.equal(sensorCreateSchema.safeParse({ name: "Manual sensor", capabilities: ["configuration_analysis"] }).success, false);
+});
+
+test("methodology plans are service-specific and traceable to standards", () => {
+  const networkPlan = methodologyForService("external_network_vapt");
+  const webPlan = methodologyForService("web_and_api_vapt");
+  assert.ok(networkPlan.some((item) => item.code === "NET-SVC-01" && item.capability === "network_service_scan"));
+  assert.ok(webPlan.some((item) => item.code.startsWith("WSTG-") && item.standardRef.includes("OWASP")));
+  assert.equal(networkPlan.some((item) => item.code === "WSTG-ATHZ-01"), false);
+});
+
+test("completed methodology tests require an evidence conclusion", () => {
+  assert.equal(testCaseUpdateSchema.safeParse({ status: "running", assignedTo: "QCS analyst" }).success, true);
+  assert.equal(testCaseUpdateSchema.safeParse({ status: "passed", resultSummary: "Too short" }).success, false);
+  assert.equal(testCaseUpdateSchema.safeParse({ status: "finding", resultSummary: "Validated exposure was recorded as finding VG-F-1001." }).success, true);
 });
 
 test("retry backoff is bounded", () => {

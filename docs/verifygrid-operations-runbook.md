@@ -10,12 +10,14 @@ VerifyGrid executes only after a real engagement contains owned in-scope targets
 2. Create the real client engagement and record its emergency owner and operating window.
 3. Add exact targets and exclusions. Confirm ownership only from client-supplied evidence.
 4. Record the written authorization and its validity window. Any later scope change revokes it.
-5. Open Automation and enroll an outbound sensor for the client workspace.
+5. Open Automation and enroll a scanner node for the client workspace with only the capabilities approved in the rules of engagement.
 6. Store the displayed sensor token in the client-managed runtime; it is not recoverable from QCS.
-7. Start `sensor/verifygrid-sensor.mjs` under a non-privileged service account with an outbound allowlist.
-8. Prepare a non-destructive execution manifest, select a connected capable sensor, and queue it.
-9. Review normalized evidence before promoting observations into findings.
-10. Assign remediation, record evidence, request a retest, and generate the final report.
+7. Start `sensor/compose.yaml` on a dedicated QCS or client-managed scanner host with outbound policy restricted to the control plane and approved targets.
+8. Confirm that the node reports `connected` and that Installed capabilities match Authorized capabilities.
+9. Prepare a non-destructive execution manifest. Nmap and Nuclei controlled validation require a second accountable approval that reseals the manifest.
+10. Select the connected capable node and queue the manifest.
+11. Review normalized evidence before promoting observations into findings.
+12. Assign remediation, record evidence, request a retest, and generate the final report.
 
 ## Sensor environment
 
@@ -26,13 +28,20 @@ VERIFYGRID_SENSOR_REGION=<client site or region>
 VERIFYGRID_POLL_SECONDS=30
 ```
 
-Run from the `sensor` directory with Node.js 22 or later:
+Run the full scanner node from the `sensor` directory:
 
 ```text
-npm start
+docker compose up --detach --build
 ```
 
-Revoke the sensor in the Automation tab before rotating or decommissioning it. Revocation also cancels every active job assigned to that sensor.
+Revoke the node in the Automation tab before rotating or decommissioning it. Revocation also cancels every active job assigned to that node. The control plane marks a node offline after ten minutes without a heartbeat.
+
+## Scanner profiles
+
+- Nmap uses TCP connect, the top 100 ports, light version detection, `safe` NSE scripts, a ten-minute host timeout, and the engagement request ceiling. It does not run raw SYN, UDP, exploit, brute-force, DoS, broadcast, or external scripts.
+- OWASP ZAP Baseline spiders an explicit URL for one minute and waits for passive scanning. It does not run active attacks.
+- Nuclei accepts an explicit URL, disables unsigned templates and Interactsh, excludes fuzzing, DoS, brute-force, intrusive, code, file, headless, and JavaScript templates, and applies the engagement request ceiling.
+- Configuration review and bespoke exploit validation remain supervised analyst activities and are never translated into sensor commands.
 
 ## Cloud scanner connectors
 
@@ -71,4 +80,4 @@ Use the engagement emergency stop when authorization, ownership, stability, or t
 - Read-only scanner API credentials when automated vendor evidence import is required
 - An approved secure channel for portal links and sensor tokens
 
-These are activation inputs, not values that should be synthesized during deployment or testing.
+These are activation inputs, not values that should be synthesized during deployment or testing. A functioning platform does not itself constitute authorization to test any external system.

@@ -1,0 +1,27 @@
+services:
+  verifygrid-sensor:
+    image: ghcr.io/qcsstudio/network-qcss-verifygrid-sensor:latest
+    build:
+      context: .
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+      - /zap/wrk:size=512m,uid=1000,gid=1000,mode=0700
+    volumes:
+      - verifygrid-state:/var/lib/verifygrid
+    environment:
+      VERIFYGRID_BASE_URL: ${VERIFYGRID_BASE_URL:-https://www.qcsstudio.com}
+      VERIFYGRID_SENSOR_TOKEN: ${VERIFYGRID_SENSOR_TOKEN:?Set the one-time sensor token}
+      VERIFYGRID_SENSOR_REGION: ${VERIFYGRID_SENSOR_REGION:-qcs-scanner-node}
+      VERIFYGRID_POLL_SECONDS: ${VERIFYGRID_POLL_SECONDS:-30}
+    pids_limit: 256
+    mem_limit: 4g
+    cpus: 2.0
+
+volumes:
+  verifygrid-state:

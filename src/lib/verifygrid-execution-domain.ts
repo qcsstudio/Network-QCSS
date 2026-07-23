@@ -168,7 +168,13 @@ export function buildExecutionManifest(input: {
       validUntil: input.validUntil.toISOString(),
       prohibitedActions: [...new Set(input.prohibitedActions)].sort(),
       stopConditions: [...new Set(input.stopConditions)].sort(),
-      dispatchPolicy: capability.humanApprovalRequired ? "manual_review_only" : "outbound_sensor_only"
+      dispatchPolicy: capability.sensorDispatch ? "outbound_sensor_only" : "manual_review_only",
+      approval: {
+        required: capability.humanApprovalRequired,
+        approvedBy: null,
+        approvedAt: null,
+        noteSha256: null
+      }
     },
     rationale: input.rationale
   };

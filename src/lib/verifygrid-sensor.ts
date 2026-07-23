@@ -18,6 +18,7 @@ import { canonicalJson, validateExecutionBoundary } from "@/lib/verifygrid-execu
 import { importVerifyGridScannerExport } from "@/lib/verifygrid-pipeline";
 import { scopeHash } from "@/lib/verifygrid-domain";
 import { getVerifyGridEngagement } from "@/lib/verifygrid";
+import { capabilityCatalog, verifyGridCapabilities } from "@/lib/verifygrid-catalog";
 
 function json(value: unknown) {
   return value as Prisma.InputJsonValue;
@@ -30,6 +31,22 @@ function capabilities(value: Prisma.JsonValue) {
 function bearer(request: Request) {
   const authorization = request.headers.get("authorization") || "";
   return authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+}
+
+function reportedRuntimeCapabilities(request: Request) {
+  const supplied = request.headers.get("x-verifygrid-sensor-capabilities");
+  if (supplied === null) return null;
+  const allowed = new Set<string>(verifyGridCapabilities);
+  return [...new Set(supplied.split(",").map((item) => item.trim()).filter((item) => allowed.has(item)))].slice(0, 20);
+}
+
+function manifestApproval(job: { approvedAt: Date | null; approvedBy: string | null; manifest: Prisma.JsonValue }, required: boolean) {
+  if (!required) return true;
+  if (!job.approvedAt || !job.approvedBy) return false;
+  const manifest = job.manifest && typeof job.manifest === "object" && !Array.isArray(job.manifest) ? job.manifest as Record<string, Prisma.JsonValue> : {};
+  const controls = manifest.controls && typeof manifest.controls === "object" && !Array.isArray(manifest.controls) ? manifest.controls as Record<string, Prisma.JsonValue> : {};
+  const approval = controls.approval && typeof controls.approval === "object" && !Array.isArray(controls.approval) ? controls.approval as Record<string, Prisma.JsonValue> : {};
+  return approval.required === true && approval.approvedBy === job.approvedBy && approval.approvedAt === job.approvedAt.toISOString() && typeof approval.noteSha256 === "string";
 }
 
 export async function createVerifyGridSensor(workspaceId: string, value: unknown, actor: string) {
@@ -72,15 +89,21 @@ export async function authenticateVerifyGridSensor(request: Request) {
   const prisma = getPrismaClient();
   const sensor = await prisma.verifyGridSensor.findUnique({ where: { id: parsed.sensorId } });
   if (!sensor || sensor.status !== "active" || !safeEqual(sensor.tokenHash, parsed.tokenHash)) return null;
+  const reported = reportedRuntimeCapabilities(request);
+  const enrolled = capabilities(sensor.capabilities);
+  const runtime = reported === null ? capabilities(sensor.runtimeCapabilities || []) : reported.filter((item) => enrolled.includes(item));
   await prisma.verifyGridSensor.update({
     where: { id: sensor.id },
     data: {
       lastSeenAt: new Date(),
+      runtimeCapabilities: reported === null ? undefined : json(runtime),
+      healthStatus: "connected",
+      lastError: null,
       version: request.headers.get("x-verifygrid-sensor-version")?.slice(0, 80) || sensor.version,
       region: request.headers.get("x-verifygrid-sensor-region")?.slice(0, 80) || sensor.region
     }
   });
-  return { ...sensor, secret: parsed.secret, capabilityList: capabilities(sensor.capabilities) };
+  return { ...sensor, secret: parsed.secret, capabilityList: enrolled, runtimeCapabilityList: runtime };
 }
 
 export async function queueVerifyGridExecutionJob(jobId: string, value: unknown, actor: string) {
@@ -92,9 +115,14 @@ export async function queueVerifyGridExecutionJob(jobId: string, value: unknown,
   });
   if (!job) throw new Error("VerifyGrid execution record not found.");
   if (job.status !== "validated") throw new Error("Only validated non-destructive execution records can be queued.");
+  const capability = capabilityCatalog[job.capability as keyof typeof capabilityCatalog];
+  if (!capability?.sensorDispatch) throw new Error("This capability is a supervised manual record and cannot be queued to a sensor.");
+  if (!manifestApproval(job, capability.humanApprovalRequired)) throw new Error("Controlled validation requires a current recorded approval before queueing.");
   const sensor = await prisma.verifyGridSensor.findFirst({ where: { id: input.sensorId, workspaceId: job.workspaceId, status: "active" } });
   if (!sensor) throw new Error("Select an active sensor from the same workspace.");
   if (!capabilities(sensor.capabilities).includes(job.capability)) throw new Error("The selected sensor does not advertise this capability.");
+  if (!sensor.lastSeenAt || sensor.lastSeenAt < new Date(Date.now() - 10 * 60_000)) throw new Error("The selected sensor is offline or stale. Confirm its runtime before queueing.");
+  if (!capabilities(sensor.runtimeCapabilities || []).includes(job.capability)) throw new Error("The connected sensor runtime does not have the required scanner installed.");
   const targets = job.engagement.scopeTargets.filter((target) => Array.isArray(job.targetIds) && job.targetIds.includes(target.id));
   const currentHash = scopeHash(job.engagement.scopeTargets);
   const boundary = validateExecutionBoundary({
@@ -126,6 +154,7 @@ async function blockJob(job: { id: string; workspaceId: string; engagementId: st
 export async function claimVerifyGridSensorJob(request: Request) {
   const sensor = await authenticateVerifyGridSensor(request);
   if (!sensor) return null;
+  await reconcileVerifyGridExecutionLeases();
   const prisma = getPrismaClient();
   const now = new Date();
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -168,6 +197,10 @@ export async function claimVerifyGridSensorJob(request: Request) {
     if (job.scopeHash !== currentHash) blockers.push("Execution scope changed after manifest creation.");
     if (job.manifestSha256 !== sha256(canonical)) blockers.push("Execution manifest integrity failed.");
     if (!sensor.capabilityList.includes(job.capability)) blockers.push("Sensor capability changed after queueing.");
+    if (!sensor.runtimeCapabilityList.includes(job.capability)) blockers.push("The sensor runtime no longer advertises the required scanner.");
+    const capability = capabilityCatalog[job.capability as keyof typeof capabilityCatalog];
+    if (!capability?.sensorDispatch) blockers.push("The capability cannot be dispatched to a sensor.");
+    if (capability && !manifestApproval(job, capability.humanApprovalRequired)) blockers.push("The controlled-validation approval is missing or no longer matches the manifest.");
     if (blockers.length) {
       await blockJob(job, blockers.join(" "));
       continue;
@@ -240,6 +273,7 @@ export async function completeVerifyGridSensorJob(request: Request, value: unkno
       });
       if (completed.count !== 1) throw new Error("The sensor job was stopped before its result could be finalized.");
       await tx.verifyGridActivity.create({ data: { workspaceId: job.workspaceId, engagementId: job.engagementId, action: "execution.completed", actor: `sensor:${sensor.name}`, metadata: json({ jobId: job.id, batchId: imported.batchId, manifestSha256: job.manifestSha256, contentSha256: input.contentSha256 }) } });
+      await tx.verifyGridSensor.update({ where: { id: sensor.id }, data: { healthStatus: "connected", lastError: null } });
     });
     return { ok: true, batchId: imported.batchId };
   } catch (error) {
@@ -274,7 +308,8 @@ export async function failVerifyGridSensorJob(request: Request, value: unknown) 
         lastError: input.error
       }
     }),
-    prisma.verifyGridActivity.create({ data: { workspaceId: job.workspaceId, engagementId: job.engagementId, action: canRetry ? "execution.retry_scheduled" : "execution.failed", actor: `sensor:${sensor.name}`, metadata: json({ jobId: job.id, error: input.error, attempt: job.attempt }) } })
+    prisma.verifyGridActivity.create({ data: { workspaceId: job.workspaceId, engagementId: job.engagementId, action: canRetry ? "execution.retry_scheduled" : "execution.failed", actor: `sensor:${sensor.name}`, metadata: json({ jobId: job.id, error: input.error, attempt: job.attempt }) } }),
+    prisma.verifyGridSensor.update({ where: { id: sensor.id }, data: { healthStatus: canRetry ? "degraded" : "error", lastError: input.error } })
   ]);
   return { ok: true, status: canRetry ? "retry" : "failed" };
 }
@@ -310,5 +345,9 @@ export async function reconcileVerifyGridExecutionLeases() {
     if (canRetry) retried += 1;
     else failed += 1;
   }
-  return { expired: expired.count, retried, failed };
+  const offline = await prisma.verifyGridSensor.updateMany({
+    where: { status: "active", lastSeenAt: { lt: new Date(Date.now() - 10 * 60_000) }, healthStatus: { not: "offline" } },
+    data: { healthStatus: "offline", lastError: "No sensor heartbeat was received within ten minutes." }
+  });
+  return { expired: expired.count, retried, failed, offlineSensors: offline.count };
 }

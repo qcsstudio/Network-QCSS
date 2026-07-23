@@ -5549,6 +5549,139 @@ td span {
   padding: 0 18px 18px;
 }
 
+.verifygrid-methodology-view {
+  display: grid;
+  gap: 18px;
+  padding: 0 18px 18px;
+}
+
+.verifygrid-methodology-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.75fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.verifygrid-methodology-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  background: #f8fafc;
+}
+
+.verifygrid-methodology-metrics div {
+  min-width: 0;
+  border-right: 1px solid var(--line);
+  padding: 12px;
+}
+
+.verifygrid-methodology-metrics div:last-child {
+  border-right: 0;
+}
+
+.verifygrid-methodology-metrics span,
+.verifygrid-methodology-metrics strong {
+  display: block;
+}
+
+.verifygrid-methodology-metrics span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.verifygrid-methodology-metrics strong {
+  margin-top: 5px;
+  font-size: 1.35rem;
+}
+
+.verifygrid-methodology-category {
+  border-top: 3px solid var(--blue);
+  background: #fbfcfe;
+}
+
+.verifygrid-methodology-category-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 14px;
+}
+
+.verifygrid-methodology-category-heading h5 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.verifygrid-methodology-category-heading span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.verifygrid-test-case {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.28fr) minmax(300px, 1fr) minmax(180px, 0.34fr);
+  gap: 16px;
+  align-items: start;
+  border-bottom: 1px solid var(--line);
+  padding: 14px;
+}
+
+.verifygrid-test-case:last-child {
+  border-bottom: 0;
+}
+
+.verifygrid-test-case-code strong,
+.verifygrid-test-case-code span,
+.verifygrid-test-case-control span,
+.verifygrid-test-case-body small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.verifygrid-test-case-code strong {
+  color: var(--blue);
+  font-size: 0.8rem;
+}
+
+.verifygrid-test-case-code span,
+.verifygrid-test-case-control span,
+.verifygrid-test-case-body small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.verifygrid-test-case-body h6,
+.verifygrid-test-case-body p {
+  margin: 0;
+}
+
+.verifygrid-test-case-body h6 {
+  font-size: 0.93rem;
+}
+
+.verifygrid-test-case-body p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.verifygrid-test-case-control select {
+  width: 100%;
+  margin-top: 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: white;
+  padding: 8px;
+  color: var(--ink);
+  font: inherit;
+}
+
 .verifygrid-command-grid > section {
   min-width: 0;
   border-top: 3px solid var(--blue);
@@ -6134,6 +6267,22 @@ td span {
   overflow-wrap: anywhere;
 }
 
+.verifygrid-report-methodology-row {
+  grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.8fr) minmax(100px, 0.45fr) minmax(240px, 1.5fr);
+}
+
+.verifygrid-report-methodology-row strong small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.verifygrid-report-empty {
+  margin: 0;
+  padding: 14px;
+}
+
 .verifygrid-report-finding {
   border-left: 4px solid var(--blue);
   border-bottom: 1px solid var(--line);
@@ -6249,8 +6398,18 @@ td span {
   .verifygrid-findings-view,
   .verifygrid-evidence-view,
   .verifygrid-execution-view,
+  .verifygrid-methodology-view,
   .verifygrid-reports-view {
     grid-template-columns: 1fr;
+  }
+
+  .verifygrid-methodology-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .verifygrid-test-case {
+    grid-template-columns: 1fr;
+    gap: 9px;
   }
 
   .blog-grid,

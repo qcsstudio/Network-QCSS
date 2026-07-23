@@ -453,7 +453,7 @@ export async function getVerifyGridAutomation(workspaceId: string) {
       lastError: connector.lastError || "",
       runs: connector.runs.map((run) => ({ id: run.id, status: run.status, trigger: run.trigger, attempt: run.attempt, errorMessage: run.errorMessage || "", createdAt: run.createdAt.toISOString(), completedAt: run.completedAt?.toISOString() || "" }))
     })),
-    sensors: sensors.map((sensor) => ({ id: sensor.id, name: sensor.name, status: sensor.status, tokenLastFour: sensor.tokenLastFour, capabilities: Array.isArray(sensor.capabilities) ? sensor.capabilities : [], version: sensor.version || "", region: sensor.region || "", lastSeenAt: sensor.lastSeenAt?.toISOString() || "", createdAt: sensor.createdAt.toISOString() })),
+    sensors: sensors.map((sensor) => ({ id: sensor.id, name: sensor.name, status: sensor.status, tokenLastFour: sensor.tokenLastFour, capabilities: Array.isArray(sensor.capabilities) ? sensor.capabilities : [], runtimeCapabilities: Array.isArray(sensor.runtimeCapabilities) ? sensor.runtimeCapabilities : [], healthStatus: sensor.healthStatus, lastError: sensor.lastError || "", version: sensor.version || "", region: sensor.region || "", lastSeenAt: sensor.lastSeenAt?.toISOString() || "", createdAt: sensor.createdAt.toISOString() })),
     memberships: memberships.map((membership) => ({ id: membership.id, email: membership.email, displayName: membership.displayName || "", role: membership.role, status: membership.status, invitedAt: membership.invitedAt.toISOString(), acceptedAt: membership.acceptedAt?.toISOString() || "", lastAccessAt: membership.lastAccessAt?.toISOString() || "" }))
   };
 }

@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import net from "node:net";
 import { z } from "zod";
-import { verifyGridCapabilities } from "./verifygrid-catalog.ts";
+import { capabilityCatalog, verifyGridCapabilities } from "./verifygrid-catalog.ts";
 
 export const verifyGridConnectorProviders = ["tenable", "qualys", "rapid7", "greenbone"] as const;
 export type VerifyGridConnectorProvider = typeof verifyGridConnectorProviders[number];
@@ -56,15 +56,20 @@ export const connectorRunSchema = z.object({
 
 export const sensorCreateSchema = z.object({
   name: z.string().trim().min(3).max(100),
-  capabilities: z.array(z.enum(verifyGridCapabilities)).min(1).max(5).transform((items) => [...new Set(items)])
+  capabilities: z.array(z.enum(verifyGridCapabilities)).min(1).max(8).transform((items) => [...new Set(items)])
 }).superRefine((value, context) => {
-  if (value.capabilities.includes("controlled_exploit_validation") || value.capabilities.includes("configuration_analysis")) {
-    context.addIssue({ code: "custom", path: ["capabilities"], message: "Sensors may enroll only for built-in non-destructive capabilities." });
+  if (value.capabilities.some((capability) => !capabilityCatalog[capability].sensorDispatch)) {
+    context.addIssue({ code: "custom", path: ["capabilities"], message: "Sensors may enroll only for dispatchable scanner capabilities." });
   }
 });
 
 export const executionQueueSchema = z.object({
   sensorId: z.string().trim().min(1)
+});
+
+export const executionApprovalSchema = z.object({
+  approvalNote: z.string().trim().min(30).max(2000),
+  acknowledgeControlledValidation: z.literal(true, { message: "Confirm the controlled-validation execution boundary." })
 });
 
 export const sensorHeartbeatSchema = z.object({

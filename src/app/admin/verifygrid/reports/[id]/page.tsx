@@ -47,6 +47,7 @@ export default async function VerifyGridReportPage({ params }: { params: Promise
   const findings = list(snapshot.findings);
   const evidenceSources = list(snapshot.evidenceSources);
   const executionRecords = list(snapshot.executionRecords);
+  const methodology = list(snapshot.methodology);
 
   return (
     <main className="verifygrid-report-page">
@@ -79,6 +80,9 @@ export default async function VerifyGridReportPage({ params }: { params: Promise
             <div><span>Known exploited</span><strong>{count(summary.knownExploited)}</strong></div>
             <div><span>Closed</span><strong>{count(summary.closed)}</strong></div>
             <div><span>Imported observations</span><strong>{count(summary.importedObservations)}</strong></div>
+            <div><span>Methodology tests</span><strong>{count(summary.methodologyTests)}</strong></div>
+            <div><span>Tests complete</span><strong>{count(summary.methodologyCompleted)}</strong></div>
+            <div><span>Tests with findings</span><strong>{count(summary.methodologyWithFindings)}</strong></div>
           </div>
         </section>
 
@@ -88,6 +92,15 @@ export default async function VerifyGridReportPage({ params }: { params: Promise
           <div className="verifygrid-report-table" role="table" aria-label="Engagement scope">
             <div className="verifygrid-report-row header" role="row"><span>Target</span><span>Environment</span><span>Permission</span><span>Disposition</span></div>
             {scope.map((target, index) => <div className="verifygrid-report-row" key={`${text(target.value)}-${index}`} role="row"><strong>{text(target.value)}</strong><span>{label(target.environment)}</span><span>{label(target.permission)}</span><span>{label(target.disposition)}</span></div>)}
+          </div>
+        </section>
+
+        <section className="verifygrid-report-section">
+          <h2>Methodology coverage</h2>
+          <p>Service-specific test execution and analyst conclusions captured when this report was generated.</p>
+          <div className="verifygrid-report-table" role="table" aria-label="Methodology coverage">
+            <div className="verifygrid-report-row verifygrid-report-methodology-row header" role="row"><span>Test</span><span>Standard</span><span>Status</span><span>Result</span></div>
+            {methodology.length ? methodology.map((testCase, index) => <div className="verifygrid-report-row verifygrid-report-methodology-row" key={`${text(testCase.code)}-${index}`} role="row"><strong>{text(testCase.code)}<small>{text(testCase.title)}</small></strong><span>{text(testCase.standardRef)}</span><span>{label(testCase.status)}</span><span>{text(testCase.resultSummary, "No conclusion recorded")}</span></div>) : <p className="verifygrid-report-empty">No methodology tests were present in this snapshot.</p>}
           </div>
         </section>
 
