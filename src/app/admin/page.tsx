@@ -10,6 +10,7 @@ import { getDistributionSnapshot } from "@/lib/distribution";
 import { AdvisoryManagementPanel } from "@/components/advisory-management-panel";
 import { listAdminSecurityAdvisories, type AdminAdvisoryRecord } from "@/lib/advisories";
 import { VerifyGridControlPanel } from "@/components/verifygrid-control-panel";
+import { VerifyGridOnboardingQueue } from "@/components/verifygrid-onboarding-queue";
 import { getEmptyVerifyGridPortfolio, getVerifyGridPortfolio, type VerifyGridPortfolio } from "@/lib/verifygrid";
 
 export const metadata: Metadata = {
@@ -82,6 +83,7 @@ export default async function AdminPage() {
             </div>
           </section>
         ) : null}
+        <VerifyGridOnboardingQueue />
         <VerifyGridControlPanel initialPortfolio={verifyGridPortfolio} />
         <DistributionControlPanel initialSnapshot={distributionSnapshot} />
         <AdvisoryManagementPanel initialAdvisories={advisories} />

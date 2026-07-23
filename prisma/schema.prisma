@@ -791,3 +791,51 @@ model VerifyGridAccessToken {
   @@index([membershipId, expiresAt])
   @@index([expiresAt, usedAt])
 }
+
+model VerifyGridOnboardingRequest {
+  id                    String                      @id @default(cuid())
+  email                 String
+  displayName           String
+  organizationName      String
+  legalName             String?
+  phone                 String
+  countryCode           String?
+  timezone              String                      @default("UTC")
+  serviceType           String
+  scopeSummary          String
+  requestedStartAt      DateTime?
+  emergencyContactName  String
+  emergencyContactEmail String
+  status                String                      @default("pending_email")
+  contactConsentAt      DateTime
+  emailVerifiedAt       DateTime?
+  workspaceId           String?
+  engagementId          String?
+  membershipId          String?
+  reviewedBy            String?
+  reviewedAt            DateTime?
+  reviewNote            String?
+  sourceCountry         String?
+  sourceIpHash          String?
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+  verificationTokens    VerifyGridOnboardingToken[]
+
+  @@index([status, createdAt])
+  @@index([email, status])
+  @@index([organizationName, status])
+}
+
+model VerifyGridOnboardingToken {
+  id          String                      @id
+  requestId   String
+  tokenHash   String                      @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime                    @default(now())
+  request     VerifyGridOnboardingRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId, expiresAt])
+  @@index([expiresAt, usedAt])
+}

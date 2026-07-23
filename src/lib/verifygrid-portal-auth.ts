@@ -76,8 +76,51 @@ export async function inviteVerifyGridMember(workspaceId: string, value: unknown
   return {
     membership: { id: membership.id, email: membership.email, displayName: membership.displayName || "", role: membership.role, status: membership.status },
     accessUrl: `${siteConfig.url}/portal/access#token=${encodeURIComponent(token)}`,
+    tokenId: accessId,
     expiresAt: expiresAt.toISOString()
   };
+}
+
+async function issueVerifyGridMemberAccess(membershipId: string, actor: string, expiresInHours = 1) {
+  const prisma = getPrismaClient();
+  const accessId = crypto.randomUUID();
+  const secret = randomSecret();
+  const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60_000);
+  const membership = await prisma.$transaction(async (tx) => {
+    const member = await tx.verifyGridMembership.findFirst({
+      where: { id: membershipId, status: { in: ["invited", "active"] }, revokedAt: null },
+      include: { workspace: { select: { id: true, name: true } } }
+    });
+    if (!member) return null;
+    await tx.verifyGridAccessToken.updateMany({ where: { membershipId: member.id, usedAt: null, revokedAt: null }, data: { revokedAt: new Date() } });
+    await tx.verifyGridAccessToken.create({ data: { id: accessId, membershipId: member.id, tokenHash: sha256(secret), expiresAt, createdBy: actor } });
+    await tx.verifyGridActivity.create({
+      data: { workspaceId: member.workspaceId, action: "portal.access_requested", actor, metadata: json({ membershipId: member.id, expiresAt: expiresAt.toISOString() }) }
+    });
+    return member;
+  });
+  if (!membership) return null;
+  const token = `vg_access_${accessId}.${secret}`;
+  return {
+    tokenId: accessId,
+    email: membership.email,
+    displayName: membership.displayName || "",
+    organizationName: membership.workspace.name,
+    accessUrl: `${siteConfig.url}/portal/access#token=${encodeURIComponent(token)}`,
+    expiresAt: expiresAt.toISOString()
+  };
+}
+
+export async function issueVerifyGridPortalLinksByEmail(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const memberships = await getPrismaClient().verifyGridMembership.findMany({
+    where: { email: normalizedEmail, status: { in: ["invited", "active"] }, revokedAt: null },
+    select: { id: true },
+    orderBy: { updatedAt: "desc" },
+    take: 10
+  });
+  const issued = await Promise.all(memberships.map((membership) => issueVerifyGridMemberAccess(membership.id, normalizedEmail)));
+  return issued.filter((item): item is NonNullable<typeof item> => Boolean(item));
 }
 
 export async function consumeVerifyGridAccessToken(value: string) {

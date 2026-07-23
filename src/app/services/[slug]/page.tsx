@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowRight, LogIn, ShieldCheck } from "lucide-react";
 import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
@@ -103,6 +104,21 @@ export default async function ServicePage({ params }: ServicePageProps) {
           </a>
         </div>
       </section>
+
+      {service.slug === "penetration-testing" ? (
+        <section className="section verifygrid-service-cta" aria-labelledby="verifygrid-service-title">
+          <div className="verifygrid-service-mark"><ShieldCheck aria-hidden="true" size={28} /></div>
+          <div>
+            <p className="eyebrow">QCS VerifyGrid client workspace</p>
+            <h2 id="verifygrid-service-title">Move from testing request to controlled assurance.</h2>
+            <p>Verify your organization, request QCS review, and enter an approval-gated workspace for scope, authorization, findings, remediation, reports, and retests.</p>
+          </div>
+          <div className="verifygrid-service-actions">
+            <Link className="button primary" href="/verifygrid/onboard">Start client onboarding <ArrowRight aria-hidden="true" size={17} /></Link>
+            <Link className="button secondary" href="/portal/access"><LogIn aria-hidden="true" size={17} /> Client sign in</Link>
+          </div>
+        </section>
+      ) : null}
 
       <section className="section split">
         <div className="answer-panel">

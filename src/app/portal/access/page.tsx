@@ -17,7 +17,7 @@ export default async function VerifyGridPortalAccessPage({ searchParams }: { sea
         <ShieldCheck aria-hidden="true" size={34} />
         <p className="eyebrow">QCS VerifyGrid</p>
         <h1>Client assurance access</h1>
-        <p>Use the one-time workspace link supplied by QCS. Access remains isolated to the membership encoded in that invitation.</p>
+        <p>Request a passwordless sign-in link using an approved work email. Access remains isolated to the workspace membership reviewed by QCS.</p>
         <PortalAccessForm />
         {error ? <p className="form-note error">This link is invalid, expired, already used, or revoked.</p> : null}
       </section>

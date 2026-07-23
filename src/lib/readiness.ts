@@ -98,6 +98,13 @@ function buildGroups(): ReadinessGroup[] {
         item("verifygrid-portal-session", "Dedicated portal session secret", isConfigured("VERIFYGRID_PORTAL_SESSION_SECRET"), "Separates client portal sessions from administrative sessions.", {
           required: true
         }),
+        item(
+          "verifygrid-email",
+          "Client access email delivery",
+          isConfigured("RESEND_API_KEY") && hasAny(["VERIFYGRID_EMAIL_FROM", "LEAD_ALERT_EMAIL_FROM"]),
+          "Required for email verification and passwordless portal links. Configure RESEND_API_KEY and VERIFYGRID_EMAIL_FROM.",
+          { warning: true }
+        ),
         item("verifygrid-nvd", "NVD API enrichment", isConfigured("NVD_API_KEY"), "Raises NVD enrichment throughput while the no-key path remains deliberately bounded.", {
           warning: true
         }),

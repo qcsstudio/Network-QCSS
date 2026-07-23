@@ -26,6 +26,11 @@ import {
   validateConnectorBaseUrl
 } from "../src/lib/verifygrid-automation-domain.ts";
 import { matchObservationToCpes } from "../src/lib/verifygrid-nvd.ts";
+import {
+  parseVerifyGridOnboardingToken,
+  verifyGridOnboardingRequestSchema,
+  verifyGridOnboardingReviewSchema
+} from "../src/lib/verifygrid-onboarding-domain.ts";
 
 const firstTarget = {
   targetType: "domain",
@@ -219,6 +224,44 @@ test("secret comparison rejects different values and lengths", () => {
   assert.equal(safeEqual("same-secret", "same-secret"), true);
   assert.equal(safeEqual("same-secret", "other-value"), false);
   assert.equal(safeEqual("short", "longer-secret"), false);
+});
+
+test("client onboarding records contact consent without granting testing authority", () => {
+  const base = {
+    displayName: "Authorized Contact",
+    email: "OWNER@EXAMPLE.COM",
+    phone: "+91 98765 43210",
+    organizationName: "Example Industries",
+    countryCode: "in",
+    timezone: "Asia/Kolkata",
+    serviceType: "external_network_vapt",
+    scopeSummary: "Review the externally exposed production perimeter before a customer assurance deadline.",
+    emergencyContactName: "Operations Owner",
+    emergencyContactEmail: "operations@example.com",
+    contactConsent: true,
+    authorityAcknowledgement: true
+  };
+  const accepted = verifyGridOnboardingRequestSchema.safeParse(base);
+  const missingBoundary = verifyGridOnboardingRequestSchema.safeParse({ ...base, authorityAcknowledgement: false });
+  assert.equal(accepted.success, true);
+  assert.equal(accepted.data?.email, "owner@example.com");
+  assert.equal(accepted.data?.countryCode, "IN");
+  assert.equal(missingBoundary.success, false);
+});
+
+test("onboarding tokens are structured and stored as hashes", () => {
+  const token = "vg_onboard_12345678-request.abcdefghijklmnopqrstuvwxyzABCDEFG1234567890";
+  const parsed = parseVerifyGridOnboardingToken(token);
+  assert.equal(parsed?.id, "12345678-request");
+  assert.notEqual(parsed?.secret, parsed?.tokenHash);
+  assert.equal(parsed?.tokenHash.length, 64);
+  assert.equal(parseVerifyGridOnboardingToken("invalid"), null);
+});
+
+test("onboarding rejection requires an accountable reason", () => {
+  assert.equal(verifyGridOnboardingReviewSchema.safeParse({ action: "approve" }).success, true);
+  assert.equal(verifyGridOnboardingReviewSchema.safeParse({ action: "reject", reviewNote: "too short" }).success, false);
+  assert.equal(verifyGridOnboardingReviewSchema.safeParse({ action: "reject", reviewNote: "The requester could not establish an eligible business relationship." }).success, true);
 });
 
 test("NVD CPE matching requires vendor, product, and reported version evidence", () => {

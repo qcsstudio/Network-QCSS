@@ -72,6 +72,7 @@ function groups() {
       label: "VerifyGrid Security Assurance",
       items: [
         item("verifygrid-portal-session", "Dedicated portal session secret", isConfigured("VERIFYGRID_PORTAL_SESSION_SECRET"), "VERIFYGRID_PORTAL_SESSION_SECRET", { required: true }),
+        item("verifygrid-email", "Client access email delivery", isConfigured("RESEND_API_KEY") && hasAny(["VERIFYGRID_EMAIL_FROM", "LEAD_ALERT_EMAIL_FROM"]), "RESEND_API_KEY and VERIFYGRID_EMAIL_FROM", { warning: true }),
         item("verifygrid-nvd", "NVD API enrichment", isConfigured("NVD_API_KEY"), "NVD_API_KEY", { warning: true }),
         item("verifygrid-operations", "Operations scheduler secret", isConfigured("CRON_SECRET"), "CRON_SECRET", { required: true })
       ]
