@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, Fingerprint, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Fingerprint, ShieldCheck, TriangleAlert, XCircle } from "lucide-react";
 import { PrintReportButton } from "@/components/print-report-button";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getVerifyGridReport } from "@/lib/verifygrid-pipeline";
+import { requireVerifyGridOperator } from "@/lib/verifygrid-operator-auth";
 
 export const metadata: Metadata = {
   title: "VerifyGrid Assurance Report",
@@ -34,6 +35,7 @@ function label(value: unknown) {
 }
 
 export default async function VerifyGridReportPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireVerifyGridOperator("view");
   await requireAdmin();
   const { id } = await params;
   const report = await getVerifyGridReport(id);
@@ -48,6 +50,9 @@ export default async function VerifyGridReportPage({ params }: { params: Promise
   const evidenceSources = list(snapshot.evidenceSources);
   const executionRecords = list(snapshot.executionRecords);
   const methodology = list(snapshot.methodology);
+  const qualityGate = record(report.qualityGate);
+  const qualitySummary = record(qualityGate.summary);
+  const qualityChecks = list(qualityGate.checks);
 
   return (
     <main className="verifygrid-report-page">
@@ -66,9 +71,19 @@ export default async function VerifyGridReportPage({ params }: { params: Promise
         </header>
 
         <section className="verifygrid-report-integrity">
+          <div><span>Status</span><strong>{label(report.status)}</strong></div>
           <div><span>Generated</span><strong>{new Date(report.generatedAt).toLocaleString()}</strong></div>
           <div><span>Scope hash</span><strong>{report.scopeHash}</strong></div>
           <div><span>Snapshot SHA-256</span><strong>{report.snapshotSha256}</strong></div>
+          <div><span>Report chain</span><strong>{text(report.chainHash)}</strong></div>
+          <div><span>Signature</span><strong>{report.signature ? `${text(report.signatureAlgorithm)} | ${text(report.signingKeyId)}` : "Pending release"}</strong></div>
+        </section>
+
+        <section className="verifygrid-report-section">
+          <div className="verifygrid-section-heading"><ShieldCheck aria-hidden="true" size={20} /><div><h2>Release quality gate</h2><p>{count(qualitySummary.passed)} passed | {count(qualitySummary.warnings)} warnings | {count(qualitySummary.failed)} failed | score {count(qualityGate.score)}</p></div></div>
+          <div className="verifygrid-quality-grid">
+            {qualityChecks.map((item, index) => <div className={`verifygrid-quality-check quality-${text(item.status)}`} key={`${text(item.code)}-${index}`}>{item.status === "pass" ? <CheckCircle2 aria-hidden="true" size={18} /> : item.status === "warning" ? <TriangleAlert aria-hidden="true" size={18} /> : <XCircle aria-hidden="true" size={18} />}<div><strong>{text(item.label)}</strong><span>{text(item.detail)}</span></div></div>)}
+          </div>
         </section>
 
         <section className="verifygrid-report-section">

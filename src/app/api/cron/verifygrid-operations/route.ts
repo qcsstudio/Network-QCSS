@@ -4,6 +4,7 @@ import { jsonError, noStoreHeaders } from "@/lib/api";
 import { processVerifyGridConnectorQueue } from "@/lib/verifygrid-connectors";
 import { reconcileVerifyGridExecutionLeases } from "@/lib/verifygrid-sensor";
 import { safeEqual } from "@/lib/verifygrid-automation-domain";
+import { cleanExpiredVerifyGridOperatorSecurity } from "@/lib/verifygrid-operator-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +19,10 @@ function cronAuthorized(request: Request) {
 
 export async function GET(request: Request) {
   if (!cronAuthorized(request) && !isAdminRequest(request)) return jsonError("Unauthorized", 401);
-  const leases = await reconcileVerifyGridExecutionLeases();
-  const connectors = await processVerifyGridConnectorQueue(3);
-  return NextResponse.json({ ok: true, processedAt: new Date().toISOString(), leases, connectors }, { headers: noStoreHeaders });
+  const [leases, connectors, operatorSecurity] = await Promise.all([
+    reconcileVerifyGridExecutionLeases(),
+    processVerifyGridConnectorQueue(3),
+    cleanExpiredVerifyGridOperatorSecurity()
+  ]);
+  return NextResponse.json({ ok: true, processedAt: new Date().toISOString(), leases, connectors, operatorSecurity }, { headers: noStoreHeaders });
 }

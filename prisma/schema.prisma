@@ -295,6 +295,7 @@ model VerifyGridWorkspace {
   sensors             VerifyGridSensor[]
   memberships         VerifyGridMembership[]
   activities          VerifyGridActivity[]
+  custodyEvents       VerifyGridCustodyEvent[]
 
   @@index([status, updatedAt])
   @@index([primaryContactEmail])
@@ -333,6 +334,7 @@ model VerifyGridEngagement {
   connectorProfiles     VerifyGridConnectorProfile[]
   connectorRuns         VerifyGridConnectorRun[]
   activities            VerifyGridActivity[]
+  custodyEvents         VerifyGridCustodyEvent[]
 
   @@index([workspaceId, status])
   @@index([status, plannedStartAt])
@@ -489,7 +491,7 @@ model VerifyGridFinding {
 }
 
 model VerifyGridEvidence {
-  id             String            @id @default(cuid())
+  id             String                   @id @default(cuid())
   findingId      String
   evidenceType   String
   title          String
@@ -497,12 +499,13 @@ model VerifyGridEvidence {
   objectKey      String?
   sourceUrl      String?
   sha256         String?
-  classification String            @default("confidential")
+  classification String                   @default("confidential")
   metadata       Json?
   collectedBy    String?
-  collectedAt    DateTime          @default(now())
-  createdAt      DateTime          @default(now())
-  finding        VerifyGridFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  collectedAt    DateTime                 @default(now())
+  createdAt      DateTime                 @default(now())
+  finding        VerifyGridFinding        @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  custodyEvents  VerifyGridCustodyEvent[]
 
   @@index([findingId, collectedAt])
   @@index([sha256])
@@ -678,25 +681,152 @@ model VerifyGridExecutionJob {
 }
 
 model VerifyGridReport {
-  id             String               @id @default(cuid())
-  workspaceId    String
-  engagementId   String
-  version        Int
-  reportType     String
-  status         String               @default("final")
-  title          String
-  scopeHash      String
-  snapshot       Json
-  snapshotSha256 String
-  generatedBy    String?
-  generatedAt    DateTime             @default(now())
-  workspace      VerifyGridWorkspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  engagement     VerifyGridEngagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  id                 String                   @id @default(cuid())
+  workspaceId        String
+  engagementId       String
+  version            Int
+  reportType         String
+  status             String                   @default("draft")
+  title              String
+  scopeHash          String
+  snapshot           Json
+  snapshotSha256     String
+  qualityGate        Json?
+  previousChainHash  String?
+  chainHash          String?
+  generatedBy        String?
+  generatedAt        DateTime                 @default(now())
+  reviewedBy         String?
+  reviewedAt         DateTime?
+  reviewDecision     String?
+  reviewNotes        String?
+  releasedBy         String?
+  releasedAt         DateTime?
+  signature          String?
+  signatureAlgorithm String?
+  signingKeyId       String?
+  signingPublicKey   String?
+  workspace          VerifyGridWorkspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  engagement         VerifyGridEngagement     @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  reviews            VerifyGridReportReview[]
 
   @@unique([engagementId, reportType, version])
   @@index([workspaceId, generatedAt])
   @@index([engagementId, generatedAt])
   @@index([snapshotSha256])
+  @@index([engagementId, status, generatedAt])
+}
+
+model VerifyGridReportReview {
+  id         String              @id @default(cuid())
+  reportId   String
+  operatorId String?
+  decision   String
+  notes      String
+  checklist  Json
+  actor      String
+  createdAt  DateTime            @default(now())
+  report     VerifyGridReport    @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  operator   VerifyGridOperator? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+
+  @@index([reportId, createdAt])
+  @@index([operatorId, createdAt])
+}
+
+model VerifyGridCustodyEvent {
+  id              String               @id @default(cuid())
+  workspaceId     String
+  engagementId    String
+  evidenceId      String?
+  sequence        Int
+  eventType       String
+  subjectType     String
+  subjectId       String
+  action          String
+  actor           String
+  sourceSha256    String?
+  previousHash    String?
+  eventHash       String               @unique
+  classification  String               @default("confidential")
+  custodyLocation String?
+  retentionUntil  DateTime?
+  details         Json?
+  occurredAt      DateTime             @default(now())
+  createdAt       DateTime             @default(now())
+  workspace       VerifyGridWorkspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  engagement      VerifyGridEngagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  evidence        VerifyGridEvidence?  @relation(fields: [evidenceId], references: [id], onDelete: SetNull)
+
+  @@unique([engagementId, sequence])
+  @@index([workspaceId, occurredAt])
+  @@index([engagementId, occurredAt])
+  @@index([evidenceId])
+  @@index([sourceSha256])
+}
+
+model VerifyGridOperator {
+  id                  String                        @id @default(cuid())
+  email               String                        @unique
+  displayName         String
+  role                String                        @default("analyst")
+  status              String                        @default("active")
+  createdBy           String?
+  lastAuthenticatedAt DateTime?
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+  passkeys            VerifyGridOperatorPasskey[]
+  sessions            VerifyGridOperatorSession[]
+  challenges          VerifyGridOperatorChallenge[]
+  reportReviews       VerifyGridReportReview[]
+
+  @@index([status, role])
+}
+
+model VerifyGridOperatorPasskey {
+  id           String             @id @default(cuid())
+  operatorId   String
+  credentialId String             @unique
+  publicKey    Bytes
+  counter      BigInt             @default(0)
+  deviceType   String
+  backedUp     Boolean            @default(false)
+  transports   Json?
+  label        String?
+  createdAt    DateTime           @default(now())
+  lastUsedAt   DateTime?
+  operator     VerifyGridOperator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@index([operatorId, createdAt])
+}
+
+model VerifyGridOperatorSession {
+  id            String             @id @default(cuid())
+  operatorId    String
+  tokenHash     String             @unique
+  expiresAt     DateTime
+  lastSeenAt    DateTime           @default(now())
+  ipHash        String?
+  userAgentHash String?
+  revokedAt     DateTime?
+  createdAt     DateTime           @default(now())
+  operator      VerifyGridOperator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@index([operatorId, expiresAt])
+  @@index([expiresAt, revokedAt])
+}
+
+model VerifyGridOperatorChallenge {
+  id         String             @id @default(cuid())
+  operatorId String
+  kind       String
+  challenge  String             @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime           @default(now())
+  operator   VerifyGridOperator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@index([operatorId, kind, expiresAt])
+  @@index([expiresAt, usedAt])
 }
 
 model VerifyGridConnectorProfile {
@@ -760,26 +890,26 @@ model VerifyGridConnectorRun {
 }
 
 model VerifyGridSensor {
-  id            String                   @id @default(cuid())
-  workspaceId   String
-  name          String
-  status        String                   @default("active")
-  tokenHash     String                   @unique
-  tokenLastFour String
-  capabilities  Json
+  id                  String                   @id @default(cuid())
+  workspaceId         String
+  name                String
+  status              String                   @default("active")
+  tokenHash           String                   @unique
+  tokenLastFour       String
+  capabilities        Json
   runtimeCapabilities Json?
-  healthStatus  String                   @default("enrolled")
-  lastError     String?
-  version       String?
-  region        String?
-  lastSeenAt    DateTime?
-  createdBy     String?
-  createdAt     DateTime                 @default(now())
-  updatedAt     DateTime                 @updatedAt
-  revokedAt     DateTime?
-  revokedBy     String?
-  workspace     VerifyGridWorkspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  executionJobs VerifyGridExecutionJob[]
+  healthStatus        String                   @default("enrolled")
+  lastError           String?
+  version             String?
+  region              String?
+  lastSeenAt          DateTime?
+  createdBy           String?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  revokedAt           DateTime?
+  revokedBy           String?
+  workspace           VerifyGridWorkspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  executionJobs       VerifyGridExecutionJob[]
 
   @@unique([workspaceId, name])
   @@index([workspaceId, status])
@@ -859,14 +989,14 @@ model VerifyGridOnboardingRequest {
 }
 
 model VerifyGridOnboardingToken {
-  id          String                      @id
-  requestId   String
-  tokenHash   String                      @unique
-  expiresAt   DateTime
-  usedAt      DateTime?
-  revokedAt   DateTime?
-  createdAt   DateTime                    @default(now())
-  request     VerifyGridOnboardingRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  id        String                      @id
+  requestId String
+  tokenHash String                      @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  revokedAt DateTime?
+  createdAt DateTime                    @default(now())
+  request   VerifyGridOnboardingRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
   @@index([requestId, expiresAt])
   @@index([expiresAt, usedAt])

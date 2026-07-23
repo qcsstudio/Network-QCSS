@@ -95,6 +95,20 @@ function buildGroups(): ReadinessGroup[] {
       key: "verifygrid",
       label: "VerifyGrid Security Assurance",
       items: [
+        item(
+          "verifygrid-passkeys",
+          "Passkey operator boundary",
+          isConfigured("VERIFYGRID_WEBAUTHN_RP_ID") && isConfigured("VERIFYGRID_WEBAUTHN_ORIGIN"),
+          "Pins phishing-resistant operator ceremonies to the production relying party and exact origin.",
+          { required: true }
+        ),
+        item(
+          "verifygrid-report-signing",
+          "Report signing key pair",
+          isConfigured("VERIFYGRID_REPORT_SIGNING_PRIVATE_KEY") && isConfigured("VERIFYGRID_REPORT_SIGNING_PUBLIC_KEY"),
+          "Signs approved report-chain hashes with the production Ed25519 identity.",
+          { required: true }
+        ),
         item("verifygrid-portal-session", "Dedicated portal session secret", isConfigured("VERIFYGRID_PORTAL_SESSION_SECRET"), "Separates client portal sessions from administrative sessions.", {
           required: true
         }),

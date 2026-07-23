@@ -12,6 +12,8 @@ import { listAdminSecurityAdvisories, type AdminAdvisoryRecord } from "@/lib/adv
 import { VerifyGridControlPanel } from "@/components/verifygrid-control-panel";
 import { VerifyGridOnboardingQueue } from "@/components/verifygrid-onboarding-queue";
 import { getEmptyVerifyGridPortfolio, getVerifyGridPortfolio, type VerifyGridPortfolio } from "@/lib/verifygrid";
+import { VerifyGridAccessGate } from "@/components/verifygrid-access-gate";
+import { getVerifyGridAccessState } from "@/lib/verifygrid-operator-auth";
 
 export const metadata: Metadata = {
   title: "Operator Dashboard",
@@ -49,11 +51,12 @@ export default async function AdminPage() {
     console.error("Advisory management storage is unavailable.", error);
     return [] as AdminAdvisoryRecord[];
   });
-  const verifyGridPortfolio = await getVerifyGridPortfolio().catch((error) => {
+  const verifyGridAccess = await getVerifyGridAccessState(session.email);
+  const verifyGridPortfolio = verifyGridAccess.state === "unlocked" ? await getVerifyGridPortfolio().catch((error) => {
     if (process.env.NODE_ENV === "production") console.error("VerifyGrid storage is unavailable.", error);
     else console.warn("VerifyGrid development database is not migrated; rendering an empty portfolio.");
     return process.env.NODE_ENV === "development" ? getEmptyVerifyGridPortfolio() : null as VerifyGridPortfolio | null;
-  });
+  }) : null;
 
   return (
     <main className="admin-page">
@@ -83,8 +86,14 @@ export default async function AdminPage() {
             </div>
           </section>
         ) : null}
-        <VerifyGridOnboardingQueue />
-        <VerifyGridControlPanel initialPortfolio={verifyGridPortfolio} />
+        {verifyGridAccess.state === "unlocked" ? (
+          <>
+            <VerifyGridOnboardingQueue />
+            <VerifyGridControlPanel initialPortfolio={verifyGridPortfolio} />
+          </>
+        ) : (
+          <VerifyGridAccessGate access={verifyGridAccess} email={session.email} />
+        )}
         <DistributionControlPanel initialSnapshot={distributionSnapshot} />
         <AdvisoryManagementPanel initialAdvisories={advisories} />
         <ContentRadarPanel initialPosts={contentPosts} />

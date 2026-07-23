@@ -248,6 +248,14 @@ function mapEngagement(engagement: EngagementWithRelations) {
       title: report.title,
       scopeHash: report.scopeHash,
       snapshotSha256: report.snapshotSha256,
+      chainHash: report.chainHash || "",
+      qualityGate: record(report.qualityGate),
+      generatedBy: report.generatedBy || "",
+      reviewedBy: report.reviewedBy || "",
+      reviewedAt: report.reviewedAt?.toISOString() || "",
+      releasedBy: report.releasedBy || "",
+      releasedAt: report.releasedAt?.toISOString() || "",
+      signingKeyId: report.signingKeyId || "",
       generatedAt: report.generatedAt.toISOString()
     })),
     activities: engagement.activities.map((activity) => ({

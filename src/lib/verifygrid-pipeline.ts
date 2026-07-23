@@ -23,6 +23,15 @@ import { findingFingerprint, scopeHash } from "@/lib/verifygrid-domain";
 import { getVerifyGridEngagement } from "@/lib/verifygrid";
 import { fetchNvdEvidence, matchObservationToCpes, type NvdEvidence } from "@/lib/verifygrid-nvd";
 import { executionApprovalSchema } from "@/lib/verifygrid-automation-domain";
+import {
+  buildReportChainHash,
+  evaluateReportQuality,
+  reportReleaseSchema,
+  reportReviewSchema,
+  signReportChain,
+  signingKeyId
+} from "@/lib/verifygrid-assurance-domain";
+import { appendVerifyGridCustodyEvent } from "@/lib/verifygrid-custody";
 
 function json(value: unknown) {
   return value as Prisma.InputJsonValue;
@@ -212,6 +221,18 @@ export async function importVerifyGridScannerExport(engagementId: string, value:
         lastObservedAt: observation.lastObservedAt
       }))
     });
+    await appendVerifyGridCustodyEvent(tx, {
+      workspaceId: engagement.workspaceId,
+      engagementId,
+      eventType: "evidence_received",
+      subjectType: "import_batch",
+      subjectId: created.id,
+      action: "scanner_export_ingested",
+      actor,
+      sourceSha256: sha256,
+      custodyLocation: "verifygrid_normalized_store",
+      details: { connector: input.connector, fileName: input.fileName || null, observations: reconciled.length, scopeHash: currentHash }
+    });
     await tx.verifyGridActivity.create({
       data: {
         workspaceId: engagement.workspaceId,
@@ -323,7 +344,7 @@ export async function promoteVerifyGridObservations(batchId: string, value: unkn
           updatedBy: actor
         }
       });
-      await tx.verifyGridEvidence.create({
+      const evidence = await tx.verifyGridEvidence.create({
         data: {
           findingId: finding.id,
           evidenceType: "scanner_observation",
@@ -335,6 +356,19 @@ export async function promoteVerifyGridObservations(batchId: string, value: unkn
           collectedBy: actor,
           collectedAt: observation.lastObservedAt || new Date()
         }
+      });
+      await appendVerifyGridCustodyEvent(tx, {
+        workspaceId: batch.workspaceId,
+        engagementId: batch.engagementId,
+        evidenceId: evidence.id,
+        eventType: "evidence_normalized",
+        subjectType: "finding_evidence",
+        subjectId: evidence.id,
+        action: "observation_promoted_to_finding",
+        actor,
+        sourceSha256: evidence.sha256,
+        custodyLocation: "verifygrid_finding_store",
+        details: { batchId, observationId: observation.id, findingId: finding.id, connector: batch.connector }
       });
       await tx.verifyGridObservation.update({ where: { id: observation.id }, data: { promotionStatus: "promoted", promotedFindingId: finding.id } });
       promoted += 1;
@@ -540,13 +574,47 @@ export async function createVerifyGridReport(engagementId: string, value: unknow
     }
   });
   if (!engagement) throw new Error("VerifyGrid engagement not found.");
+  const [previousReport, custodyEventCount, latestCustodyEvent] = await Promise.all([
+    prisma.verifyGridReport.findFirst({ where: { engagementId, chainHash: { not: null } }, orderBy: { generatedAt: "desc" }, select: { chainHash: true } }),
+    prisma.verifyGridCustodyEvent.count({ where: { engagementId } }),
+    prisma.verifyGridCustodyEvent.findFirst({ where: { engagementId }, orderBy: { sequence: "desc" }, select: { sequence: true, eventHash: true } })
+  ]);
   const currentHash = scopeHash(engagement.scopeTargets);
   const activeAuthorization = engagement.authorizations.find((item) => item.status === "active" && item.scopeHash === currentHash);
   const findings = engagement.findings.filter((finding) => !["false_positive", "duplicate"].includes(finding.status));
-  const snapshot = {
-    schema: "qcs.verifygrid.report.v1",
+  const generatedAt = new Date();
+  const qualityGate = evaluateReportQuality({
     reportType: input.reportType,
-    generatedAt: new Date().toISOString(),
+    now: generatedAt,
+    currentScopeHash: currentHash,
+    scopeTargets: engagement.scopeTargets,
+    activeAuthorization: activeAuthorization ? {
+      scopeHash: activeAuthorization.scopeHash,
+      authorityConfirmed: activeAuthorization.authorityConfirmed,
+      validFrom: activeAuthorization.validFrom,
+      validUntil: activeAuthorization.validUntil,
+      artifactSha256: activeAuthorization.artifactSha256
+    } : null,
+    testCases: engagement.testCases,
+    findings: findings.map((finding) => ({
+      severity: finding.severity,
+      status: finding.status,
+      businessImpact: finding.businessImpact,
+      remediation: finding.remediation,
+      ownerName: finding.ownerName,
+      dueAt: finding.dueAt,
+      evidenceCount: finding.evidence.length,
+      evidenceSummary: finding.evidenceSummary,
+      retestStatuses: finding.retests.map((retest) => retest.status)
+    })),
+    importStatuses: engagement.importBatches.map((batch) => batch.status),
+    executionStatuses: engagement.executionJobs.map((job) => job.status)
+  });
+  const snapshot = {
+    schema: "qcs.verifygrid.report.v2",
+    reportType: input.reportType,
+    generatedAt: generatedAt.toISOString(),
+    qualityGate,
     engagement: {
       id: engagement.id,
       reference: engagement.reference,
@@ -627,6 +695,11 @@ export async function createVerifyGridReport(engagementId: string, value: unknow
       unmatched: batch.unmatchedCount,
       importedAt: batch.createdAt.toISOString()
     })),
+    custody: {
+      eventCount: custodyEventCount,
+      latestSequence: latestCustodyEvent?.sequence || 0,
+      latestEventHash: latestCustodyEvent?.eventHash || null
+    },
     executionRecords: engagement.executionJobs.map((job) => ({
       capability: job.capability,
       capabilityLevel: job.capabilityLevel,
@@ -638,6 +711,15 @@ export async function createVerifyGridReport(engagementId: string, value: unknow
     }))
   };
   const version = (engagement.reports[0]?.version || 0) + 1;
+  const snapshotSha256 = sha256Json(snapshot);
+  const chainHash = buildReportChainHash({
+    engagementId,
+    reportType: input.reportType,
+    version,
+    snapshotSha256,
+    previousChainHash: previousReport?.chainHash,
+    generatedAt: generatedAt.toISOString()
+  });
   const report = await prisma.$transaction(async (tx) => {
     const created = await tx.verifyGridReport.create({
       data: {
@@ -648,22 +730,165 @@ export async function createVerifyGridReport(engagementId: string, value: unknow
         title: `${engagement.reference} ${input.reportType} assurance report v${version}`,
         scopeHash: currentHash,
         snapshot: json(snapshot),
-        snapshotSha256: sha256Json(snapshot),
-        generatedBy: actor
+        snapshotSha256,
+        qualityGate: json(qualityGate),
+        previousChainHash: previousReport?.chainHash || null,
+        chainHash,
+        status: "draft",
+        generatedBy: actor,
+        generatedAt
       }
+    });
+    await appendVerifyGridCustodyEvent(tx, {
+      workspaceId: engagement.workspaceId,
+      engagementId,
+      eventType: "report_created",
+      subjectType: "assurance_report",
+      subjectId: created.id,
+      action: "immutable_draft_snapshot_created",
+      actor,
+      sourceSha256: snapshotSha256,
+      custodyLocation: "verifygrid_report_store",
+      details: { reportType: input.reportType, version, chainHash, qualityScore: qualityGate.score, qualityFailed: qualityGate.summary.failed }
     });
     await tx.verifyGridActivity.create({
       data: {
         workspaceId: engagement.workspaceId,
         engagementId,
-        action: "report.snapshot_generated",
+        action: "report.draft_generated",
         actor,
-        metadata: json({ reportId: created.id, reportType: input.reportType, version, snapshotSha256: created.snapshotSha256 })
+        metadata: json({ reportId: created.id, reportType: input.reportType, version, snapshotSha256: created.snapshotSha256, chainHash, qualityGate: qualityGate.summary })
       }
     });
     return created;
   });
   return { reportId: report.id, engagement: await getVerifyGridEngagement(engagementId) };
+}
+
+export async function reviewVerifyGridReport(
+  reportId: string,
+  value: unknown,
+  operator: { id: string; email: string; role: string }
+) {
+  const input = reportReviewSchema.parse(value);
+  const prisma = getPrismaClient();
+  const report = await prisma.verifyGridReport.findUnique({ where: { id: reportId } });
+  if (!report) throw new Error("VerifyGrid report not found.");
+  if (report.status !== "draft") throw new Error("Only an unreviewed draft can be reviewed.");
+  const qualityGate = record(report.qualityGate);
+  if (input.decision === "approve" && qualityGate.canApprove !== true) {
+    throw new Error("The report quality gate has failing controls. Generate a new draft after resolving them.");
+  }
+  const independent = report.generatedBy !== operator.email;
+  if (input.decision === "approve" && !independent) {
+    const activeOperatorCount = await prisma.verifyGridOperator.count({ where: { status: "active", passkeys: { some: {} } } });
+    if (activeOperatorCount > 1 || operator.role !== "owner") {
+      throw new Error("Independent report review is required when another active operator is available.");
+    }
+  }
+  const reviewedAt = new Date();
+  const status = input.decision === "approve" ? "approved" : "rejected";
+  await prisma.$transaction(async (tx) => {
+    await tx.verifyGridReport.update({
+      where: { id: reportId },
+      data: {
+        status,
+        reviewedBy: operator.email,
+        reviewedAt,
+        reviewDecision: input.decision,
+        reviewNotes: input.notes
+      }
+    });
+    await tx.verifyGridReportReview.create({
+      data: {
+        reportId,
+        operatorId: operator.id,
+        decision: input.decision,
+        notes: input.notes,
+        checklist: json({ ...input.checklist, independent, soleOperatorException: !independent }),
+        actor: operator.email
+      }
+    });
+    await appendVerifyGridCustodyEvent(tx, {
+      workspaceId: report.workspaceId,
+      engagementId: report.engagementId,
+      eventType: "report_reviewed",
+      subjectType: "assurance_report",
+      subjectId: report.id,
+      action: input.decision === "approve" ? "quality_review_approved" : "quality_review_rejected",
+      actor: operator.email,
+      sourceSha256: report.snapshotSha256,
+      custodyLocation: "verifygrid_report_store",
+      details: { decision: input.decision, independent, qualityScore: qualityGate.score || null }
+    });
+    await tx.verifyGridActivity.create({
+      data: {
+        workspaceId: report.workspaceId,
+        engagementId: report.engagementId,
+        action: `report.review_${input.decision}`,
+        actor: operator.email,
+        metadata: json({ reportId, independent, soleOperatorException: !independent })
+      }
+    });
+  });
+  return { reportId, status, engagement: await getVerifyGridEngagement(report.engagementId) };
+}
+
+export async function releaseVerifyGridReport(
+  reportId: string,
+  value: unknown,
+  operator: { id: string; email: string; role: string }
+) {
+  const input = reportReleaseSchema.parse(value);
+  const prisma = getPrismaClient();
+  const report = await prisma.verifyGridReport.findUnique({ where: { id: reportId } });
+  if (!report) throw new Error("VerifyGrid report not found.");
+  if (report.status !== "approved" || report.reviewDecision !== "approve" || !report.reviewedAt) {
+    throw new Error("Only an approved, reviewed report can be released.");
+  }
+  if (!report.chainHash) throw new Error("The report does not have a chain-of-integrity hash.");
+  const privateKey = process.env.VERIFYGRID_REPORT_SIGNING_PRIVATE_KEY?.trim();
+  const publicKey = process.env.VERIFYGRID_REPORT_SIGNING_PUBLIC_KEY?.trim();
+  if (!privateKey || !publicKey) throw new Error("VerifyGrid report signing keys are not configured.");
+  const signature = signReportChain(report.chainHash, privateKey);
+  const releasedAt = new Date();
+  const keyId = signingKeyId(publicKey);
+  await prisma.$transaction(async (tx) => {
+    await tx.verifyGridReport.update({
+      where: { id: reportId },
+      data: {
+        status: "final",
+        releasedBy: operator.email,
+        releasedAt,
+        signature,
+        signatureAlgorithm: "Ed25519",
+        signingKeyId: keyId,
+        signingPublicKey: publicKey
+      }
+    });
+    await appendVerifyGridCustodyEvent(tx, {
+      workspaceId: report.workspaceId,
+      engagementId: report.engagementId,
+      eventType: "report_released",
+      subjectType: "assurance_report",
+      subjectId: report.id,
+      action: "cryptographically_signed_release",
+      actor: operator.email,
+      sourceSha256: report.snapshotSha256,
+      custodyLocation: "verifygrid_client_release_store",
+      details: { chainHash: report.chainHash, signatureAlgorithm: "Ed25519", signingKeyId: keyId, releaseNote: input.releaseNote }
+    });
+    await tx.verifyGridActivity.create({
+      data: {
+        workspaceId: report.workspaceId,
+        engagementId: report.engagementId,
+        action: "report.released",
+        actor: operator.email,
+        metadata: json({ reportId, chainHash: report.chainHash, signatureAlgorithm: "Ed25519", signingKeyId: keyId, releaseNote: input.releaseNote })
+      }
+    });
+  });
+  return { reportId, status: "final", engagement: await getVerifyGridEngagement(report.engagementId) };
 }
 
 export async function getVerifyGridReport(reportId: string) {
@@ -681,7 +906,21 @@ export async function getVerifyGridReport(reportId: string) {
     scopeHash: report.scopeHash,
     snapshot: record(report.snapshot),
     snapshotSha256: report.snapshotSha256,
+    qualityGate: record(report.qualityGate),
+    previousChainHash: report.previousChainHash,
+    chainHash: report.chainHash,
+    generatedBy: report.generatedBy,
     generatedAt: report.generatedAt.toISOString(),
+    reviewedBy: report.reviewedBy,
+    reviewedAt: report.reviewedAt?.toISOString() || null,
+    reviewDecision: report.reviewDecision,
+    reviewNotes: report.reviewNotes,
+    releasedBy: report.releasedBy,
+    releasedAt: report.releasedAt?.toISOString() || null,
+    signature: report.signature,
+    signatureAlgorithm: report.signatureAlgorithm,
+    signingKeyId: report.signingKeyId,
+    signingPublicKey: report.signingPublicKey,
     workspace: report.workspace,
     engagement: report.engagement
   };

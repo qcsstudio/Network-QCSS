@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { adminCookieName, verifyAdminSession } from "@/lib/admin-auth";
 import { requestContext } from "@/lib/security";
 import { createAuditLog } from "@/lib/store";
+import {
+  revokeOperatorSession,
+  verifyGridOperatorCookieName,
+  verifyGridOperatorCookieOptions
+} from "@/lib/verifygrid-operator-auth";
 
 export const runtime = "nodejs";
 
@@ -15,6 +20,7 @@ export async function POST(request: Request) {
     .slice(1)
     .join("=");
   const session = verifyAdminSession(token ? decodeURIComponent(token) : "");
+  await revokeOperatorSession(request);
   await createAuditLog(
     {
       action: "admin.logout",
@@ -32,5 +38,6 @@ export async function POST(request: Request) {
     path: "/",
     maxAge: 0
   });
+  response.cookies.set(verifyGridOperatorCookieName, "", { ...verifyGridOperatorCookieOptions(), maxAge: 0 });
   return response;
 }

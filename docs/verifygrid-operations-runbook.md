@@ -65,6 +65,25 @@ Use a dedicated read-only account restricted to the required asset and vulnerabi
 
 `VERIFYGRID_PORTAL_SESSION_SECRET` must be a dedicated random production secret. Issue access from Automation. The access token is placed after `#` in the invite link, removed from browser history before submission, used once, and stored only as a hash. Portal sessions last eight hours and are checked against the active workspace membership on every request.
 
+## Operator passkeys
+
+VerifyGrid requires the normal administrator session plus a phishing-resistant WebAuthn passkey step-up. Production must pin `VERIFYGRID_WEBAUTHN_RP_ID=www.qcsstudio.com` and `VERIFYGRID_WEBAUTHN_ORIGIN=https://www.qcsstudio.com`. The first configured administrator enrolls as the owner. Passkey challenges are single-use and expire after five minutes; operator sessions are opaque, revocable, database-backed, and expire after two hours.
+
+Use **Lock VerifyGrid operator session** whenever high-assurance work is complete. Signing out of the main dashboard also revokes the VerifyGrid session. Do not delete the last owner passkey without a tested recovery process.
+
+## Evidence custody and report release
+
+Scanner imports, normalized finding evidence, report drafts, reviews, and releases append to an engagement-level SHA-256 custody chain. Each event records its predecessor hash, actor, subject, source digest, classification, custody location, and retention date. Preserve the raw scanner export outside the application under the client evidence-retention agreement; VerifyGrid stores normalized observations and integrity digests rather than arbitrary raw files.
+
+Reports follow this lifecycle:
+
+1. Generate an immutable draft. VerifyGrid evaluates scope, authority, methodology, finding quality, evidence, retests, active jobs, and import state.
+2. Resolve every failing gate and generate a new version. Existing drafts remain immutable.
+3. Record an accountable approve or reject review. Independent review is enforced when another active operator is available; the sole owner exception is explicitly logged.
+4. Sign and release the approved version. Only `final` reports appear in the client portal.
+
+Production release requires an Ed25519 key pair in `VERIFYGRID_REPORT_SIGNING_PRIVATE_KEY` and `VERIFYGRID_REPORT_SIGNING_PUBLIC_KEY`, encoded as base64 DER PKCS#8 and SPKI respectively. Treat the private key as a production secret and retain old public keys if keys are rotated, because released reports identify the signing key fingerprint.
+
 ## Scheduling and recovery
 
 `/api/cron/verifygrid-operations` schedules due connector runs, advances bounded connector retries, expires execution windows, and recovers stale sensor leases. The repository workflow `.github/workflows/verifygrid-operations.yml` invokes it every 15 minutes with `Authorization: Bearer $CRON_SECRET`, stored in GitHub as `VERIFYGRID_CRON_SECRET`. This external scheduler preserves the two available Vercel Hobby cron slots for the content radar and advisory desk. All work uses database leases so overlapping invocations do not claim the same record.

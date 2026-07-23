@@ -571,9 +571,45 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
     try {
       const result = await mutateResult(`/api/admin/verifygrid/engagements/${selected.id}/reports`, "POST", { reportType });
       await load(selected.id);
-      setMessage(`${label(reportType)} report ${result.reportId || "snapshot"} generated. Open it from the report list.`);
+      setMessage(`${label(reportType)} draft ${result.reportId || "snapshot"} generated. Resolve quality gates, review, and sign it before client release.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to generate the assurance report.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function reviewReport(reportId: string, decision: "approve" | "reject") {
+    if (!selected) return;
+    const notes = window.prompt(`Record the ${decision} rationale (at least 20 characters):`);
+    if (!notes) return;
+    setBusy(`review-${reportId}`);
+    try {
+      await mutateResult(`/api/admin/verifygrid/reports/${reportId}/review`, "POST", {
+        decision,
+        notes,
+        checklist: { scopeAndAuthority: true, methodologyCoverage: true, evidenceTraceability: true, findingQuality: true }
+      });
+      await load(selected.id);
+      setMessage(decision === "approve" ? "Report quality review approved. It is ready for cryptographic release." : "Report rejected. Generate a new immutable draft after corrections.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to review the report.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function releaseReport(reportId: string) {
+    if (!selected) return;
+    const releaseNote = window.prompt("Record the client release purpose and audience (at least 20 characters):");
+    if (!releaseNote || !window.confirm("Release this approved report as an immutable, cryptographically signed client artifact?")) return;
+    setBusy(`release-${reportId}`);
+    try {
+      await mutateResult(`/api/admin/verifygrid/reports/${reportId}/release`, "POST", { acknowledgeImmutableRelease: true, releaseNote });
+      await load(selected.id);
+      setMessage("Report signed and released to the client portal.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to release the report.");
     } finally {
       setBusy("");
     }
@@ -738,6 +774,19 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
     setMessage(`${oneTimeValue.title} copied.`);
   }
 
+  async function lockVerifyGrid() {
+    if (!window.confirm("Lock VerifyGrid and revoke this high-assurance operator session?")) return;
+    setBusy("operator-lock");
+    try {
+      const response = await fetch("/api/admin/verifygrid/security", { method: "DELETE" });
+      if (!response.ok) throw new Error("Unable to revoke the VerifyGrid operator session.");
+      window.location.reload();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to lock VerifyGrid.");
+      setBusy("");
+    }
+  }
+
   const lifecycleActions = selected ? {
     authorized: ["schedule", "start", "cancel"],
     scheduled: ["start", "pause", "cancel"],
@@ -758,6 +807,7 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
           <p>Network-first PTaaS operations with a scope-bound execution gate.</p>
         </div>
         <div className="content-action-row">
+          <button className="icon-button" disabled={Boolean(busy)} onClick={lockVerifyGrid} title="Lock VerifyGrid operator session" type="button"><LockKeyhole aria-hidden="true" size={18} /></button>
           <button className="icon-button" disabled={Boolean(busy)} onClick={() => load().catch((error) => setMessage(String(error)))} title="Refresh VerifyGrid" type="button"><RefreshCw aria-hidden="true" size={18} /></button>
           <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => setCreating((value) => !value)} type="button"><FilePlus2 aria-hidden="true" size={17} /> New engagement</button>
         </div>
@@ -1006,11 +1056,11 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
                 <div className="verifygrid-reports-view">
                   <section className="verifygrid-report-list">
                     <div className="verifygrid-section-heading"><FileText aria-hidden="true" size={20} /><div><h4>Assurance reports</h4><p>Immutable, versioned snapshots with integrity hashes</p></div></div>
-                    {selected.reports.length ? selected.reports.map((report) => <a className="verifygrid-report-link" href={`/admin/verifygrid/reports/${report.id}`} key={report.id} rel="noreferrer" target="_blank"><div><strong>{report.title}</strong><span>{formatDate(report.generatedAt)} | {label(report.reportType)} v{report.version}</span></div><small>{report.snapshotSha256.slice(0, 24)}...</small></a>) : <p className="content-empty-state">No report snapshots generated.</p>}
+                    {selected.reports.length ? selected.reports.map((report) => <article className="verifygrid-report-record" key={report.id}><a className="verifygrid-report-link" href={`/admin/verifygrid/reports/${report.id}`} rel="noreferrer" target="_blank"><div><strong>{report.title}</strong><span>{formatDate(report.generatedAt)} | {label(report.reportType)} v{report.version}</span></div><div className="verifygrid-report-state"><span className={`status-pill ${report.status === "final" ? "content-status-published" : report.status === "rejected" ? "content-status-deleted" : "content-status-review"}`}>{label(report.status)}</span><small>{report.snapshotSha256.slice(0, 24)}...</small></div></a><div className="verifygrid-report-actions">{report.status === "draft" ? <><button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => reviewReport(report.id, "approve")} type="button">Approve review</button><button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => reviewReport(report.id, "reject")} type="button">Reject</button></> : null}{report.status === "approved" ? <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => releaseReport(report.id)} type="button">Sign and release</button> : null}{report.status === "final" ? <span className="verifygrid-signed-proof"><ShieldCheck aria-hidden="true" size={15} /> {report.signingKeyId ? `Signed ${report.signingKeyId}` : "Legacy final snapshot"}</span> : null}</div></article>) : <p className="content-empty-state">No report snapshots generated.</p>}
                   </section>
                   <form className="content-editor verifygrid-compact-form" onSubmit={generateReport}>
                     <fieldset className="content-editor-section">
-                      <legend>Generate report snapshot</legend>
+                      <legend>Generate immutable draft</legend>
                       <label className="content-field"><span>Report type</span><select value={reportType} onChange={(event) => setReportType(event.target.value)}><option value="executive">Executive assurance</option><option value="technical">Technical findings</option><option value="retest">Retest and closure</option></select></label>
                       <p className="form-note">The report captures current scope, authority, evidence provenance, findings, remediation, retests, and prepared execution records.</p>
                       <button className="button primary compact-button" disabled={busy === "report"} type="submit"><FileText aria-hidden="true" size={16} /> {busy === "report" ? "Generating..." : "Generate version"}</button>

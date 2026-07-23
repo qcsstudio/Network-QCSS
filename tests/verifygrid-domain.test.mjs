@@ -32,6 +32,14 @@ import {
   verifyGridOnboardingReviewSchema
 } from "../src/lib/verifygrid-onboarding-domain.ts";
 import { methodologyForService, testCaseUpdateSchema } from "../src/lib/verifygrid-methodology.ts";
+import {
+  buildCustodyEventHash,
+  buildReportChainHash,
+  evaluateReportQuality,
+  signReportChain,
+  verifyReportChainSignature
+} from "../src/lib/verifygrid-assurance-domain.ts";
+import crypto from "node:crypto";
 
 const firstTarget = {
   targetType: "domain",
@@ -305,4 +313,56 @@ test("API connector payloads reuse the normalized observation boundary", () => {
   assert.equal(observations.length, 1);
   assert.equal(observations[0].sourceReference, "tenable:plugin:42");
   assert.equal(observations[0].rawMetadata.version, "17.12");
+});
+
+test("technical report quality gate blocks incomplete methodology and missing authority", () => {
+  const gate = evaluateReportQuality({
+    reportType: "technical",
+    now: new Date("2026-07-24T12:00:00.000Z"),
+    currentScopeHash: "scope-v2",
+    scopeTargets: [{ inScope: true, ownershipConfirmed: true }],
+    activeAuthorization: null,
+    testCases: [{ status: "planned", resultSummary: null }],
+    findings: [],
+    importStatuses: [],
+    executionStatuses: []
+  });
+  assert.equal(gate.canApprove, false);
+  assert.ok(gate.checks.some((item) => item.code === "authority.active" && item.status === "fail"));
+  assert.ok(gate.checks.some((item) => item.code === "methodology.complete" && item.status === "fail"));
+});
+
+test("complete evidence-led report passes release-blocking controls", () => {
+  const gate = evaluateReportQuality({
+    reportType: "technical",
+    now: new Date("2026-07-24T12:00:00.000Z"),
+    currentScopeHash: "scope-v2",
+    scopeTargets: [{ inScope: true, ownershipConfirmed: true }, { inScope: false, ownershipConfirmed: false }],
+    activeAuthorization: { scopeHash: "scope-v2", authorityConfirmed: true, validFrom: new Date("2026-07-24T00:00:00.000Z"), validUntil: new Date("2026-07-30T00:00:00.000Z"), artifactSha256: "a".repeat(64) },
+    testCases: [{ status: "passed", resultSummary: "The approved target was tested and the expected control was confirmed." }],
+    findings: [{ severity: "high", status: "validated", businessImpact: "Material exposure is possible.", remediation: "Apply the verified control change.", ownerName: "Network owner", dueAt: new Date("2026-08-01T00:00:00.000Z"), evidenceCount: 1, evidenceSummary: "Scanner evidence", retestStatuses: [] }],
+    importStatuses: ["completed"],
+    executionStatuses: ["completed"]
+  });
+  assert.equal(gate.canApprove, true);
+  assert.equal(gate.summary.failed, 0);
+});
+
+test("custody and report chains are deterministic and bind prior state", () => {
+  const custody = { engagementId: "eng", sequence: 2, eventType: "evidence_received", subjectType: "import_batch", subjectId: "batch", action: "ingested", actor: "analyst@example.com", sourceSha256: "b".repeat(64), previousHash: "a".repeat(64), occurredAt: "2026-07-24T12:00:00.000Z", classification: "confidential", details: { connector: "nmap" } };
+  assert.equal(buildCustodyEventHash(custody), buildCustodyEventHash(custody));
+  assert.notEqual(buildCustodyEventHash(custody), buildCustodyEventHash({ ...custody, previousHash: "c".repeat(64) }));
+  const first = buildReportChainHash({ engagementId: "eng", reportType: "technical", version: 1, snapshotSha256: "d".repeat(64), generatedAt: "2026-07-24T12:00:00.000Z" });
+  const second = buildReportChainHash({ engagementId: "eng", reportType: "technical", version: 2, snapshotSha256: "e".repeat(64), previousChainHash: first, generatedAt: "2026-07-24T13:00:00.000Z" });
+  assert.notEqual(first, second);
+});
+
+test("Ed25519 report releases are verifiable and reject modified chain hashes", () => {
+  const keys = crypto.generateKeyPairSync("ed25519");
+  const privateKey = keys.privateKey.export({ type: "pkcs8", format: "der" }).toString("base64");
+  const publicKey = keys.publicKey.export({ type: "spki", format: "der" }).toString("base64");
+  const chainHash = "f".repeat(64);
+  const signature = signReportChain(chainHash, privateKey);
+  assert.equal(verifyReportChainSignature(chainHash, signature, publicKey), true);
+  assert.equal(verifyReportChainSignature(`0${chainHash.slice(1)}`, signature, publicKey), false);
 });
