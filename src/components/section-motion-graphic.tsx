@@ -72,7 +72,7 @@ const graphics = {
     title: "Small public tools that turn first symptoms into useful signals.",
     Icon: CloudCog,
     signals: ["DNS", "IP", "Headers", "Latency"],
-    insight: "Fast checks help visitors self-qualify before they request deeper troubleshooting.",
+    insight: "Fast checks turn an initial symptom into clearer evidence before deeper troubleshooting.",
     visualTone: "icon-cluster",
     nodes: [
       { src: "/brand/envato/icons/router-cloud-network.svg", label: "Router" },

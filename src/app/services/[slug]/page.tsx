@@ -140,7 +140,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
 
       <section className="section">
         <div className="section-heading">
-          <p className="eyebrow">Buyer triggers</p>
+          <p className="eyebrow">Operational triggers</p>
           <h2>When this service becomes urgent</h2>
         </div>
         <div className="pill-cloud">
@@ -153,7 +153,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
       <section className="section split">
         <div className="section-heading">
           <p className="eyebrow">Scope</p>
-          <h2>What QCS should examine and manage</h2>
+          <h2>What QCS examines and manages</h2>
         </div>
         <div className="outcome-list">
           {service.scope.map((item) => (
@@ -169,7 +169,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Deliverables</p>
-          <h2>What the buyer should receive</h2>
+          <h2>What your team receives</h2>
         </div>
         <div className="pillar-grid">
           {service.deliverables.map((deliverable) => (
@@ -185,7 +185,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">FAQ</p>
-          <h2>Short answers for service buyers</h2>
+          <h2>Short answers before you engage</h2>
         </div>
         <div className="faq-grid">
           {service.faqs.map((faq) => (

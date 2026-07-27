@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import { NetworkToolRunner } from "@/components/network-tool-runner";
@@ -13,13 +13,29 @@ type NetworkToolPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+const toolSlugAliases: Record<string, string> = {
+  "security-headers-analyzer": "http-header-check",
+  "port-reachability-scanner": "port-check",
+  "cloud-ip-range-finder": "cloud-ip-range-lookup",
+  "dns-record-inspector": "dns-lookup",
+  "public-ip-reputation-check": "ip-reputation-abuse-check",
+  "bgp-route-anomaly-checker": "bgp-route-anomaly-check",
+  "global-traceroute": "global-traceroute-planner",
+  "vpn-configuration-analyzer": "vpn-ipsec-config-checker",
+  "firewall-rule-analyzer": "firewall-rule-shadow-analyzer"
+};
+
+function currentToolSlug(slug: string) {
+  return toolSlugAliases[slug] ?? slug;
+}
+
 export function generateStaticParams() {
   return networkUtilityTools.map((tool) => ({ slug: tool.slug }));
 }
 
 export async function generateMetadata({ params }: NetworkToolPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const tool = getNetworkUtilityTool(slug);
+  const tool = getNetworkUtilityTool(currentToolSlug(slug));
   if (!tool) return {};
 
   return createPageMetadata({
@@ -74,7 +90,9 @@ function toolFaqs(tool: NonNullable<ReturnType<typeof getNetworkUtilityTool>>) {
 
 export default async function NetworkToolPage({ params }: NetworkToolPageProps) {
   const { slug } = await params;
-  const tool = getNetworkUtilityTool(slug);
+  const resolvedSlug = currentToolSlug(slug);
+  if (resolvedSlug !== slug) permanentRedirect(`/network-tools/${resolvedSlug}`);
+  const tool = getNetworkUtilityTool(resolvedSlug);
   if (!tool) notFound();
   const Icon = tool.icon;
   const faqs = toolFaqs(tool);

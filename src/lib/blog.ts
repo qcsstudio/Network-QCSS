@@ -219,8 +219,8 @@ export const blogPosts: BlogPost[] = [
     image: "/brand/envato/library/security-network-shield.webp",
     imageAlt: "Network security shield illustration for exploited vulnerability prioritization",
     relatedTools: [
-      { label: "Security Headers Analyzer", href: "/network-tools/security-headers-analyzer" },
-      { label: "Port Reachability Scanner", href: "/network-tools/port-reachability-scanner" },
+      { label: "HTTP Header Check", href: "/network-tools/http-header-check" },
+      { label: "Port Check", href: "/network-tools/port-check" },
       { label: "Vendor Task Script Generator", href: "/network-tools/vendor-task-script-generator" }
     ],
     relatedServices: [
@@ -308,9 +308,9 @@ export const blogPosts: BlogPost[] = [
     image: "/brand/envato/library/data-center-platform.webp",
     imageAlt: "Isometric cloud and data center platform for cloud network exposure review",
     relatedTools: [
-      { label: "Cloud IP Range Finder", href: "/network-tools/cloud-ip-range-finder" },
-      { label: "DNS Record Inspector", href: "/network-tools/dns-record-inspector" },
-      { label: "Public IP Reputation Check", href: "/network-tools/public-ip-reputation-check" }
+      { label: "Cloud IP Range Lookup", href: "/network-tools/cloud-ip-range-lookup" },
+      { label: "DNS Lookup", href: "/network-tools/dns-lookup" },
+      { label: "IP Reputation and Abuse Check", href: "/network-tools/ip-reputation-abuse-check" }
     ],
     relatedServices: [
       { label: "Cloud Network Services", href: "/services/cloud-network-services" },
@@ -396,7 +396,7 @@ export const blogPosts: BlogPost[] = [
     relatedTools: [
       { label: "RPKI / ROA Validator", href: "/network-tools/rpki-roa-validator" },
       { label: "ASN Intelligence Tool", href: "/network-tools/asn-intelligence-tool" },
-      { label: "BGP Route Anomaly Checker", href: "/network-tools/bgp-route-anomaly-checker" }
+      { label: "BGP Route Anomaly Check", href: "/network-tools/bgp-route-anomaly-check" }
     ],
     relatedServices: [
       { label: "Managed Network Services", href: "/services/managed-network-services" },
@@ -479,7 +479,7 @@ export const blogPosts: BlogPost[] = [
     relatedTools: [
       { label: "Vendor Task Script Generator", href: "/network-tools/vendor-task-script-generator" },
       { label: "Packet Capture Filter Generator", href: "/network-tools/packet-capture-filter-generator" },
-      { label: "Global Traceroute", href: "/network-tools/global-traceroute" }
+      { label: "Global Traceroute Planner", href: "/network-tools/global-traceroute-planner" }
     ],
     relatedServices: [
       { label: "Network Troubleshooting Services", href: "/services/network-troubleshooting" },
@@ -561,8 +561,8 @@ export const blogPosts: BlogPost[] = [
     imageAlt: "Cloud access and network security illustration for SASE readiness",
     relatedTools: [
       { label: "Network Risk Score", href: "/tools/network-risk-score" },
-      { label: "Cloud Exposure Analyzer", href: "/tools/cloud-exposure" },
-      { label: "VPN Configuration Analyzer", href: "/network-tools/vpn-configuration-analyzer" }
+      { label: "Cloud Readiness Assessment", href: "/tools/cloud-readiness" },
+      { label: "VPN and IPsec Configuration Checker", href: "/network-tools/vpn-ipsec-config-checker" }
     ],
     relatedServices: [
       { label: "Network Security Services", href: "/services/network-security-services" },
@@ -644,8 +644,8 @@ export const blogPosts: BlogPost[] = [
     imageAlt: "Padlock security illustration for strong password hygiene",
     relatedTools: [
       { label: "Strong Password Generator", href: "/network-tools/strong-password-generator" },
-      { label: "VPN Configuration Analyzer", href: "/network-tools/vpn-configuration-analyzer" },
-      { label: "Firewall Rule Analyzer", href: "/network-tools/firewall-rule-analyzer" }
+      { label: "VPN and IPsec Configuration Checker", href: "/network-tools/vpn-ipsec-config-checker" },
+      { label: "Firewall Rule Shadow Analyzer", href: "/network-tools/firewall-rule-shadow-analyzer" }
     ],
     relatedServices: [
       { label: "Network Security Services", href: "/services/network-security-services" },

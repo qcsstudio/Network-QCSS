@@ -331,6 +331,17 @@ test("consent panel is compact and contained on a small mobile viewport", async 
   await context.close();
 });
 
+test("optional Google tags do not load before consent", async ({ page }) => {
+  await preparePage(page);
+  await page.goto("/", { waitUntil: "networkidle" });
+
+  const optionalGoogleScripts = await page.locator(
+    'script[src*="googletagmanager.com/gtm.js"], script[src*="googletagmanager.com/gtag/js"]'
+  ).count();
+
+  expect(optionalGoogleScripts).toBe(0);
+});
+
 test("representative pages render at four responsive breakpoints", async ({ browser }, testInfo) => {
   const viewports = [
     { name: "mobile", width: 390, height: 844 },

@@ -308,7 +308,88 @@ textarea {
 .proof-strip strong {
   color: white;
   font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.08rem;
+  overflow-wrap: anywhere;
+  font-size: 0.98rem;
+}
+
+.section-action-row {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.assessment-preview-panel {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.8fr) minmax(0, 2.2fr);
+  grid-column: 1 / -1;
+  gap: 24px;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+.assessment-preview-intro {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  border-right: 1px solid var(--border);
+  padding: 8px 24px 8px 6px;
+}
+
+.assessment-preview-intro h3 {
+  margin: 0 0 18px;
+  color: var(--ink-strong);
+  font-size: 1.42rem;
+  line-height: 1.2;
+}
+
+.assessment-preview-panel ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.assessment-preview-panel li {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  border-top: 3px solid var(--brand-blue);
+  background: var(--panel-soft);
+  padding: 16px;
+}
+
+.assessment-preview-panel li:nth-child(2) {
+  border-top-color: var(--brand-magenta);
+}
+
+.assessment-preview-panel li:nth-child(3) {
+  border-top-color: var(--brand-orange);
+}
+
+.assessment-preview-panel li span {
+  color: var(--brand-blue);
+  font-family: var(--font-tech), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+}
+
+.assessment-preview-panel li strong {
+  color: var(--ink-strong);
+  font-size: 1rem;
+}
+
+.assessment-preview-panel li p {
+  margin: 0;
+  color: var(--ink-body);
+  font-size: 0.9rem;
+  line-height: 1.55;
 }
 
 .network-visual {
@@ -1260,6 +1341,20 @@ table {
     grid-template-columns: 1fr;
     min-height: 0;
     padding-bottom: 56px;
+  }
+
+  .assessment-preview-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .assessment-preview-intro {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 4px 4px 18px;
+  }
+
+  .assessment-preview-panel ol {
+    grid-template-columns: 1fr;
   }
 
   .hero-copy {

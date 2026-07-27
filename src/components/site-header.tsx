@@ -64,8 +64,9 @@ export function SiteHeader() {
             className="brand-logo"
             src="/brand/quantumcrafters-logo.png"
             alt="QuantumCrafters Studio Pvt. Ltd."
-            width={262}
-            height={80}
+            width={184}
+            height={57}
+            sizes="(max-width: 760px) 158px, 184px"
             priority
             loading="eager"
             style={{ width: "100%", height: "auto" }}

@@ -25,16 +25,16 @@ export const positioning = {
   eyebrow: "Network command studio for India and global teams",
   headline: "Diagnose, secure, operate, and train modern networks with evidence you can act on.",
   body:
-    "QuantumCrafters Studio Pvt. Ltd. helps growing companies stabilize infrastructure, harden security, modernize cloud connectivity, test exposure, and build network talent through one measurable operating system.",
+    "QuantumCrafters Studio Pvt. Ltd. helps growing companies stabilize infrastructure, harden security, modernize cloud connectivity, test exposure, and build network talent through one evidence-led operating model.",
   primaryCta: "Run Network Assessment",
   secondaryCta: "Explore Command System"
 };
 
 export const proofSignals = [
-  { value: "6", label: "Guided readiness checks" },
-  { value: "24x7", label: "NOC and incident model" },
-  { value: "30+", label: "Service and resource paths" },
-  { value: "1", label: "Operate-secure-test-train model" }
+  { value: "Vendor-neutral", label: "Architecture and remediation" },
+  { value: "Authorized", label: "Scoped access before testing" },
+  { value: "Evidence-led", label: "Findings, owners, and retests" },
+  { value: "India + global", label: "Remote delivery model" }
 ];
 
 export const commandNavItems = [
@@ -117,19 +117,19 @@ export const visualPositioningModules = [
 
 export const marketEdges = [
   {
-    title: "Sharper than a generic MSP",
+    title: "Senior diagnostic clarity",
     description:
-      "Large providers sell scale. QCS should sell diagnostic clarity, senior engineering thinking, faster decision paths, and visible operating discipline."
+      "Move from scattered symptoms to a topology-aware action plan with clear ownership, evidence, and decision points."
   },
   {
-    title: "More complete than a pentest-only vendor",
+    title: "Testing connected to closure",
     description:
-      "Testing is connected to remediation, firewall governance, segmentation, retesting, training, and recurring support."
+      "Connect findings to remediation, firewall governance, segmentation, retesting, training, and recurring support."
   },
   {
-    title: "More practical than a course-only institute",
+    title: "Skills grounded in operations",
     description:
-      "Training is anchored in real network operations, firewall hygiene, cloud exposure, incident response, and hands-on troubleshooting."
+      "Build capability around network operations, firewall hygiene, cloud exposure, incident response, and hands-on troubleshooting."
   }
 ];
 
@@ -141,7 +141,7 @@ export const buyerJourneys = [
     route: "Managed Network Services, NOC as a Service, Troubleshooting"
   },
   {
-    title: "Security or Compliance Buyer",
+    title: "Security or Compliance Team",
     description:
       "Needs penetration testing, firewall cleanup, cloud exposure visibility, access hardening, and retesting evidence.",
     route: "Network Security, Firewall Management, Pentest and Retesting"
@@ -178,7 +178,7 @@ export const supportModelComparison = {
     title: "What the QCS model creates",
     items: [
       "Assessment before configuration changes",
-      "Service paths mapped to buyer problems",
+      "Service paths mapped to operational problems",
       "Free tools that help validate symptoms",
       "Evidence checklists before engineering calls",
       "Clear readiness snapshots",
@@ -824,7 +824,7 @@ export const authorityEngine = [
   {
     title: "Service Pages",
     description:
-      "Commercial pages with answer-first copy, buyer triggers, scope, deliverables, FAQs, schema, and assessment CTAs."
+      "Service pages with direct answers, operational triggers, scope, deliverables, FAQs, structured data, and assessment paths."
   },
   {
     title: "Network Tools",

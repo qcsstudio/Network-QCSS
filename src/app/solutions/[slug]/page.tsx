@@ -123,7 +123,7 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
             <article className="pillar-card" key={outcome}>
               <CardVisual title={outcome} context={solution.title} />
               <h3>{outcome}</h3>
-              <p>Converted into evidence, service routing, and a practical next action for the buyer.</p>
+              <p>Converted into evidence, an accountable service path, and a practical next action for your team.</p>
             </article>
           ))}
         </div>

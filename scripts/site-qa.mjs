@@ -77,11 +77,15 @@ if (!llms.ok) issue("/llms.txt", `LLMS returned ${llms.status}`);
 if (!robots.text.includes("Disallow: /admin")) issue("/robots.txt", "Admin pages must be disallowed.");
 if (!robots.text.includes("Disallow: /api")) issue("/robots.txt", "API routes must be disallowed.");
 if (!robots.text.includes("Sitemap:")) issue("/robots.txt", "Sitemap reference is missing.");
+if (/^Host:\s*https?:\/\//im.test(robots.text)) issue("/robots.txt", "Host must not contain a URL scheme.");
 if (!llms.text.includes("## Core Service Pages")) issue("/llms.txt", "Core service section is missing.");
 if (!llms.text.includes("## Free Online Network Utility Tools")) issue("/llms.txt", "Network utility section is missing.");
 
 const locs = [...sitemap.text.matchAll(/<loc>(.*?)<\/loc>/g)].map((match) => decodeHtml(match[1]));
 const routes = [...new Set(locs.map(toLocalUrl))];
+const internalLinks = new Set();
+const titleRoutes = new Map();
+const descriptionRoutes = new Map();
 
 if (routes.length < 20) issue("/sitemap.xml", `Expected at least 20 public URLs, found ${routes.length}.`);
 
@@ -122,6 +126,24 @@ for (const route of routes) {
   });
   const jsonLd = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
 
+  for (const match of htmlShell.matchAll(/<a\b[^>]*\shref=["']([^"'#]+)["'][^>]*>/gi)) {
+    try {
+      const target = new URL(decodeHtml(match[1]), route);
+      if (target.origin === baseUrl.origin && !target.pathname.startsWith("/_next")) {
+        internalLinks.add(new URL(`${target.pathname}${target.search}`, baseUrl).toString());
+      }
+    } catch {
+      issue(path, `Invalid internal link: ${match[1]}`);
+    }
+  }
+
+  const titlePaths = titleRoutes.get(title) ?? [];
+  titlePaths.push(path);
+  titleRoutes.set(title, titlePaths);
+  const descriptionPaths = descriptionRoutes.get(description) ?? [];
+  descriptionPaths.push(path);
+  descriptionRoutes.set(description, descriptionPaths);
+
   if (title.length < 20 || title.length > 90) issue(path, `Title length should be practical for search (${title.length} chars).`);
   if (description.length < 80 || description.length > 180) {
     issue(path, `Meta description should be useful and concise (${description.length} chars).`);
@@ -147,6 +169,37 @@ for (const route of routes) {
   }
 
   if (/lorem ipsum|placeholder text|TODO/i.test(bodyText)) issue(path, "Placeholder copy is still visible.");
+  if (
+    /QCS should sell|lead-ready knowledge base|problems people actually search for|buyer triggers|what the buyer should receive|deeper sales and support conversations|buyers actually use|visitors self-qualify/i.test(
+      bodyText
+    )
+  ) {
+    issue(path, "Internal marketing or SEO language is visible to visitors.");
+  }
+
+  if (path === "/") {
+    const utilityCards = (htmlShell.match(/class=["'][^"']*\butility-card\b[^"']*["']/gi) ?? []).length;
+    if (utilityCards > 6) issue(path, `Homepage should feature no more than 6 priority tools, found ${utilityCards}.`);
+  }
+}
+
+for (const [title, paths] of titleRoutes) {
+  if (title && paths.length > 1) issue(paths.join(", "), `Duplicate title: ${title}`);
+}
+
+for (const [description, paths] of descriptionRoutes) {
+  if (description && paths.length > 1) issue(paths.join(", "), `Duplicate meta description: ${description}`);
+}
+
+const linkedRoutes = [...internalLinks];
+for (let index = 0; index < linkedRoutes.length; index += 12) {
+  const batch = linkedRoutes.slice(index, index + 12);
+  const results = await Promise.all(batch.map(async (route) => ({ route, page: await fetchText(route) })));
+  for (const result of results) {
+    if (!result.page.ok) {
+      issue(new URL(result.route).pathname, `Internal link returned ${result.page.status}.`);
+    }
+  }
 }
 
 const score = Math.max(0, 100 - issues.length * 6);

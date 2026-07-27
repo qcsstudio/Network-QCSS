@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { AssessmentTool } from "@/components/assessment-tool";
 import { CardVisual } from "@/components/card-visual";
 import { EnvatoVisualSystem } from "@/components/envato-visual-system";
 import { IntentRouter } from "@/components/intent-router";
@@ -8,13 +7,11 @@ import { LeadForm } from "@/components/lead-form";
 import { ResourceDownloads } from "@/components/resource-downloads";
 import { SectionMotionGraphic } from "@/components/section-motion-graphic";
 import {
-  automationFlows,
   buyerJourneys,
   commandLayers,
   deliveryWorkflow,
   industryCoverage,
   marketEdges,
-  operatingModes,
   positioning,
   proofSignals,
   services,
@@ -38,12 +35,27 @@ const resourceVisuals = [
   { src: "/brand/envato/library/padlock-security.webp", label: "Security checklist" }
 ];
 
+const assessmentPreview = [
+  { step: "01", title: "Answer practical questions", detail: "Cover topology, controls, exposure, evidence, and ownership." },
+  { step: "02", title: "Receive a risk band", detail: "See which operating domain needs attention first." },
+  { step: "03", title: "Prepare the next action", detail: "Take an evidence checklist into the engineering review." }
+];
+
 export default async function HomePage() {
   const latestAdvisories = await listSecurityAdvisories(3);
   return (
     <main>
       <section className="hero-section futuristic-hero">
-        <Image className="hero-bg-image" src="/brand/network-command-hero.png" alt="" fill priority sizes="100vw" />
+        <Image
+          className="hero-bg-image"
+          src="/brand/network-command-hero.png"
+          alt=""
+          fill
+          fetchPriority="high"
+          priority
+          quality={65}
+          sizes="100vw"
+        />
         <div className="hero-copy">
           <p className="eyebrow">{positioning.eyebrow}</p>
           <h1>{positioning.headline}</h1>
@@ -174,7 +186,7 @@ export default async function HomePage() {
       <section className="section media-section motion-section" id="solutions">
         <div className="section-heading">
           <p className="eyebrow">Solution paths</p>
-          <h2>Simple pages for the problems people actually search for.</h2>
+          <h2>Start with the network problem blocking your team.</h2>
           <p>
             Each path explains the issue, what evidence helps, and which QCS service or diagnostic should come next.
           </p>
@@ -293,25 +305,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="section motion-section">
-        <div className="section-heading">
-          <p className="eyebrow">Command modes</p>
-          <h2>Five clear ways QCS can help.</h2>
-        </div>
-        <div className="mode-grid">
-          {operatingModes.map((mode) => {
-            const Icon = mode.icon;
-            return (
-              <Link className="mode-card" href={mode.href} key={mode.title}>
-                <CardVisual title={mode.title} context={mode.description} icon={Icon} />
-                <h3>{mode.title}</h3>
-                <p>{mode.description}</p>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
       <section className="section media-section motion-section" id="tools">
         <div className="section-heading">
           <p className="eyebrow">Guided assessment</p>
@@ -322,7 +315,24 @@ export default async function HomePage() {
           </p>
         </div>
         <SectionMotionGraphic variant="assessment" />
-        <AssessmentTool />
+        <div className="assessment-preview-panel" aria-label="Network assessment workflow">
+          <div className="assessment-preview-intro">
+            <p className="eyebrow">Three-step handoff</p>
+            <h3>A useful result before the technical call.</h3>
+            <Link className="button primary" href="/diagnose">
+              Run guided assessment
+            </Link>
+          </div>
+          <ol>
+            {assessmentPreview.map((item) => (
+              <li key={item.step}>
+                <span>{item.step}</span>
+                <strong>{item.title}</strong>
+                <p>{item.detail}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
       </section>
 
       <section className="section media-section motion-section">
@@ -332,7 +342,7 @@ export default async function HomePage() {
         </div>
         <SectionMotionGraphic variant="utilities" />
         <div className="utility-grid compact">
-          {networkUtilityTools.map((tool) => {
+          {networkUtilityTools.slice(0, 6).map((tool) => {
             const Icon = tool.icon;
             return (
               <Link className="utility-card" href={`/network-tools/${tool.slug}`} key={tool.slug}>
@@ -343,6 +353,11 @@ export default async function HomePage() {
               </Link>
             );
           })}
+        </div>
+        <div className="section-action-row">
+          <Link className="button secondary" href="/network-tools">
+            Explore all {networkUtilityTools.length} network tools
+          </Link>
         </div>
       </section>
 
@@ -367,29 +382,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="section motion-section">
-        <div className="section-heading">
-          <p className="eyebrow">First conversation</p>
-          <h2>What you can expect after sharing a request.</h2>
-        </div>
-        <div className="automation-grid">
-          {automationFlows.map((flow) => {
-            const Icon = flow.icon;
-            return (
-              <article className="flow-card" key={flow.title}>
-                <CardVisual title={flow.title} context={flow.description} icon={Icon} />
-                <h3>{flow.title}</h3>
-                <p>{flow.description}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
       <section className="section motion-section" id="vendors">
         <div className="section-heading">
           <p className="eyebrow">Coverage</p>
-          <h2>Support across the vendors, clouds, and environments buyers actually use.</h2>
+          <h2>Support across the vendors, clouds, and environments your team already uses.</h2>
         </div>
         <div className="coverage-visual-grid" aria-label="Network coverage visual signals">
           {coverageVisuals.map((visual) => (
@@ -425,10 +421,10 @@ export default async function HomePage() {
             ))}
           </div>
           <div>
-            <p className="eyebrow">Lead-ready knowledge base</p>
+            <p className="eyebrow">Operational knowledge base</p>
             <h3>Resources should make the next technical conversation sharper.</h3>
             <p>
-              Checklists, tool outputs, and assessment notes help buyers describe the issue clearly before they ask for
+              Checklists, tool outputs, and assessment notes help teams describe the issue clearly before they ask for
               managed support, security review, cloud guidance, or training.
             </p>
           </div>

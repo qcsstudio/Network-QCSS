@@ -1,8 +1,41 @@
+"use client";
+
 import Script from "next/script";
+import { useEffect, useState } from "react";
+
+type OptionalConsent = {
+  analytics: boolean;
+  marketing: boolean;
+};
+
+const deniedConsent: OptionalConsent = { analytics: false, marketing: false };
+
+function readOptionalConsent(): OptionalConsent {
+  const stored = window.localStorage.getItem("network-qcss-consent");
+  if (!stored) return deniedConsent;
+
+  try {
+    const parsed = JSON.parse(stored) as Partial<OptionalConsent>;
+    return { analytics: Boolean(parsed.analytics), marketing: Boolean(parsed.marketing) };
+  } catch {
+    return deniedConsent;
+  }
+}
 
 export function MarketingScripts() {
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
   const gaId = process.env.NEXT_PUBLIC_GA_ID;
+  const [consent, setConsent] = useState<OptionalConsent>(deniedConsent);
+
+  useEffect(() => {
+    const syncConsent = () => setConsent(readOptionalConsent());
+    syncConsent();
+    window.addEventListener("qcs-consent-change", syncConsent);
+    return () => window.removeEventListener("qcs-consent-change", syncConsent);
+  }, []);
+
+  const loadGoogleContainer = Boolean(gtmId && (consent.analytics || consent.marketing));
+  const loadDirectAnalytics = Boolean(!gtmId && gaId && consent.analytics);
 
   return (
     <>
@@ -24,7 +57,7 @@ export function MarketingScripts() {
         `}
       </Script>
 
-      {gtmId ? (
+      {loadGoogleContainer ? (
         <Script id="google-tag-manager" strategy="afterInteractive">
           {`
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -36,7 +69,7 @@ export function MarketingScripts() {
         </Script>
       ) : null}
 
-      {gaId ? (
+      {loadDirectAnalytics ? (
         <>
           <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
           <Script id="google-analytics" strategy="afterInteractive">

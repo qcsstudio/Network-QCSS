@@ -126,8 +126,8 @@ export default async function ResourcesPage() {
           <p className="eyebrow">Publishing cadence</p>
           <h2>Two high-intent posts every week.</h2>
           <p>
-            The private content radar scans trusted network and security sources. It keeps each editorial brief topical,
-            practical, and tied to a real buyer or engineering question.
+            QCS monitors trusted network and security sources, then turns material changes into practical guidance for
+            engineers, service owners, and security teams.
           </p>
         </div>
         <div className="outcome-list">
@@ -144,7 +144,7 @@ export default async function ResourcesPage() {
       <section className="section" id="download-resources">
         <div className="section-heading">
           <p className="eyebrow">Downloadable resources</p>
-          <h2>Checklists, templates, and roadmaps for deeper sales and support conversations.</h2>
+          <h2>Checklists, templates, and roadmaps for better technical decisions.</h2>
         </div>
         <ResourceDownloads />
       </section>

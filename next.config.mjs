@@ -1,5 +1,18 @@
 const isProduction = process.env.NODE_ENV === "production";
 
+const legacyToolRedirects = [
+  ["/network-tools/security-headers-analyzer", "/network-tools/http-header-check"],
+  ["/network-tools/port-reachability-scanner", "/network-tools/port-check"],
+  ["/network-tools/cloud-ip-range-finder", "/network-tools/cloud-ip-range-lookup"],
+  ["/network-tools/dns-record-inspector", "/network-tools/dns-lookup"],
+  ["/network-tools/public-ip-reputation-check", "/network-tools/ip-reputation-abuse-check"],
+  ["/network-tools/bgp-route-anomaly-checker", "/network-tools/bgp-route-anomaly-check"],
+  ["/network-tools/global-traceroute", "/network-tools/global-traceroute-planner"],
+  ["/network-tools/vpn-configuration-analyzer", "/network-tools/vpn-ipsec-config-checker"],
+  ["/network-tools/firewall-rule-analyzer", "/network-tools/firewall-rule-shadow-analyzer"],
+  ["/tools/cloud-exposure", "/tools/cloud-readiness"]
+];
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
@@ -55,6 +68,9 @@ const nextConfig = {
   poweredByHeader: false,
   turbopack: {
     root: process.cwd()
+  },
+  async redirects() {
+    return legacyToolRedirects.map(([source, destination]) => ({ source, destination, permanent: true }));
   },
   async headers() {
     return [

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { AssessmentTool } from "@/components/assessment-tool";
 import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
@@ -11,13 +11,21 @@ type ToolPageProps = {
   params: Promise<{ slug: string }>;
 };
 
+const assessmentSlugAliases: Record<string, string> = {
+  "cloud-exposure": "cloud-readiness"
+};
+
+function currentAssessmentSlug(slug: string) {
+  return assessmentSlugAliases[slug] ?? slug;
+}
+
 export function generateStaticParams() {
   return tools.map((tool) => ({ slug: tool.slug }));
 }
 
 export async function generateMetadata({ params }: ToolPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const tool = tools.find((item) => item.slug === slug);
+  const tool = tools.find((item) => item.slug === currentAssessmentSlug(slug));
   if (!tool) return {};
 
   return createPageMetadata({
@@ -32,7 +40,7 @@ function assessmentFaqs(tool: (typeof tools)[number]) {
   return [
     {
       question: `What does ${tool.title} qualify?`,
-      answer: `${tool.title} qualifies ${tool.description.toLowerCase()} and routes the result to ${tool.pipeline}.`
+      answer: `${tool.title} reviews ${tool.description.toLowerCase()} and recommends the next step for ${tool.pipeline}.`
     },
     {
       question: "Is this assessment a formal audit?",
@@ -49,7 +57,9 @@ function assessmentFaqs(tool: (typeof tools)[number]) {
 
 export default async function ToolPage({ params }: ToolPageProps) {
   const { slug } = await params;
-  const tool = tools.find((item) => item.slug === slug);
+  const resolvedSlug = currentAssessmentSlug(slug);
+  if (resolvedSlug !== slug) permanentRedirect(`/tools/${resolvedSlug}`);
+  const tool = tools.find((item) => item.slug === resolvedSlug);
   if (!tool) notFound();
   const faqs = assessmentFaqs(tool);
 

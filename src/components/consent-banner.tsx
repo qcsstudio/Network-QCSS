@@ -65,6 +65,7 @@ export function ConsentBanner() {
 
   function save(nextConsent: ConsentState) {
     window.localStorage.setItem("network-qcss-consent", JSON.stringify(nextConsent));
+    window.dispatchEvent(new Event("qcs-consent-change"));
     setConsent(nextConsent);
     setVisible(false);
     updateConsentMode(nextConsent);
