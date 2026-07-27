@@ -94,7 +94,11 @@ export default async function ResourcesPage() {
                   alt={post.imageAlt}
                   fill
                   priority={index === 0}
-                  sizes={index === 0 ? "(max-width: 900px) 100vw, 50vw" : "(max-width: 900px) 100vw, 33vw"}
+                  sizes={
+                    index === 0
+                      ? "(max-width: 1080px) 100vw, 50vw"
+                      : "(max-width: 760px) 100vw, (max-width: 1080px) 50vw, 33vw"
+                  }
                   src={`/resources/${post.slug}/visual`}
                 />
               </Link>

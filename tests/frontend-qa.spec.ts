@@ -39,6 +39,19 @@ async function sitemapRoutes(page: Page) {
 async function auditRoute(page: Page, path: string, width: number) {
   const response = await page.goto(path, { waitUntil: "domcontentloaded", timeout: 30_000 });
   await page.waitForTimeout(350);
+  await page
+    .waitForFunction(
+      () =>
+        [...document.images]
+          .filter((image) => {
+            const rect = image.getBoundingClientRect();
+            return rect.width >= 80 && rect.top < window.innerHeight * 1.25 && rect.bottom > -window.innerHeight * 0.25;
+          })
+          .every((image) => image.complete),
+      undefined,
+      { timeout: 15_000 }
+    )
+    .catch(() => undefined);
 
   const result = await page.evaluate(() => {
     const root = document.documentElement;
@@ -169,6 +182,25 @@ async function auditRoute(page: Page, path: string, width: number) {
       }
     }
 
+    const insufficientSectionGutters = [...document.querySelectorAll<HTMLElement>(".section")]
+      .filter((section) => section.getBoundingClientRect().width > 0)
+      .flatMap((section) => {
+        const sectionRect = section.getBoundingClientRect();
+        const edgeChildren = [...section.children].filter((child): child is HTMLElement => {
+          if (!(child instanceof HTMLElement) || child.getAttribute("aria-hidden") === "true") return false;
+          const rect = child.getBoundingClientRect();
+          const style = getComputedStyle(child);
+          return rect.width > 0 && rect.height > 0 && style.position !== "absolute" && style.position !== "fixed";
+        });
+        const offenders = edgeChildren.filter((child) => {
+          const rect = child.getBoundingClientRect();
+          return rect.left - sectionRect.left < 16 || sectionRect.right - rect.right < 16;
+        });
+        return offenders.length
+          ? [`${section.className || "section"} (${offenders.map((child) => child.className || child.tagName).slice(0, 3).join(", ")})`]
+          : [];
+      });
+
     return {
       documentWidth: root.scrollWidth,
       viewportWidth: window.innerWidth,
@@ -180,7 +212,8 @@ async function auditRoute(page: Page, path: string, width: number) {
       clippedControls,
       misalignedCardVisuals,
       misalignedCardContent,
-      misalignedCardRows
+      misalignedCardRows,
+      insufficientSectionGutters
     };
   });
 
@@ -208,6 +241,9 @@ async function auditRoute(page: Page, path: string, width: number) {
   }
   if (result.misalignedCardRows.length) {
     failures.push(`inconsistent card row(s): ${result.misalignedCardRows.slice(0, 3).join(", ")}`);
+  }
+  if (result.insufficientSectionGutters.length) {
+    failures.push(`section content lacks edge clearance: ${result.insufficientSectionGutters.slice(0, 3).join(", ")}`);
   }
 
   return failures;
@@ -254,6 +290,14 @@ async function runSitemapAudit(browser: Browser, width: number, height: number) 
 
 test("all public sitemap routes pass desktop visual QA", async ({ browser }) => {
   await runSitemapAudit(browser, 1440, 1000);
+});
+
+test("all public sitemap routes pass compact desktop visual QA", async ({ browser }) => {
+  await runSitemapAudit(browser, 1024, 900);
+});
+
+test("all public sitemap routes pass tablet visual QA", async ({ browser }) => {
+  await runSitemapAudit(browser, 768, 1024);
 });
 
 test("all public sitemap routes pass mobile visual QA", async ({ browser }) => {

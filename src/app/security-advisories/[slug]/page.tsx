@@ -102,7 +102,7 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
               alt={`${advisory.vendor} ${advisory.severity} network security advisory visual`}
               fill
               priority
-              sizes="(max-width: 900px) 100vw, 42vw"
+              sizes="(max-width: 1080px) 100vw, 42vw"
               src={`/security-advisories/${advisory.slug}/visual`}
             />
           </div>

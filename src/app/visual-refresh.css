@@ -364,7 +364,6 @@ textarea {
 
 /* Inner-page heroes and section rhythm */
 .page-hero,
-.section,
 .command-footer {
   width: min(var(--container), calc(100% - 44px));
 }
@@ -526,8 +525,9 @@ textarea {
 }
 
 .section {
+  width: min(1280px, 100%);
   margin-bottom: 0;
-  padding: var(--section-space) 0;
+  padding: var(--section-space) clamp(20px, 3vw, 40px);
 }
 
 .section + .section {
@@ -1429,10 +1429,14 @@ table {
   }
 
   .page-hero,
-  .section,
   .command-footer,
   .asset-command-inner {
     width: min(100% - 32px, var(--container));
+  }
+
+  .section {
+    width: 100%;
+    padding-inline: 20px;
   }
 
   .page-hero {
@@ -1516,7 +1520,6 @@ table {
 
   .dark-showcase {
     width: 100%;
-    padding-inline: 18px;
     border-radius: 0;
   }
 
