@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
@@ -88,21 +89,47 @@ export default function NetworkToolsPage() {
           }
         ]}
       />
-      <section className="page-hero tool-page-hero">
-        <p className="eyebrow">Network utility hub</p>
-        <h1>Top 56 free online network tools for scripts, passwords, routing, cloud, security, and troubleshooting.</h1>
-        <p>
-          Start with the vendor task script generator, generate strong credentials when needed, then run prioritized
-          BGP/RPKI, cloud, DNS, email, TLS, HTTP, firewall, VPN, port, availability, and subnet checks before deeper
-          engineering work begins.
-        </p>
-        <div className="button-row">
-          <a className="button primary" href="#network-tools">
-            Open Tools
-          </a>
-          <a className="button secondary" href="#tool-review">
-            Request Review
-          </a>
+      <section className="page-hero tool-page-hero tool-hub-hero">
+        <div className="tool-hub-copy">
+          <p className="eyebrow">Network utility hub</p>
+          <h1>Top 56 free online network tools for scripts, passwords, routing, cloud, security, and troubleshooting.</h1>
+          <p>
+            Start with the vendor task script generator, generate strong credentials when needed, then run prioritized
+            BGP/RPKI, cloud, DNS, email, TLS, HTTP, firewall, VPN, port, availability, and subnet checks before deeper
+            engineering work begins.
+          </p>
+          <div className="button-row">
+            <a className="button primary" href="#network-tools">
+              Open Tools
+            </a>
+            <a className="button secondary" href="#tool-review">
+              Request Review
+            </a>
+          </div>
+        </div>
+
+        <div className="tool-hub-map" role="img" aria-label="Network utility coverage map">
+          <div className="tool-hub-core">
+            <Image src="/brand/envato/icons/global-cloud-network.svg" alt="" width={92} height={92} priority />
+            <strong>56</strong>
+            <span>focused utilities</span>
+          </div>
+          <span className="tool-hub-node hub-scripts">
+            <Image src="/brand/envato/icons/router-cloud-network.svg" alt="" width={34} height={34} />
+            Vendor scripts
+          </span>
+          <span className="tool-hub-node hub-security">
+            <Image src="/brand/envato/icons/protected-cloud-network.svg" alt="" width={34} height={34} />
+            Security
+          </span>
+          <span className="tool-hub-node hub-cloud">
+            <Image src="/brand/envato/icons/multicloud-network.svg" alt="" width={34} height={34} />
+            Cloud paths
+          </span>
+          <span className="tool-hub-node hub-diagnostics">
+            <Image src="/brand/envato/icons/server-cloud-network.svg" alt="" width={34} height={34} />
+            Diagnostics
+          </span>
         </div>
       </section>
 

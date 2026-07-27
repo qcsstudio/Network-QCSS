@@ -744,7 +744,7 @@ body.mobile-menu-locked {
 .hero-copy h1,
 .page-hero h1 {
   margin: 0;
-  font-size: clamp(2.35rem, 3.55vw, 3.95rem);
+  font-size: 3.2rem;
   line-height: 1.01;
   letter-spacing: 0;
   text-wrap: balance;
@@ -755,12 +755,12 @@ body.mobile-menu-locked {
 .section-heading p {
   max-width: 760px;
   color: #3d3544;
-  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  font-size: 1.15rem;
 }
 
 .hero-copy p:not(.eyebrow) {
   color: #f2dce8;
-  font-size: clamp(0.94rem, 1.18vw, 1.04rem);
+  font-size: 1rem;
 }
 
 .eyebrow {
@@ -930,7 +930,7 @@ body.mobile-menu-locked {
 .hero-readiness-card strong {
   color: white;
   font-family: var(--font-display), var(--font-tech), ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(3rem, 5vw, 4.5rem);
+  font-size: 3.75rem;
   line-height: 0.85;
 }
 
@@ -1086,7 +1086,7 @@ body.mobile-menu-locked {
 
 .workspace-live-badge strong {
   font-family: var(--font-display), var(--font-tech), ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(1rem, 1.5vw, 1.28rem);
+  font-size: 1.12rem;
   line-height: 1.08;
 }
 
@@ -1265,7 +1265,7 @@ body.mobile-menu-locked {
   grid-row: 1 / span 2;
   color: var(--ink);
   font-family: var(--font-display), var(--font-tech), ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(3rem, 5vw, 4.3rem);
+  font-size: 3.7rem;
   line-height: 0.9;
 }
 
@@ -1659,7 +1659,7 @@ body.mobile-menu-locked {
 .intent-panel h2,
 .tool-workspace h2 {
   margin: 0;
-  font-size: clamp(1.8rem, 3vw, 3.2rem);
+  font-size: 2.5rem;
   line-height: 1.05;
   letter-spacing: 0;
   text-wrap: balance;
@@ -2040,7 +2040,7 @@ body.mobile-menu-locked {
   margin: 0;
   max-width: 15.5em;
   color: white;
-  font-size: clamp(1.08rem, 1.46vw, 1.3rem);
+  font-size: 1.18rem;
   line-height: 1.12;
   text-wrap: balance;
 }
@@ -2110,7 +2110,7 @@ body.mobile-menu-locked {
 .mission-copy h2,
 .dark-showcase h2 {
   margin: 0;
-  font-size: clamp(1.9rem, 3vw, 3.4rem);
+  font-size: 2.55rem;
   line-height: 1.04;
 }
 
@@ -2204,7 +2204,7 @@ body.mobile-menu-locked {
 
 .asset-command-copy h2 {
   margin: 0;
-  font-size: clamp(2rem, 3.35vw, 3.68rem);
+  font-size: 2.75rem;
   line-height: 1.02;
 }
 
@@ -2216,7 +2216,7 @@ body.mobile-menu-locked {
 .asset-command-copy p:not(.eyebrow),
 .asset-intelligence-panel p {
   color: var(--muted);
-  font-size: clamp(1rem, 1.5vw, 1.14rem);
+  font-size: 1.06rem;
 }
 
 .asset-command-band .eyebrow {
@@ -2302,7 +2302,7 @@ body.mobile-menu-locked {
 
 .asset-visual-overlay strong {
   color: white;
-  font-size: clamp(1rem, 1.36vw, 1.24rem);
+  font-size: 1.1rem;
   line-height: 1.12;
 }
 
@@ -2411,7 +2411,7 @@ body.mobile-menu-locked {
 }
 
 .asset-intelligence-panel h3 {
-  font-size: clamp(1.4rem, 2.2vw, 2.3rem);
+  font-size: 1.9rem;
   line-height: 1.08;
 }
 
@@ -2676,7 +2676,7 @@ body.mobile-menu-locked {
 }
 
 .outcome-showcase .section-heading h2 {
-  font-size: clamp(1.8rem, 2.7vw, 3rem);
+  font-size: 2.35rem;
 }
 
 .outcome-showcase .authority-card p {
@@ -2773,7 +2773,7 @@ body.mobile-menu-locked {
 
 .showcase-illustration-overlay strong {
   color: white;
-  font-size: clamp(1.02rem, 1.45vw, 1.28rem);
+  font-size: 1.14rem;
   line-height: 1.1;
 }
 
@@ -3077,7 +3077,7 @@ body.mobile-menu-locked {
 
 .answer-panel h2 {
   margin: 0 0 12px;
-  font-size: clamp(1.45rem, 2.4vw, 2.5rem);
+  font-size: 2rem;
   line-height: 1.08;
 }
 
@@ -3134,7 +3134,7 @@ body.mobile-menu-locked {
 
 .comparison-panel h3 {
   margin: 0 0 18px;
-  font-size: clamp(1.5rem, 2.2vw, 2.4rem);
+  font-size: 1.95rem;
   line-height: 1.06;
 }
 
@@ -3245,7 +3245,7 @@ body.mobile-menu-locked {
 
 .resource-command-panel h3 {
   margin: 0 0 10px;
-  font-size: clamp(1.45rem, 2.3vw, 2.35rem);
+  font-size: 1.9rem;
   line-height: 1.08;
 }
 
@@ -3481,7 +3481,7 @@ body.mobile-menu-locked {
 
 .result-heading h2 {
   margin: 0;
-  font-size: clamp(1.35rem, 2vw, 2rem);
+  font-size: 1.7rem;
   line-height: 1.1;
 }
 
@@ -4594,7 +4594,7 @@ meter::-webkit-meter-even-less-good-value {
 .funnel-step strong {
   display: block;
   margin: 14px 0 2px;
-  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  font-size: 2.1rem;
 }
 
 .funnel-step h3 {
@@ -4623,7 +4623,7 @@ meter::-webkit-meter-even-less-good-value {
 .metric-card strong {
   display: block;
   margin: 8px 0;
-  font-size: clamp(1.8rem, 3vw, 3rem);
+  font-size: 2.35rem;
 }
 
 .admin-grid {
@@ -4838,7 +4838,7 @@ td span {
 
 .blog-card h2 {
   margin: 0;
-  font-size: clamp(1.2rem, 1.9vw, 1.75rem);
+  font-size: 1.45rem;
   line-height: 1.08;
 }
 
@@ -4921,12 +4921,12 @@ td span {
 
 .blog-article h2 {
   margin: 0 0 10px;
-  font-size: clamp(1.4rem, 2.2vw, 2.2rem);
+  font-size: 1.8rem;
   line-height: 1.1;
 }
 
 .blog-answer h2 {
-  font-size: clamp(1.35rem, 2vw, 2rem);
+  font-size: 1.7rem;
 }
 
 .article-check-grid {
@@ -6236,7 +6236,7 @@ td span {
 .verifygrid-report-cover h1 {
   max-width: 800px;
   margin-top: 12px;
-  font-size: clamp(2rem, 4vw, 3.6rem);
+  font-size: 2.8rem;
   line-height: 1.02;
   overflow-wrap: anywhere;
 }
@@ -6802,7 +6802,7 @@ td span {
 
 .cookie-panel h2 {
   margin: 0 0 6px;
-  font-size: clamp(1.15rem, 1.5vw, 1.45rem);
+  font-size: 1.25rem;
   line-height: 1.1;
 }
 
@@ -7076,7 +7076,7 @@ td span {
 .site-footer strong {
   color: var(--ink);
   font-family: var(--font-display), var(--font-tech), ui-sans-serif, system-ui, sans-serif;
-  font-size: clamp(1.1rem, 1.7vw, 1.45rem);
+  font-size: 1.24rem;
   line-height: 1.1;
 }
 
@@ -7165,7 +7165,7 @@ td span {
 .footer-action-panel h2 {
   margin: 0;
   color: var(--ink);
-  font-size: clamp(1.45rem, 2.4vw, 2.35rem);
+  font-size: 1.9rem;
   line-height: 1.06;
 }
 
@@ -7769,7 +7769,7 @@ td span {
   }
 
   .asset-command-copy h2 {
-    font-size: clamp(1.9rem, 8vw, 2.35rem);
+    font-size: 2.1rem;
     overflow-wrap: anywhere;
   }
 
@@ -7943,7 +7943,7 @@ td span {
   }
 
   .footer-action-panel h2 {
-    font-size: clamp(1.25rem, 8vw, 1.85rem);
+    font-size: 1.55rem;
   }
 
   .footer-bottom-bar {
@@ -8087,7 +8087,7 @@ td span {
 .advisory-live-panel strong {
   color: var(--ink);
   font-family: var(--font-display), sans-serif;
-  font-size: clamp(3rem, 7vw, 5.4rem);
+  font-size: 4.2rem;
   line-height: 1;
 }
 
@@ -8141,7 +8141,7 @@ td span {
 
 .advisory-card-body h2 {
   margin: 0;
-  font-size: clamp(1.18rem, 1.6vw, 1.48rem);
+  font-size: 1.32rem;
   line-height: 1.2;
 }
 
@@ -8275,7 +8275,7 @@ td span {
 }
 
 .advisory-action-panel h2 {
-  font-size: clamp(1.35rem, 2.2vw, 2rem);
+  font-size: 1.7rem;
   line-height: 1.34;
 }
 
@@ -8975,7 +8975,7 @@ body:has(.portal-access-page, .portal-page, .portal-report-page, .admin-page, .a
 
 .verifygrid-service-cta h2 {
   margin-top: 5px;
-  font-size: clamp(1.7rem, 3vw, 2.55rem);
+  font-size: 2.1rem;
 }
 
 .verifygrid-service-cta > div:nth-child(2) > p:last-child {
@@ -9022,7 +9022,7 @@ body:has(.portal-access-page, .portal-page, .portal-report-page, .admin-page, .a
 
 .verifygrid-onboard-intro h1 {
   max-width: 720px;
-  font-size: clamp(2.45rem, 5vw, 4.8rem);
+  font-size: 3.6rem;
   line-height: 0.98;
 }
 

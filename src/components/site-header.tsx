@@ -54,9 +54,11 @@ export function SiteHeader() {
     (pathname === href || (href === "/intelligence" && (pathname.startsWith("/resources") || pathname.startsWith("/security-advisories"))));
 
   return (
-    <header className={`site-header command-header ${scrolled ? "is-scrolled" : ""} ${menuOpen ? "is-menu-open" : ""}`}>
+    <header
+      className={`site-header command-header ${pathname === "/" ? "is-home-context" : "is-light-context"} ${scrolled ? "is-scrolled" : ""} ${menuOpen ? "is-menu-open" : ""}`}
+    >
       <span className="header-scanline" aria-hidden="true" />
-      <Link className="brand command-brand" href="/">
+      <Link className="brand command-brand" href="/" onClick={() => setMenuOpen(false)}>
         <span className="brand-mark-shell">
           <Image
             className="brand-logo"

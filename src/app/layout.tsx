@@ -9,6 +9,7 @@ import { StructuredData } from "@/components/structured-data";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata, defaultKeywords } from "@/lib/seo";
 import "./globals.css";
+import "./visual-refresh.css";
 
 const displayFont = Orbitron({
   subsets: ["latin"],
@@ -64,6 +65,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className={`${bodyFont.variable} ${displayFont.variable} ${techFont.variable}`}>
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
         <StructuredData
           data={[
             {
@@ -107,7 +111,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
         <MarketingScripts />
         <SiteHeader />
-        {children}
+        <div id="main-content" tabIndex={-1}>
+          {children}
+        </div>
         <footer className="site-footer command-footer">
           <div className="footer-command-panel">
             <div className="footer-brand-stack">
@@ -119,7 +125,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 height={100}
               />
               <strong>QuantumCrafters Studio Pvt. Ltd.</strong>
-              <p>Evidence-first network command, security, cloud, troubleshooting, tools, and practical network security training.</p>
+              <p>Network operations, security, cloud, troubleshooting, penetration testing, and practical training for India and global teams.</p>
               <div className="footer-signal-row" aria-label="QuantumCrafters operating signals">
                 <span>Managed Network</span>
                 <span>Network Security</span>

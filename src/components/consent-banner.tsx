@@ -98,12 +98,11 @@ export function ConsentBanner() {
     >
       <div className="cookie-panel-header">
         <p className="eyebrow">Privacy</p>
-        <h2 id="cookie-consent-title">Choose optional tracking.</h2>
+        <h2 id="cookie-consent-title">Your privacy choices</h2>
         <p id="cookie-consent-summary">
-          QCS uses essential storage for tools, forms, security, and consent. Analytics and campaign tracking stay off
-          unless you allow them.
+          Essential storage keeps the site secure and functional. Optional analytics and marketing remain off unless
+          you allow them.
         </p>
-        <p className="cookie-short-note">We do not read browser email, passwords, local files, or generated passwords.</p>
       </div>
 
       {showPreferences && (
@@ -138,7 +137,7 @@ export function ConsentBanner() {
 
       <div className="cookie-actions">
         <button className="button secondary cookie-choice" type="button" onClick={() => save(defaultConsent)}>
-          Reject optional
+          Essential only
         </button>
         <button
           aria-controls="cookie-preferences"
@@ -154,12 +153,12 @@ export function ConsentBanner() {
           type="button"
           onClick={() => save({ necessary: true, analytics: true, marketing: true, personalization: true })}
         >
-          Accept optional
+          Allow all
         </button>
       </div>
 
       <p className="cookie-footnote">
-        Details: <Link href="/privacy">Privacy Policy</Link>.
+        Read the <Link href="/privacy">Privacy Policy</Link>.
       </p>
     </aside>
   );

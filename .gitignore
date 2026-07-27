@@ -21,3 +21,4 @@ envato-assets/**
 
 # Local browser QA captures.
 artifacts/verifygrid-automation-*.png
+test-results/

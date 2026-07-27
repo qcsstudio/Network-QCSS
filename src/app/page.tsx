@@ -45,15 +45,6 @@ export default async function HomePage() {
       <section className="hero-section futuristic-hero">
         <Image className="hero-bg-image" src="/brand/network-command-hero.png" alt="" fill priority sizes="100vw" />
         <div className="hero-copy">
-          <Image
-            className="hero-logo"
-            src="/brand/quantumcrafters-logo.png"
-            alt="QuantumCrafters Studio Pvt. Ltd."
-            width={328}
-            height={100}
-            priority
-            style={{ width: "min(188px, 54vw)", height: "auto" }}
-          />
           <p className="eyebrow">{positioning.eyebrow}</p>
           <h1>{positioning.headline}</h1>
           <p>{positioning.body}</p>
