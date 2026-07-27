@@ -79,6 +79,96 @@ async function auditRoute(page: Page, path: string, width: number) {
       })
       .map((element) => element.textContent?.trim().slice(0, 80) || element.getAttribute("aria-label") || element.tagName);
 
+    const cardSelector = [
+      ".journey-card",
+      ".service-card",
+      ".mode-card",
+      ".utility-card",
+      ".flow-card",
+      ".resource-card",
+      ".authority-card",
+      ".pillar-card",
+      ".faq-card",
+      ".edge-card",
+      ".outcome-list > article"
+    ].join(",");
+
+    const misalignedCardVisuals = [...document.querySelectorAll<HTMLElement>(".card-visual")]
+      .filter((visual) => visual.getBoundingClientRect().width > 0)
+      .flatMap((visual) => {
+        const icon = visual.querySelector<SVGElement>("svg");
+        if (!icon) return [];
+        const visualRect = visual.getBoundingClientRect();
+        const iconRect = icon.getBoundingClientRect();
+        const horizontalDelta = Math.abs(iconRect.left + iconRect.width / 2 - (visualRect.left + visualRect.width / 2));
+        const verticalDelta = Math.abs(iconRect.top + iconRect.height / 2 - (visualRect.top + visualRect.height / 2));
+        return horizontalDelta > 2 || verticalDelta > 2
+          ? [`${visual.parentElement?.className || "card"} (${horizontalDelta.toFixed(1)}px/${verticalDelta.toFixed(1)}px)`]
+          : [];
+      });
+
+    const misalignedCardContent = [...document.querySelectorAll<HTMLElement>(cardSelector)]
+      .filter((card) => card.getBoundingClientRect().width > 0)
+      .flatMap((card) => {
+        const alignedChildren = [...card.children].filter(
+          (child): child is HTMLElement =>
+            child instanceof HTMLElement &&
+            child.matches(".card-visual, .eyebrow, h2, h3, p:not(.eyebrow), .text-link, .mini-chip-row, .resource-audience")
+        );
+        if (alignedChildren.length < 2) return [];
+        const leftEdges = alignedChildren.map((child) => child.getBoundingClientRect().left);
+        const spread = Math.max(...leftEdges) - Math.min(...leftEdges);
+        return spread > 2 ? [`${card.className || card.tagName} (${spread.toFixed(1)}px)`] : [];
+      });
+
+    const rowGrids = [
+      ".journey-grid",
+      ".service-grid",
+      ".mode-grid",
+      ".utility-grid",
+      ".automation-grid",
+      ".resource-grid",
+      ".authority-grid",
+      ".pillar-grid",
+      ".faq-grid",
+      ".outcome-list"
+    ];
+    const misalignedCardRows: string[] = [];
+
+    for (const grid of document.querySelectorAll<HTMLElement>(rowGrids.join(","))) {
+      const cards = [...grid.children].filter(
+        (child): child is HTMLElement => child instanceof HTMLElement && child.matches(cardSelector) && child.getBoundingClientRect().width > 0
+      );
+      const rows: { top: number; cards: HTMLElement[] }[] = [];
+
+      for (const card of cards) {
+        const top = card.getBoundingClientRect().top;
+        const row = rows.find((candidate) => Math.abs(candidate.top - top) <= 3);
+        if (row) row.cards.push(card);
+        else rows.push({ top, cards: [card] });
+      }
+
+      for (const row of rows.filter((candidate) => candidate.cards.length > 1)) {
+        const heights = row.cards.map((card) => card.getBoundingClientRect().height);
+        const heightSpread = Math.max(...heights) - Math.min(...heights);
+        if (heightSpread > 2) misalignedCardRows.push(`${grid.className} card heights (${heightSpread.toFixed(1)}px)`);
+
+        const actions = row.cards.map((card) =>
+          [...card.children]
+            .reverse()
+            .find(
+              (child): child is HTMLElement =>
+                child instanceof HTMLElement && child.matches(".text-link, .mini-chip-row, button.button")
+            )
+        );
+        if (actions.every((action): action is HTMLElement => Boolean(action))) {
+          const bottoms = actions.map((action) => action.getBoundingClientRect().bottom);
+          const actionSpread = Math.max(...bottoms) - Math.min(...bottoms);
+          if (actionSpread > 3) misalignedCardRows.push(`${grid.className} action baselines (${actionSpread.toFixed(1)}px)`);
+        }
+      }
+    }
+
     return {
       documentWidth: root.scrollWidth,
       viewportWidth: window.innerWidth,
@@ -87,7 +177,10 @@ async function auditRoute(page: Page, path: string, width: number) {
       hasErrorOverlay: Boolean(document.querySelector("[data-nextjs-dialog], .vite-error-overlay, #webpack-dev-server-client-overlay")),
       failedImages: images.filter((image) => !image.complete || image.naturalWidth === 0),
       lowResolutionImages: images.filter((image) => image.complete && image.naturalWidth > 0 && !image.retinaReady),
-      clippedControls
+      clippedControls,
+      misalignedCardVisuals,
+      misalignedCardContent,
+      misalignedCardRows
     };
   });
 
@@ -107,6 +200,15 @@ async function auditRoute(page: Page, path: string, width: number) {
     );
   }
   if (result.clippedControls.length) failures.push(`clipped control(s): ${result.clippedControls.slice(0, 3).join(", ")}`);
+  if (result.misalignedCardVisuals.length) {
+    failures.push(`off-center card icon(s): ${result.misalignedCardVisuals.slice(0, 3).join(", ")}`);
+  }
+  if (result.misalignedCardContent.length) {
+    failures.push(`misaligned card content: ${result.misalignedCardContent.slice(0, 3).join(", ")}`);
+  }
+  if (result.misalignedCardRows.length) {
+    failures.push(`inconsistent card row(s): ${result.misalignedCardRows.slice(0, 3).join(", ")}`);
+  }
 
   return failures;
 }

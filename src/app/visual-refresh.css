@@ -643,7 +643,86 @@ textarea {
   .edge-card,
   .outcome-list article
 ) {
+  display: grid;
+  grid-auto-flow: row;
+  grid-auto-rows: auto;
+  align-content: start;
+  align-items: start;
+  gap: 12px;
   padding: 22px;
+}
+
+:is(
+  .journey-card,
+  .service-card,
+  .mode-card,
+  .utility-card,
+  .flow-card,
+  .resource-card,
+  .authority-card,
+  .pillar-card,
+  .faq-card,
+  .edge-card,
+  .outcome-list article
+) > * {
+  margin-block: 0;
+}
+
+.service-card {
+  grid-template-rows: 48px auto minmax(3.1rem, auto) 1fr auto;
+}
+
+.resource-card {
+  grid-template-rows: 48px auto minmax(3.1rem, auto) 1fr auto auto;
+}
+
+.utility-card:has(> .text-link:last-child) {
+  grid-template-rows: 48px auto minmax(3.1rem, auto) 1fr auto;
+}
+
+.utility-card:not(:has(> .text-link:last-child)) {
+  grid-template-rows: 48px auto minmax(3.1rem, auto) 1fr;
+}
+
+.journey-card {
+  grid-template-rows: 48px auto 1fr auto;
+}
+
+:is(.authority-card, .pillar-card, .outcome-list article):has(> .card-visual) {
+  grid-template-rows: 48px minmax(3.1rem, auto) 1fr;
+}
+
+.outcome-list article:has(> .card-visual):has(> .text-link:last-child) {
+  grid-template-rows: 48px minmax(3.1rem, auto) 1fr auto;
+}
+
+.pillar-card:not(:has(> .card-visual)):has(> .text-link:last-child) {
+  grid-template-rows: auto auto 1fr auto;
+}
+
+:is(.mode-card, .flow-card, .faq-card):has(> .card-visual) {
+  grid-template-rows: 48px auto 1fr;
+}
+
+:is(
+  .journey-card,
+  .service-card,
+  .mode-card,
+  .utility-card,
+  .flow-card,
+  .resource-card,
+  .authority-card,
+  .pillar-card,
+  .faq-card,
+  .edge-card,
+  .outcome-list article
+) > :is(.text-link, .mini-chip-row, .resource-audience, .button):last-child {
+  align-self: end;
+  justify-self: start;
+}
+
+.resource-card > .button:last-child {
+  margin-top: 0;
 }
 
 :is(
@@ -660,7 +739,7 @@ textarea {
   .outcome-list article
 ) h3,
 .service-card h2 {
-  margin: 14px 0 8px;
+  margin: 0;
   font-size: 1.2rem;
   line-height: 1.28;
 }
@@ -684,9 +763,16 @@ textarea {
 }
 
 .card-visual {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  place-items: center;
+  align-self: start;
   width: 48px;
   height: 48px;
   min-height: 48px;
+  margin: 0;
+  overflow: hidden;
   border: 1px solid rgba(65, 105, 201, 0.18);
   border-radius: 8px;
   background: var(--panel-soft);
@@ -694,10 +780,16 @@ textarea {
 }
 
 .card-visual-icon {
+  grid-area: 1 / 1;
   width: 100%;
   height: 100%;
   display: grid;
   place-items: center;
+}
+
+.card-visual-icon svg {
+  display: block;
+  margin: 0;
 }
 
 .card-visual-circuit {
