@@ -19,19 +19,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
   return new ImageResponse(
     <div style={{ width: "100%", height: "100%", display: "flex", background: "#edf3fa", color: "#111b2d", fontFamily: "Arial" }}>
-      <div style={{ width: "34%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "74px 61px", background: "#ffffff", borderRight: "13px solid #426bcc" }}>
-        <img alt="" src={logo} width={456} height={122} style={{ objectFit: "contain", objectPosition: "left center" }} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-          <div style={{ display: "flex", color: "#d62c67", fontSize: 38, fontWeight: 800, textTransform: "uppercase" }}>{category}</div>
-          <div style={{ display: "flex", fontSize: title.length > 90 ? 54 : 64, lineHeight: 1.08, fontWeight: 800 }}>{title}</div>
+      <div style={{ width: "34%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "56px 46px", background: "#ffffff", borderRight: "10px solid #426bcc" }}>
+        <img alt="" src={logo} width={342} height={92} style={{ objectFit: "contain", objectPosition: "left center" }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 17 }}>
+          <div style={{ display: "flex", color: "#d62c67", fontSize: 29, fontWeight: 800, textTransform: "uppercase" }}>{category}</div>
+          <div style={{ display: "flex", fontSize: title.length > 90 ? 41 : 48, lineHeight: 1.08, fontWeight: 800 }}>{title}</div>
         </div>
-        <div style={{ display: "flex", color: "#5c6a7c", fontSize: 34 }}>QCS practical intelligence</div>
+        <div style={{ display: "flex", color: "#5c6a7c", fontSize: 26 }}>QCS practical intelligence</div>
       </div>
       <div style={{ width: "66%", height: "100%", display: "flex", background: "#dfe8f3", backgroundImage: `url(${asset})`, backgroundRepeat: "no-repeat", backgroundSize: "cover", backgroundPosition: "center" }} />
     </div>,
     {
-      width: 1920,
-      height: 1080,
+      width: 1440,
+      height: 810,
       headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400" }
     }
   );

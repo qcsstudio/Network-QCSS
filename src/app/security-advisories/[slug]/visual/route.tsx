@@ -25,20 +25,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
   return new ImageResponse(
     <div style={{ width: "100%", height: "100%", display: "flex", background: "#081525", color: "#f8fbff", fontFamily: "Arial" }}>
-      <div style={{ width: "36%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "70px 61px", borderRight: `13px solid ${accent}` }}>
-        <img alt="" src={logo} width={448} height={122} style={{ objectFit: "contain", objectPosition: "left center" }} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 26 }}>
-          <div style={{ display: "flex", alignSelf: "flex-start", background: accent, padding: "14px 22px", fontSize: 32, fontWeight: 900, textTransform: "uppercase" }}>{severity}</div>
-          <div style={{ display: "flex", color: "#69a7ff", fontSize: 43, fontWeight: 800 }}>{vendor}</div>
-          <div style={{ display: "flex", fontSize: 58, lineHeight: 1.1, fontWeight: 800 }}>{product}</div>
+      <div style={{ width: "36%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "53px 46px", borderRight: `10px solid ${accent}` }}>
+        <img alt="" src={logo} width={336} height={92} style={{ objectFit: "contain", objectPosition: "left center" }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ display: "flex", alignSelf: "flex-start", background: accent, padding: "11px 17px", fontSize: 24, fontWeight: 900, textTransform: "uppercase" }}>{severity}</div>
+          <div style={{ display: "flex", color: "#69a7ff", fontSize: 32, fontWeight: 800 }}>{vendor}</div>
+          <div style={{ display: "flex", fontSize: 44, lineHeight: 1.1, fontWeight: 800 }}>{product}</div>
         </div>
-        <div style={{ display: "flex", color: "#c9d7e6", fontSize: 34 }}>Source verified. Action oriented.</div>
+        <div style={{ display: "flex", color: "#c9d7e6", fontSize: 26 }}>Source verified. Action oriented.</div>
       </div>
       <div style={{ width: "64%", height: "100%", display: "flex", background: "#dfe8f3", backgroundImage: `url(${asset})`, backgroundRepeat: "no-repeat", backgroundSize: "cover", backgroundPosition: "center" }} />
     </div>,
     {
-      width: 1920,
-      height: 1080,
+      width: 1440,
+      height: 810,
       headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400" }
     }
   );
