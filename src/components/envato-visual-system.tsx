@@ -91,8 +91,8 @@ export function EnvatoVisualSystem() {
             <p className="eyebrow">Guided diagnostic layer</p>
             <h3>Every useful check should end with a practical next action.</h3>
             <p>
-              The website routes visitors through small tools, readiness assessments, resources, and service paths so
-              each visitor can recognize their own issue before booking a deeper review.
+              Use quick tools, readiness assessments, and practical resources to describe the issue clearly and enter
+              a deeper technical review with useful context.
             </p>
           </div>
           <div className="tool-signal-list">

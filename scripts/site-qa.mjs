@@ -170,7 +170,7 @@ for (const route of routes) {
 
   if (/lorem ipsum|placeholder text|TODO/i.test(bodyText)) issue(path, "Placeholder copy is still visible.");
   if (
-    /QCS should sell|lead-ready knowledge base|problems people actually search for|buyer triggers|what the buyer should receive|deeper sales and support conversations|buyers actually use|visitors self-qualify/i.test(
+    /QCS should sell|lead-ready knowledge base|problems people actually search for|buyer triggers|what the buyer should receive|deeper sales and support conversations|buyers actually use|visitors self-qualify|the website routes visitors/i.test(
       bodyText
     )
   ) {
