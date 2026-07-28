@@ -104,6 +104,7 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
               priority
               sizes="(max-width: 1080px) 100vw, 42vw"
               src={`/security-advisories/${advisory.slug}/visual`}
+              unoptimized
             />
           </div>
         </section>

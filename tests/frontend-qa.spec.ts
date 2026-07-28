@@ -209,6 +209,9 @@ async function auditRoute(page: Page, path: string, width: number) {
       hasErrorOverlay: Boolean(document.querySelector("[data-nextjs-dialog], .vite-error-overlay, #webpack-dev-server-client-overlay")),
       failedImages: images.filter((image) => !image.complete || image.naturalWidth === 0),
       lowResolutionImages: images.filter((image) => image.complete && image.naturalWidth > 0 && !image.retinaReady),
+      optimizedDynamicVisuals: images.filter(
+        (image) => image.source.includes("/_next/image?") && decodeURIComponent(image.source).includes("/visual")
+      ),
       clippedControls,
       misalignedCardVisuals,
       misalignedCardContent,
@@ -224,6 +227,9 @@ async function auditRoute(page: Page, path: string, width: number) {
   if (result.h1Count !== 1) failures.push(`expected one H1, found ${result.h1Count}`);
   if (result.documentWidth > width + 1) failures.push(`horizontal overflow ${result.documentWidth}px > ${width}px`);
   if (result.failedImages.length) failures.push(`${result.failedImages.length} image(s) failed to load`);
+  if (result.optimizedDynamicVisuals.length) {
+    failures.push(`${result.optimizedDynamicVisuals.length} generated visual(s) use the redundant image optimizer`);
+  }
   if (result.lowResolutionImages.length) {
     failures.push(
       `non-retina image(s): ${result.lowResolutionImages

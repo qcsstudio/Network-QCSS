@@ -100,6 +100,7 @@ export default async function ResourcesPage() {
                       : "(max-width: 760px) 100vw, (max-width: 1080px) 50vw, 33vw"
                   }
                   src={`/resources/${post.slug}/visual`}
+                  unoptimized
                 />
               </Link>
               <div className="blog-card-body">

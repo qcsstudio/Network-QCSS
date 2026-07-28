@@ -92,6 +92,7 @@ export default async function SecurityAdvisoryDeskPage() {
                       priority={index < 2}
                       sizes="(max-width: 760px) 100vw, (max-width: 1180px) 50vw, 33vw"
                       src={`/security-advisories/${advisory.slug}/visual`}
+                      unoptimized
                     />
                   </Link>
                   <div className="advisory-card-body">
