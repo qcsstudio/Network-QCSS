@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, LogIn, ShieldCheck } from "lucide-react";
 import { CardVisual } from "@/components/card-visual";
+import { DomainHeroVisual, type DomainVisualVariant } from "@/components/domain-hero-visual";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
 import { services, siteConfig } from "@/lib/content";
@@ -11,6 +12,13 @@ import { createPageMetadata } from "@/lib/seo";
 type ServicePageProps = {
   params: Promise<{ slug: string }>;
 };
+
+function serviceVisualVariant(slug: string): DomainVisualVariant {
+  if (slug.includes("cloud")) return "cloud";
+  if (slug.includes("security") || slug.includes("penetration") || slug.includes("firewall")) return "security";
+  if (slug.includes("wifi")) return "network";
+  return "operations";
+}
 
 export function generateStaticParams() {
   return services.map((service) => ({ slug: service.slug }));
@@ -91,18 +99,26 @@ export default async function ServicePage({ params }: ServicePageProps) {
           }
         ]}
       />
-      <section className="page-hero">
-        <p className="eyebrow">{service.kicker}</p>
-        <h1>{service.title}</h1>
-        <p>{service.summary}</p>
-        <div className="button-row">
-          <Link className="button primary" href={`/tools/${service.tool}`}>
-            {service.cta}
-          </Link>
-          <a className="button secondary" href="#request-review">
-            Request Engineering Review
-          </a>
+      <section className="page-hero visual-page-hero">
+        <div className="page-hero-copy">
+          <p className="eyebrow">{service.kicker}</p>
+          <h1>{service.title}</h1>
+          <p>{service.summary}</p>
+          <div className="button-row">
+            <Link className="button primary" href={`/tools/${service.tool}`}>
+              {service.cta}
+            </Link>
+            <a className="button secondary" href="#request-review">
+              Request Engineering Review
+            </a>
+          </div>
         </div>
+        <DomainHeroVisual
+          variant={serviceVisualVariant(service.slug)}
+          label={service.kicker}
+          title={service.bestFor}
+          signals={service.outcomes}
+        />
       </section>
 
       {service.slug === "penetration-testing" ? (

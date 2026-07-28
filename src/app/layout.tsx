@@ -10,6 +10,7 @@ import { siteConfig } from "@/lib/content";
 import { createPageMetadata, defaultKeywords } from "@/lib/seo";
 import "./globals.css";
 import "./visual-refresh.css";
+import "./visual-evolution.css";
 
 const displayFont = Orbitron({
   subsets: ["latin"],

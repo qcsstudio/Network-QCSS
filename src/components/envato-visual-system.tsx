@@ -28,32 +28,23 @@ const commandSignals = [
   }
 ];
 
-const toolSignals = [
-  "Topology clarity",
-  "Firewall hygiene",
-  "VPN and access review",
-  "Cloud exposure map",
-  "Pentest readiness",
-  "Training path fit"
-];
-
 export function EnvatoVisualSystem() {
   return (
-    <section className="asset-command-band" aria-labelledby="asset-command-heading">
+    <section className="asset-command-band motion-section" id="command-system" aria-labelledby="asset-command-heading">
       <div className="asset-command-inner">
         <div className="asset-command-copy">
-          <p className="eyebrow">Network command workspace</p>
-          <h2 id="asset-command-heading">See the network, security, cloud, and evidence path in one view.</h2>
+          <p className="eyebrow">The QCS command model</p>
+          <h2 id="asset-command-heading">One operating picture from first symptom to verified closure.</h2>
           <p>
-            QCS helps teams move from scattered symptoms to a usable operating picture: what is connected, what is
-            exposed, what is breaking, what needs proof, and which next step makes sense.
+            Bring topology, exposure, ownership, changes, findings, and retest evidence into a practical sequence your
+            engineers and stakeholders can follow.
           </p>
           <div className="button-row">
             <Link className="button primary" href="/network-tools">
               Open Network Tools
             </Link>
             <Link className="button secondary" href="/diagnose">
-              Start Guided Assessment
+              Assess the Environment
             </Link>
           </div>
         </div>
@@ -68,8 +59,8 @@ export function EnvatoVisualSystem() {
             />
           </div>
           <div className="asset-visual-overlay">
-            <span>Assessment-ready operating map</span>
-            <strong>Topology + controls + evidence</strong>
+            <span>Evidence-to-action workspace</span>
+            <strong>Observe + authorize + resolve + verify</strong>
           </div>
         </div>
 
@@ -86,24 +77,10 @@ export function EnvatoVisualSystem() {
           ))}
         </div>
 
-        <div className="asset-intelligence-panel">
-          <div>
-            <p className="eyebrow">Guided diagnostic layer</p>
-            <h3>Every useful check should end with a practical next action.</h3>
-            <p>
-              Use quick tools, readiness assessments, and practical resources to describe the issue clearly and enter
-              a deeper technical review with useful context.
-            </p>
-          </div>
-          <div className="tool-signal-list">
-            {toolSignals.map((signal) => (
-              <span key={signal}>{signal}</span>
-            ))}
-          </div>
-          <div className="asset-mini-visuals" aria-hidden="true">
-            <Image src="/brand/envato/library/server-cluster-engineer.webp" alt="" width={220} height={220} />
-            <Image src="/brand/envato/objects/locked-data-folder.png" alt="" width={220} height={220} />
-          </div>
+        <div className="command-proof-rail" aria-label="QCS delivery controls">
+          <span><b>01</b><strong>Authorized scope</strong><small>Access and impact agreed before work begins.</small></span>
+          <span><b>02</b><strong>Owner-ready evidence</strong><small>Signals, findings, and decisions stay traceable.</small></span>
+          <span><b>03</b><strong>Remediation and retest</strong><small>Closure is demonstrated, not assumed.</small></span>
         </div>
       </div>
     </section>

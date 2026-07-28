@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CardVisual } from "@/components/card-visual";
+import { DomainHeroVisual } from "@/components/domain-hero-visual";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig, solutionPages } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -49,13 +50,21 @@ export default function SolutionsPage() {
           }
         ]}
       />
-      <section className="page-hero">
-        <p className="eyebrow">Solution hub</p>
-        <h1>Network and security solutions organized by the problem buyers actually search for.</h1>
-        <p>
-          Each solution gives a direct answer, explains the risk, links to the right service path, and routes visitors
-          into an assessment or technical tool.
-        </p>
+      <section className="page-hero visual-page-hero">
+        <div className="page-hero-copy">
+          <p className="eyebrow">Solution hub</p>
+          <h1>Start with the network or security problem blocking your team.</h1>
+          <p>
+            Get a direct answer and understand the risk. Move into the right assessment, technical tool, or engineering
+            service without sorting through a generic catalogue.
+          </p>
+        </div>
+        <DomainHeroVisual
+          variant="network"
+          label="Problem-led navigation"
+          title="Signal to service path"
+          signals={["Diagnose", "Prioritize", "Resolve"]}
+        />
       </section>
 
       <section className="section">

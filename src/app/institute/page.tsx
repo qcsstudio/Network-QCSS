@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CardVisual } from "@/components/card-visual";
+import { DomainHeroVisual } from "@/components/domain-hero-visual";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
 import { instituteTracks, siteConfig } from "@/lib/content";
@@ -51,30 +52,38 @@ export default function InstitutePage() {
           }))
         ]}
       />
-      <section className="page-hero">
-        <p className="eyebrow">Institute</p>
-        <h1>Network and network security training built from real operations work.</h1>
-        <p>
-          Build practical skills across networking, firewalls, cloud networking, SOC fundamentals, ethical hacking, and
-          troubleshooting scenarios used by real infrastructure teams.
-        </p>
-        <div className="button-row">
-          <Link className="button primary" href="/tools/career-path-finder">
-            Find My Career Path
-          </Link>
-          <a className="button secondary" href="#enrollment">
-            Request Counseling
-          </a>
+      <section className="page-hero visual-page-hero">
+        <div className="page-hero-copy">
+          <p className="eyebrow">Institute</p>
+          <h1>Network and network security training built from real operations work.</h1>
+          <p>
+            Build practical skills across networking, firewalls, cloud networking, SOC fundamentals, ethical hacking, and
+            troubleshooting scenarios used by real infrastructure teams.
+          </p>
+          <div className="button-row">
+            <Link className="button primary" href="/tools/career-path-finder">
+              Find My Career Path
+            </Link>
+            <a className="button secondary" href="#enrollment">
+              Request Counseling
+            </a>
+          </div>
         </div>
+        <DomainHeroVisual
+          variant="training"
+          label="Lab-led learning"
+          title="Skills that transfer into real infrastructure work"
+          signals={["Practice", "Troubleshoot", "Demonstrate"]}
+        />
       </section>
 
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Training tracks</p>
-          <h2>Courses should lead to roles, labs, confidence, and proof.</h2>
+          <h2>Courses that lead to roles, lab confidence, and demonstrable skill.</h2>
           <p>
-            The institute side strengthens the services brand because it shows QCS can explain, teach, troubleshoot, and
-            operationalize the same skills it sells.
+            Learn the reasoning behind network and security operations, then practise the same decisions through guided
+            labs, troubleshooting scenarios, and evidence-based exercises.
           </p>
         </div>
         <div className="service-grid">

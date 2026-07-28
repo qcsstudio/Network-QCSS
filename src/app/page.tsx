@@ -1,22 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CardVisual } from "@/components/card-visual";
+import { CommandConsole } from "@/components/command-console";
 import { EnvatoVisualSystem } from "@/components/envato-visual-system";
 import { IntentRouter } from "@/components/intent-router";
 import { LeadForm } from "@/components/lead-form";
 import { ResourceDownloads } from "@/components/resource-downloads";
 import { SectionMotionGraphic } from "@/components/section-motion-graphic";
 import {
-  buyerJourneys,
-  commandLayers,
   deliveryWorkflow,
   industryCoverage,
-  marketEdges,
   positioning,
   proofSignals,
   services,
   solutionPages,
-  supportModelComparison,
   vendorCoverage
 } from "@/lib/content";
 import { networkUtilityTools } from "@/lib/network-tools";
@@ -64,8 +61,8 @@ export default async function HomePage() {
             <Link className="button primary large" href="/diagnose">
               {positioning.primaryCta}
             </Link>
-            <Link className="button secondary dark large" href="/solutions">
-              See Solutions
+            <Link className="button secondary dark large" href="/network-tools">
+              Open Free Tools
             </Link>
           </div>
           <div className="proof-strip" aria-label="QuantumCrafters proof signals">
@@ -78,42 +75,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <div className="network-visual" aria-label="QuantumCrafters secure network operations illustration">
-          <div className="hero-illustration-shell">
-            <Image
-              className="hero-network-illustration"
-              src="/brand/envato/illustrations/isometric-data-center-network.svg"
-              alt="Isometric secure data center network with connected cloud and security systems"
-              width={520}
-              height={530}
-              priority
-            />
-
-            <div className="hero-readiness-card" aria-label="Network readiness assessment preview">
-              <span>Readiness score</span>
-              <strong>82</strong>
-              <small>Fix-first view before a technical call</small>
-              <Link className="mini-cta" href="/diagnose">
-                Run assessment
-              </Link>
-            </div>
-
-            <div className="hero-signal-grid" aria-label="What QuantumCrafters maps first">
-              <span>
-                <Image src="/brand/envato/icons/router-cloud-network.svg" alt="" width={32} height={32} />
-                Firewall
-              </span>
-              <span>
-                <Image src="/brand/envato/icons/security-cloud-network.svg" alt="" width={32} height={32} />
-                Security
-              </span>
-              <span>
-                <Image src="/brand/envato/icons/multicloud-network.svg" alt="" width={32} height={32} />
-                Cloud
-              </span>
-            </div>
-          </div>
-        </div>
+        <CommandConsole />
       </section>
 
       <section className="live-advisory-strip" aria-label="Latest network security advisories">
@@ -132,56 +94,21 @@ export default async function HomePage() {
         <Link className="button secondary" href="/security-advisories">Open desk</Link>
       </section>
 
-      <section className="section mission-band motion-section">
-        <div className="mission-copy">
-          <p className="eyebrow">Why this exists</p>
-          <h2>Your network should not feel like a mystery every time something breaks.</h2>
-          <p>
-            QCS helps teams understand what is happening, what is exposed, what should be fixed first, and which support
-            or training path makes sense before production changes begin.
-          </p>
-        </div>
-        <div className="mission-grid">
-          {commandLayers.slice(0, 3).map((layer) => {
-            const Icon = layer.icon;
-            return (
-              <article className="mission-card" key={layer.title}>
-                <Icon size={26} />
-                <h3>{layer.title}</h3>
-                <p>{layer.description}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
+      <nav className="home-command-nav" aria-label="Explore QCS network command">
+        <span>Explore</span>
+        <a href="#command-system">Command model</a>
+        <a href="#solutions">Solutions</a>
+        <a href="#services">Services</a>
+        <a href="#tools">Assessment</a>
+        <a href="#utilities">Free tools</a>
+        <a href="#engage">Engage QCS</a>
+      </nav>
 
-      <section className="section motion-section">
+      <section className="section intent-section motion-section">
         <IntentRouter />
       </section>
 
       <EnvatoVisualSystem />
-
-      <section className="section media-section motion-section">
-        <div className="section-heading">
-          <p className="eyebrow">Built for your situation</p>
-          <h2>Choose the path that matches the pressure you are under.</h2>
-          <p>
-            Outage, firewall drift, cloud exposure, pentest pressure, monitoring gaps, or career development: every path
-            starts with a clear first step.
-          </p>
-        </div>
-        <SectionMotionGraphic variant="network" />
-        <div className="journey-grid">
-          {buyerJourneys.map((journey) => (
-            <article className="journey-card" key={journey.title}>
-              <CardVisual title={journey.title} context={journey.route} />
-              <h3>{journey.title}</h3>
-              <p>{journey.description}</p>
-              <span>{journey.route}</span>
-            </article>
-          ))}
-        </div>
-      </section>
 
       <section className="section media-section motion-section" id="solutions">
         <div className="section-heading">
@@ -201,50 +128,6 @@ export default async function HomePage() {
               <p>{solution.answer}</p>
               <span className="text-link">Open solution</span>
             </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="section dark-showcase outcome-showcase motion-section">
-        <div className="section-heading">
-          <p className="eyebrow">What makes QCS different</p>
-          <h2>Practical network expertise, security discipline, and training depth in one place.</h2>
-        </div>
-        <div className="showcase-illustration-panel" aria-label="Network operating model illustration">
-          <Image
-            className="showcase-illustration-image"
-            src="/brand/envato/cyber/security-shield-network.png"
-            alt="Network security shield illustration showing protected cloud and infrastructure controls"
-            width={620}
-            height={390}
-            sizes="(max-width: 900px) 92vw, 34vw"
-          />
-          <div className="showcase-signal-stack" aria-hidden="true">
-            <span>
-              <Image src="/brand/envato/icons/router-cloud-network.svg" alt="" width={26} height={26} />
-              Topology
-            </span>
-            <span>
-              <Image src="/brand/envato/icons/security-cloud-network.svg" alt="" width={26} height={26} />
-              Controls
-            </span>
-            <span>
-              <Image src="/brand/envato/icons/server-cloud-network.svg" alt="" width={26} height={26} />
-              Evidence
-            </span>
-          </div>
-          <div className="showcase-illustration-overlay">
-            <span>QCS operating map</span>
-            <strong>Topology, controls, and proof in one practical view.</strong>
-          </div>
-        </div>
-        <div className="edge-grid">
-          {marketEdges.map((edge) => (
-            <article className="authority-card" key={edge.title}>
-              <CardVisual title={edge.title} context={edge.description} />
-              <h3>{edge.title}</h3>
-              <p>{edge.description}</p>
-            </article>
           ))}
         </div>
       </section>
@@ -273,35 +156,6 @@ export default async function HomePage() {
               </article>
             );
           })}
-        </div>
-      </section>
-
-      <section className="section motion-section" id="support-models">
-        <div className="section-heading">
-          <p className="eyebrow">Support model</p>
-          <h2>Move from reactive fixes to controlled network decisions.</h2>
-        </div>
-        <div className="comparison-grid">
-          <article className="comparison-panel old">
-            <CardVisual title={supportModelComparison.old.title} context={supportModelComparison.old.label} tone="dark" />
-            <p className="eyebrow">{supportModelComparison.old.label}</p>
-            <h3>{supportModelComparison.old.title}</h3>
-            <ul className="check-list muted">
-              {supportModelComparison.old.items.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </article>
-          <article className="comparison-panel qcs">
-            <CardVisual title={supportModelComparison.qcs.title} context={supportModelComparison.qcs.label} tone="green" />
-            <p className="eyebrow">{supportModelComparison.qcs.label}</p>
-            <h3>{supportModelComparison.qcs.title}</h3>
-            <ul className="check-list">
-              {supportModelComparison.qcs.items.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </article>
         </div>
       </section>
 
@@ -335,7 +189,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="section media-section motion-section">
+      <section className="section media-section motion-section" id="utilities">
         <div className="section-heading">
           <p className="eyebrow">Free network utilities</p>
           <h2>Run quick checks and generate controlled vendor task plans before deeper troubleshooting.</h2>
@@ -361,49 +215,37 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="section process-motion-section motion-section" id="process">
+      <section className="section operating-reach-section motion-section" id="process">
         <div className="section-heading">
-          <p className="eyebrow">How the work moves</p>
-          <h2>A simpler path from symptom to decision.</h2>
+          <p className="eyebrow">Delivery and coverage</p>
+          <h2>Move from first signal to verified closure across the environment you already run.</h2>
         </div>
-        <div className="process-signal-rail" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="process-timeline">
-          {deliveryWorkflow.map((step, index) => (
-            <article key={step.title}>
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              <h3>{step.title}</h3>
-              <p>{step.description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="section motion-section" id="vendors">
-        <div className="section-heading">
-          <p className="eyebrow">Coverage</p>
-          <h2>Support across the vendors, clouds, and environments your team already uses.</h2>
-        </div>
-        <div className="coverage-visual-grid" aria-label="Network coverage visual signals">
-          {coverageVisuals.map((visual) => (
-            <span key={visual.label}>
-              <Image src={visual.src} alt="" width={42} height={42} />
-              {visual.label}
-            </span>
-          ))}
-        </div>
-        <div className="pill-cloud">
-          {vendorCoverage.map((vendor) => (
-            <span key={vendor}>{vendor}</span>
-          ))}
-        </div>
-        <div className="pill-cloud muted" aria-label="Industries supported">
-          {industryCoverage.map((industry) => (
-            <span key={industry}>{industry}</span>
-          ))}
+        <div className="operating-reach-layout">
+          <div className="process-timeline">
+            {deliveryWorkflow.map((step, index) => (
+              <article key={step.title}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <h3>{step.title}</h3>
+                <p>{step.description}</p>
+              </article>
+            ))}
+          </div>
+          <div className="coverage-command-panel">
+            <div className="coverage-visual-grid" aria-label="Network coverage visual signals">
+              {coverageVisuals.map((visual) => (
+                <span key={visual.label}>
+                  <Image src={visual.src} alt="" width={42} height={42} />
+                  {visual.label}
+                </span>
+              ))}
+            </div>
+            <div className="pill-cloud">
+              {vendorCoverage.map((vendor) => <span key={vendor}>{vendor}</span>)}
+            </div>
+            <div className="pill-cloud muted" aria-label="Industries supported">
+              {industryCoverage.map((industry) => <span key={industry}>{industry}</span>)}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -432,7 +274,7 @@ export default async function HomePage() {
         <ResourceDownloads />
       </section>
 
-      <section className="section split final-cta-band motion-section">
+      <section className="section split final-cta-band motion-section" id="engage">
         <div className="section-heading">
           <p className="eyebrow">Request review</p>
           <h2>Tell QCS what is happening. We will help you choose the right next step.</h2>

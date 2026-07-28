@@ -22,19 +22,19 @@ export const siteConfig = {
 };
 
 export const positioning = {
-  eyebrow: "Network command studio for India and global teams",
-  headline: "Diagnose, secure, operate, and train modern networks with evidence you can act on.",
+  eyebrow: "Managed networks, security, cloud, and validation",
+  headline: "Know what is happening. Fix what matters. Prove it is closed.",
   body:
-    "QuantumCrafters Studio Pvt. Ltd. helps growing companies stabilize infrastructure, harden security, modernize cloud connectivity, test exposure, and build network talent through one evidence-led operating model.",
-  primaryCta: "Run Network Assessment",
+    "QCS combines network operations, security engineering, cloud connectivity, penetration testing, and practical training in one evidence-led command model for India and global teams.",
+  primaryCta: "Assess Your Network",
   secondaryCta: "Explore Command System"
 };
 
 export const proofSignals = [
-  { value: "Vendor-neutral", label: "Architecture and remediation" },
-  { value: "Authorized", label: "Scoped access before testing" },
-  { value: "Evidence-led", label: "Findings, owners, and retests" },
-  { value: "India + global", label: "Remote delivery model" }
+  { value: "Observe", label: "Symptoms and topology" },
+  { value: "Authorize", label: "Scope before changes" },
+  { value: "Resolve", label: "Owners and remediation" },
+  { value: "Verify", label: "Evidence and retests" }
 ];
 
 export const commandNavItems = [

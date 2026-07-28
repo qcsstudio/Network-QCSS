@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardVisual } from "@/components/card-visual";
+import { DomainHeroVisual, type DomainVisualVariant } from "@/components/domain-hero-visual";
 import { StructuredData } from "@/components/structured-data";
 import { networkUtilityTools } from "@/lib/network-tools";
 import { services, siteConfig, solutionPages, tools } from "@/lib/content";
@@ -10,6 +11,13 @@ import { createPageMetadata } from "@/lib/seo";
 type SolutionPageProps = {
   params: Promise<{ slug: string }>;
 };
+
+function solutionVisualVariant(slug: string): DomainVisualVariant {
+  if (slug.includes("cloud")) return "cloud";
+  if (slug.includes("firewall") || slug.includes("sase") || slug.includes("pentest")) return "security";
+  if (slug.includes("career")) return "training";
+  return "operations";
+}
 
 function toolLink(slug: string) {
   const assessment = tools.find((tool) => tool.slug === slug);
@@ -86,20 +94,28 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
         ]}
       />
 
-      <section className="page-hero">
-        <p className="eyebrow">{solution.eyebrow}</p>
-        <h1>{solution.title}</h1>
-        <p>{solution.answer}</p>
-        <div className="button-row">
-          {linkedTools[0] ? (
-            <Link className="button primary" href={linkedTools[0].href}>
-              Start with {linkedTools[0].label}
+      <section className="page-hero visual-page-hero">
+        <div className="page-hero-copy">
+          <p className="eyebrow">{solution.eyebrow}</p>
+          <h1>{solution.title}</h1>
+          <p>{solution.answer}</p>
+          <div className="button-row">
+            {linkedTools[0] ? (
+              <Link className="button primary" href={linkedTools[0].href}>
+                Start with {linkedTools[0].label}
+              </Link>
+            ) : null}
+            <Link className="button secondary" href="/solutions">
+              All Solutions
             </Link>
-          ) : null}
-          <Link className="button secondary" href="/solutions">
-            All Solutions
-          </Link>
+          </div>
         </div>
+        <DomainHeroVisual
+          variant={solutionVisualVariant(solution.slug)}
+          label={solution.eyebrow}
+          title={solution.problem}
+          signals={solution.outcomes}
+        />
       </section>
 
       <section className="section split">
@@ -169,7 +185,7 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">FAQ</p>
-          <h2>Short answers for search and AI summaries</h2>
+          <h2>Questions teams ask before taking action</h2>
         </div>
         <div className="faq-grid">
           {solution.faqs.map((faq) => (

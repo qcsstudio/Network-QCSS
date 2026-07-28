@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ResourceDownloads } from "@/components/resource-downloads";
+import { DomainHeroVisual } from "@/components/domain-hero-visual";
 import { StructuredData } from "@/components/structured-data";
 import { weeklyBlogCadence } from "@/lib/blog";
 import { siteConfig } from "@/lib/content";
@@ -58,24 +59,32 @@ export default async function ResourcesPage() {
           }
         ]}
       />
-      <section className="page-hero">
-        <p className="eyebrow">Network security blog</p>
-        <h1>Network security blog for practical infrastructure decisions.</h1>
-        <p>
-          Start with a direct answer. Run the supporting tools. Use each checklist to prepare evidence for a technical
-          review, incident call, audit, or service request.
-        </p>
-        <div className="button-row">
-          <a className="button primary" href="#blog-posts">
-            Read Blog
-          </a>
-          <a className="button secondary" href="#download-resources">
-            Download Checklists
-          </a>
-          <Link className="button secondary" href="/security-advisories">
-            Security Advisories
-          </Link>
+      <section className="page-hero visual-page-hero">
+        <div className="page-hero-copy">
+          <p className="eyebrow">Network security intelligence</p>
+          <h1>Practical guidance for infrastructure decisions that cannot wait for guesswork.</h1>
+          <p>
+            Start with a direct answer. Run the supporting tools. Use each checklist to prepare evidence for a technical
+            review, incident call, audit, or service request.
+          </p>
+          <div className="button-row">
+            <a className="button primary" href="#blog-posts">
+              Read Blog
+            </a>
+            <a className="button secondary" href="#download-resources">
+              Download Checklists
+            </a>
+            <Link className="button secondary" href="/security-advisories">
+              Security Advisories
+            </Link>
+          </div>
         </div>
+        <DomainHeroVisual
+          variant="intelligence"
+          label="Operational intelligence"
+          title="Answer, evidence, and next action"
+          signals={["Source checked", "Tool supported", "Action ready"]}
+        />
       </section>
 
       <section className="section blog-command-section" id="blog-posts">
@@ -124,8 +133,8 @@ export default async function ResourcesPage() {
 
       <section className="section split">
         <div className="answer-panel">
-          <p className="eyebrow">Publishing cadence</p>
-          <h2>Two high-intent posts every week.</h2>
+          <p className="eyebrow">What to expect</p>
+          <h2>Two practical network and security briefings every week.</h2>
           <p>
             QCS monitors trusted network and security sources, then turns material changes into practical guidance for
             engineers, service owners, and security teams.
