@@ -283,8 +283,9 @@ export function editorialImageDataUrl(asset: { image: Uint8Array; mimeType: stri
   return `data:${asset.mimeType};base64,${Buffer.from(asset.image).toString("base64")}`;
 }
 
-export async function generateMissingEditorialImages(limit = 1, force = false) {
+export async function generateMissingEditorialImages(limit = 1, force = false, excludedContentIds: string[] = []) {
   const prisma = getPrismaClient();
+  const excluded = new Set(excludedContentIds);
   const [posts, advisories] = await Promise.all([
     prisma.contentPost.findMany({
       where: { status: "published" },
@@ -316,6 +317,7 @@ export async function generateMissingEditorialImages(limit = 1, force = false) {
   const outcomes: Array<{ contentId: string; status: string }> = [];
   for (const input of inputs) {
     if (outcomes.length >= Math.max(1, Math.min(limit, 5))) break;
+    if (excluded.has(input.contentId)) continue;
     const existing = await prisma.editorialImage.findUnique({
       where: {
         contentType_contentId_contentRevision: {
