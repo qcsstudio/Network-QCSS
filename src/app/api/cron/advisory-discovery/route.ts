@@ -14,8 +14,10 @@ export const maxDuration = 300;
 
 export async function GET(request: Request) {
   const automatedRequest = await isAutomationRequest(request);
-  if (!automatedRequest && !isAdminRequest(request)) return jsonError("Unauthorized", 401);
-  const results = await scanAdvisorySources();
+  const adminRequest = isAdminRequest(request);
+  if (!automatedRequest && !adminRequest) return jsonError("Unauthorized", 401);
+  const backfillOnly = adminRequest && new URL(request.url).searchParams.get("backfill") === "1";
+  const results = await scanAdvisorySources({ backfillOnly });
   const reconciled = await reconcileAdvisoryLinkedInQueue();
   revalidatePath("/security-advisories");
   revalidatePath("/sitemap.xml");

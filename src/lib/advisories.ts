@@ -571,6 +571,96 @@ async function storeCandidate(sourceId: string, item: AdvisoryCandidate) {
   return { advisory: updated, revision, changed: true };
 }
 
+export async function backfillLegacyAdvisoryEditorialContent() {
+  const prisma = getPrismaClient();
+  const existing = await prisma.securityAdvisory.findFirst({
+    where: { status: "published", qualityScore: null, editorialOverride: false, source: { enabled: true } },
+    orderBy: [{ updatedAt: "desc" }],
+    include: {
+      source: { select: { name: true } },
+      revisions: { orderBy: { version: "desc" }, take: 1 }
+    }
+  });
+  if (!existing) return null;
+
+  const products = jsonStrings(existing.products);
+  const cves = jsonStrings(existing.cves);
+  const enriched = await enrichSecurityAdvisory({
+    title: existing.title,
+    vendor: existing.vendor,
+    summary: existing.summary,
+    severity: existing.severity,
+    cvssScore: existing.cvssScore,
+    cves,
+    products,
+    source: { label: existing.source.name, url: existing.sourceUrl, suppliedSummary: existing.summary },
+    sourcePayload: existing.revisions[0]?.payload || {}
+  });
+  const previousVersion = existing.revisions[0]?.version || 1;
+  const version = previousVersion + 1;
+  const next: Omit<AdvisoryCandidate, "contentHash"> = {
+    externalId: existing.externalId,
+    slug: existing.slug,
+    title: existing.title,
+    vendor: existing.vendor,
+    summary: enriched.content.plainLanguageSummary,
+    technicalExplanation: enriched.content.technicalExplanation,
+    businessImpact: enriched.content.businessImpact,
+    evidenceChecklist: enriched.content.evidenceChecklist,
+    severity: existing.severity,
+    cvssScore: existing.cvssScore,
+    priorityScore: existing.priorityScore,
+    cves: unique([...cves, ...enriched.content.cves.map((value) => value.toUpperCase())]),
+    products: unique([...products, ...enriched.content.products]),
+    affectedVersions: unique([...jsonStrings(existing.affectedVersions), ...enriched.content.affectedVersions]),
+    fixedVersions: unique([...jsonStrings(existing.fixedVersions), ...enriched.content.fixedVersions]),
+    remediation: enriched.content.remediation,
+    workaround: enriched.content.workaround,
+    exploitationStatus: enriched.content.exploitationStatus,
+    sourceUrl: existing.sourceUrl,
+    vendorPublishedAt: existing.vendorPublishedAt,
+    vendorUpdatedAt: existing.vendorUpdatedAt,
+    payload: existing.revisions[0]?.payload || inputJson({ origin: "legacy_editorial_backfill" }),
+    editorialTrace: inputJson({ ...enriched.trace, sourceFingerprint: existing.contentHash, backfilledAt: new Date().toISOString() }),
+    qualityScore: enriched.qualityScore
+  };
+  const hash = contentHash(next);
+  const updated = await prisma.securityAdvisory.update({
+    where: { id: existing.id },
+    data: {
+      summary: next.summary,
+      technicalExplanation: next.technicalExplanation,
+      businessImpact: next.businessImpact,
+      evidenceChecklist: inputJson(next.evidenceChecklist),
+      cves: inputJson(next.cves),
+      products: inputJson(next.products),
+      affectedVersions: inputJson(next.affectedVersions),
+      fixedVersions: inputJson(next.fixedVersions),
+      remediation: next.remediation,
+      workaround: next.workaround,
+      exploitationStatus: next.exploitationStatus,
+      contentHash: hash,
+      editorialTrace: next.editorialTrace,
+      qualityScore: next.qualityScore,
+      lastVerifiedAt: new Date(),
+      revisions: {
+        create: {
+          version,
+          contentHash: hash,
+          changes: inputJson(["editorial_backfill"]),
+          payload: next.payload
+        }
+      }
+    }
+  });
+  const existingPublication = await prisma.socialPublication.findFirst({
+    where: { channel: "linkedin", contentType: "security_advisory", contentId: existing.id },
+    select: { contentRevision: true }
+  });
+  await queueLinkedInForAdvisory(updated, existingPublication?.contentRevision || version);
+  return { id: updated.id, title: updated.title, qualityScore: updated.qualityScore, revision: version };
+}
+
 async function ensureSources() {
   const prisma = getPrismaClient();
   for (const source of advisorySourceDefinitions) {
@@ -582,10 +672,12 @@ async function ensureSources() {
   }
 }
 
-export async function scanAdvisorySources() {
+export async function scanAdvisorySources(options: { backfillOnly?: boolean } = {}) {
   await ensureSources();
   const prisma = getPrismaClient();
-  const sources = await prisma.advisorySource.findMany({ where: { enabled: true }, orderBy: { priority: "desc" } });
+  const sources = options.backfillOnly
+    ? []
+    : await prisma.advisorySource.findMany({ where: { enabled: true }, orderBy: { priority: "desc" } });
   const configuredLimit = Number.parseInt(process.env.ADVISORY_ENRICHMENTS_PER_RUN || "1", 10);
   let remainingEditorialBudget = Number.isFinite(configuredLimit) ? Math.max(1, Math.min(configuredLimit, 2)) : 1;
   const results: Array<{ source: string; status: number; candidates: number; published: number; unchanged: number; queued: number; error?: string }> = [];
@@ -660,6 +752,19 @@ export async function scanAdvisorySources() {
         data: { lastCheckedAt: new Date(), consecutiveFailures: { increment: 1 }, lastError: message }
       });
       results.push({ source: source.name, status: 0, candidates: 0, published: 0, unchanged: 0, queued: 0, error: message });
+    }
+  }
+
+  while (remainingEditorialBudget > 0) {
+    remainingEditorialBudget -= 1;
+    try {
+      const backfilled = await backfillLegacyAdvisoryEditorialContent();
+      if (!backfilled) break;
+      results.push({ source: "QCS editorial backfill", status: 200, candidates: 1, published: 0, unchanged: 0, queued: 0 });
+    } catch (error) {
+      const message = error instanceof Error ? error.message.slice(0, 1200) : "Unknown editorial backfill error";
+      results.push({ source: "QCS editorial backfill", status: 0, candidates: 1, published: 0, unchanged: 0, queued: 0, error: message });
+      break;
     }
   }
 

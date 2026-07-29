@@ -100,7 +100,7 @@ export async function queueLinkedInForContentPost(post: ContentPostRecord) {
   });
 }
 
-export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revision: number) {
+export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revision: number | string) {
   const revisionKey = String(revision);
   return enqueue({
     contentType: "security_advisory",
@@ -114,14 +114,21 @@ export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revis
 }
 
 export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
-  const advisories = await getPrismaClient().securityAdvisory.findMany({
+  const prisma = getPrismaClient();
+  const advisories = await prisma.securityAdvisory.findMany({
     where: { status: "published" },
     orderBy: { updatedAt: "desc" },
     take: Math.max(1, Math.min(limit, 100)),
     include: { revisions: { orderBy: { version: "desc" }, take: 1 } }
   });
+  const existing = await prisma.socialPublication.findMany({
+    where: { channel: "linkedin", contentType: "security_advisory", contentId: { in: advisories.map((advisory) => advisory.id) } },
+    select: { contentId: true }
+  });
+  const alreadyQueued = new Set(existing.map((publication) => publication.contentId));
   let reconciled = 0;
   for (const advisory of advisories) {
+    if (alreadyQueued.has(advisory.id)) continue;
     await queueLinkedInForAdvisory(advisory, advisory.revisions[0]?.version || 1);
     reconciled += 1;
   }

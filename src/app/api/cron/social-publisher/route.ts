@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   if (!automatedRequest && !adminRequest) return jsonError("Unauthorized", 401);
   const retryFailed = adminRequest && new URL(request.url).searchParams.get("retryFailed") === "1";
   const reset = retryFailed ? await resetFailedLinkedInPublications() : 0;
-  const outcomes = await processLinkedInQueue(5);
+  const outcomes = await processLinkedInQueue(1);
   await createAuditLog(
     {
       action: "social.linkedin_worker",
