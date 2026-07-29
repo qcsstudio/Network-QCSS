@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, Link2, RefreshCw, Rss, Send, ShieldAlert, Unlink } from "lucide-react";
+import { ExternalLink, ImageIcon, Link2, PencilLine, RefreshCw, Rss, Send, ShieldAlert, Unlink } from "lucide-react";
 import type { DistributionSnapshot } from "@/lib/distribution";
 
 export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot: DistributionSnapshot | null }) {
@@ -42,6 +42,28 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
       setMessage("LinkedIn has been disconnected.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to disconnect LinkedIn.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function refreshPublication(id: string, replaceMedia: boolean) {
+    if (replaceMedia && !window.confirm("Replace this LinkedIn post with refreshed copy and its current QCS article image? The old post and its engagement will be removed after the replacement publishes.")) return;
+    const action = replaceMedia ? "Replacing LinkedIn media" : "Refreshing LinkedIn copy";
+    setBusy(action);
+    setMessage(`${action}...`);
+    try {
+      const response = await fetch(`/api/admin/integrations/linkedin/publications/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: replaceMedia ? "replace_media" : "refresh_commentary" })
+      });
+      const result = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(result.error || `${action} failed.`);
+      await load();
+      setMessage(replaceMedia ? "LinkedIn copy and image were replaced." : "LinkedIn copy was refreshed in place.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : `${action} failed.`);
     } finally {
       setBusy("");
     }
@@ -114,6 +136,33 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
         <div className="distribution-failures">
           <h3>Delivery failures</h3>
           {snapshot.social.latest.filter((job) => job.status === "failed").map((job) => <p key={job.id}>{job.contentType}: {job.lastError}</p>)}
+        </div>
+      ) : null}
+
+      {snapshot?.social.latest.length ? (
+        <div className="linkedin-publication-list">
+          <div className="linkedin-publication-heading">
+            <div><p className="eyebrow">Recent distribution</p><h3>LinkedIn publications</h3></div>
+            <span>{snapshot.social.latest.length} recent records</span>
+          </div>
+          {snapshot.social.latest.map((job) => (
+            <article className="linkedin-publication-row" key={job.id}>
+              <div className="linkedin-publication-copy">
+                <span className={`status-pill ${job.status === "published" ? "ready" : job.status === "failed" ? "missing" : ""}`}>{job.status}</span>
+                <strong>{job.title}</strong>
+                <small>{job.publishedAt ? new Date(job.publishedAt).toLocaleString("en-IN") : new Date(job.updatedAt).toLocaleString("en-IN")}</small>
+              </div>
+              <div className="content-action-row">
+                {job.status === "published" ? (
+                  <>
+                    <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => refreshPublication(job.id, false)} type="button"><PencilLine aria-hidden="true" size={15} /> Refresh copy</button>
+                    <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => refreshPublication(job.id, true)} type="button"><ImageIcon aria-hidden="true" size={15} /> Replace image + copy</button>
+                  </>
+                ) : null}
+                {job.permalink ? <a className="icon-button" href={job.permalink} rel="noreferrer" target="_blank" title="Open LinkedIn post"><ExternalLink aria-hidden="true" size={17} /></a> : null}
+              </div>
+            </article>
+          ))}
         </div>
       ) : null}
     </section>

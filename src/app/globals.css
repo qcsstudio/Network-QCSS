@@ -8512,6 +8512,57 @@ td span {
   overflow-wrap: anywhere;
 }
 
+.linkedin-publication-list {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.linkedin-publication-heading,
+.linkedin-publication-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.linkedin-publication-heading h3,
+.linkedin-publication-heading p {
+  margin: 0;
+}
+
+.linkedin-publication-heading > span,
+.linkedin-publication-copy small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.linkedin-publication-row {
+  min-width: 0;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.linkedin-publication-copy {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px 10px;
+}
+
+.linkedin-publication-copy strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkedin-publication-copy small {
+  grid-column: 2;
+}
+
 .review-banner {
   display: grid;
   gap: 8px;
@@ -8538,6 +8589,15 @@ td span {
 }
 
 @media (max-width: 520px) {
+  .linkedin-publication-heading,
+  .linkedin-publication-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .linkedin-publication-copy strong {
+    white-space: normal;
+  }
   .distribution-metrics { grid-template-columns: 1fr; }
 }
 

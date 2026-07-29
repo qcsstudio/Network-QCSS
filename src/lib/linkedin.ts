@@ -202,3 +202,26 @@ export async function publishLinkedInPost(input: LinkedInPublishInput) {
   if (!externalId) throw new Error("LinkedIn published the post without returning a post identifier.");
   return { externalId, permalink: `https://www.linkedin.com/feed/update/${externalId}/` };
 }
+
+export async function updateLinkedInPostCommentary(externalId: string, commentary: string) {
+  const connection = await activeConnection();
+  const response = await fetch(`${linkedinApiBase}/posts/${encodeURIComponent(externalId)}`, {
+    method: "POST",
+    headers: { ...apiHeaders(connection.accessToken), "X-RestLi-Method": "PARTIAL_UPDATE" },
+    body: JSON.stringify({ patch: { $set: { commentary: commentary.slice(0, 2900) } } }),
+    signal: AbortSignal.timeout(requestTimeoutMs),
+    cache: "no-store"
+  });
+  if (!response.ok) throw await responseError(response, "LinkedIn post update");
+}
+
+export async function deleteLinkedInPost(externalId: string) {
+  const connection = await activeConnection();
+  const response = await fetch(`${linkedinApiBase}/posts/${encodeURIComponent(externalId)}`, {
+    method: "DELETE",
+    headers: { ...apiHeaders(connection.accessToken), "X-RestLi-Method": "DELETE" },
+    signal: AbortSignal.timeout(requestTimeoutMs),
+    cache: "no-store"
+  });
+  if (!response.ok) throw await responseError(response, "LinkedIn post deletion");
+}

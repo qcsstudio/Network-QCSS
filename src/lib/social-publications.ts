@@ -1,7 +1,8 @@
 import type { Prisma, SecurityAdvisory } from "@prisma/client";
 import type { ContentPostRecord } from "@/lib/content-posts";
 import { siteConfig } from "@/lib/content";
-import { publishLinkedInPost } from "@/lib/linkedin";
+import { composeAdvisoryLinkedInPost, composeEditorialLinkedInPost } from "@/lib/linkedin-commentary";
+import { deleteLinkedInPost, publishLinkedInPost, updateLinkedInPostCommentary } from "@/lib/linkedin";
 import { getPrismaClient } from "@/lib/prisma";
 
 function trackedUrl(path: string, campaign: string, content: string) {
@@ -13,45 +14,31 @@ function trackedUrl(path: string, campaign: string, content: string) {
   return url.toString();
 }
 
-export function buildEditorialLinkedInCommentary(post: ContentPostRecord) {
+type EditorialPostRecord = Pick<ContentPostRecord, "content" | "slug" | "title">;
+
+export function buildEditorialLinkedInCommentary(post: EditorialPostRecord) {
   const url = trackedUrl(`/resources/${post.slug}`, "weekly-intelligence", post.slug);
-  const takeaways = post.content.takeaways.slice(0, 3).map((item) => `- ${item}`).join("\n");
-  return [
-    post.title,
-    "",
-    post.content.answer,
-    "",
-    "Practical takeaways:",
-    takeaways,
-    "",
-    `Read the complete QCS guide: ${url}`,
-    "",
-    "#NetworkSecurity #NetworkEngineering #CloudNetworking #CyberSecurity"
-  ].join("\n");
+  return composeEditorialLinkedInPost(post, url);
 }
 
 function jsonStrings(value: Prisma.JsonValue) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
-function advisoryCommentary(advisory: SecurityAdvisory) {
+export function buildAdvisoryLinkedInCommentary(advisory: SecurityAdvisory) {
   const url = trackedUrl(`/security-advisories/${advisory.slug}`, "security-advisory-desk", advisory.slug);
-  const products = jsonStrings(advisory.products).slice(0, 4).join(", ") || "See official advisory";
-  const cves = jsonStrings(advisory.cves).slice(0, 4).join(", ");
-  return [
-    `${advisory.severity.toUpperCase()} NETWORK SECURITY ADVISORY`,
-    "",
-    advisory.title,
-    "",
-    `Vendor: ${advisory.vendor}`,
-    `Affected products: ${products}`,
-    ...(cves ? [`CVE: ${cves}`] : []),
-    `Immediate action: ${advisory.remediation}`,
-    "",
-    `Source-verified QCS advisory: ${url}`,
-    "",
-    "#SecurityAdvisory #VulnerabilityManagement #NetworkSecurity #PatchManagement"
-  ].join("\n");
+  return composeAdvisoryLinkedInPost(
+    {
+      cves: jsonStrings(advisory.cves),
+      products: jsonStrings(advisory.products),
+      remediation: advisory.remediation,
+      severity: advisory.severity,
+      summary: advisory.summary,
+      title: advisory.title,
+      vendor: advisory.vendor
+    },
+    url
+  );
 }
 
 async function enqueue(input: {
@@ -63,17 +50,30 @@ async function enqueue(input: {
   imageUrl: string;
   imageAlt: string;
 }) {
-  return getPrismaClient().socialPublication.upsert({
-    where: {
-      channel_contentType_contentId_contentRevision: {
-        channel: "linkedin",
-        contentType: input.contentType,
-        contentId: input.contentId,
-        contentRevision: input.contentRevision
+  const prisma = getPrismaClient();
+  const key = {
+    channel: "linkedin",
+    contentType: input.contentType,
+    contentId: input.contentId,
+    contentRevision: input.contentRevision
+  };
+  const existing = await prisma.socialPublication.findUnique({
+    where: { channel_contentType_contentId_contentRevision: key }
+  });
+  if (existing?.status === "published" || existing?.status === "publishing") return existing;
+  if (existing) {
+    return prisma.socialPublication.update({
+      where: { id: existing.id },
+      data: {
+        commentary: input.commentary,
+        imageUrl: input.imageUrl,
+        metadata: { imageAlt: input.imageAlt },
+        sourceUrl: input.sourceUrl
       }
-    },
-    update: {},
-    create: {
+    });
+  }
+  return prisma.socialPublication.create({
+    data: {
       channel: "linkedin",
       contentType: input.contentType,
       contentId: input.contentId,
@@ -94,19 +94,20 @@ export async function queueLinkedInForContentPost(post: ContentPostRecord) {
     contentRevision: revision,
     sourceUrl: `${siteConfig.url}/resources/${post.slug}`,
     commentary: buildEditorialLinkedInCommentary(post),
-    imageUrl: `${siteConfig.url}/resources/${post.slug}/opengraph-image`,
+    imageUrl: `${siteConfig.url}/resources/${post.slug}/opengraph-image?v=${encodeURIComponent(revision)}`,
     imageAlt: post.content.imageAlt
   });
 }
 
 export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revision: number) {
+  const revisionKey = String(revision);
   return enqueue({
     contentType: "security_advisory",
     contentId: advisory.id,
-    contentRevision: String(revision),
+    contentRevision: revisionKey,
     sourceUrl: `${siteConfig.url}/security-advisories/${advisory.slug}`,
-    commentary: advisoryCommentary(advisory),
-    imageUrl: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image`,
+    commentary: buildAdvisoryLinkedInCommentary(advisory),
+    imageUrl: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image?v=${encodeURIComponent(revisionKey)}`,
     imageAlt: `${advisory.severity} ${advisory.vendor} network security advisory: ${advisory.title}`
   });
 }
@@ -200,22 +201,128 @@ export async function processLinkedInQueue(limit = 5) {
   return outcomes;
 }
 
+function metadataObject(value: Prisma.JsonValue | null) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+async function currentPublicationMaterial(job: {
+  contentId: string;
+  contentRevision: string;
+  contentType: string;
+}) {
+  const prisma = getPrismaClient();
+  if (job.contentType === "content_post") {
+    const source = await prisma.contentPost.findUnique({ where: { id: job.contentId } });
+    if (!source) throw new Error("The source article no longer exists.");
+    const content = source.content as unknown as ContentPostRecord["content"];
+    const post = { content, slug: source.slug, title: source.title };
+    return {
+      commentary: buildEditorialLinkedInCommentary(post),
+      imageAlt: content.imageAlt,
+      imageUrl: `${siteConfig.url}/resources/${source.slug}/opengraph-image?v=${encodeURIComponent(job.contentRevision)}`,
+      sourceUrl: `${siteConfig.url}/resources/${source.slug}`
+    };
+  }
+  if (job.contentType === "security_advisory") {
+    const advisory = await prisma.securityAdvisory.findUnique({ where: { id: job.contentId } });
+    if (!advisory) throw new Error("The source security advisory no longer exists.");
+    return {
+      commentary: buildAdvisoryLinkedInCommentary(advisory),
+      imageAlt: `${advisory.severity} ${advisory.vendor} network security advisory: ${advisory.title}`,
+      imageUrl: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image?v=${encodeURIComponent(job.contentRevision)}`,
+      sourceUrl: `${siteConfig.url}/security-advisories/${advisory.slug}`
+    };
+  }
+  throw new Error(`Unsupported LinkedIn content type: ${job.contentType}`);
+}
+
+export async function refreshLinkedInPublication(publicationId: string, replaceMedia: boolean) {
+  const prisma = getPrismaClient();
+  const publication = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
+  if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
+  if (publication.status !== "published" || !publication.externalId) {
+    throw new Error("Only a published LinkedIn post can be refreshed.");
+  }
+
+  const material = await currentPublicationMaterial(publication);
+  const metadata = metadataObject(publication.metadata);
+  if (!replaceMedia) {
+    await updateLinkedInPostCommentary(publication.externalId, material.commentary);
+    return prisma.socialPublication.update({
+      where: { id: publication.id },
+      data: {
+        commentary: material.commentary,
+        lastError: null,
+        metadata: { ...metadata, commentaryRefreshedAt: new Date().toISOString() } as Prisma.InputJsonValue,
+        sourceUrl: material.sourceUrl
+      }
+    });
+  }
+
+  const replacement = await publishLinkedInPost({
+    commentary: material.commentary,
+    imageAlt: material.imageAlt,
+    imageUrl: material.imageUrl
+  });
+  try {
+    await deleteLinkedInPost(publication.externalId);
+  } catch (error) {
+    await deleteLinkedInPost(replacement.externalId).catch(() => undefined);
+    throw error;
+  }
+
+  const previousExternalIds = Array.isArray(metadata.previousExternalIds)
+    ? metadata.previousExternalIds.filter((value): value is string => typeof value === "string")
+    : [];
+  return prisma.socialPublication.update({
+    where: { id: publication.id },
+    data: {
+      commentary: material.commentary,
+      externalId: replacement.externalId,
+      imageUrl: material.imageUrl,
+      lastError: null,
+      publishedAt: new Date(),
+      sourceUrl: material.sourceUrl,
+      metadata: {
+        ...metadata,
+        imageAlt: material.imageAlt,
+        mediaReplacedAt: new Date().toISOString(),
+        permalink: replacement.permalink,
+        previousExternalIds: [...previousExternalIds, publication.externalId]
+      } as Prisma.InputJsonValue
+    }
+  });
+}
+
 export async function getSocialPublicationSummary() {
   const prisma = getPrismaClient();
   const [counts, latest] = await Promise.all([
     prisma.socialPublication.groupBy({ by: ["status"], _count: { _all: true }, where: { channel: "linkedin" } }),
     prisma.socialPublication.findMany({ where: { channel: "linkedin" }, orderBy: { updatedAt: "desc" }, take: 12 })
   ]);
+  const contentIds = latest.filter((entry) => entry.contentType === "content_post").map((entry) => entry.contentId);
+  const advisoryIds = latest.filter((entry) => entry.contentType === "security_advisory").map((entry) => entry.contentId);
+  const [contentTitles, advisoryTitles] = await Promise.all([
+    prisma.contentPost.findMany({ where: { id: { in: contentIds } }, select: { id: true, title: true } }),
+    prisma.securityAdvisory.findMany({ where: { id: { in: advisoryIds } }, select: { id: true, title: true } })
+  ]);
+  const titles = new Map([...contentTitles, ...advisoryTitles].map((entry) => [entry.id, entry.title]));
   return {
     counts: Object.fromEntries(counts.map((entry) => [entry.status, entry._count._all])),
     latest: latest.map((entry) => ({
       id: entry.id,
       contentType: entry.contentType,
+      title: titles.get(entry.contentId) || entry.contentType.replaceAll("_", " "),
       status: entry.status,
       sourceUrl: entry.sourceUrl,
       externalId: entry.externalId || "",
+      permalink:
+        entry.metadata && typeof entry.metadata === "object" && !Array.isArray(entry.metadata) && typeof entry.metadata.permalink === "string"
+          ? entry.metadata.permalink
+          : "",
       attempts: entry.attempts,
       lastError: entry.lastError || "",
+      publishedAt: entry.publishedAt?.toISOString() || "",
       updatedAt: entry.updatedAt.toISOString()
     }))
   };
