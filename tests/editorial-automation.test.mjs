@@ -10,8 +10,10 @@ test("production cadence separates ingestion, drafting, and social delivery", as
   assert.equal(schedules.get("/api/cron/advisory-discovery"), "17 3 * * *");
   assert.equal(schedules.has("/api/cron/social-publisher"), false);
   assert.equal(schedules.get("/api/admin/content-radar"), "0 4 * * 1,4");
-  assert.match(workflow, /cron: "7,17,27,37,47,57 \* \* \* \*"/);
+  assert.match(workflow, /cron: "\*\/5 \* \* \* \*"/);
   assert.match(workflow, /id-token: write/);
+  assert.match(workflow, /scan-advisories:/);
+  assert.match(workflow, /publish-social:/);
   assert.match(workflow, /api\/cron\/advisory-discovery/);
   assert.match(workflow, /api\/cron\/social-publisher/);
 });

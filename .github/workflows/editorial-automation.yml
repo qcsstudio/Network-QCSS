@@ -2,21 +2,20 @@ name: QCS editorial automation
 
 on:
   schedule:
-    - cron: "7,17,27,37,47,57 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
   id-token: write
 
-concurrency:
-  group: qcs-editorial-automation
-  cancel-in-progress: false
-
 jobs:
-  run-workers:
+  scan-advisories:
     runs-on: ubuntu-latest
-    timeout-minutes: 9
+    timeout-minutes: 6
+    concurrency:
+      group: qcs-advisory-ingestion
+      cancel-in-progress: false
     steps:
       - name: Scan and publish authoritative advisories
         shell: bash
@@ -28,8 +27,14 @@ jobs:
             -H "Authorization: Bearer ${token}" \
             "https://www.qcsstudio.com/api/cron/advisory-discovery"
 
+  publish-social:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    concurrency:
+      group: qcs-editorial-social
+      cancel-in-progress: false
+    steps:
       - name: Process contextual images and LinkedIn queue
-        if: always()
         shell: bash
         run: |
           token="$(curl --fail --silent --show-error \

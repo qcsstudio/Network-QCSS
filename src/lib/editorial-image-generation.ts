@@ -36,7 +36,7 @@ type PublicationIdentity = {
 
 export type EditorialImageVariant = "hero" | "social";
 
-const retryDelayMs = 6 * 60 * 60_000;
+const retryDelayMs = 8 * 60_000;
 const generationLeaseMs = 12 * 60_000;
 
 function normalize(value: string) {
