@@ -1,6 +1,7 @@
 import type { Prisma, SecurityAdvisory } from "@prisma/client";
 import type { ContentPostRecord } from "@/lib/content-posts";
 import { siteConfig } from "@/lib/content";
+import { ensureEditorialImageForPublication } from "@/lib/editorial-image-generation";
 import { composeAdvisoryLinkedInPost, composeEditorialLinkedInPost } from "@/lib/linkedin-commentary";
 import { deleteLinkedInPost, publishLinkedInPost, updateLinkedInPostCommentary } from "@/lib/linkedin";
 import { getPrismaClient } from "@/lib/prisma";
@@ -164,10 +165,20 @@ export async function processLinkedInQueue(limit = 5) {
     if (!claimed.count) continue;
 
     try {
+      const generatedImage = await ensureEditorialImageForPublication(job);
+      if (!generatedImage?.generatedAt) {
+        throw new Error("LinkedIn delivery is waiting for the article-specific QCS image to finish generating.");
+      }
+      if (!job.imageUrl) throw new Error("LinkedIn delivery is missing its canonical article image URL.");
+      const imageUrl = (() => {
+        const url = new URL(job.imageUrl);
+        url.searchParams.set("asset", generatedImage.generatedAt.toISOString());
+        return url.toString();
+      })();
       const metadata = job.metadata && typeof job.metadata === "object" && !Array.isArray(job.metadata) ? job.metadata : {};
       const result = await publishLinkedInPost({
         commentary: job.commentary,
-        imageUrl: job.imageUrl || undefined,
+        imageUrl: imageUrl || undefined,
         imageAlt: typeof metadata.imageAlt === "string" ? metadata.imageAlt : undefined
       });
       await prisma.socialPublication.update({
@@ -175,6 +186,7 @@ export async function processLinkedInQueue(limit = 5) {
         data: {
           status: "published",
           externalId: result.externalId,
+          imageUrl,
           publishedAt: new Date(),
           lastError: null,
           metadata: { ...metadata, permalink: result.permalink } as Prisma.InputJsonValue
@@ -258,6 +270,14 @@ export async function refreshLinkedInPublication(publicationId: string, replaceM
       }
     });
   }
+
+  const generatedImage = await ensureEditorialImageForPublication(publication, true);
+  if (!generatedImage?.generatedAt) {
+    throw new Error("A new contextual image could not be generated, so the existing LinkedIn post was left unchanged.");
+  }
+  const generatedImageUrl = new URL(material.imageUrl);
+  generatedImageUrl.searchParams.set("asset", generatedImage.generatedAt.toISOString());
+  material.imageUrl = generatedImageUrl.toString();
 
   const replacement = await publishLinkedInPost({
     commentary: material.commentary,

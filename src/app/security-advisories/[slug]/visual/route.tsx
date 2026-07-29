@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { EditorialArtwork } from "@/components/editorial-artwork";
 import { getSecurityAdvisory } from "@/lib/advisories";
+import { getContextualEditorialImage } from "@/lib/editorial-image-generation";
 import { qcsEditorialLogo } from "@/lib/editorial-logo";
 import { advisoryVisualProfile, fallbackVisualProfile } from "@/lib/editorial-visuals";
 
@@ -14,6 +15,15 @@ function strings(value: unknown) {
 export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const advisory = await getSecurityAdvisory(slug);
+  const generated = await getContextualEditorialImage("security_advisory", slug, "hero");
+  if (generated) {
+    return new Response(generated.image, {
+      headers: {
+        "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+        "Content-Type": generated.mimeType
+      }
+    });
+  }
   const vendor = advisory?.vendor || "QCS Security Advisory Desk";
   const product = advisory ? strings(advisory.products)[0] || "Network security" : "Network security";
   const severity = advisory?.severity || "unrated";

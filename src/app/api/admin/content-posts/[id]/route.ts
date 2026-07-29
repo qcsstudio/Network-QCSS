@@ -19,6 +19,7 @@ import { processLinkedInQueue, queueLinkedInForContentPost } from "@/lib/social-
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 type RouteContext = { params: Promise<{ id: string }> };
 

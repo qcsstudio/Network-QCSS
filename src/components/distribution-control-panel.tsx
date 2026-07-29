@@ -69,6 +69,28 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
     }
   }
 
+  async function generateEditorialImage(force = false) {
+    const action = force ? "Retrying contextual image" : "Generating contextual image";
+    setBusy(action);
+    setMessage(`${action}...`);
+    try {
+      const response = await fetch("/api/admin/editorial-images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force, limit: 1 })
+      });
+      const result = (await response.json()) as { error?: string; outcomes?: Array<{ status: string }> };
+      if (!response.ok) throw new Error(result.error || `${action} failed.`);
+      await load();
+      const status = result.outcomes?.[0]?.status || "no pending item";
+      setMessage(`Contextual image result: ${status}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : `${action} failed.`);
+    } finally {
+      setBusy("");
+    }
+  }
+
   return (
     <section className="admin-panel distribution-panel" id="integrations">
       <div className="panel-heading">
@@ -129,6 +151,21 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
             <a className="icon-button" href="/resources" rel="noreferrer" target="_blank" title="Open published resources"><ExternalLink aria-hidden="true" size={18} /></a>
           </div>
           <p className="form-note">Manual scans produce ranked, editable articles. The protected Vercel cron publishes at most one new article per scheduled run and records duplicate skips.</p>
+        </article>
+
+        <article className="distribution-module">
+          <div className="distribution-module-heading"><ImageIcon aria-hidden="true" /><div><p className="eyebrow">Context image studio</p><h3>Article-derived QCS visuals</h3></div></div>
+          <p>Each image is generated from the article evidence, systems, relationships, and action path, then fitted for the website and LinkedIn.</p>
+          <div className="content-action-row">
+            <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => generateEditorialImage(false)} type="button"><ImageIcon aria-hidden="true" size={16} /> Generate next</button>
+            {snapshot?.editorialImages.counts.failed ? <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => generateEditorialImage(true)} type="button"><RefreshCw aria-hidden="true" size={16} /> Retry latest</button> : null}
+          </div>
+          <div className="distribution-metrics">
+            <span><strong>{snapshot?.editorialImages.counts.ready || 0}</strong> Ready</span>
+            <span><strong>{snapshot?.editorialImages.counts.generating || 0}</strong> Generating</span>
+            <span><strong>{snapshot?.editorialImages.counts.failed || 0}</strong> Failed</span>
+          </div>
+          {snapshot?.editorialImages.latest[0]?.lastError ? <p className="form-note">{snapshot.editorialImages.latest[0].lastError}</p> : null}
         </article>
       </div>
 

@@ -212,8 +212,8 @@ export function EditorialArtwork({ format, logoUrl, profile, statusLabel = "Evid
         : 44;
 
   return (
-    <div style={{ width: "100%", height: "100%", display: "flex", background: "#dfe7f1", color: "#f8fbff", padding: social ? 28 : 0, fontFamily: "Arial" }}>
-      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", border: social ? "2px solid #bdcadb" : "none", background: "#0b1728" }}>
+    <div style={{ width: "100%", height: "100%", display: "flex", background: "#dfe7f1", color: "#f8fbff", padding: 0, fontFamily: "Arial" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", overflow: "hidden", border: "none", background: "#0b1728" }}>
         <div style={{ height: social ? 98 : 116, display: "flex", alignItems: "center", justifyContent: "space-between", background: "#ffffff", borderBottom: `8px solid ${profile.accent}`, padding: social ? "15px 28px" : "18px 42px" }}>
           <img alt="QuantumCrafters Studio Pvt. Ltd." height={social ? 64 : 78} src={logoUrl} style={{ objectFit: "contain", objectPosition: "left center" }} width={social ? 278 : 338} />
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", color: "#172238" }}>

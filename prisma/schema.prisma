@@ -178,6 +178,30 @@ model SocialPublication {
   @@index([contentType, contentId])
 }
 
+model EditorialImage {
+  id              String    @id @default(cuid())
+  contentType     String
+  contentId       String
+  contentRevision String
+  status          String    @default("pending")
+  prompt          String
+  promptHash      String
+  model           String?
+  altText         String
+  heroImage       Bytes?
+  socialImage     Bytes?
+  mimeType        String    @default("image/jpeg")
+  attempts        Int       @default(0)
+  lastError       String?
+  generatedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([contentType, contentId, contentRevision])
+  @@index([status, updatedAt])
+  @@index([contentType, contentId])
+}
+
 model AdvisorySource {
   id                  String             @id @default(cuid())
   slug                String             @unique
