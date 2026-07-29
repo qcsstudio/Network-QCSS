@@ -203,16 +203,6 @@ function buildGroups(): ReadinessGroup[] {
             isConfigured("LINKEDIN_TOKEN_ENCRYPTION_KEY"),
           "OAuth credentials are configured; connect the member from the admin dashboard.",
           { warning: true }
-        ),
-        item(
-          "whatsapp-editorial",
-          "WhatsApp editorial approval",
-          isConfigured("WHATSAPP_CONTENT_TEMPLATE_NAME") &&
-            isConfigured("WHATSAPP_WEBHOOK_VERIFY_TOKEN") &&
-            isConfigured("WHATSAPP_APP_SECRET") &&
-            isConfigured("WHATSAPP_APPROVER_NUMBERS"),
-          "Secures Monday and Thursday review messages and approval webhooks.",
-          { warning: true }
         )
       ]
     }

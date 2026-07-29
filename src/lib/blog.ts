@@ -30,6 +30,7 @@ export type TrendSource = {
   focus: string[];
   weight: number;
   format?: "feed" | "cisa-kev" | "cert-in";
+  role?: "authority" | "demand" | "discovery";
 };
 
 export type TrendTopicSeed = {
@@ -728,6 +729,41 @@ export const contentAutomationSources: TrendSource[] = [
     weight: 10
   },
   {
+    name: "Google Trends - India",
+    url: "https://trends.google.com/trending/rss?geo=IN",
+    focus: ["India search demand", "network security interest", "cloud and outage interest", "vendor interest"],
+    weight: 8,
+    role: "demand"
+  },
+  {
+    name: "Google Trends - United States",
+    url: "https://trends.google.com/trending/rss?geo=US",
+    focus: ["global search demand", "network security interest", "cloud and outage interest", "vendor interest"],
+    weight: 6,
+    role: "demand"
+  },
+  {
+    name: "Google News - India Network Security",
+    url: "https://news.google.com/rss/search?q=%28network%20security%20OR%20firewall%20OR%20VPN%20OR%20SASE%20OR%20SD-WAN%29%20when%3A7d&hl=en-IN&gl=IN&ceid=IN%3Aen",
+    focus: ["India network security news", "firewalls", "VPN", "SASE", "SD-WAN"],
+    weight: 7,
+    role: "discovery"
+  },
+  {
+    name: "Google News - Cloud and Internet Routing",
+    url: "https://news.google.com/rss/search?q=%28BGP%20OR%20RPKI%20OR%20DNS%20OR%20cloud%20networking%20OR%20network%20outage%29%20when%3A7d&hl=en-US&gl=US&ceid=US%3Aen",
+    focus: ["BGP", "RPKI", "DNS", "cloud networking", "network outages"],
+    weight: 7,
+    role: "discovery"
+  },
+  {
+    name: "Google News - Network Vendor Security",
+    url: "https://news.google.com/rss/search?q=%28Cisco%20OR%20Fortinet%20OR%20Palo%20Alto%20OR%20Juniper%20OR%20F5%29%20%28vulnerability%20OR%20patch%20OR%20security%29%20when%3A7d&hl=en-US&gl=US&ceid=US%3Aen",
+    focus: ["network vendor security", "vulnerabilities", "patches", "active exploitation"],
+    weight: 8,
+    role: "discovery"
+  },
+  {
     name: "CERT-In Advisories",
     url: "https://www.cert-in.org.in/s2cMainServlet?pageid=PUBADVLIST02",
     focus: ["India cybersecurity", "vulnerability advisories", "network products", "enterprise remediation"],
@@ -801,6 +837,40 @@ export const contentAutomationSources: TrendSource[] = [
     weight: 8
   },
   {
+    name: "BleepingComputer Security News",
+    url: "https://www.bleepingcomputer.com/feed/",
+    focus: ["network security news", "active exploitation", "vendor patches", "ransomware"],
+    weight: 7,
+    role: "discovery"
+  },
+  {
+    name: "The Hacker News",
+    url: "https://feeds.feedburner.com/TheHackersNews",
+    focus: ["cybersecurity news", "network vulnerabilities", "cloud security", "threat activity"],
+    weight: 6,
+    role: "discovery"
+  },
+  {
+    name: "SecurityWeek",
+    url: "https://www.securityweek.com/feed/",
+    focus: ["enterprise security news", "network vendors", "vulnerability response", "security operations"],
+    weight: 7,
+    role: "discovery"
+  },
+  {
+    name: "Check Point Research",
+    url: "https://research.checkpoint.com/feed/",
+    focus: ["threat research", "network security", "cloud security", "vulnerability research"],
+    weight: 8
+  },
+  {
+    name: "Cisco Networking Blog",
+    url: "https://blogs.cisco.com/networking/feed",
+    focus: ["enterprise networking", "routing", "switching", "wireless", "network operations"],
+    weight: 7,
+    role: "discovery"
+  },
+  {
     name: "Cisco Talos Intelligence",
     url: "https://blog.talosintelligence.com/rss/",
     focus: ["threat intelligence", "network threats", "malware", "vulnerability research"],
@@ -831,8 +901,8 @@ export const contentAutomationSources: TrendSource[] = [
     weight: 8
   },
   {
-    name: "Akamai Security and Network Blog",
-    url: "https://www.akamai.com/blog/rss.xml",
+    name: "Akamai Security Research",
+    url: "https://feeds.feedburner.com/akamai/blog",
     focus: ["edge security", "DDoS", "DNS", "application delivery", "internet traffic"],
     weight: 7
   },

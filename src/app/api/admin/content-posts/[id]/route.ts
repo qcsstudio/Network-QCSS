@@ -8,6 +8,7 @@ import {
   deleteContentPost,
   getContentPost,
   publishContentPost,
+  regenerateRadarContentPost,
   restoreContentPost,
   updateContentPost
 } from "@/lib/content-posts";
@@ -55,11 +56,13 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         ? await approveContentPost(id, actor)
         : action === "publish"
           ? await publishContentPost(id, actor)
-          : action === "archive"
-            ? await archiveContentPost(id, actor)
-            : action === "restore"
-              ? await restoreContentPost(id, actor)
-            : await updateContentPost(id, payload.content, String(payload.sourceUrl || ""), actor);
+          : action === "regenerate"
+            ? await regenerateRadarContentPost(id, actor)
+            : action === "archive"
+              ? await archiveContentPost(id, actor)
+              : action === "restore"
+                ? await restoreContentPost(id, actor)
+                : await updateContentPost(id, payload.content, String(payload.sourceUrl || ""), actor);
     if (!post) return jsonError("Post not found.", 404);
 
     await createAuditLog(

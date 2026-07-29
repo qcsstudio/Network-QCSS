@@ -130,16 +130,6 @@ function groups() {
             isConfigured("LINKEDIN_TOKEN_ENCRYPTION_KEY"),
           "LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET, LINKEDIN_REDIRECT_URI and LINKEDIN_TOKEN_ENCRYPTION_KEY",
           { warning: true }
-        ),
-        item(
-          "whatsapp-editorial",
-          "WhatsApp editorial approval",
-          isConfigured("WHATSAPP_CONTENT_TEMPLATE_NAME") &&
-            isConfigured("WHATSAPP_WEBHOOK_VERIFY_TOKEN") &&
-            isConfigured("WHATSAPP_APP_SECRET") &&
-            isConfigured("WHATSAPP_APPROVER_NUMBERS"),
-          "WhatsApp content template, webhook verification, app secret and approver allowlist",
-          { warning: true }
         )
       ]
     }

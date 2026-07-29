@@ -1,7 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { blogPosts, type BlogPost } from "@/lib/blog";
+import { buildRadarPublicationPost, type RadarDraftInput } from "@/lib/content-radar-domain";
 import { getPrismaClient } from "@/lib/prisma";
+
+export type { RadarDraftInput } from "@/lib/content-radar-domain";
 
 export const contentPostStatuses = ["draft", "approved", "published", "archived", "deleted"] as const;
 export type ContentPostStatus = (typeof contentPostStatuses)[number];
@@ -81,18 +84,6 @@ export type ContentPostRecord = {
   }[];
 };
 
-export type RadarDraftInput = {
-  title: string;
-  slug: string;
-  metaTitle: string;
-  metaDescription: string;
-  answerBlock: string;
-  sections: string[];
-  internalLinks: string[];
-  sourceUrl: string;
-  imageRecommendation: string;
-};
-
 function inputJson(value: unknown) {
   return value as Prisma.InputJsonValue;
 }
@@ -169,62 +160,7 @@ export function publicationIssues(post: BlogPost) {
 }
 
 export function starterPostFromRadar(draft: RadarDraftInput): BlogPost {
-  const today = new Date().toISOString().slice(0, 10);
-  const internalLinks = draft.internalLinks.filter((href) => href.startsWith("/"));
-  const toolLinks = internalLinks.filter((href) => href.startsWith("/network-tools") || href.startsWith("/tools/"));
-  const serviceLinks = internalLinks.filter((href) => href.startsWith("/services/") || href.startsWith("/solutions/"));
-  const linkLabel = (href: string) =>
-    href
-      .split("/")
-      .filter(Boolean)
-      .pop()
-      ?.split("-")
-      .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
-      .join(" ") || "QCS Resource";
-  return {
-    contentType: "blog",
-    slug: draft.slug,
-    title: draft.title,
-    metaTitle: draft.metaTitle.slice(0, 60),
-    description: draft.metaDescription.slice(0, 160),
-    excerpt: `Draft required: write a concise operational summary for ${draft.title}.`,
-    answer: draft.answerBlock,
-    category: "Network Security",
-    audience: "IT heads, network teams, security teams, and managed service providers",
-    primaryKeyword: draft.title.toLowerCase(),
-    keywords: [draft.title, "network security", "network operations"],
-    publishedAt: today,
-    updatedAt: today,
-    readTime: "7 min read",
-    image: draft.imageRecommendation.startsWith("/") ? draft.imageRecommendation : "/brand/envato/library/security-network-shield.webp",
-    imageAlt: `Security and network operations illustration for ${draft.title}`,
-    relatedTools: (toolLinks.length ? toolLinks : ["/network-tools"]).slice(0, 4).map((href) => ({ label: linkLabel(href), href })),
-    relatedServices: (serviceLinks.length ? serviceLinks : ["/services/network-security-services"])
-      .slice(0, 4)
-      .map((href) => ({ label: linkLabel(href), href })),
-    takeaways: [
-      "Draft required: state the most important technical finding.",
-      "Draft required: explain the operational impact and affected owners.",
-      "Draft required: state the recommended next action and evidence."
-    ],
-    sections: draft.sections.slice(0, 8).map((heading) => ({
-      heading,
-      body: `Draft required: develop the ${heading.toLowerCase()} section with verified facts, practical evidence, and a clear next action.`
-    })),
-    checklist: [
-      "Draft required: verify the authoritative source and publication date.",
-      "Draft required: identify affected assets and accountable owners.",
-      "Draft required: collect current-state configuration and version evidence.",
-      "Draft required: define the controlled remediation or validation sequence.",
-      "Draft required: document exceptions, results, and the next review date."
-    ],
-    questions: [
-      { question: "Draft required: who is affected?", answer: "Draft required: answer from the authoritative source." },
-      { question: "Draft required: what action is required?", answer: "Draft required: distinguish remediation from temporary risk reduction." },
-      { question: "Draft required: what evidence should teams keep?", answer: "Draft required: list the minimum operational evidence." }
-    ],
-    sources: [{ label: "Primary source", url: draft.sourceUrl }]
-  };
+  return buildRadarPublicationPost(draft);
 }
 
 export function starterContentPost(kind: "blog" | "resource"): BlogPost {
@@ -365,6 +301,95 @@ export async function updateContentPost(id: string, contentValue: unknown, sourc
   });
   await addRevision(id, content, "updated", actor);
   return getContentPost(id);
+}
+
+export async function regenerateRadarContentPost(id: string, actor: string) {
+  const existing = await getContentPost(id);
+  if (!existing) return null;
+  const source = existing.content.sources[0];
+  const primarySourceUrl = existing.sourceUrl || source?.url || "https://www.qcsstudio.com/resources";
+  const internalLinks = [
+    ...existing.content.relatedServices.map((link) => link.href),
+    ...existing.content.relatedTools.map((link) => link.href)
+  ];
+  const content = buildRadarPublicationPost({
+    title: existing.content.title,
+    slug: existing.content.slug,
+    metaTitle: existing.content.metaTitle,
+    metaDescription: existing.content.description,
+    answerBlock: existing.content.answer,
+    sections: existing.content.sections.map((section) => section.heading),
+    internalLinks,
+    sourceUrl: primarySourceUrl,
+    sourceName: sourceName(primarySourceUrl, source?.label),
+    sourceRole: "authority",
+    sourcePublishedAt: existing.content.publishedAt,
+    keywordCluster: existing.content.keywords,
+    servicePath: existing.content.relatedServices[0]?.href,
+    imageRecommendation: existing.content.image
+  });
+  const prisma = getPrismaClient();
+  await prisma.contentPost.update({
+    where: { id },
+    data: {
+      slug: content.slug,
+      title: content.title,
+      content: inputJson(content),
+      sourceUrl: primarySourceUrl,
+      status: "draft",
+      approvedAt: null,
+      approvedBy: null
+    }
+  });
+  await addRevision(id, content, "radar_content_regenerated", actor);
+  return getContentPost(id);
+}
+
+function sourceName(url: string, current?: string) {
+  if (current && !/^primary (source|technical source)$/i.test(current)) return current;
+  if (/sec\.cloudapps\.cisco\.com/i.test(url)) return "Cisco PSIRT Security Advisory";
+  if (/fortiguard\.fortinet\.com/i.test(url)) return "Fortinet PSIRT Advisory";
+  if (/security\.paloaltonetworks\.com/i.test(url)) return "Palo Alto Networks Security Advisory";
+  if (/supportportal\.juniper\.net|mist\.com/i.test(url)) return "Juniper Security Advisory";
+  if (/cisa\.gov/i.test(url)) return "CISA Cybersecurity Guidance";
+  if (/cert-in\.org\.in/i.test(url)) return "CERT-In Advisory";
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "Primary technical source";
+  }
+}
+
+export async function getAutomatedPostForUtcDate(date: string, actor = "content-radar-cron") {
+  const start = new Date(`${date}T00:00:00.000Z`);
+  const end = new Date(start.getTime() + 86_400_000);
+  const record = await getPrismaClient().contentPost.findFirst({
+    where: { createdBy: actor, publishedAt: { gte: start, lt: end }, status: "published" },
+    orderBy: { publishedAt: "desc" },
+    select: { id: true }
+  });
+  return record ? getContentPost(record.id) : null;
+}
+
+export async function publishAutomatedRadarDraft(draft: RadarDraftInput, actor = "content-radar-cron") {
+  const prisma = getPrismaClient();
+  const existing = await prisma.contentPost.findUnique({ where: { slug: draft.slug }, select: { id: true, status: true } });
+  if (existing) {
+    return { post: await getContentPost(existing.id), published: false, reason: `slug_${existing.status}` };
+  }
+
+  const content = buildRadarPublicationPost(draft);
+  const created = await createContentPost(content, absoluteSource(draft.sourceUrl), actor);
+  if (!created) throw new Error("The automated article could not be created.");
+  await approveContentPost(created.id, actor);
+  const published = await publishContentPost(created.id, actor);
+  if (!published) throw new Error("The automated article could not be published.");
+  return { post: published, published: true, reason: "published" };
+}
+
+function absoluteSource(value: string) {
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://www.qcsstudio.com${value.startsWith("/") ? value : `/${value}`}`;
 }
 
 export async function approveContentPost(id: string, actor: string) {

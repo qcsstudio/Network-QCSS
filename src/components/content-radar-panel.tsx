@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Archive, BookOpen, Clipboard, ExternalLink, Eye, FilePlus2, FileText, MessageCircle, RefreshCw, RotateCcw, Save, ShieldCheck, Trash2, Upload } from "lucide-react";
+import { Archive, BookOpen, Clipboard, ExternalLink, Eye, FilePlus2, FileText, RefreshCw, RotateCcw, Save, ShieldCheck, Sparkles, Trash2, Upload } from "lucide-react";
 import type { BlogPost } from "@/lib/blog";
 
 type RadarDraft = {
@@ -15,18 +15,27 @@ type RadarDraft = {
   sections: string[];
   internalLinks: string[];
   sourceUrl: string;
+  sourceName?: string;
+  sourceRole?: "authority" | "demand" | "discovery";
+  sourcePublishedAt?: string;
+  sourceSummary?: string;
+  businessAngle?: string;
+  servicePath?: string;
+  keywordCluster?: string[];
   imageRecommendation: string;
 };
 
 type ContentRadarResponse = {
   ok: boolean;
   scannedAt: string;
-  sourceStatus: { source: string; ok: boolean; status: number; items: number }[];
+  sourceStatus: { source: string; role: "authority" | "demand" | "discovery"; ok: boolean; status: number; items: number }[];
   topics: {
     topic: string;
     source: string;
     sourceUrl: string;
+    sourceRole: "authority" | "demand" | "discovery";
     score: number;
+    supportingSignals: number;
     businessAngle: string;
     servicePath: string;
     keywordCluster: string[];
@@ -63,7 +72,8 @@ function draftText(draft: RadarDraft) {
     `Answer block: ${draft.answerBlock}`,
     `Sections: ${draft.sections.join(" | ")}`,
     `Internal links: ${draft.internalLinks.join(", ")}`,
-    `Source: ${draft.sourceUrl}`,
+    `Source: ${draft.sourceName || "Primary source"} - ${draft.sourceUrl}`,
+    `Signal type: ${draft.sourceRole || "authority"}`,
     `Image: ${draft.imageRecommendation}`
   ].join("\n");
 }
@@ -143,7 +153,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
   const [selected, setSelected] = useState<ContentPostRecord | null>(null);
   const [draft, setDraft] = useState<BlogPost | null>(null);
   const [sourceUrl, setSourceUrl] = useState("");
-  const [status, setStatus] = useState("Content Studio is ready. Scan sources or continue a saved draft.");
+  const [status, setStatus] = useState("Content Studio is ready. Scan sources, review a complete article, or continue a saved draft.");
   const [busy, setBusy] = useState("");
   const [contentFilter, setContentFilter] = useState<"all" | "blog" | "resource">("all");
 
@@ -186,7 +196,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
       setSelected(result.post);
       setDraft(structuredClone(result.post.content));
       setSourceUrl(result.post.sourceUrl);
-      setStatus(`Draft created for ${result.post.title}. Complete the placeholders before approval.`);
+      setStatus(`Publication-ready draft created for ${result.post.title}. Verify the source and article before approval.`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Unable to create the draft.");
     } finally {
@@ -221,7 +231,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     window.setTimeout(() => document.querySelector("#content-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
-  async function mutate(action: "save" | "approve" | "publish" | "archive" | "restore") {
+  async function mutate(action: "save" | "regenerate" | "approve" | "publish" | "archive" | "restore") {
     if (!selected || !draft) return;
     setBusy(action);
     try {
@@ -287,34 +297,20 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     }
   }
 
-  async function requestWhatsAppReview() {
-    if (!selected) return;
-    setBusy("whatsapp-review");
-    try {
-      const response = await fetch(`/api/admin/content-posts/${selected.id}/approval`, { method: "POST" });
-      const result = (await response.json()) as { approval?: { expiresAt: string }; error?: string };
-      if (!response.ok || !result.approval) throw new Error(result.error || "Unable to send the WhatsApp review.");
-      setStatus(`WhatsApp review sent for revision ${selected.revisions[0]?.version || 1}. It expires ${new Date(result.approval.expiresAt).toLocaleString("en-IN")}.`);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Unable to send the WhatsApp review.");
-    } finally {
-      setBusy("");
-    }
-  }
-
   function patchContent<K extends keyof BlogPost>(key: K, value: BlogPost[K]) {
     setDraft((current) => (current ? { ...current, [key]: value } : current));
   }
 
   const filteredPosts = posts.filter((post) => contentFilter === "all" || (post.content.contentType || "blog") === contentFilter);
+  const needsRegeneration = Boolean(draft && /draft required|replace this|todo|placeholder/i.test(JSON.stringify(draft)));
 
   return (
     <section className="admin-panel content-radar-panel" id="content-studio">
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Content Studio</p>
-          <h2>Research, review, approve, and publish.</h2>
-          <p>Radar findings become editable drafts. Only approved articles can move to the public blog.</p>
+          <h2>Research, verify, approve, and publish.</h2>
+          <p>Radar findings become complete, editable articles. The scheduler publishes one authoritative post every Monday and Thursday; manual posts retain admin approval.</p>
         </div>
         <div className="content-action-row">
           <button className="button secondary" disabled={Boolean(busy)} onClick={() => loadPosts().catch((error) => setStatus(String(error)))} type="button">
@@ -340,7 +336,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
       <div className="content-queue-header">
         <div>
           <h3>Editorial queue</h3>
-          <p>{posts.length} saved article(s), with approval and revision history.</p>
+          <p>{posts.length} saved article(s), with admin approval and revision history.</p>
         </div>
         <div className="content-filter-tabs" aria-label="Filter editorial queue">
           {(["all", "blog", "resource"] as const).map((filter) => (
@@ -388,7 +384,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
       {radar ? (
         <div className="content-radar-grid">
           <div className="content-radar-column">
-            <h3>Recommended weekly drafts</h3>
+            <h3>Publication-ready weekly drafts</h3>
             <div className="stack-list">
               {radar.drafts.map((radarDraft) => (
                 <article className="stack-item content-draft-card" key={`${radarDraft.slot}-${radarDraft.slug}`}>
@@ -414,7 +410,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
               {radar.topics.slice(0, 6).map((topic) => (
                 <a className="stack-item content-topic-card" href={topic.sourceUrl} key={`${topic.source}-${topic.topic}`} rel="noreferrer" target="_blank">
                   <strong>{topic.topic}</strong>
-                  <span>{topic.score} score | {topic.source}</span>
+                  <span>{topic.score} score | {topic.sourceRole} | {topic.source}{topic.supportingSignals ? ` | ${topic.supportingSignals} supporting signal(s)` : ""}</span>
                   <em>{topic.businessAngle}</em>
                 </a>
               ))}
@@ -427,7 +423,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
               {radar.sourceStatus.map((source) => (
                 <div className="stack-item" key={source.source}>
                   <strong>{source.source}</strong>
-                  <span>{source.ok ? "OK" : "Check"} | HTTP {source.status || "n/a"} | {source.items} item(s)</span>
+                  <span>{source.role} | {source.ok ? "OK" : "Check"} | HTTP {source.status || "n/a"} | {source.items} item(s)</span>
                 </div>
               ))}
             </div>
@@ -524,7 +520,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
           <div className="content-publish-bar">
             <div>
               <span className={`status-pill content-status-${selected.status}`}>{selected.status}</span>
-              <small>Save, review the private preview, approve, then publish. Every step is recorded.</small>
+              <small>Save, review the private preview, approve, then publish. Every admin action and scheduled publication is recorded.</small>
             </div>
             <div className="content-action-row">
               {selected.status === "deleted" ? (
@@ -532,7 +528,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
               ) : (
                 <>
                   <button className="button secondary" disabled={Boolean(busy)} type="submit"><Save aria-hidden="true" size={17} /> {busy === "save" ? "Saving..." : "Save draft"}</button>
-                  <button className="button primary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={requestWhatsAppReview} type="button"><MessageCircle aria-hidden="true" size={17} /> {busy === "whatsapp-review" ? "Sending..." : "WhatsApp review"}</button>
+                  {needsRegeneration ? <button className="button secondary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={() => mutate("regenerate")} type="button"><Sparkles aria-hidden="true" size={17} /> {busy === "regenerate" ? "Completing..." : "Complete draft"}</button> : null}
                   <button className="button secondary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={() => mutate("approve")} type="button"><ShieldCheck aria-hidden="true" size={17} /> Approve</button>
                   <button className="button primary" disabled={Boolean(busy) || selected.status !== "approved"} onClick={() => mutate("publish")} type="button"><Upload aria-hidden="true" size={17} /> Publish</button>
                   <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => mutate("archive")} title="Archive article" type="button"><Archive aria-hidden="true" size={18} /></button>

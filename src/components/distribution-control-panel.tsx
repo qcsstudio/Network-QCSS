@@ -52,7 +52,7 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Intelligence distribution</p>
-          <h2>Source health, approvals, and LinkedIn delivery.</h2>
+          <h2>Source health, scheduled publishing, and LinkedIn delivery.</h2>
           <p>Website publication remains independent. Social failures stay queued and visible here.</p>
         </div>
         <button className="button secondary" disabled={Boolean(busy)} onClick={() => load().catch((error) => setMessage(String(error)))} type="button">
@@ -100,18 +100,13 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
         </article>
 
         <article className="distribution-module">
-          <div className="distribution-module-heading"><Send aria-hidden="true" /><div><p className="eyebrow">WhatsApp editorial review</p><h3>{snapshot?.approvals.configured ? "Configured" : "Configuration required"}</h3></div></div>
-          <p>Applies only to Monday and Thursday blog/resource revisions. Advisory publication bypasses this queue.</p>
-          <div className="distribution-metrics">
-            <span><strong>{snapshot?.approvals.counts.pending || 0}</strong> Pending</span>
-            <span><strong>{snapshot?.approvals.counts.approved || 0}</strong> Approved</span>
-            <span><strong>{snapshot?.approvals.counts.feedback_received || 0}</strong> Feedback</span>
+          <div className="distribution-module-heading"><Rss aria-hidden="true" /><div><p className="eyebrow">Weekly Content Radar</p><h3>Monday + Thursday</h3></div></div>
+          <p>Google demand signals, niche news discovery, and authoritative technical feeds are ranked together. Scheduled posts publish from authoritative sources only.</p>
+          <div className="content-action-row">
+            <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => run("/api/admin/content-radar", "Content radar")} type="button"><RefreshCw aria-hidden="true" size={16} /> Scan now</button>
+            <a className="icon-button" href="/resources" rel="noreferrer" target="_blank" title="Open published resources"><ExternalLink aria-hidden="true" size={18} /></a>
           </div>
-          <div className="source-status-list">
-            {(snapshot?.approvals.latest || []).slice(0, 4).map((approval) => (
-              <div key={approval.id}><span className="source-dot" /><strong>{approval.title}</strong><small>Revision {approval.revisionVersion} | {approval.status}</small></div>
-            ))}
-          </div>
+          <p className="form-note">Manual scans produce ranked, editable articles. The protected Vercel cron publishes at most one new article per scheduled run and records duplicate skips.</p>
         </article>
       </div>
 
