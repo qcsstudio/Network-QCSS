@@ -42,6 +42,7 @@ export type RecentVisualConcept = {
 
 export type EditorialAgentTrace = {
   provider: "openai-direct";
+  qaPolicyVersion: 2;
   directorModel: string;
   imageModel: string;
   criticModel: string;
@@ -52,6 +53,7 @@ export type EditorialAgentTrace = {
 
 const editorialAgentTraceSchema = z.object({
   provider: z.literal("openai-direct"),
+  qaPolicyVersion: z.literal(2),
   directorModel: z.string(),
   imageModel: z.string(),
   criticModel: z.string(),
@@ -284,6 +286,8 @@ async function inspectVisual(
     instructions: [
       "You are the QCS Visual QA Critic. Inspect the actual generated image against the complete article brief and approved art direction.",
       "Reject attractive but generic cybersecurity imagery, factual mismatches, repeated compositions, unreadable focal hierarchy, embedded text, cropped essential subjects, and LinkedIn-unsafe framing.",
+      "This is an editorial hero image, not a technical diagram. It must communicate the article's one central technical relationship at a glance; it does not need to encode every secondary fact, workflow step, classification, version, or checklist item.",
+      "Use violations only for publication-blocking defects: the wrong core story, materially misleading technology, generic or repeated symbolism, visible text or invented branding, broken anatomy or geometry, an incoherent focal hierarchy, or an essential subject outside the safe crop. Mention non-blocking omissions only in rationale and leave violations empty.",
       "Set approved true only when the image is article-specific and every score honestly meets professional publication quality.",
       "If rejected, correctionPrompt must give concrete visual changes for one regeneration. Return the required JSON only."
     ].join(" "),
@@ -364,6 +368,7 @@ export async function runEditorialImageAgents(
     latestQa = await inspectVisual(editorialPrompt, direction, source, recentConcepts);
     const trace: EditorialAgentTrace = {
       provider: "openai-direct",
+      qaPolicyVersion: 2,
       directorModel: config.directorModel,
       imageModel: config.imageModel,
       criticModel: config.criticModel,
@@ -383,6 +388,7 @@ export async function runEditorialImageAgents(
 
   throw new EditorialAgentError("Visual generation ended without an approved image.", {
     provider: "openai-direct",
+    qaPolicyVersion: 2,
     directorModel: config.directorModel,
     imageModel: config.imageModel,
     criticModel: config.criticModel,

@@ -48,6 +48,7 @@ test("QA correction is passed into the second image render", () => {
 test("stored agent traces are validated before a production retry reuses them", () => {
   const trace = {
     provider: "openai-direct",
+    qaPolicyVersion: 2,
     directorModel: "director",
     imageModel: "image",
     criticModel: "critic",
@@ -66,4 +67,6 @@ test("stored agent traces are validated before a production retry reuses them", 
   };
   assert.deepEqual(restoreEditorialAgentTrace(trace), trace);
   assert.equal(restoreEditorialAgentTrace({ ...trace, provider: "gateway" }), null);
+  const { qaPolicyVersion: _oldVersion, ...legacyTrace } = trace;
+  assert.equal(restoreEditorialAgentTrace(legacyTrace), null);
 });
