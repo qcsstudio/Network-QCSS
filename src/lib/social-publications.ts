@@ -5,6 +5,7 @@ import { ensureEditorialImageForPublication } from "@/lib/editorial-image-genera
 import { composeAdvisoryLinkedInPost, composeEditorialLinkedInPost } from "@/lib/linkedin-commentary";
 import { deleteLinkedInPost, publishLinkedInPost, updateLinkedInPostCommentary } from "@/lib/linkedin";
 import { getPrismaClient } from "@/lib/prisma";
+import { editorialImageWaitMessage, socialPublicationFailurePolicy } from "@/lib/social-publication-state";
 
 function trackedUrl(path: string, campaign: string, content: string) {
   const url = new URL(path, siteConfig.url);
@@ -174,7 +175,7 @@ export async function processLinkedInQueue(limit = 5) {
     try {
       const generatedImage = await ensureEditorialImageForPublication(job);
       if (!generatedImage?.generatedAt) {
-        throw new Error("LinkedIn delivery is waiting for the article-specific QCS image to finish generating.");
+        throw new Error(editorialImageWaitMessage);
       }
       if (!job.imageUrl) throw new Error("LinkedIn delivery is missing its canonical article image URL.");
       const imageUrl = (() => {
@@ -202,9 +203,8 @@ export async function processLinkedInQueue(limit = 5) {
       outcomes.push({ id: job.id, status: "published", externalId: result.externalId });
     } catch (error) {
       const attempts = job.attempts + 1;
-      const terminal = attempts >= 6;
-      const delayMinutes = Math.min(360, 2 ** attempts * 5);
       const message = error instanceof Error ? error.message.slice(0, 1800) : "Unknown LinkedIn publication error";
+      const { delayMinutes, terminal } = socialPublicationFailurePolicy(attempts, message);
       await prisma.socialPublication.update({
         where: { id: job.id },
         data: {
