@@ -7,6 +7,7 @@ import { blogPosts, type BlogPost } from "@/lib/blog";
 import {
   EditorialAgentError,
   editorialAgentConfiguration,
+  restoreEditorialAgentTrace,
   runEditorialImageAgents,
   type EditorialAgentTrace,
   type RecentVisualConcept
@@ -102,8 +103,12 @@ async function brandedVariant(source: Uint8Array, width: number, height: number)
     .toBuffer();
 }
 
-async function createContextualImages(prompt: string, recentConcepts: RecentVisualConcept[]) {
-  const generated = await runEditorialImageAgents(prompt, recentConcepts);
+async function createContextualImages(
+  prompt: string,
+  recentConcepts: RecentVisualConcept[],
+  previousTrace: EditorialAgentTrace | null
+) {
+  const generated = await runEditorialImageAgents(prompt, recentConcepts, previousTrace);
   const [heroImage, socialImage] = await Promise.all([
     brandedVariant(generated.source, 1440, 810),
     brandedVariant(generated.source, 1200, 628)
@@ -173,7 +178,11 @@ export async function ensureEditorialImage(input: EditorialImageInput, force = f
       take: 8,
       select: { agentTrace: true, contentId: true }
     });
-    const generated = await createContextualImages(prompt, recentVisualConcepts(recentAssets));
+    const generated = await createContextualImages(
+      prompt,
+      recentVisualConcepts(recentAssets),
+      restoreEditorialAgentTrace(asset.agentTrace)
+    );
     return await prisma.editorialImage.update({
       where: { id: asset.id },
       data: {
@@ -316,8 +325,11 @@ export async function generateMissingEditorialImages(limit = 1, force = false) {
         }
       }
     });
-    if (existing?.status === "ready" && !force) continue;
-    const generated = await ensureEditorialImage(input, force);
+    const legacyAsset = existing?.status === "ready" && existing.provider !== "openai-direct";
+    if (existing?.status === "ready" && !legacyAsset) continue;
+    if (existing?.status === "failed" && !force) continue;
+    if (existing?.status === "generating" && Date.now() - existing.updatedAt.getTime() < generationLeaseMs) continue;
+    const generated = await ensureEditorialImage(input, force || legacyAsset);
     outcomes.push({ contentId: input.contentId, status: generated?.status || "deferred" });
   }
   return outcomes;

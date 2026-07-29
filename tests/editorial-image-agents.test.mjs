@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildImageRenderPrompt, visualQaPasses } from "../src/lib/editorial-image-agents.ts";
+import { buildImageRenderPrompt, restoreEditorialAgentTrace, visualQaPasses } from "../src/lib/editorial-image-agents.ts";
 
 const direction = {
   storyThesis: "An unauthorized route origin is checked against the operator's ROA evidence before policy changes.",
@@ -43,4 +43,27 @@ test("visual QA requires both model approval and hard score thresholds", () => {
 test("QA correction is passed into the second image render", () => {
   const prompt = buildImageRenderPrompt("ARTICLE: packet capture at both firewall interfaces.", direction, "Show both capture points clearly.");
   assert.match(prompt, /MANDATORY QA CORRECTION: Show both capture points clearly/i);
+});
+
+test("stored agent traces are validated before a production retry reuses them", () => {
+  const trace = {
+    provider: "openai-direct",
+    directorModel: "director",
+    imageModel: "image",
+    criticModel: "critic",
+    direction,
+    qa: {
+      approved: false,
+      relevanceScore: 88,
+      specificityScore: 80,
+      diversityScore: 90,
+      compositionScore: 87,
+      violations: ["The mirror path is ambiguous"],
+      rationale: "The central technical relationship needs a clearer path.",
+      correctionPrompt: "Make the passive mirror path visually explicit."
+    },
+    renderAttempts: 1
+  };
+  assert.deepEqual(restoreEditorialAgentTrace(trace), trace);
+  assert.equal(restoreEditorialAgentTrace({ ...trace, provider: "gateway" }), null);
 });

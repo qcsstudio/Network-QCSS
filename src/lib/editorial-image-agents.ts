@@ -50,6 +50,16 @@ export type EditorialAgentTrace = {
   renderAttempts: number;
 };
 
+const editorialAgentTraceSchema = z.object({
+  provider: z.literal("openai-direct"),
+  directorModel: z.string(),
+  imageModel: z.string(),
+  criticModel: z.string(),
+  direction: visualDirectionSchema,
+  qa: visualQaSchema,
+  renderAttempts: z.number().int().min(1)
+});
+
 export class EditorialAgentError extends Error {
   trace?: Partial<EditorialAgentTrace>;
 
@@ -311,13 +321,30 @@ export function visualQaPasses(qa: VisualQa) {
   );
 }
 
-export async function runEditorialImageAgents(editorialPrompt: string, recentConcepts: RecentVisualConcept[]) {
-  const config = editorialAgentConfiguration();
-  const direction = await directVisualDirection(editorialPrompt, recentConcepts);
-  let correction = "";
-  let latestQa: VisualQa | undefined;
+export function restoreEditorialAgentTrace(value: unknown) {
+  const result = editorialAgentTraceSchema.safeParse(value);
+  return result.success ? result.data : null;
+}
 
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
+function attemptsPerRun() {
+  const configured = Number(env("EDITORIAL_IMAGE_ATTEMPTS_PER_RUN"));
+  if (Number.isFinite(configured) && configured >= 1) return Math.min(Math.floor(configured), 2);
+  return process.env.VERCEL ? 1 : 2;
+}
+
+export async function runEditorialImageAgents(
+  editorialPrompt: string,
+  recentConcepts: RecentVisualConcept[],
+  previousTrace: EditorialAgentTrace | null = null
+) {
+  const config = editorialAgentConfiguration();
+  const direction = previousTrace?.direction || (await directVisualDirection(editorialPrompt, recentConcepts));
+  let correction = previousTrace?.qa.correctionPrompt || previousTrace?.qa.violations.join("; ") || "";
+  let latestQa: VisualQa | undefined;
+  const priorAttempts = previousTrace?.renderAttempts || 0;
+  const maximumAttempts = attemptsPerRun();
+
+  for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
     const source = await produceImage(editorialPrompt, direction, correction);
     latestQa = await inspectVisual(editorialPrompt, direction, source, recentConcepts);
     const trace: EditorialAgentTrace = {
@@ -327,13 +354,13 @@ export async function runEditorialImageAgents(editorialPrompt: string, recentCon
       criticModel: config.criticModel,
       direction,
       qa: latestQa,
-      renderAttempts: attempt
+      renderAttempts: priorAttempts + attempt
     };
     if (visualQaPasses(latestQa)) return { source, trace };
     correction = latestQa.correctionPrompt || latestQa.violations.join("; ");
-    if (attempt === 2) {
+    if (attempt === maximumAttempts) {
       throw new EditorialAgentError(
-        `Visual QA rejected the generated image after ${attempt} attempts: ${latestQa.rationale}`,
+        `Visual QA rejected the generated image after ${priorAttempts + attempt} total render attempts: ${latestQa.rationale}`,
         trace
       );
     }
@@ -345,6 +372,7 @@ export async function runEditorialImageAgents(editorialPrompt: string, recentCon
     imageModel: config.imageModel,
     criticModel: config.criticModel,
     direction,
-    qa: latestQa
+    qa: latestQa,
+    renderAttempts: priorAttempts
   });
 }

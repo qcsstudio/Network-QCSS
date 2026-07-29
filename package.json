@@ -20,6 +20,7 @@
     "test:content": "node --experimental-strip-types --test tests/content-radar-domain.test.mjs tests/editorial-image-agents.test.mjs tests/editorial-image-prompt.test.mjs tests/editorial-visuals.test.mjs tests/linkedin-commentary.test.mjs",
     "test:verifygrid": "node --experimental-strip-types --test tests/verifygrid-domain.test.mjs",
     "content:seed": "node scripts/seed-content-studio.mjs",
+    "content:images:backfill": "tsx -r dotenv/config scripts/backfill-editorial-images.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy"
@@ -50,9 +51,11 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "dotenv": "^17.4.2",
     "eslint": "^9.0.0",
     "eslint-config-next": "16.2.12",
     "prisma": "7.9.1",
+    "tsx": "^4.23.1",
     "typescript": "^5.9.0"
   },
   "overrides": {
