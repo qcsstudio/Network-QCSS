@@ -710,6 +710,7 @@ export async function scanAdvisorySources(options: { backfillOnly?: boolean } = 
       let published = 0;
       let unchanged = 0;
       let queued = 0;
+      let editorialHold = "";
 
       for (const item of candidates) {
         if (await previouslyProcessedCandidate(source.id, item)) {
@@ -721,13 +722,19 @@ export async function scanAdvisorySources(options: { backfillOnly?: boolean } = 
           continue;
         }
         remainingEditorialBudget -= 1;
-        const editorialCandidate = await enrichCandidate(definition, item);
-        const stored = await storeCandidate(source.id, editorialCandidate);
-        if (stored.changed) {
-          published += 1;
-          await queueLinkedInForAdvisory(stored.advisory, stored.revision);
-        } else {
-          unchanged += 1;
+        try {
+          const editorialCandidate = await enrichCandidate(definition, item);
+          const stored = await storeCandidate(source.id, editorialCandidate);
+          if (stored.changed) {
+            published += 1;
+            await queueLinkedInForAdvisory(stored.advisory, stored.revision);
+          } else {
+            unchanged += 1;
+          }
+        } catch (error) {
+          editorialHold = error instanceof Error ? error.message.slice(0, 1200) : "Unknown editorial review error";
+          queued += 1;
+          console.warn(`Editorial review held ${definition.slug}:${item.externalId}.`, error);
         }
       }
 
@@ -744,7 +751,15 @@ export async function scanAdvisorySources(options: { backfillOnly?: boolean } = 
               lastError: null
             }
       });
-      results.push({ source: source.name, status: response.status, candidates: candidates.length, published, unchanged, queued });
+      results.push({
+        source: source.name,
+        status: response.status,
+        candidates: candidates.length,
+        published,
+        unchanged,
+        queued,
+        error: editorialHold || undefined
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message.slice(0, 1200) : "Unknown advisory source error";
       await prisma.advisorySource.update({
