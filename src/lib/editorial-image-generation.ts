@@ -17,6 +17,7 @@ import {
   buildArticleImageContext,
   buildEditorialImagePrompt
 } from "@/lib/editorial-image-prompt";
+import { shouldDeferEditorialImageGeneration } from "@/lib/editorial-image-state";
 import { getPrismaClient } from "@/lib/prisma";
 
 type EditorialImageInput = {
@@ -35,9 +36,6 @@ type PublicationIdentity = {
 };
 
 export type EditorialImageVariant = "hero" | "social";
-
-const retryDelayMs = 8 * 60_000;
-const generationLeaseMs = 12 * 60_000;
 
 function normalize(value: string) {
   return value.replace(/\s+/g, " ").trim();
@@ -153,13 +151,37 @@ export async function ensureEditorialImage(input: EditorialImageInput, force = f
   };
   let asset = await prisma.editorialImage.upsert({
     where: { contentType_contentId_contentRevision: key },
-    update: { altText: input.altText, prompt, promptHash },
+    update: {},
     create: { ...key, altText: input.altText, prompt, promptHash }
   });
+  const leaseUpdatedAt = asset.updatedAt;
+  const promptChanged = asset.promptHash !== promptHash;
+  if (promptChanged || asset.altText !== input.altText || asset.prompt !== prompt) {
+    asset = await prisma.editorialImage.update({
+      where: { id: asset.id },
+      data: {
+        altText: input.altText,
+        prompt,
+        promptHash,
+        ...(promptChanged
+          ? {
+              agentTrace: Prisma.DbNull,
+              generatedAt: null,
+              heroImage: null,
+              lastError: null,
+              model: null,
+              provider: null,
+              qaScore: null,
+              socialImage: null,
+              status: "pending"
+            }
+          : {})
+      }
+    });
+  }
   if (asset.status === "ready" && asset.promptHash === promptHash && asset.heroImage && asset.socialImage) return asset;
-  const age = Date.now() - asset.updatedAt.getTime();
-  if (!force && asset.status === "generating" && age < generationLeaseMs) return null;
-  if (!force && asset.status === "failed" && age < retryDelayMs) return null;
+  const age = Date.now() - leaseUpdatedAt.getTime();
+  if (shouldDeferEditorialImageGeneration({ ageMs: age, force, promptChanged, status: asset.status })) return null;
 
   const claimed = await prisma.editorialImage.updateMany({
     where: {
@@ -329,8 +351,17 @@ export async function generateMissingEditorialImages(limit = 1, force = false, e
     });
     const legacyAsset = existing?.status === "ready" && existing.provider !== "openai-direct";
     if (existing?.status === "ready" && !legacyAsset) continue;
-    if (existing?.status === "failed" && !force) continue;
-    if (existing?.status === "generating" && Date.now() - existing.updatedAt.getTime() < generationLeaseMs) continue;
+    if (
+      existing &&
+      shouldDeferEditorialImageGeneration({
+        ageMs: Date.now() - existing.updatedAt.getTime(),
+        force,
+        promptChanged: false,
+        status: existing.status
+      })
+    ) {
+      continue;
+    }
     const generated = await ensureEditorialImage(input, force || legacyAsset);
     outcomes.push({ contentId: input.contentId, status: generated?.status || "deferred" });
   }
