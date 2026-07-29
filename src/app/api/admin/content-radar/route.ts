@@ -446,6 +446,10 @@ export async function GET(request: Request) {
   const drafts = [firstDraftTopic, secondDraftTopic]
     .filter((topic): topic is RankedTopic => Boolean(topic))
     .map(draftFromTopic);
+  const rankedTopics = topics.map((topic, index) => ({
+    ...topic,
+    draft: draftFromTopic(topic, index)
+  }));
 
   const today = new Date().toISOString().slice(0, 10);
   let automation: AutomationResult = { mode: scheduledRequest ? "scheduled-publish" : "scan-only", status: "not-requested" };
@@ -548,7 +552,7 @@ export async function GET(request: Request) {
         status: result.status,
         items: result.items.length
       })),
-      topics,
+      topics: rankedTopics,
       drafts,
       automation
     },

@@ -41,6 +41,7 @@ type ContentRadarResponse = {
     keywordCluster: string[];
     suggestedSlug: string;
     reason: string;
+    draft: RadarDraft;
   }[];
   drafts: RadarDraft[];
 };
@@ -197,6 +198,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
       setDraft(structuredClone(result.post.content));
       setSourceUrl(result.post.sourceUrl);
       setStatus(`Publication-ready draft created for ${result.post.title}. Verify the source and article before approval.`);
+      window.setTimeout(() => document.querySelector("#content-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Unable to create the draft.");
     } finally {
@@ -405,15 +407,45 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
           </div>
 
           <div className="content-radar-column">
-            <h3>Ranked trend signals</h3>
+            <div className="content-radar-column-heading">
+              <h3>Ranked article opportunities</h3>
+              <span>{radar.topics.length} ranked</span>
+            </div>
             <div className="stack-list">
-              {radar.topics.slice(0, 6).map((topic) => (
-                <a className="stack-item content-topic-card" href={topic.sourceUrl} key={`${topic.source}-${topic.topic}`} rel="noreferrer" target="_blank">
-                  <strong>{topic.topic}</strong>
-                  <span>{topic.score} score | {topic.sourceRole} | {topic.source}{topic.supportingSignals ? ` | ${topic.supportingSignals} supporting signal(s)` : ""}</span>
-                  <em>{topic.businessAngle}</em>
-                </a>
-              ))}
+              {radar.topics.map((topic, index) => {
+                const savedPost = posts.find((post) => post.slug === topic.suggestedSlug || post.content.slug === topic.suggestedSlug);
+                return (
+                  <article className="stack-item content-topic-card" key={`${topic.source}-${topic.topic}`}>
+                    <div className="content-topic-rank-row">
+                      <span className="content-rank-pill">#{index + 1} | {topic.score} score</span>
+                      <span className={`status-pill content-source-${topic.sourceRole}`}>{topic.sourceRole}</span>
+                    </div>
+                    <h4>{topic.topic}</h4>
+                    <span>{topic.source}{topic.supportingSignals ? ` | ${topic.supportingSignals} supporting signal(s)` : ""}</span>
+                    <em>{topic.businessAngle}</em>
+                    <div className="content-topic-actions">
+                      {savedPost ? (
+                        savedPost.status === "deleted" ? (
+                          <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => restorePost(savedPost)} type="button">
+                            <RotateCcw aria-hidden="true" size={16} /> Restore draft
+                          </button>
+                        ) : (
+                          <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => editPost(savedPost)} type="button">
+                            <FileText aria-hidden="true" size={16} /> Open {savedPost.status}
+                          </button>
+                        )
+                      ) : (
+                        <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => createPost({ draft: topic.draft })} type="button">
+                          <FilePlus2 aria-hidden="true" size={16} /> Move to draft
+                        </button>
+                      )}
+                      <a className="icon-button" href={topic.sourceUrl} rel="noreferrer" target="_blank" title={`Open source from ${topic.source}`}>
+                        <ExternalLink aria-hidden="true" size={17} />
+                      </a>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </div>
 
