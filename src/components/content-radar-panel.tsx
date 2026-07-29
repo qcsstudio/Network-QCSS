@@ -19,6 +19,7 @@ type RadarDraft = {
   sourceRole?: "authority" | "demand" | "discovery";
   sourcePublishedAt?: string;
   sourceSummary?: string;
+  supportingSources?: Array<{ label: string; url: string; summary?: string }>;
   businessAngle?: string;
   servicePath?: string;
   keywordCluster?: string[];
@@ -56,6 +57,7 @@ export type ContentPostRecord = {
   approvedBy: string;
   approvedAt: string;
   publishedAt: string;
+  qualityScore: number | null;
   updatedAt: string;
   revisions: { id: string; version: number; action: string; actor: string; createdAt: string }[];
 };
@@ -317,7 +319,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
         <div>
           <p className="eyebrow">Content Studio</p>
           <h2>Research, verify, approve, and publish.</h2>
-          <p>Radar findings become complete, editable articles. The scheduler publishes one authoritative post every Monday and Thursday; manual posts retain admin approval.</p>
+          <p>Radar findings become researched, editable articles. Every Monday and Thursday the scheduler prepares one evidence-grounded draft for your approval.</p>
         </div>
         <div className="content-action-row">
           <button className="button secondary" disabled={Boolean(busy)} onClick={() => loadPosts().catch((error) => setStatus(String(error)))} type="button">
@@ -360,6 +362,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
                 <div className="content-card-statuses">
                   <span className={`status-pill content-status-${post.status}`}>{post.status}</span>
                   <span className="status-pill content-kind-pill">{post.content.contentType || "blog"}</span>
+                  {post.qualityScore !== null ? <span className="status-pill content-kind-pill">QA {post.qualityScore}</span> : <span className="status-pill content-kind-pill">manual review</span>}
                 </div>
                 <h4>{post.title}</h4>
                 <p>Updated {new Date(post.updatedAt).toLocaleString("en-IN")} | Revision {post.revisions[0]?.version || 1}</p>
@@ -384,14 +387,14 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
             </article>
           ))
         ) : (
-          <div className="content-empty-state">No saved drafts yet. Scan the radar or add the reviewed Cisco article.</div>
+          <div className="content-empty-state">No saved drafts yet. Scan the radar or create a new article.</div>
         )}
       </div>
 
       {radar ? (
         <div className="content-radar-grid">
           <div className="content-radar-column">
-            <h3>Publication-ready weekly drafts</h3>
+            <h3>Ranked weekly briefs</h3>
             <div className="stack-list">
               {radar.drafts.map((radarDraft) => (
                 <article className="stack-item content-draft-card" key={`${radarDraft.slot}-${radarDraft.slug}`}>
@@ -400,7 +403,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
                   <span>{radarDraft.metaDescription}</span>
                   <div className="content-action-row">
                     <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => createPost({ draft: radarDraft })} type="button">
-                      <FilePlus2 aria-hidden="true" size={16} /> Create draft
+                      <FilePlus2 aria-hidden="true" size={16} /> Research draft
                     </button>
                     <button className="icon-button" onClick={() => navigator.clipboard.writeText(draftText(radarDraft)).then(() => setStatus(`Copied ${radarDraft.slot} brief.`))} title="Copy brief" type="button">
                       <Clipboard aria-hidden="true" size={17} />
@@ -557,7 +560,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
           <div className="content-publish-bar">
             <div>
               <span className={`status-pill content-status-${selected.status}`}>{selected.status}</span>
-              <small>Save, review the private preview, approve, then publish. Every admin action and scheduled publication is recorded.</small>
+              <small>Save, review the private preview, approve, then publish. Scheduled jobs create drafts only; every editorial action is recorded.</small>
             </div>
             <div className="content-action-row">
               {selected.status === "deleted" ? (

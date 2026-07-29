@@ -15,6 +15,11 @@ export type RadarDraftInput = {
   sourceRole?: "authority" | "demand" | "discovery";
   sourcePublishedAt?: string;
   sourceSummary?: string;
+  supportingSources?: Array<{
+    label: string;
+    url: string;
+    summary?: string;
+  }>;
   businessAngle?: string;
   servicePath?: string;
   keywordCluster?: string[];

@@ -3,10 +3,10 @@ import { getAdminSession, isAdminRequest } from "@/lib/admin-auth";
 import { jsonError, noStoreHeaders, readJsonBody } from "@/lib/api";
 import {
   createContentPost,
+  createResearchedContentPostFromRadar,
   importBuiltInContentPosts,
   listContentPosts,
   starterContentPost,
-  starterPostFromRadar,
   type RadarDraftInput
 } from "@/lib/content-posts";
 import { rateLimit } from "@/lib/rate-limit";
@@ -16,6 +16,7 @@ import { blogPosts } from "@/lib/blog";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 async function adminActor(request: Request) {
   if (!isAdminRequest(request)) return "";
@@ -52,9 +53,17 @@ export async function POST(request: Request) {
     }
     const staticPost = payload.staticSlug ? blogPosts.find((post) => post.slug === payload.staticSlug) : undefined;
     const blankPost = payload.kind === "blog" || payload.kind === "resource" ? starterContentPost(payload.kind) : undefined;
-    const content = staticPost || blankPost || (payload.draft ? starterPostFromRadar(payload.draft) : payload.content);
+    if (payload.draft) {
+      const post = await createResearchedContentPostFromRadar(payload.draft, actor);
+      await createAuditLog(
+        { action: "content.researched_draft_created", actor, target: post?.id || "content-post", metadata: { slug: post?.slug || "", qualityScore: post?.qualityScore } },
+        await requestContext()
+      );
+      return NextResponse.json({ ok: true, post }, { status: 201, headers: noStoreHeaders });
+    }
+    const content = staticPost || blankPost || payload.content;
     if (!content) return jsonError("A radar brief or structured post is required.", 400);
-    const sourceUrl = String(payload.sourceUrl || payload.draft?.sourceUrl || staticPost?.sources[0]?.url || "");
+    const sourceUrl = String(payload.sourceUrl || staticPost?.sources[0]?.url || "");
     const post = await createContentPost(content, sourceUrl, actor);
     await createAuditLog(
       { action: "content.post_created", actor, target: post?.id || "content-post", metadata: { slug: post?.slug || "" } },

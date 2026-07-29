@@ -1,9 +1,9 @@
 import OpenAI from "openai";
 import { z } from "zod";
 
-export const defaultEditorialDirectorModel = "gpt-5.6-terra";
+export const defaultEditorialDirectorModel = "gpt-5.6-sol";
 export const defaultEditorialImageModel = "gpt-image-2";
-export const defaultEditorialCriticModel = "gpt-5.6-terra";
+export const defaultEditorialCriticModel = "gpt-5.6-sol";
 
 const visualDirectionSchema = z.object({
   storyThesis: z.string().min(20).max(500),

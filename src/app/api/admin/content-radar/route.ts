@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { jsonError, noStoreHeaders } from "@/lib/api";
 import { contentAutomationSources, trendTopicSeeds, weeklyBlogCadence, type TrendSource } from "@/lib/blog";
-import { getAutomatedPostForUtcDate, publishAutomatedRadarDraft } from "@/lib/content-posts";
+import { createAutomatedRadarDraft, getAutomatedPostForUtcDate } from "@/lib/content-posts";
 import { requestContext } from "@/lib/security";
-import { processLinkedInQueue, queueLinkedInForContentPost } from "@/lib/social-publications";
 import { createAuditLog } from "@/lib/store";
 
 export const runtime = "nodejs";
@@ -38,15 +36,15 @@ type RankedTopic = {
   keywordCluster: string[];
   suggestedSlug: string;
   reason: string;
+  supportingSources?: Array<{ label: string; url: string; summary?: string }>;
 };
 
 type AutomationResult = {
-  mode: "scan-only" | "scheduled-publish";
-  status: "not-requested" | "already-published" | "published" | "no-new-topic" | "failed";
+  mode: "scan-only" | "scheduled-draft";
+  status: "not-requested" | "already-drafted" | "drafted" | "no-new-topic" | "failed";
   postId?: string;
   slug?: string;
   title?: string;
-  social?: "queued" | "failed";
   reason?: string;
   attempts?: { slug: string; result: string }[];
 };
@@ -383,11 +381,21 @@ function draftFromTopic(topic: RankedTopic, index: number) {
     sourceRole: topic.sourceRole,
     sourcePublishedAt: topic.sourcePublishedAt,
     sourceSummary: topic.sourceSummary,
+    supportingSources: topic.supportingSources,
     businessAngle: topic.businessAngle,
     servicePath: topic.servicePath,
     keywordCluster: topic.keywordCluster,
     imageRecommendation: `/resources/${topic.suggestedSlug}/visual`
   };
+}
+
+function advisoryOnlyTopic(topic: RankedTopic) {
+  const value = `${topic.topic} ${topic.source}`;
+  return (
+    /\bCVE-\d{4}-\d{4,}\b/i.test(value) ||
+    /\b(privilege escalation|remote code execution|cross-site scripting|authentication bypass) vulnerabilit/i.test(value) ||
+    /PSIRT|Known Exploited Vulnerabilities/i.test(topic.source)
+  );
 }
 
 export async function GET(request: Request) {
@@ -407,11 +415,22 @@ export async function GET(request: Request) {
     if (topic.sourceRole === "authority") continue;
     supportingSignals.set(topic.cluster, (supportingSignals.get(topic.cluster) || 0) + 1);
   }
+  const authorityByCluster = new Map<string, Array<{ label: string; url: string; summary?: string }>>();
+  for (const topic of rawTopics) {
+    if (topic.sourceRole !== "authority") continue;
+    const sources = authorityByCluster.get(topic.cluster) || [];
+    if (!sources.some((source) => source.url === topic.sourceUrl)) {
+      sources.push({ label: topic.source, url: topic.sourceUrl, summary: topic.sourceSummary });
+      authorityByCluster.set(topic.cluster, sources);
+    }
+  }
   const liveTopics = rawTopics.map((topic) => {
     const support = supportingSignals.get(topic.cluster) || 0;
-    if (topic.sourceRole !== "authority" || !support) return topic;
+    const supportingSources = (authorityByCluster.get(topic.cluster) || []).filter((source) => source.url !== topic.sourceUrl).slice(0, 3);
+    if (topic.sourceRole !== "authority" || !support) return { ...topic, supportingSources };
     return {
       ...topic,
+      supportingSources,
       score: topic.score + Math.min(14, support * 2),
       supportingSignals: support,
       reason: `${topic.reason} Corroborated by ${support} current demand or news signal(s).`
@@ -433,7 +452,7 @@ export async function GET(request: Request) {
     .slice(0, 12);
 
   const candidateKeys = new Set<string>();
-  const publicationCandidates = [...topics.filter((topic) => topic.sourceRole === "authority"), ...fallbackTopics()].filter((topic) => {
+  const publicationCandidates = topics.filter((topic) => topic.sourceRole === "authority" && !advisoryOnlyTopic(topic)).filter((topic) => {
     const key = normalizedTitle(topic.topic);
     if (candidateKeys.has(key)) return false;
     candidateKeys.add(key);
@@ -451,13 +470,13 @@ export async function GET(request: Request) {
   }));
 
   const today = new Date().toISOString().slice(0, 10);
-  let automation: AutomationResult = { mode: scheduledRequest ? "scheduled-publish" : "scan-only", status: "not-requested" };
+  let automation: AutomationResult = { mode: scheduledRequest ? "scheduled-draft" : "scan-only", status: "not-requested" };
   if (scheduledRequest) {
     const existingToday = await getAutomatedPostForUtcDate(today);
     if (existingToday) {
       automation = {
-        mode: "scheduled-publish",
-        status: "already-published",
+        mode: "scheduled-draft",
+        status: "already-drafted",
         postId: existingToday.id,
         slug: existingToday.slug,
         title: existingToday.title
@@ -468,43 +487,29 @@ export async function GET(request: Request) {
       for (const topic of publicationCandidates) {
         const draft = draftFromTopic(topic, cadenceIndex);
         try {
-          const outcome = await publishAutomatedRadarDraft(draft);
+          const outcome = await createAutomatedRadarDraft(draft);
           attempts.push({ slug: draft.slug, result: outcome.reason });
-          if (!outcome.published || !outcome.post) continue;
-
-          let social: "queued" | "failed" = "queued";
-          try {
-            await queueLinkedInForContentPost(outcome.post);
-            await processLinkedInQueue(1);
-          } catch (error) {
-            social = "failed";
-            console.error("The scheduled article was published, but LinkedIn delivery failed.", error);
-          }
-          revalidatePath("/resources");
-          revalidatePath(`/resources/${outcome.post.slug}`);
-          revalidatePath("/intelligence");
-          revalidatePath("/sitemap.xml");
+          if (!outcome.created || !outcome.post) continue;
           automation = {
-            mode: "scheduled-publish",
-            status: "published",
+            mode: "scheduled-draft",
+            status: "drafted",
             postId: outcome.post.id,
             slug: outcome.post.slug,
             title: outcome.post.title,
-            social,
             attempts
           };
           break;
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Publication failed.";
+          const message = error instanceof Error ? error.message : "Draft creation failed.";
           attempts.push({ slug: draft.slug, result: message });
-          console.error("Scheduled content publication failed for a radar candidate.", { slug: draft.slug, error });
+          console.error("Scheduled researched draft creation failed for a radar candidate.", { slug: draft.slug, error });
         }
       }
       if (automation.status === "not-requested") {
         const lastAttempt = attempts.at(-1)?.result || "No publication-ready authoritative topic was available.";
         const failed = attempts.some((attempt) => !attempt.result.startsWith("slug_"));
         automation = {
-          mode: "scheduled-publish",
+          mode: "scheduled-draft",
           status: failed ? "failed" : "no-new-topic",
           reason: lastAttempt,
           attempts

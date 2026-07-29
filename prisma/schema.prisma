@@ -106,6 +106,8 @@ model ContentPost {
   approvedBy  String?
   approvedAt  DateTime?
   publishedAt DateTime?
+  researchTrace Json?
+  qualityScore Int?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   revisions   ContentRevision[]
@@ -237,6 +239,9 @@ model SecurityAdvisory {
   title              String
   vendor             String
   summary            String
+  technicalExplanation String                  @default("")
+  businessImpact     String                     @default("")
+  evidenceChecklist Json                       @default("[]")
   severity           String
   cvssScore          Float?
   priorityScore      Int
@@ -251,6 +256,8 @@ model SecurityAdvisory {
   contentHash        String
   status             String                     @default("published")
   editorialOverride  Boolean                    @default(false)
+  editorialTrace     Json?
+  qualityScore       Int?
   createdBy          String?
   updatedBy          String?
   deletedAt          DateTime?

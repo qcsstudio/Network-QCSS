@@ -2,6 +2,8 @@ import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { blogPosts, type BlogPost } from "@/lib/blog";
 import { buildRadarPublicationPost, type RadarDraftInput } from "@/lib/content-radar-domain";
+import { createResearchedBlog } from "@/lib/editorial-content-agents";
+import { isTrustedEditorialUrl } from "@/lib/editorial-source-policy";
 import { getPrismaClient } from "@/lib/prisma";
 
 export type { RadarDraftInput } from "@/lib/content-radar-domain";
@@ -73,6 +75,7 @@ export type ContentPostRecord = {
   approvedBy: string;
   approvedAt: string;
   publishedAt: string;
+  qualityScore: number | null;
   createdAt: string;
   updatedAt: string;
   revisions: {
@@ -107,6 +110,7 @@ function mapContentPost(record: {
   approvedBy: string | null;
   approvedAt: Date | null;
   publishedAt: Date | null;
+  qualityScore?: number | null;
   createdAt: Date;
   updatedAt: Date;
   revisions?: { id: string; version: number; action: string; actor: string | null; createdAt: Date }[];
@@ -122,6 +126,7 @@ function mapContentPost(record: {
     approvedBy: record.approvedBy || "",
     approvedAt: record.approvedAt?.toISOString() || "",
     publishedAt: record.publishedAt?.toISOString() || "",
+    qualityScore: record.qualityScore ?? null,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     revisions: (record.revisions || []).map((revision) => ({
@@ -156,6 +161,13 @@ export function publicationIssues(post: BlogPost) {
   if (post.description.length > 160) issues.push("Keep the meta description at 160 characters or fewer.");
   if (post.sections.length < 3) issues.push("Add at least three substantive sections.");
   if (post.sources.length < 1) issues.push("Add at least one authoritative source.");
+  if (!post.sources.some((source) => isTrustedEditorialUrl(source.url))) issues.push("Add at least one approved authoritative source.");
+  const bodyWords = post.sections
+    .flatMap((section) => [section.body, ...(section.bullets || [])])
+    .join(" ")
+    .split(/\s+/)
+    .filter(Boolean).length;
+  if (bodyWords < 650) issues.push("Develop the article to at least 650 useful body words before publication.");
   return issues;
 }
 
@@ -267,7 +279,12 @@ export async function getContentPost(id: string) {
   return record ? mapContentPost(record) : null;
 }
 
-export async function createContentPost(contentValue: unknown, sourceUrl: string, actor: string) {
+export async function createContentPost(
+  contentValue: unknown,
+  sourceUrl: string,
+  actor: string,
+  editorial?: { qualityScore: number; researchTrace: unknown }
+) {
   const content = parsePost(contentValue);
   const prisma = getPrismaClient();
   const record = await prisma.contentPost.create({
@@ -276,11 +293,46 @@ export async function createContentPost(contentValue: unknown, sourceUrl: string
       title: content.title,
       content: inputJson(content),
       sourceUrl,
-      createdBy: actor
+      createdBy: actor,
+      qualityScore: editorial?.qualityScore,
+      researchTrace: editorial ? inputJson(editorial.researchTrace) : undefined
     }
   });
   await addRevision(record.id, content, "created", actor);
   return getContentPost(record.id);
+}
+
+function researchSourcesForDraft(draft: RadarDraftInput) {
+  const candidates = [
+    ...(draft.sourceRole === "authority"
+      ? [{ label: draft.sourceName || "Primary technical source", url: draft.sourceUrl, suppliedSummary: draft.sourceSummary }]
+      : []),
+    ...(draft.supportingSources || []).map((source) => ({
+      label: source.label,
+      url: source.url,
+      suppliedSummary: source.summary
+    }))
+  ];
+  const unique = new Map(candidates.filter((source) => isTrustedEditorialUrl(source.url)).map((source) => [source.url, source]));
+  return [...unique.values()].slice(0, 4);
+}
+
+export async function createResearchedContentPostFromRadar(draft: RadarDraftInput, actor: string) {
+  const sources = researchSourcesForDraft(draft);
+  if (!sources.length) throw new Error("This trend needs an approved primary source before it can become an article draft.");
+  const researched = await createResearchedBlog({
+    slug: draft.slug,
+    topic: draft.title,
+    businessAngle: draft.businessAngle || draft.answerBlock,
+    keywordCluster: draft.keywordCluster || [draft.title],
+    internalLinks: draft.internalLinks,
+    servicePath: draft.servicePath,
+    sources
+  });
+  return createContentPost(researched.content, sources[0].url, actor, {
+    qualityScore: researched.qualityScore,
+    researchTrace: researched.trace
+  });
 }
 
 export async function updateContentPost(id: string, contentValue: unknown, sourceUrl: string, actor: string) {
@@ -297,7 +349,8 @@ export async function updateContentPost(id: string, contentValue: unknown, sourc
       sourceUrl,
       status: "draft",
       approvedAt: null,
-      approvedBy: null
+      approvedBy: null,
+      qualityScore: null
     }
   });
   await addRevision(id, content, "updated", actor);
@@ -313,22 +366,22 @@ export async function regenerateRadarContentPost(id: string, actor: string) {
     ...existing.content.relatedServices.map((link) => link.href),
     ...existing.content.relatedTools.map((link) => link.href)
   ];
-  const content = buildRadarPublicationPost({
-    title: existing.content.title,
+  const sources = existing.content.sources
+    .filter((item) => isTrustedEditorialUrl(item.url))
+    .map((item) => ({ label: sourceName(item.url, item.label), url: item.url }));
+  if (!sources.length && isTrustedEditorialUrl(primarySourceUrl)) {
+    sources.push({ label: sourceName(primarySourceUrl, source?.label), url: primarySourceUrl });
+  }
+  const researched = await createResearchedBlog({
     slug: existing.content.slug,
-    metaTitle: existing.content.metaTitle,
-    metaDescription: existing.content.description,
-    answerBlock: existing.content.answer,
-    sections: existing.content.sections.map((section) => section.heading),
-    internalLinks,
-    sourceUrl: primarySourceUrl,
-    sourceName: sourceName(primarySourceUrl, source?.label),
-    sourceRole: "authority",
-    sourcePublishedAt: existing.content.publishedAt,
+    topic: existing.content.title,
+    businessAngle: existing.content.answer,
     keywordCluster: existing.content.keywords,
+    internalLinks,
     servicePath: existing.content.relatedServices[0]?.href,
-    imageRecommendation: existing.content.image
+    sources
   });
+  const content = researched.content;
   const prisma = getPrismaClient();
   await prisma.contentPost.update({
     where: { id },
@@ -339,7 +392,9 @@ export async function regenerateRadarContentPost(id: string, actor: string) {
       sourceUrl: primarySourceUrl,
       status: "draft",
       approvedAt: null,
-      approvedBy: null
+      approvedBy: null,
+      qualityScore: researched.qualityScore,
+      researchTrace: inputJson(researched.trace)
     }
   });
   await addRevision(id, content, "radar_content_regenerated", actor);
@@ -365,32 +420,23 @@ export async function getAutomatedPostForUtcDate(date: string, actor = "content-
   const start = new Date(`${date}T00:00:00.000Z`);
   const end = new Date(start.getTime() + 86_400_000);
   const record = await getPrismaClient().contentPost.findFirst({
-    where: { createdBy: actor, publishedAt: { gte: start, lt: end }, status: "published" },
-    orderBy: { publishedAt: "desc" },
+    where: { createdBy: actor, createdAt: { gte: start, lt: end }, status: { notIn: ["deleted", "archived"] } },
+    orderBy: { createdAt: "desc" },
     select: { id: true }
   });
   return record ? getContentPost(record.id) : null;
 }
 
-export async function publishAutomatedRadarDraft(draft: RadarDraftInput, actor = "content-radar-cron") {
+export async function createAutomatedRadarDraft(draft: RadarDraftInput, actor = "content-radar-cron") {
   const prisma = getPrismaClient();
   const existing = await prisma.contentPost.findUnique({ where: { slug: draft.slug }, select: { id: true, status: true } });
   if (existing) {
-    return { post: await getContentPost(existing.id), published: false, reason: `slug_${existing.status}` };
+    return { post: await getContentPost(existing.id), created: false, reason: `slug_${existing.status}` };
   }
 
-  const content = buildRadarPublicationPost(draft);
-  const created = await createContentPost(content, absoluteSource(draft.sourceUrl), actor);
-  if (!created) throw new Error("The automated article could not be created.");
-  await approveContentPost(created.id, actor);
-  const published = await publishContentPost(created.id, actor);
-  if (!published) throw new Error("The automated article could not be published.");
-  return { post: published, published: true, reason: "published" };
-}
-
-function absoluteSource(value: string) {
-  if (/^https?:\/\//i.test(value)) return value;
-  return `https://www.qcsstudio.com${value.startsWith("/") ? value : `/${value}`}`;
+  const created = await createResearchedContentPostFromRadar(draft, actor);
+  if (!created) throw new Error("The researched article draft could not be created.");
+  return { post: created, created: true, reason: "drafted" };
 }
 
 export async function approveContentPost(id: string, actor: string) {

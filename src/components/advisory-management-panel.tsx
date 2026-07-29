@@ -23,6 +23,14 @@ function blankAdvisory(): AdminAdvisoryRecord {
     title: "New Network Security Advisory",
     vendor: "Vendor name",
     summary: "Draft required: summarize the vulnerability, affected network context, operational risk, and the verified action readers should take.",
+    technicalExplanation: "Draft required: explain the vulnerability mechanism and applicability conditions using only the authoritative source.",
+    businessImpact: "Draft required: explain the service, confidentiality, integrity, or availability impact without overstating the source.",
+    evidenceChecklist: [
+      "Confirm the deployed product, release, role, and accountable owner.",
+      "Compare the environment with every applicability condition in the official advisory.",
+      "Record current exposure, configuration, logs, and compensating controls.",
+      "Retain before-and-after remediation and service-validation evidence."
+    ],
     severity: "unrated",
     cvssScore: null,
     priorityScore: 50,
@@ -42,7 +50,8 @@ function blankAdvisory(): AdminAdvisoryRecord {
     vendorUpdatedAt: now,
     lastVerifiedAt: now,
     updatedAt: now,
-    revision: 0
+    revision: 0,
+    qualityScore: null
   };
 }
 
@@ -52,6 +61,9 @@ function advisoryPayload(advisory: AdminAdvisoryRecord) {
     title: advisory.title,
     vendor: advisory.vendor,
     summary: advisory.summary,
+    technicalExplanation: advisory.technicalExplanation,
+    businessImpact: advisory.businessImpact,
+    evidenceChecklist: advisory.evidenceChecklist,
     severity: advisory.severity,
     cvssScore: advisory.cvssScore,
     priorityScore: advisory.priorityScore,
@@ -200,7 +212,7 @@ export function AdvisoryManagementPanel({ initialAdvisories }: { initialAdvisori
         {visible.length ? visible.map((advisory) => (
           <article className="content-queue-card" key={advisory.id}>
             <div>
-              <div className="content-card-statuses"><span className={`severity-pill severity-${advisory.severity}`}>{advisory.severity}</span><span className={`status-pill content-status-${advisory.status}`}>{advisory.status}</span>{advisory.editorialOverride ? <span className="status-pill content-kind-pill">editorial control</span> : null}</div>
+              <div className="content-card-statuses"><span className={`severity-pill severity-${advisory.severity}`}>{advisory.severity}</span><span className={`status-pill content-status-${advisory.status}`}>{advisory.status}</span>{advisory.qualityScore !== null ? <span className="status-pill content-kind-pill">QA {advisory.qualityScore}</span> : null}{advisory.editorialOverride ? <span className="status-pill content-kind-pill">editorial control</span> : null}</div>
               <h4>{advisory.title}</h4>
               <p>{advisory.vendor} | {advisory.sourceName} | Revision {advisory.revision}</p>
             </div>
@@ -238,7 +250,9 @@ export function AdvisoryManagementPanel({ initialAdvisories }: { initialAdvisori
           <fieldset className="content-editor-section">
             <legend>Technical scope</legend>
             <div className="content-field-grid">
-              <label className="content-field content-field-wide"><span>Summary</span><textarea rows={5} value={draft.summary} onChange={(event) => patch("summary", event.target.value)} /></label>
+              <label className="content-field content-field-wide"><span>Plain-language summary</span><textarea rows={5} value={draft.summary} onChange={(event) => patch("summary", event.target.value)} /></label>
+              <label className="content-field content-field-wide"><span>Technical explanation</span><textarea rows={6} value={draft.technicalExplanation} onChange={(event) => patch("technicalExplanation", event.target.value)} /></label>
+              <label className="content-field content-field-wide"><span>Operational and business impact</span><textarea rows={4} value={draft.businessImpact} onChange={(event) => patch("businessImpact", event.target.value)} /></label>
               <ListField label="CVE identifiers" value={draft.cves} onChange={(value) => patch("cves", value)} />
               <ListField label="Affected products" value={draft.products} onChange={(value) => patch("products", value)} />
               <ListField label="Affected versions" value={draft.affectedVersions} onChange={(value) => patch("affectedVersions", value)} />
@@ -252,6 +266,7 @@ export function AdvisoryManagementPanel({ initialAdvisories }: { initialAdvisori
             <div className="content-field-grid">
               <label className="content-field content-field-wide"><span>Remediation</span><textarea rows={5} value={draft.remediation} onChange={(event) => patch("remediation", event.target.value)} /></label>
               <label className="content-field content-field-wide"><span>Temporary workaround</span><textarea rows={4} value={draft.workaround} onChange={(event) => patch("workaround", event.target.value)} /></label>
+              <label className="content-field content-field-wide"><span>Evidence checklist</span><textarea rows={6} value={draft.evidenceChecklist.join("\n")} onChange={(event) => patch("evidenceChecklist", lines(event.target.value))} /></label>
             </div>
           </fieldset>
 

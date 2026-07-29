@@ -44,6 +44,7 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
   const products = strings(advisory.products);
   const affectedVersions = strings(advisory.affectedVersions);
   const fixedVersions = strings(advisory.fixedVersions);
+  const evidenceChecklist = strings(advisory.evidenceChecklist);
 
   return (
     <main className="purpose-intelligence">
@@ -120,6 +121,24 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
           </aside>
 
           <div className="advisory-article-body">
+            <section>
+              <p className="eyebrow">In plain language</p>
+              <h2>What this advisory means</h2>
+              <p>{advisory.summary}</p>
+            </section>
+
+            <section>
+              <p className="eyebrow">Technical explanation</p>
+              <h2>How the issue affects the environment</h2>
+              <p>{advisory.technicalExplanation || "The official source does not yet provide enough detail for a separate technical explanation."}</p>
+            </section>
+
+            <section>
+              <p className="eyebrow">Operational impact</p>
+              <h2>Why teams should care</h2>
+              <p>{advisory.businessImpact || "Confirm the affected service, exposure path, and business dependency before assigning impact."}</p>
+            </section>
+
             <section className="answer-panel advisory-action-panel">
               <p className="eyebrow"><AlertTriangle aria-hidden="true" size={18} /> Immediate action</p>
               <h2>{advisory.remediation}</h2>
@@ -139,13 +158,18 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
             </section>
 
             <section>
-              <h2>Operational validation checklist</h2>
+              <h2>Evidence and validation checklist</h2>
               <ul className="check-list">
-                <li>Confirm the deployed product, release, exposure path, and accountable owner.</li>
-                <li>Read the complete vendor advisory and verify every affected-version condition.</li>
-                <li>Back up configuration and define rollback criteria before remediation.</li>
-                <li>Apply the fixed release or documented mitigation through controlled change.</li>
-                <li>Retest exposure, service health, logs, and evidence after the change.</li>
+                {(evidenceChecklist.length
+                  ? evidenceChecklist
+                  : [
+                      "Confirm the deployed product, release, exposure path, and accountable owner.",
+                      "Read the complete vendor advisory and verify every affected-version condition.",
+                      "Back up configuration and define rollback criteria before remediation.",
+                      "Apply the fixed release or documented mitigation through controlled change.",
+                      "Retest exposure, service health, logs, and evidence after the change."
+                    ]
+                ).map((item) => <li key={item}>{item}</li>)}
               </ul>
             </section>
 

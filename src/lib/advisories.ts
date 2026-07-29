@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import type { Prisma, SecurityAdvisory } from "@prisma/client";
 import { z } from "zod";
+import { enrichSecurityAdvisory } from "@/lib/editorial-content-agents";
 import { getPrismaClient } from "@/lib/prisma";
 import { queueLinkedInForAdvisory } from "@/lib/social-publications";
 
@@ -8,7 +9,7 @@ export type AdvisorySourceDefinition = {
   slug: string;
   name: string;
   vendor: string;
-  format: "rss" | "cisa-kev";
+  format: "rss" | "cisa-kev" | "cert-in";
   url: string;
   officialHost: string;
   priority: number;
@@ -20,6 +21,9 @@ type AdvisoryCandidate = {
   title: string;
   vendor: string;
   summary: string;
+  technicalExplanation?: string;
+  businessImpact?: string;
+  evidenceChecklist?: string[];
   severity: string;
   cvssScore: number | null;
   priorityScore: number;
@@ -35,6 +39,8 @@ type AdvisoryCandidate = {
   vendorUpdatedAt: Date;
   payload: Prisma.InputJsonValue;
   contentHash: string;
+  editorialTrace?: Prisma.InputJsonValue;
+  qualityScore?: number;
 };
 
 const advisoryEditorSchema = z.object({
@@ -42,6 +48,14 @@ const advisoryEditorSchema = z.object({
   title: z.string().trim().min(10).max(220),
   vendor: z.string().trim().min(2).max(120),
   summary: z.string().trim().min(50).max(1600),
+  technicalExplanation: z.string().trim().min(80).max(2400).default("Technical analysis is pending editorial review."),
+  businessImpact: z.string().trim().min(50).max(1200).default("Confirm the affected service and business dependency before assigning impact."),
+  evidenceChecklist: z.array(z.string().trim().min(15).max(500)).min(4).max(10).default([
+    "Confirm the deployed product, software release, role, and accountable owner.",
+    "Compare the environment with every applicability condition in the official advisory.",
+    "Record current exposure, configuration, logs, and compensating controls.",
+    "Retain before-and-after remediation and service-validation evidence."
+  ]),
   severity: z.enum(["critical", "high", "medium", "low", "unrated"]),
   cvssScore: z.number().min(0).max(10).nullable(),
   priorityScore: z.number().int().min(0).max(100),
@@ -69,6 +83,9 @@ export type AdminAdvisoryRecord = {
   title: string;
   vendor: string;
   summary: string;
+  technicalExplanation: string;
+  businessImpact: string;
+  evidenceChecklist: string[];
   severity: string;
   cvssScore: number | null;
   priorityScore: number;
@@ -89,6 +106,7 @@ export type AdminAdvisoryRecord = {
   lastVerifiedAt: string;
   updatedAt: string;
   revision: number;
+  qualityScore: number | null;
 };
 
 export const advisorySourceDefinitions: AdvisorySourceDefinition[] = [
@@ -127,6 +145,33 @@ export const advisorySourceDefinitions: AdvisorySourceDefinition[] = [
     url: "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
     officialHost: "www.cisa.gov",
     priority: 94
+  },
+  {
+    slug: "juniper-mist-security",
+    name: "Juniper Mist Security Alerts",
+    vendor: "Juniper Networks",
+    format: "rss",
+    url: "https://www.mist.com/documentation/category/security-alerts/feed/",
+    officialHost: "www.mist.com",
+    priority: 93
+  },
+  {
+    slug: "ubuntu-security-notices",
+    name: "Ubuntu Security Notices",
+    vendor: "Ubuntu",
+    format: "rss",
+    url: "https://ubuntu.com/security/notices/rss.xml",
+    officialHost: "ubuntu.com",
+    priority: 90
+  },
+  {
+    slug: "cert-in-advisories",
+    name: "CERT-In Advisories",
+    vendor: "CERT-In",
+    format: "cert-in",
+    url: "https://www.cert-in.org.in/s2cMainServlet?pageid=PUBADVLIST02",
+    officialHost: "www.cert-in.org.in",
+    priority: 92
   }
 ];
 
@@ -214,7 +259,10 @@ function productNames(vendor: string, title: string, summary: string) {
     "FortiAnalyzer",
     "PAN-OS",
     "GlobalProtect",
-    "Prisma Access"
+    "Prisma Access",
+    "Junos OS",
+    "Juniper Mist",
+    "Ubuntu"
   ].filter((product) => value.toLowerCase().includes(product.toLowerCase()));
   return unique(known.length ? known : [vendor]);
 }
@@ -229,8 +277,8 @@ function priorityScore(severity: string, exploitationStatus: string, value: stri
 
 function externalIdFrom(link: string, title: string) {
   return (
-    link.match(/(?:cisco-sa-[a-z0-9-]+|FG-IR-\d{2,4}-\d+|CVE-\d{4}-\d{4,})/i)?.[0] ||
-    title.match(/(?:cisco-sa-[a-z0-9-]+|FG-IR-\d{2,4}-\d+|CVE-\d{4}-\d{4,})/i)?.[0] ||
+    link.match(/(?:cisco-sa-[a-z0-9-]+|FG-IR-\d{2,4}-\d+|CVE-\d{4}-\d{4,}|CIAD-\d{4}-\d+)/i)?.[0] ||
+    title.match(/(?:cisco-sa-[a-z0-9-]+|FG-IR-\d{2,4}-\d+|CVE-\d{4}-\d{4,}|CIAD-\d{4}-\d+)/i)?.[0] ||
     `advisory-${crypto.createHash("sha256").update(`${title}|${link}`).digest("hex").slice(0, 16)}`
   ).toUpperCase();
 }
@@ -243,6 +291,9 @@ function contentHash(value: Omit<AdvisoryCandidate, "contentHash">) {
         externalId: value.externalId,
         title: value.title,
         summary: value.summary,
+        technicalExplanation: value.technicalExplanation,
+        businessImpact: value.businessImpact,
+        evidenceChecklist: value.evidenceChecklist,
         severity: value.severity,
         cvssScore: value.cvssScore,
         cves: value.cves,
@@ -276,6 +327,7 @@ function parseRss(body: string, source: AdvisorySourceDefinition): AdvisoryCandi
     const link = xmlTag(block, "link") || xmlTag(block, "guid");
     const summary = xmlTag(block, "description") || title;
     if (!title || !link) return [];
+    if (!networkPattern.test(`${title} ${summary} ${source.vendor}`)) return [];
     const parsedUrl = new URL(link);
     if (parsedUrl.hostname !== source.officialHost) return [];
     const publishedAt = validDate(xmlTag(block, "pubDate") || xmlTag(block, "published") || xmlTag(block, "updated"));
@@ -305,6 +357,41 @@ function parseRss(body: string, source: AdvisorySourceDefinition): AdvisoryCandi
         vendorPublishedAt: publishedAt,
         vendorUpdatedAt: validDate(xmlTag(block, "updated"), publishedAt),
         payload: inputJson({ title, link, summary, publishedAt: publishedAt.toISOString() })
+      })
+    ];
+  });
+}
+
+function parseCertIn(body: string, source: AdvisorySourceDefinition): AdvisoryCandidate[] {
+  const blocks = body.match(/<table[^>]*class=["']?content["']?[^>]*>[\s\S]*?<\/table>/gi) || [];
+  return blocks.flatMap((block) => {
+    const externalId = block.match(/VLCODE=(CIAD-\d{4}-\d+)/i)?.[1]?.toUpperCase() || "";
+    const rawTitle = block.match(/<div[^>]*overflow:\s*hidden[^>]*>[\s\S]*?<span[^>]*>([\s\S]*?)<\/span>/i)?.[1] || "";
+    const title = cleanText(rawTitle);
+    const rawDate = block.match(/\(([A-Z][a-z]+\s+\d{1,2},\s+\d{4})\)/)?.[1] || "";
+    if (!externalId || !title || !networkPattern.test(title)) return [];
+    const sourceUrl = `https://www.cert-in.org.in/s2cMainServlet?pageid=PUBVLNOTES02&VLCODE=${encodeURIComponent(externalId)}`;
+    const publishedAt = validDate(rawDate);
+    return [
+      candidate(source, {
+        externalId,
+        slug: slugify(`cert-in-${externalId}`),
+        title,
+        vendor: source.vendor,
+        summary: `CERT-In published ${externalId} for ${title}. Review the official advisory to confirm affected products, releases, impact, and remediation.`,
+        severity: severityFrom(title, null),
+        cvssScore: null,
+        cves: cvesFrom(title),
+        products: productNames(source.vendor, title, ""),
+        affectedVersions: [],
+        fixedVersions: [],
+        remediation: "Review the official CERT-In advisory and the referenced vendor guidance before applying a controlled remediation.",
+        workaround: "Use only mitigations documented by CERT-In or the affected vendor.",
+        exploitationStatus: "No exploitation statement was extracted from the CERT-In advisory index.",
+        sourceUrl,
+        vendorPublishedAt: publishedAt,
+        vendorUpdatedAt: publishedAt,
+        payload: inputJson({ externalId, title, sourceUrl, publishedAt: publishedAt.toISOString() })
       })
     ];
   });
@@ -357,10 +444,61 @@ function parseCisaKev(body: string, source: AdvisorySourceDefinition): AdvisoryC
   });
 }
 
+async function enrichCandidate(source: AdvisorySourceDefinition, item: AdvisoryCandidate) {
+  const enriched = await enrichSecurityAdvisory({
+    title: item.title,
+    vendor: item.vendor,
+    summary: item.summary,
+    severity: item.severity,
+    cvssScore: item.cvssScore,
+    cves: item.cves,
+    products: item.products,
+    source: { label: source.name, url: item.sourceUrl, suppliedSummary: item.summary },
+    sourcePayload: item.payload
+  });
+  const next = {
+    ...item,
+    summary: enriched.content.plainLanguageSummary,
+    technicalExplanation: enriched.content.technicalExplanation,
+    businessImpact: enriched.content.businessImpact,
+    evidenceChecklist: enriched.content.evidenceChecklist,
+    products: unique([...item.products, ...enriched.content.products]),
+    cves: unique([...item.cves, ...enriched.content.cves.map((value) => value.toUpperCase())]),
+    affectedVersions: enriched.content.affectedVersions,
+    fixedVersions: enriched.content.fixedVersions,
+    remediation: enriched.content.remediation,
+    workaround: enriched.content.workaround,
+    exploitationStatus: enriched.content.exploitationStatus,
+    editorialTrace: inputJson({ ...enriched.trace, sourceFingerprint: item.contentHash }),
+    qualityScore: enriched.qualityScore
+  };
+  return { ...next, contentHash: contentHash(next) };
+}
+
+async function previouslyProcessedCandidate(sourceId: string, item: AdvisoryCandidate) {
+  const existing = await getPrismaClient().securityAdvisory.findFirst({
+    where: { OR: [{ sourceId, externalId: item.externalId }, { slug: item.slug }] },
+    select: { id: true, editorialOverride: true, editorialTrace: true }
+  });
+  if (!existing) return false;
+  if (existing.editorialOverride) {
+    await getPrismaClient().securityAdvisory.update({ where: { id: existing.id }, data: { lastVerifiedAt: new Date() } });
+    return true;
+  }
+  const trace = existing.editorialTrace;
+  if (!trace || typeof trace !== "object" || Array.isArray(trace)) return false;
+  if ((trace as Record<string, unknown>).sourceFingerprint !== item.contentHash) return false;
+  await getPrismaClient().securityAdvisory.update({ where: { id: existing.id }, data: { lastVerifiedAt: new Date() } });
+  return true;
+}
+
 function changesBetween(previous: SecurityAdvisory, next: AdvisoryCandidate) {
   const fields: Array<keyof AdvisoryCandidate> = [
     "title",
     "summary",
+    "technicalExplanation",
+    "businessImpact",
+    "evidenceChecklist",
     "severity",
     "cvssScore",
     "priorityScore",
@@ -393,6 +531,9 @@ async function storeCandidate(sourceId: string, item: AdvisoryCandidate) {
     title: item.title,
     vendor: item.vendor,
     summary: item.summary,
+    technicalExplanation: item.technicalExplanation || "",
+    businessImpact: item.businessImpact || "",
+    evidenceChecklist: inputJson(item.evidenceChecklist || []),
     severity: item.severity,
     cvssScore: item.cvssScore,
     priorityScore: item.priorityScore,
@@ -405,6 +546,8 @@ async function storeCandidate(sourceId: string, item: AdvisoryCandidate) {
     exploitationStatus: item.exploitationStatus,
     sourceUrl: item.sourceUrl,
     contentHash: item.contentHash,
+    editorialTrace: item.editorialTrace,
+    qualityScore: item.qualityScore,
     status: "published",
     vendorPublishedAt: item.vendorPublishedAt,
     vendorUpdatedAt: item.vendorUpdatedAt,
@@ -443,12 +586,17 @@ export async function scanAdvisorySources() {
   await ensureSources();
   const prisma = getPrismaClient();
   const sources = await prisma.advisorySource.findMany({ where: { enabled: true }, orderBy: { priority: "desc" } });
-  const results: Array<{ source: string; status: number; candidates: number; published: number; unchanged: number; error?: string }> = [];
+  const configuredLimit = Number.parseInt(process.env.ADVISORY_ENRICHMENTS_PER_RUN || "1", 10);
+  let remainingEditorialBudget = Number.isFinite(configuredLimit) ? Math.max(1, Math.min(configuredLimit, 2)) : 1;
+  const results: Array<{ source: string; status: number; candidates: number; published: number; unchanged: number; queued: number; error?: string }> = [];
 
   for (const source of sources) {
     const definition = advisorySourceDefinitions.find((item) => item.slug === source.slug);
     if (!definition) continue;
-    const headers: Record<string, string> = { "user-agent": "QCS-Security-Advisory-Desk/1.0", accept: definition.format === "cisa-kev" ? "application/json" : "application/rss+xml, application/xml" };
+    const headers: Record<string, string> = {
+      "user-agent": "QCS-Security-Advisory-Desk/2.0",
+      accept: definition.format === "cisa-kev" ? "application/json" : definition.format === "cert-in" ? "text/html" : "application/rss+xml, application/xml"
+    };
     if (source.etag) headers["if-none-match"] = source.etag;
     if (source.lastModified) headers["if-modified-since"] = source.lastModified;
 
@@ -456,19 +604,33 @@ export async function scanAdvisorySources() {
       const response = await fetch(definition.url, { headers, cache: "no-store", signal: AbortSignal.timeout(20_000) });
       if (response.status === 304) {
         await prisma.advisorySource.update({ where: { id: source.id }, data: { lastCheckedAt: new Date(), lastSuccessAt: new Date(), consecutiveFailures: 0, lastError: null } });
-        results.push({ source: source.name, status: 304, candidates: 0, published: 0, unchanged: 0 });
+        results.push({ source: source.name, status: 304, candidates: 0, published: 0, unchanged: 0, queued: 0 });
         continue;
       }
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const body = await response.text();
-      const parsed = definition.format === "cisa-kev" ? parseCisaKev(body, definition) : parseRss(body, definition);
+      const parsed = definition.format === "cisa-kev" ? parseCisaKev(body, definition) : definition.format === "cert-in" ? parseCertIn(body, definition) : parseRss(body, definition);
       const since = new Date((source.lastSuccessAt?.getTime() || Date.now() - 72 * 60 * 60_000) - 15 * 60_000);
-      const candidates = parsed.filter((item) => item.vendorUpdatedAt >= since || item.vendorPublishedAt >= since).slice(0, 30);
+      const candidates = parsed
+        .filter((item) => item.vendorUpdatedAt >= since || item.vendorPublishedAt >= since)
+        .sort((left, right) => right.vendorUpdatedAt.getTime() - left.vendorUpdatedAt.getTime())
+        .slice(0, 8);
       let published = 0;
       let unchanged = 0;
+      let queued = 0;
 
       for (const item of candidates) {
-        const stored = await storeCandidate(source.id, item);
+        if (await previouslyProcessedCandidate(source.id, item)) {
+          unchanged += 1;
+          continue;
+        }
+        if (remainingEditorialBudget <= 0) {
+          queued += 1;
+          continue;
+        }
+        remainingEditorialBudget -= 1;
+        const editorialCandidate = await enrichCandidate(definition, item);
+        const stored = await storeCandidate(source.id, editorialCandidate);
         if (stored.changed) {
           published += 1;
           await queueLinkedInForAdvisory(stored.advisory, stored.revision);
@@ -479,23 +641,25 @@ export async function scanAdvisorySources() {
 
       await prisma.advisorySource.update({
         where: { id: source.id },
-        data: {
-          etag: response.headers.get("etag"),
-          lastModified: response.headers.get("last-modified"),
-          lastCheckedAt: new Date(),
-          lastSuccessAt: new Date(),
-          consecutiveFailures: 0,
-          lastError: null
-        }
+        data: queued
+          ? { lastCheckedAt: new Date(), consecutiveFailures: 0, lastError: null }
+          : {
+              etag: response.headers.get("etag"),
+              lastModified: response.headers.get("last-modified"),
+              lastCheckedAt: new Date(),
+              lastSuccessAt: new Date(),
+              consecutiveFailures: 0,
+              lastError: null
+            }
       });
-      results.push({ source: source.name, status: response.status, candidates: candidates.length, published, unchanged });
+      results.push({ source: source.name, status: response.status, candidates: candidates.length, published, unchanged, queued });
     } catch (error) {
       const message = error instanceof Error ? error.message.slice(0, 1200) : "Unknown advisory source error";
       await prisma.advisorySource.update({
         where: { id: source.id },
         data: { lastCheckedAt: new Date(), consecutiveFailures: { increment: 1 }, lastError: message }
       });
-      results.push({ source: source.name, status: 0, candidates: 0, published: 0, unchanged: 0, error: message });
+      results.push({ source: source.name, status: 0, candidates: 0, published: 0, unchanged: 0, queued: 0, error: message });
     }
   }
 
@@ -533,6 +697,9 @@ function mapAdminAdvisory(record: SecurityAdvisory & {
     title: record.title,
     vendor: record.vendor,
     summary: record.summary,
+    technicalExplanation: record.technicalExplanation,
+    businessImpact: record.businessImpact,
+    evidenceChecklist: jsonStrings(record.evidenceChecklist),
     severity: record.severity,
     cvssScore: record.cvssScore,
     priorityScore: record.priorityScore,
@@ -552,7 +719,8 @@ function mapAdminAdvisory(record: SecurityAdvisory & {
     vendorUpdatedAt: record.vendorUpdatedAt.toISOString(),
     lastVerifiedAt: record.lastVerifiedAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
-    revision: record.revisions[0]?.version || 1
+    revision: record.revisions[0]?.version || 1,
+    qualityScore: record.qualityScore
   };
 }
 
@@ -609,6 +777,9 @@ export async function createAdminSecurityAdvisory(value: unknown, actor: string)
       title: content.title,
       vendor: content.vendor,
       summary: content.summary,
+      technicalExplanation: content.technicalExplanation,
+      businessImpact: content.businessImpact,
+      evidenceChecklist: inputJson(content.evidenceChecklist),
       severity: content.severity,
       cvssScore: content.cvssScore,
       priorityScore: content.priorityScore,
@@ -651,6 +822,9 @@ export async function updateAdminSecurityAdvisory(id: string, value: unknown, ac
       title: content.title,
       vendor: content.vendor,
       summary: content.summary,
+      technicalExplanation: content.technicalExplanation,
+      businessImpact: content.businessImpact,
+      evidenceChecklist: inputJson(content.evidenceChecklist),
       severity: content.severity,
       cvssScore: content.cvssScore,
       priorityScore: content.priorityScore,
@@ -665,6 +839,8 @@ export async function updateAdminSecurityAdvisory(id: string, value: unknown, ac
       contentHash: hash,
       status: content.status,
       editorialOverride: true,
+      editorialTrace: inputJson({ origin: "admin", actor, invalidatedAt: new Date().toISOString() }),
+      qualityScore: null,
       updatedBy: actor,
       deletedAt: null,
       vendorPublishedAt: content.vendorPublishedAt,
@@ -700,6 +876,7 @@ export async function setAdminAdvisoryState(id: string, action: "publish" | "wit
     data: {
       status,
       editorialOverride: action === "resume_sync" ? false : true,
+      ...(action === "resume_sync" ? { editorialTrace: inputJson({ origin: "source_sync_resumed", actor }), qualityScore: null } : {}),
       deletedAt: null,
       updatedBy: actor,
       revisions: {

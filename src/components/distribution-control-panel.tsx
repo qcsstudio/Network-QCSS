@@ -96,7 +96,7 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Intelligence distribution</p>
-          <h2>Source health, scheduled publishing, and LinkedIn delivery.</h2>
+          <h2>Source health, editorial automation, and LinkedIn delivery.</h2>
           <p>Website publication remains independent. Social failures stay queued and visible here.</p>
         </div>
         <button className="button secondary" disabled={Boolean(busy)} onClick={() => load().catch((error) => setMessage(String(error)))} type="button">
@@ -145,20 +145,20 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
 
         <article className="distribution-module">
           <div className="distribution-module-heading"><Rss aria-hidden="true" /><div><p className="eyebrow">Weekly Content Radar</p><h3>Monday + Thursday</h3></div></div>
-          <p>Google demand signals, niche news discovery, and authoritative technical feeds are ranked together. Scheduled posts publish from authoritative sources only.</p>
+          <p>Search-demand signals, niche news discovery, and authoritative technical feeds are ranked together. Only authoritative evidence can become an article.</p>
           <div className="content-action-row">
             <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => run("/api/admin/content-radar", "Content radar")} type="button"><RefreshCw aria-hidden="true" size={16} /> Scan now</button>
             <a className="icon-button" href="/resources" rel="noreferrer" target="_blank" title="Open published resources"><ExternalLink aria-hidden="true" size={18} /></a>
           </div>
-          <p className="form-note">Manual scans produce ranked, editable articles. The protected Vercel cron publishes at most one new article per scheduled run and records duplicate skips.</p>
+          <p className="form-note">The protected Vercel cron creates at most one researched draft per scheduled run. You review, edit, approve, and publish it from Content Studio.</p>
         </article>
 
         <article className="distribution-module">
-          <div className="distribution-module-heading"><ImageIcon aria-hidden="true" /><div><p className="eyebrow">QCS OpenAI agent studio</p><h3>Directed, rendered, and visually inspected</h3></div></div>
+          <div className="distribution-module-heading"><ImageIcon aria-hidden="true" /><div><p className="eyebrow">QCS OpenAI agent studio</p><h3>Researched, written, rendered, and inspected</h3></div></div>
           <span className={`status-pill ${snapshot?.editorialImages.agent.configured ? "ready" : "missing"}`}>
             {snapshot?.editorialImages.agent.configured ? "Direct API ready" : "OpenAI key required"}
           </span>
-          <p>A visual director reads the complete article, the image agent renders a unique scene, and a visual critic blocks weak or repeated work before website or LinkedIn delivery.</p>
+          <p>Research and critic agents ground the article in approved sources. A visual director, image agent, and visual critic create a contextual asset before website or LinkedIn delivery.</p>
           <div className="content-action-row">
             <button className="button primary compact-button" disabled={Boolean(busy) || !snapshot?.editorialImages.agent.configured} onClick={() => generateEditorialImage(false)} type="button"><ImageIcon aria-hidden="true" size={16} /> Generate next</button>
             {snapshot?.editorialImages.counts.failed ? <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => generateEditorialImage(true)} type="button"><RefreshCw aria-hidden="true" size={16} /> Retry latest</button> : null}
@@ -168,7 +168,7 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
             <span><strong>{snapshot?.editorialImages.counts.generating || 0}</strong> Generating</span>
             <span><strong>{snapshot?.editorialImages.counts.failed || 0}</strong> Failed</span>
           </div>
-          <p className="form-note">Director: {snapshot?.editorialImages.agent.directorModel} | Image: {snapshot?.editorialImages.agent.imageModel} | Critic: {snapshot?.editorialImages.agent.criticModel}</p>
+          <p className="form-note">Writer: {snapshot?.editorialContent.writerModel} | Content critic: {snapshot?.editorialContent.criticModel} | Image: {snapshot?.editorialImages.agent.imageModel}</p>
           {snapshot?.editorialImages.latest[0]?.lastError ? <p className="form-note">{snapshot.editorialImages.latest[0].lastError}</p> : null}
         </article>
       </div>

@@ -74,7 +74,7 @@ function buildGroups(): ReadinessGroup[] {
         item("admin-api-token", "Admin API token", isConfigured("ADMIN_API_TOKEN"), "Protects server-to-server dashboard and export access.", {
           required: true
         }),
-        item("cron-secret", "Content cron secret", isConfigured("CRON_SECRET"), "Protects twice-weekly blog topic radar scans.", {
+        item("cron-secret", "Automation cron secret", isConfigured("CRON_SECRET"), "Protects advisory scans, weekly editorial drafting, and social delivery workers.", {
           required: true
         })
       ]
