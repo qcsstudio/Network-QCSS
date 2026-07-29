@@ -122,6 +122,13 @@ function groups() {
       label: "Content Distribution",
       items: [
         item(
+          "openai-editorial-agents",
+          "Direct OpenAI editorial agents",
+          isConfigured("OPENAI_API_KEY"),
+          "OPENAI_API_KEY (direct API; no AI gateway)",
+          { warning: true }
+        ),
+        item(
           "linkedin-publishing",
           "LinkedIn profile publishing",
           isConfigured("LINKEDIN_CLIENT_ID") &&

@@ -1,10 +1,16 @@
 import crypto from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { SecurityAdvisory } from "@prisma/client";
-import { generateImage } from "ai";
+import { Prisma, type SecurityAdvisory } from "@prisma/client";
 import sharp from "sharp";
 import { blogPosts, type BlogPost } from "@/lib/blog";
+import {
+  EditorialAgentError,
+  editorialAgentConfiguration,
+  runEditorialImageAgents,
+  type EditorialAgentTrace,
+  type RecentVisualConcept
+} from "@/lib/editorial-image-agents";
 import {
   buildAdvisoryImageContext,
   buildArticleImageContext,
@@ -29,7 +35,6 @@ type PublicationIdentity = {
 
 export type EditorialImageVariant = "hero" | "social";
 
-const defaultImageModel = "google/imagen-4.0-generate-001";
 const retryDelayMs = 6 * 60 * 60_000;
 const generationLeaseMs = 12 * 60_000;
 
@@ -97,27 +102,39 @@ async function brandedVariant(source: Uint8Array, width: number, height: number)
     .toBuffer();
 }
 
-async function createContextualImages(prompt: string) {
-  const model = process.env.EDITORIAL_IMAGE_MODEL?.trim() || defaultImageModel;
-  const result = await generateImage({
-    model,
-    prompt,
-    aspectRatio: "16:9",
-    n: 1,
-    maxRetries: 2,
-    providerOptions: {
-      gateway: {
-        tags: ["feature:editorial-image", "brand:qcs", "channel:website-linkedin"]
-      }
-    }
-  });
-  const source = result.images[0]?.uint8Array;
-  if (!source?.length) throw new Error("The image model returned no usable image data.");
+async function createContextualImages(prompt: string, recentConcepts: RecentVisualConcept[]) {
+  const generated = await runEditorialImageAgents(prompt, recentConcepts);
   const [heroImage, socialImage] = await Promise.all([
-    brandedVariant(source, 1440, 810),
-    brandedVariant(source, 1200, 628)
+    brandedVariant(generated.source, 1440, 810),
+    brandedVariant(generated.source, 1200, 628)
   ]);
-  return { heroImage, socialImage, model };
+  return { heroImage, socialImage, trace: generated.trace };
+}
+
+function record(value: Prisma.JsonValue | null | undefined) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+
+function recentVisualConcepts(
+  assets: Array<{ agentTrace: Prisma.JsonValue | null; contentId: string }>
+): RecentVisualConcept[] {
+  return assets.flatMap((asset) => {
+    const trace = record(asset.agentTrace);
+    const direction = record(trace?.direction as Prisma.JsonValue | undefined);
+    if (typeof direction?.sceneConcept !== "string" || typeof direction.diversitySignature !== "string") return [];
+    return [
+      {
+        contentId: asset.contentId,
+        sceneConcept: direction.sceneConcept,
+        diversitySignature: direction.diversitySignature
+      }
+    ];
+  });
+}
+
+function aggregateQaScore(trace: EditorialAgentTrace) {
+  const scores = [trace.qa.relevanceScore, trace.qa.specificityScore, trace.qa.diversityScore, trace.qa.compositionScore];
+  return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
 }
 
 export async function ensureEditorialImage(input: EditorialImageInput, force = false) {
@@ -150,22 +167,46 @@ export async function ensureEditorialImage(input: EditorialImageInput, force = f
   asset = await prisma.editorialImage.findUniqueOrThrow({ where: { id: asset.id } });
 
   try {
-    const generated = await createContextualImages(prompt);
+    const recentAssets = await prisma.editorialImage.findMany({
+      where: { status: "ready", id: { not: asset.id }, agentTrace: { not: Prisma.JsonNull } },
+      orderBy: { generatedAt: "desc" },
+      take: 8,
+      select: { agentTrace: true, contentId: true }
+    });
+    const generated = await createContextualImages(prompt, recentVisualConcepts(recentAssets));
     return await prisma.editorialImage.update({
       where: { id: asset.id },
       data: {
+        agentTrace: generated.trace as unknown as Prisma.InputJsonValue,
+        altText: generated.trace.direction.altText,
         generatedAt: new Date(),
         heroImage: generated.heroImage,
         lastError: null,
         mimeType: "image/jpeg",
-        model: generated.model,
+        model: generated.trace.imageModel,
+        provider: generated.trace.provider,
+        qaScore: aggregateQaScore(generated.trace),
         socialImage: generated.socialImage,
         status: "ready"
       }
     });
   } catch (error) {
     const message = error instanceof Error ? error.message.slice(0, 1800) : "Unknown editorial image generation error";
-    await prisma.editorialImage.update({ where: { id: asset.id }, data: { status: "failed", lastError: message } });
+    const trace = error instanceof EditorialAgentError ? error.trace : undefined;
+    await prisma.editorialImage.update({
+      where: { id: asset.id },
+      data: {
+        agentTrace: trace ? (trace as unknown as Prisma.InputJsonValue) : undefined,
+        lastError: message,
+        provider: trace?.provider,
+        qaScore: trace?.qa
+          ? Math.round(
+              (trace.qa.relevanceScore + trace.qa.specificityScore + trace.qa.diversityScore + trace.qa.compositionScore) / 4
+            )
+          : undefined,
+        status: "failed"
+      }
+    });
     console.error(`Editorial image generation failed for ${input.contentType}:${input.contentId}.`, error);
     return null;
   }
@@ -286,9 +327,10 @@ export async function getEditorialImageSummary() {
   const prisma = getPrismaClient();
   const [counts, latest] = await Promise.all([
     prisma.editorialImage.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.editorialImage.findMany({ orderBy: { updatedAt: "desc" }, take: 12, select: { id: true, contentType: true, contentId: true, contentRevision: true, status: true, attempts: true, model: true, altText: true, lastError: true, generatedAt: true, updatedAt: true } })
+    prisma.editorialImage.findMany({ orderBy: { updatedAt: "desc" }, take: 12, select: { id: true, contentType: true, contentId: true, contentRevision: true, status: true, attempts: true, provider: true, model: true, qaScore: true, altText: true, lastError: true, generatedAt: true, updatedAt: true } })
   ]);
   return {
+    agent: editorialAgentConfiguration(),
     counts: Object.fromEntries(counts.map((entry) => [entry.status, entry._count._all])),
     latest: latest.map((entry) => ({ ...entry, generatedAt: entry.generatedAt?.toISOString() || "", updatedAt: entry.updatedAt.toISOString() }))
   };

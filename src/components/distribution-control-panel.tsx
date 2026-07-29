@@ -154,10 +154,13 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
         </article>
 
         <article className="distribution-module">
-          <div className="distribution-module-heading"><ImageIcon aria-hidden="true" /><div><p className="eyebrow">Context image studio</p><h3>Article-derived QCS visuals</h3></div></div>
-          <p>Each image is generated from the article evidence, systems, relationships, and action path, then fitted for the website and LinkedIn.</p>
+          <div className="distribution-module-heading"><ImageIcon aria-hidden="true" /><div><p className="eyebrow">QCS OpenAI agent studio</p><h3>Directed, rendered, and visually inspected</h3></div></div>
+          <span className={`status-pill ${snapshot?.editorialImages.agent.configured ? "ready" : "missing"}`}>
+            {snapshot?.editorialImages.agent.configured ? "Direct API ready" : "OpenAI key required"}
+          </span>
+          <p>A visual director reads the complete article, the image agent renders a unique scene, and a visual critic blocks weak or repeated work before website or LinkedIn delivery.</p>
           <div className="content-action-row">
-            <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => generateEditorialImage(false)} type="button"><ImageIcon aria-hidden="true" size={16} /> Generate next</button>
+            <button className="button primary compact-button" disabled={Boolean(busy) || !snapshot?.editorialImages.agent.configured} onClick={() => generateEditorialImage(false)} type="button"><ImageIcon aria-hidden="true" size={16} /> Generate next</button>
             {snapshot?.editorialImages.counts.failed ? <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => generateEditorialImage(true)} type="button"><RefreshCw aria-hidden="true" size={16} /> Retry latest</button> : null}
           </div>
           <div className="distribution-metrics">
@@ -165,6 +168,7 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
             <span><strong>{snapshot?.editorialImages.counts.generating || 0}</strong> Generating</span>
             <span><strong>{snapshot?.editorialImages.counts.failed || 0}</strong> Failed</span>
           </div>
+          <p className="form-note">Director: {snapshot?.editorialImages.agent.directorModel} | Image: {snapshot?.editorialImages.agent.imageModel} | Critic: {snapshot?.editorialImages.agent.criticModel}</p>
           {snapshot?.editorialImages.latest[0]?.lastError ? <p className="form-note">{snapshot.editorialImages.latest[0].lastError}</p> : null}
         </article>
       </div>

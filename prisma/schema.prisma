@@ -186,7 +186,10 @@ model EditorialImage {
   status          String    @default("pending")
   prompt          String
   promptHash      String
+  provider        String?
   model           String?
+  agentTrace      Json?
+  qaScore         Int?
   altText         String
   heroImage       Bytes?
   socialImage     Bytes?

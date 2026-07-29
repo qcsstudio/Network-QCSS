@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession, isAdminRequest } from "@/lib/admin-auth";
 import { jsonError, noStoreHeaders, readJsonBody } from "@/lib/api";
+import { editorialAgentConfiguration } from "@/lib/editorial-image-agents";
 import { generateMissingEditorialImages, getEditorialImageSummary } from "@/lib/editorial-image-generation";
 import { requestContext } from "@/lib/security";
 import { createAuditLog } from "@/lib/store";
@@ -16,6 +17,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   if (!isAdminRequest(request)) return jsonError("Unauthorized", 401);
+  if (!editorialAgentConfiguration().configured) {
+    return jsonError("OPENAI_API_KEY is required for the direct QCS editorial agent team. No AI gateway is used.", 503);
+  }
   const parsed = await readJsonBody(request);
   if (!parsed.ok) return parsed.response;
   const body = parsed.data as { force?: unknown; limit?: unknown };
