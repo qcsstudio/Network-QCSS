@@ -5,6 +5,7 @@ import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import { NetworkToolRunner } from "@/components/network-tool-runner";
 import { StructuredData } from "@/components/structured-data";
+import { SignalJourney } from "@/components/signal-journey";
 import { getNetworkUtilityTool, networkUtilityTools } from "@/lib/network-tools";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -99,7 +100,7 @@ export default async function NetworkToolPage({ params }: NetworkToolPageProps) 
   const isPasswordGenerator = tool.slug === "strong-password-generator";
 
   return (
-    <main>
+    <main className="purpose-tools">
       <StructuredData
         data={[
           {
@@ -186,6 +187,8 @@ export default async function NetworkToolPage({ params }: NetworkToolPageProps) 
       <section className="section tool-run-section" id="run-tool">
         <NetworkToolRunner slug={tool.slug} />
       </section>
+
+      <SignalJourney variant="tools" compact />
 
       <section className="section split tool-intro">
         <div>

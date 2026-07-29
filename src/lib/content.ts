@@ -25,8 +25,8 @@ export const positioning = {
   eyebrow: "Managed networks, security, cloud, and validation",
   headline: "Know what is happening. Fix what matters. Prove it is closed.",
   body:
-    "QCS combines network operations, security engineering, cloud connectivity, penetration testing, and practical training in one evidence-led command model for India and global teams.",
-  primaryCta: "Assess Your Network",
+    "QCS turns network symptoms, exposure, and change pressure into a controlled path: see the state, assign the risk, act safely, and retain evidence of closure.",
+  primaryCta: "Build Network Snapshot",
   secondaryCta: "Explore Command System"
 };
 

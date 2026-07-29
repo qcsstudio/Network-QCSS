@@ -7,6 +7,7 @@ import { IntentRouter } from "@/components/intent-router";
 import { LeadForm } from "@/components/lead-form";
 import { ResourceDownloads } from "@/components/resource-downloads";
 import { SectionMotionGraphic } from "@/components/section-motion-graphic";
+import { SignalJourney } from "@/components/signal-journey";
 import {
   deliveryWorkflow,
   industryCoverage,
@@ -41,7 +42,7 @@ const assessmentPreview = [
 export default async function HomePage() {
   const latestAdvisories = await listSecurityAdvisories(3);
   return (
-    <main>
+    <main className="purpose-home">
       <section className="hero-section futuristic-hero">
         <Image
           className="hero-bg-image"
@@ -78,6 +79,8 @@ export default async function HomePage() {
         <CommandConsole />
       </section>
 
+      <SignalJourney variant="solution" />
+
       <section className="live-advisory-strip" aria-label="Latest network security advisories">
         <div>
           <p className="eyebrow">QCS Security Advisory Desk</p>
@@ -113,9 +116,10 @@ export default async function HomePage() {
       <section className="section media-section motion-section" id="solutions">
         <div className="section-heading">
           <p className="eyebrow">Solution paths</p>
-          <h2>Start with the network problem blocking your team.</h2>
+          <h2>Name the problem. See the evidence. Choose the next move.</h2>
           <p>
-            Each path explains the issue, what evidence helps, and which QCS service or diagnostic should come next.
+            Begin with the pressure your team can see. Each path connects that signal to the proof, owner, and engineering
+            action needed to move forward.
           </p>
         </div>
         <SectionMotionGraphic variant="security" />
@@ -135,9 +139,10 @@ export default async function HomePage() {
       <section className="section media-section motion-section" id="services">
         <div className="section-heading">
           <p className="eyebrow">Core services</p>
-          <h2>Operate, secure, monitor, test, troubleshoot, and train.</h2>
+          <h2>Engineering support organized around the state you need to reach.</h2>
           <p>
-            Pick a service when you already know the need. Start with an assessment when the problem is still unclear.
+            Choose a service when the work is clear. Use an assessment first when the risk, scope, or accountable next
+            action is still uncertain.
           </p>
         </div>
         <SectionMotionGraphic variant="services" />
@@ -162,7 +167,7 @@ export default async function HomePage() {
       <section className="section media-section motion-section" id="tools">
         <div className="section-heading">
           <p className="eyebrow">Guided assessment</p>
-          <h2>Start with a readiness snapshot when the next step is not obvious.</h2>
+          <h2>When the issue is unclear, build a decision-ready snapshot first.</h2>
           <p>
             The assessment asks a few practical questions and returns a risk band, evidence checklist, and recommended
             next action.
@@ -192,7 +197,8 @@ export default async function HomePage() {
       <section className="section media-section motion-section" id="utilities">
         <div className="section-heading">
           <p className="eyebrow">Free network utilities</p>
-          <h2>Run quick checks and generate controlled vendor task plans before deeper troubleshooting.</h2>
+          <h2>Get a useful answer now. Preserve the signal for what comes next.</h2>
+          <p>Run focused diagnostics or generate a controlled vendor task plan, then carry the result into deeper troubleshooting.</p>
         </div>
         <SectionMotionGraphic variant="utilities" />
         <div className="utility-grid compact">
@@ -218,7 +224,8 @@ export default async function HomePage() {
       <section className="section operating-reach-section motion-section" id="process">
         <div className="section-heading">
           <p className="eyebrow">Delivery and coverage</p>
-          <h2>Move from first signal to verified closure across the environment you already run.</h2>
+          <h2>Every engagement moves through one controlled path.</h2>
+          <p>Observe the real environment, assign ownership, make the change, and verify the result across the vendors you already run.</p>
         </div>
         <div className="operating-reach-layout">
           <div className="process-timeline">
@@ -252,7 +259,8 @@ export default async function HomePage() {
       <section className="section motion-section">
         <div className="section-heading">
           <p className="eyebrow">Useful resources</p>
-          <h2>Prepare better before a call, audit, incident review, or career decision.</h2>
+          <h2>Use the runbook before the meeting, change, or incident.</h2>
+          <p>Bring a sharper question and better evidence to the technical decision in front of you.</p>
         </div>
         <div className="resource-command-panel" aria-label="Resource library visual preview">
           <div className="resource-visual-stack" aria-hidden="true">
@@ -264,7 +272,7 @@ export default async function HomePage() {
           </div>
           <div>
             <p className="eyebrow">Operational knowledge base</p>
-            <h3>Resources should make the next technical conversation sharper.</h3>
+            <h3>Make the next technical conversation sharper.</h3>
             <p>
               Checklists, tool outputs, and assessment notes help teams describe the issue clearly before they ask for
               managed support, security review, cloud guidance, or training.
@@ -277,10 +285,10 @@ export default async function HomePage() {
       <section className="section split final-cta-band motion-section" id="engage">
         <div className="section-heading">
           <p className="eyebrow">Request review</p>
-          <h2>Tell QCS what is happening. We will help you choose the right next step.</h2>
+          <h2>Bring the symptom. Leave with a defined next step.</h2>
           <p>
-            Share the issue, the environment, or the training goal. Keep it simple; the first response should help you
-            move with more clarity.
+            Share the issue, environment, or training goal. The first response will define the evidence to collect and
+            the most useful action to take next.
           </p>
         </div>
         <LeadForm interest="Network command assessment" pipeline="Managed Network Services" />

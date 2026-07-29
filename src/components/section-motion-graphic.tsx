@@ -127,12 +127,19 @@ export function SectionMotionGraphic({ variant, className = "" }: SectionMotionG
             ))}
           </div>
         ) : null}
+        <span className="motion-stage-corners" aria-hidden="true"><i /><i /><i /><i /></span>
+        <span className="motion-stage-trace" aria-hidden="true" />
         <div className="motion-badge">
           <Icon size={22} />
           <span>{graphic.eyebrow}</span>
         </div>
+        <div className="motion-readout" aria-hidden="true">
+          <span>Signal 01</span>
+          <strong>{graphic.signals[0]}</strong>
+        </div>
       </div>
       <div className="motion-content">
+        <span className="motion-content-status"><i aria-hidden="true" /> Live operating view</span>
         <h3>{graphic.title}</h3>
         <p>{graphic.insight}</p>
         <div className="motion-signal-row">

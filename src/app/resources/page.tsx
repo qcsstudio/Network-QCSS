@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ResourceDownloads } from "@/components/resource-downloads";
 import { DomainHeroVisual } from "@/components/domain-hero-visual";
+import { SignalJourney } from "@/components/signal-journey";
 import { StructuredData } from "@/components/structured-data";
 import { weeklyBlogCadence } from "@/lib/blog";
 import { siteConfig } from "@/lib/content";
@@ -30,7 +31,7 @@ export const metadata: Metadata = createPageMetadata({
 export default async function ResourcesPage() {
   const posts = await getAllPublishedBlogPosts();
   return (
-    <main>
+    <main className="purpose-resource">
       <StructuredData
         data={[
           {
@@ -87,10 +88,12 @@ export default async function ResourcesPage() {
         />
       </section>
 
+      <SignalJourney variant="intelligence" />
+
       <section className="section blog-command-section" id="blog-posts">
         <div className="section-heading">
           <p className="eyebrow">Latest posts</p>
-          <h2>Useful guides before action.</h2>
+          <h2>Use the answer first. Keep the evidence for the decision.</h2>
           <p>
             Each post starts with a clear answer, then adds a checklist, relevant tools, and a next action.
           </p>
@@ -154,7 +157,7 @@ export default async function ResourcesPage() {
       <section className="section" id="download-resources">
         <div className="section-heading">
           <p className="eyebrow">Downloadable resources</p>
-          <h2>Checklists, templates, and roadmaps for better technical decisions.</h2>
+          <h2>Take a practical checklist into the next technical decision.</h2>
         </div>
         <ResourceDownloads />
       </section>

@@ -31,7 +31,7 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
   if (!post) notFound();
 
   return (
-    <main>
+    <main className="purpose-resource">
       <StructuredData
         data={[
           {

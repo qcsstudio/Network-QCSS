@@ -64,10 +64,19 @@ export function DomainHeroVisual({ variant, label, title, signals }: DomainHeroV
           sizes="(max-width: 900px) 92vw, 42vw"
         />
         <span className="domain-hero-grid" aria-hidden="true" />
+        <span className="domain-hero-scan" aria-hidden="true" />
+        <span className="domain-hero-path" aria-hidden="true">
+          <i /><i /><i /><i /><i />
+        </span>
         <span className="domain-hero-status"><Icon aria-hidden="true" size={18} /> {visual.status}</span>
+        <span className="domain-hero-readout" aria-hidden="true">
+          <small>Live model</small>
+          <strong>{String(signals.length).padStart(2, "0")}</strong>
+          <span>decision signals</span>
+        </span>
       </div>
       <figcaption>
-        <span>{label}</span>
+        <span><i aria-hidden="true" /> {label}</span>
         <strong>{title}</strong>
         <div>
           {signals.slice(0, 3).map((signal) => <small key={signal}>{signal}</small>)}

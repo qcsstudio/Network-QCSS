@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CardVisual } from "@/components/card-visual";
 import { DomainHeroVisual } from "@/components/domain-hero-visual";
 import { LeadForm } from "@/components/lead-form";
+import { SignalJourney } from "@/components/signal-journey";
 import { StructuredData } from "@/components/structured-data";
 import { instituteTracks, siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -24,7 +25,7 @@ export const metadata: Metadata = createPageMetadata({
 
 export default function InstitutePage() {
   return (
-    <main>
+    <main className="purpose-learning">
       <StructuredData
         data={[
           {
@@ -77,10 +78,12 @@ export default function InstitutePage() {
         />
       </section>
 
+      <SignalJourney variant="learning" />
+
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Training tracks</p>
-          <h2>Courses that lead to roles, lab confidence, and demonstrable skill.</h2>
+          <h2>Build skill you can demonstrate, explain, and use under pressure.</h2>
           <p>
             Learn the reasoning behind network and security operations, then practise the same decisions through guided
             labs, troubleshooting scenarios, and evidence-based exercises.
@@ -106,7 +109,7 @@ export default function InstitutePage() {
       <section className="section split">
         <div className="answer-panel">
           <p className="eyebrow">Differentiator</p>
-          <h2>Teach the operational thinking behind networks, not only commands and certifications.</h2>
+          <h2>Learn the operational thinking behind the command.</h2>
           <p>
             Training content should connect subnetting, switching, routing, VPN, firewall, cloud, logging, and
             troubleshooting into real-world decision making.
@@ -125,8 +128,8 @@ export default function InstitutePage() {
       <section className="section split" id="enrollment">
         <div className="section-heading">
           <p className="eyebrow">Enrollment path</p>
-          <h2>Route students, working professionals, and corporate teams separately.</h2>
-          <p>Use the career assessment first, then request counseling for the right training path.</p>
+          <h2>Choose the learning path that matches the person and the outcome.</h2>
+          <p>Use the career assessment first, then request counseling for an individual or team learning plan.</p>
         </div>
         <LeadForm interest="Network security training" pipeline="Training / Institute" />
       </section>

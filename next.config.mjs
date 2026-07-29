@@ -66,6 +66,9 @@ const contentSecurityPolicy = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  images: {
+    qualities: [65, 75]
+  },
   turbopack: {
     root: process.cwd()
   },

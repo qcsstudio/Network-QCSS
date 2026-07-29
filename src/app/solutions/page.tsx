@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CardVisual } from "@/components/card-visual";
 import { DomainHeroVisual } from "@/components/domain-hero-visual";
+import { SignalJourney } from "@/components/signal-journey";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig, solutionPages } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -23,7 +24,7 @@ export const metadata: Metadata = createPageMetadata({
 
 export default function SolutionsPage() {
   return (
-    <main>
+    <main className="purpose-solution">
       <StructuredData
         data={[
           {
@@ -66,6 +67,8 @@ export default function SolutionsPage() {
           signals={["Diagnose", "Prioritize", "Resolve"]}
         />
       </section>
+
+      <SignalJourney variant="solution" />
 
       <section className="section">
         <div className="service-grid">

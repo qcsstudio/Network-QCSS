@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
+import { SignalJourney } from "@/components/signal-journey";
 import { networkUtilityTools } from "@/lib/network-tools";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -50,7 +51,7 @@ const toolHubFaqs = [
 
 export default function NetworkToolsPage() {
   return (
-    <main>
+    <main className="purpose-tools">
       <StructuredData
         data={[
           {
@@ -133,10 +134,12 @@ export default function NetworkToolsPage() {
         </div>
       </section>
 
+      <SignalJourney variant="tools" />
+
       <section className="section tool-run-section" id="network-tools">
         <div className="section-heading">
           <p className="eyebrow">Choose a tool</p>
-          <h2>Run the check that matches the symptom first.</h2>
+          <h2>Put the symptom in first. Read the signal before the explanation.</h2>
           <p>
             Each tool is built as a focused starting point: enter the domain, IP, URL, CIDR, report, rule, or vendor
             context and use the result to decide the next engineering action.

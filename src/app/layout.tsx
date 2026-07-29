@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Orbitron, Rajdhani, Space_Grotesk } from "next/font/google";
 import { ConsentBanner } from "@/components/consent-banner";
+import { ExperienceLayer } from "@/components/experience-layer";
 import { MarketingScripts } from "@/components/marketing-scripts";
 import { SiteHeader } from "@/components/site-header";
 import { StructuredData } from "@/components/structured-data";
@@ -11,6 +12,7 @@ import { createPageMetadata, defaultKeywords } from "@/lib/seo";
 import "./globals.css";
 import "./visual-refresh.css";
 import "./visual-evolution.css";
+import "./experience-v2.css";
 
 const displayFont = Orbitron({
   subsets: ["latin"],
@@ -112,6 +114,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
         <MarketingScripts />
         <SiteHeader />
+        <ExperienceLayer />
         <div id="main-content" tabIndex={-1}>
           {children}
         </div>

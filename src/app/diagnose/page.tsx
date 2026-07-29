@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AssessmentTool } from "@/components/assessment-tool";
 import { CardVisual } from "@/components/card-visual";
+import { DomainHeroVisual } from "@/components/domain-hero-visual";
+import { SignalJourney } from "@/components/signal-journey";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig, tools } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -23,7 +25,7 @@ export const metadata: Metadata = createPageMetadata({
 
 export default function DiagnosePage() {
   return (
-    <main>
+    <main className="purpose-assessment">
       <StructuredData
         data={[
           {
@@ -50,27 +52,38 @@ export default function DiagnosePage() {
           }
         ]}
       />
-      <section className="page-hero">
-        <p className="eyebrow">Diagnostic command layer</p>
-        <h1>Network assessments that route visitors to the right service, evidence, and response path.</h1>
-        <p>
-          Use this hub to score managed network risk, firewall hygiene, cloud network readiness, pentest scope,
-          troubleshooting urgency, or network security career path fit.
-        </p>
-        <div className="button-row">
-          <a className="button primary" href="#assessment">
-            Run Assessment
-          </a>
-          <Link className="button secondary" href="/network-tools">
-            Open Free Network Tools
-          </Link>
+      <section className="page-hero visual-page-hero">
+        <div className="page-hero-copy">
+          <p className="eyebrow">Guided network assessment</p>
+          <h1>Build a decision-ready network snapshot before the next change or escalation.</h1>
+          <p>
+            Answer practical questions about topology, controls, exposure, evidence, and ownership. Receive a risk band,
+            a collection checklist, and a recommended next action.
+          </p>
+          <div className="button-row">
+            <a className="button primary" href="#assessment">
+              Run Assessment
+            </a>
+            <Link className="button secondary" href="/network-tools">
+              Open Free Network Tools
+            </Link>
+          </div>
         </div>
+        <DomainHeroVisual
+          variant="network"
+          label="Decision-ready snapshot"
+          title="Questions become risk, evidence, and an accountable next move"
+          signals={["Risk band", "Evidence list", "Next action"]}
+        />
       </section>
+
+      <SignalJourney variant="assessment" />
 
       <section className="section tool-run-section" id="assessment">
         <div className="section-heading">
           <p className="eyebrow">Live assessment</p>
-          <h2>Start with the assessment that best matches the visitor intent.</h2>
+          <h2>Choose the assessment that matches what is uncertain.</h2>
+          <p>Use the combined assessment when several concerns overlap, or open a focused path when the domain is already clear.</p>
         </div>
         <AssessmentTool />
       </section>
@@ -78,7 +91,7 @@ export default function DiagnosePage() {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Dedicated assessment pages</p>
-          <h2>Open a focused page when the problem path is already clear.</h2>
+          <h2>Go deeper when the problem domain is already clear.</h2>
         </div>
         <div className="service-grid">
           {tools.map((tool) => (

@@ -4,6 +4,7 @@ import { AssessmentTool } from "@/components/assessment-tool";
 import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
+import { SignalJourney } from "@/components/signal-journey";
 import { siteConfig, tools } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -64,7 +65,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
   const faqs = assessmentFaqs(tool);
 
   return (
-    <main>
+    <main className="purpose-assessment">
       <StructuredData
         data={[
           {
@@ -132,10 +133,11 @@ export default async function ToolPage({ params }: ToolPageProps) {
       <section className="section tool-run-section">
         <AssessmentTool slug={tool.slug} />
       </section>
+      <SignalJourney variant="assessment" compact />
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Assessment logic</p>
-          <h2>Use this assessment to create a clearer follow-up path.</h2>
+          <h2>Understand the result before choosing the next action.</h2>
         </div>
         <div className="faq-grid">
           {faqs.map((faq) => (

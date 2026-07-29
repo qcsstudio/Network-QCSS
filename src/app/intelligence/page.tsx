@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BookOpen, FileCheck2, ShieldAlert } from "lucide-react";
+import { DomainHeroVisual } from "@/components/domain-hero-visual";
+import { SignalJourney } from "@/components/signal-journey";
 import { StructuredData } from "@/components/structured-data";
 import { listSecurityAdvisories } from "@/lib/advisories";
 import { siteConfig } from "@/lib/content";
@@ -49,13 +51,27 @@ export default async function IntelligencePage() {
   ];
 
   return (
-    <main>
+    <main className="purpose-intelligence">
       <StructuredData data={{ "@context": "https://schema.org", "@type": "CollectionPage", name: "QCS Network Security Intelligence", description: metadata.description, url: `${siteConfig.url}/intelligence` }} />
-      <section className="page-hero">
-        <p className="eyebrow">QCS Network Security Intelligence</p>
-        <h1>Live advisories, expert analysis, and practical engineering resources.</h1>
-        <p>Start with the lane that matches the decision in front of you. Urgent vendor intelligence is automatic; editorial guidance is reviewed before publication.</p>
+      <section className="page-hero visual-page-hero">
+        <div className="page-hero-copy">
+          <p className="eyebrow">QCS Network Security Intelligence</p>
+          <h1>Know what changed, whether it matters, and what to do next.</h1>
+          <p>Urgent vendor advisories move through an automatic official-source desk. Deeper analysis, runbooks, and resources are reviewed before publication.</p>
+          <div className="button-row">
+            <Link className="button primary" href="/security-advisories">Open live advisories</Link>
+            <Link className="button secondary" href="/resources">Read analysis</Link>
+          </div>
+        </div>
+        <DomainHeroVisual
+          variant="intelligence"
+          label="Verified signal desk"
+          title="Official source, affected context, priority, and next action"
+          signals={["Source verified", "Exposure checked", "Action ready"]}
+        />
       </section>
+
+      <SignalJourney variant="intelligence" />
       <section className="section intelligence-lanes">
         {lanes.map((lane) => {
           const Icon = lane.icon;

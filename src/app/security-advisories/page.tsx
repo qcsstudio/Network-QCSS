@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { StructuredData } from "@/components/structured-data";
+import { SignalJourney } from "@/components/signal-journey";
 import { listSecurityAdvisories } from "@/lib/advisories";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -25,7 +26,7 @@ export default async function SecurityAdvisoryDeskPage() {
   const latestVerification = advisories.map((item) => item.lastVerifiedAt).sort((a, b) => b.getTime() - a.getTime())[0];
 
   return (
-    <main>
+    <main className="purpose-intelligence">
       <StructuredData
         data={[
           {
@@ -71,10 +72,12 @@ export default async function SecurityAdvisoryDeskPage() {
         </aside>
       </section>
 
+      <SignalJourney variant="intelligence" />
+
       <section className="section" id="latest-advisories">
         <div className="section-heading">
           <p className="eyebrow">Live intelligence</p>
-          <h2>Prioritized for network and security teams.</h2>
+          <h2>See the items that can change today&apos;s patch or mitigation plan.</h2>
           <p>Priority combines source severity, known exploitation, remote attack conditions, recency, and network-edge relevance.</p>
         </div>
 

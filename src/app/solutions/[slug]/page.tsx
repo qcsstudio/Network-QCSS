@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardVisual } from "@/components/card-visual";
 import { DomainHeroVisual, type DomainVisualVariant } from "@/components/domain-hero-visual";
+import { SignalJourney } from "@/components/signal-journey";
 import { StructuredData } from "@/components/structured-data";
 import { networkUtilityTools } from "@/lib/network-tools";
 import { services, siteConfig, solutionPages, tools } from "@/lib/content";
@@ -11,6 +12,13 @@ import { createPageMetadata } from "@/lib/seo";
 type SolutionPageProps = {
   params: Promise<{ slug: string }>;
 };
+
+const outcomeNarratives = [
+  "Confirm the condition with evidence that engineers and owners can review together.",
+  "Give the next action a clear owner, priority, and validation criterion.",
+  "Reduce uncertainty before a production change, escalation, or service request.",
+  "Retain a decision record that supports remediation, retesting, and follow-up."
+];
 
 function solutionVisualVariant(slug: string): DomainVisualVariant {
   if (slug.includes("cloud")) return "cloud";
@@ -55,7 +63,7 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
   const linkedTools = solution.tools.map(toolLink).filter((tool): tool is NonNullable<ReturnType<typeof toolLink>> => Boolean(tool));
 
   return (
-    <main>
+    <main className="purpose-solution">
       <StructuredData
         data={[
           {
@@ -118,6 +126,8 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
         />
       </section>
 
+      <SignalJourney variant="solution" />
+
       <section className="section split">
         <div className="answer-panel">
           <p className="eyebrow">Direct answer</p>
@@ -132,14 +142,14 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Expected outcomes</p>
-          <h2>What this solution should improve</h2>
+          <h2>What better looks like.</h2>
         </div>
         <div className="pillar-grid">
-          {solution.outcomes.map((outcome) => (
+          {solution.outcomes.map((outcome, index) => (
             <article className="pillar-card" key={outcome}>
               <CardVisual title={outcome} context={solution.title} />
               <h3>{outcome}</h3>
-              <p>Converted into evidence, an accountable service path, and a practical next action for your team.</p>
+              <p>{outcomeNarratives[index % outcomeNarratives.length]}</p>
             </article>
           ))}
         </div>
@@ -147,8 +157,8 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
 
       <section className="section split">
         <div className="section-heading">
-          <p className="eyebrow">Service route</p>
-          <h2>Where this problem should go inside QCS</h2>
+          <p className="eyebrow">Recommended service path</p>
+          <h2>Choose the engineering path that fits the evidence.</h2>
         </div>
         <div className="outcome-list">
           {linkedServices.map((service) => (
@@ -167,7 +177,7 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Tools and assessments</p>
-          <h2>Start with a signal before booking a call</h2>
+          <h2>Collect a useful signal before the technical review.</h2>
         </div>
         <div className="utility-grid">
           {linkedTools.map((tool) => (
@@ -185,7 +195,7 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">FAQ</p>
-          <h2>Questions teams ask before taking action</h2>
+          <h2>Questions to resolve before taking action.</h2>
         </div>
         <div className="faq-grid">
           {solution.faqs.map((faq) => (

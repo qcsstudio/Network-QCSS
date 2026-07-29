@@ -5,6 +5,7 @@ import { ArrowRight, LogIn, ShieldCheck } from "lucide-react";
 import { CardVisual } from "@/components/card-visual";
 import { DomainHeroVisual, type DomainVisualVariant } from "@/components/domain-hero-visual";
 import { LeadForm } from "@/components/lead-form";
+import { SignalJourney } from "@/components/signal-journey";
 import { StructuredData } from "@/components/structured-data";
 import { services, siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -12,6 +13,27 @@ import { createPageMetadata } from "@/lib/seo";
 type ServicePageProps = {
   params: Promise<{ slug: string }>;
 };
+
+const outcomeNarratives = [
+  "Establish the current state, accountable owner, and immediate priority.",
+  "Translate the target state into controlled engineering work and clear validation criteria.",
+  "Retain the decision, implementation evidence, and follow-up actions for the operating team.",
+  "Confirm service health, residual risk, and the signals the team should continue to monitor."
+];
+
+const scopeNarratives = [
+  "Baseline the configuration, dependencies, access path, and ownership before change.",
+  "Validate the control or service against the agreed operating requirement.",
+  "Document gaps, dependencies, and changes that need accountable approval.",
+  "Test the resulting state and preserve evidence for future operations."
+];
+
+const deliverableNarratives = [
+  "Written so engineers can act and service owners can govern the outcome.",
+  "Structured so the decision, evidence, and follow-up remain traceable.",
+  "Prepared for handoff into operations, audit, remediation, or retest.",
+  "Organized around ownership, timing, and the next measurable checkpoint."
+];
 
 function serviceVisualVariant(slug: string): DomainVisualVariant {
   if (slug.includes("cloud")) return "cloud";
@@ -44,7 +66,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
   const Icon = service.icon;
 
   return (
-    <main>
+    <main className="purpose-service">
       <StructuredData
         data={[
           {
@@ -121,6 +143,8 @@ export default async function ServicePage({ params }: ServicePageProps) {
         />
       </section>
 
+      <SignalJourney variant={service.slug === "penetration-testing" ? "assurance" : "service"} />
+
       {service.slug === "penetration-testing" ? (
         <section className="section verifygrid-service-cta" aria-labelledby="verifygrid-service-title">
           <div className="verifygrid-service-mark"><ShieldCheck aria-hidden="true" size={28} /></div>
@@ -144,11 +168,11 @@ export default async function ServicePage({ params }: ServicePageProps) {
           <p>{service.proof}</p>
         </div>
         <div className="outcome-list">
-          {service.outcomes.map((outcome) => (
+          {service.outcomes.map((outcome, index) => (
             <article key={outcome}>
               <CardVisual title={outcome} context={service.title} />
               <h3>{outcome}</h3>
-              <p>Handled through assessment, implementation guidance, documentation, and follow-up review.</p>
+              <p>{outcomeNarratives[index % outcomeNarratives.length]}</p>
             </article>
           ))}
         </div>
@@ -157,7 +181,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Operational triggers</p>
-          <h2>When this service becomes urgent</h2>
+          <h2>Choose this service when these signals appear.</h2>
         </div>
         <div className="pill-cloud">
           {service.buyerTriggers.map((trigger) => (
@@ -169,14 +193,14 @@ export default async function ServicePage({ params }: ServicePageProps) {
       <section className="section split">
         <div className="section-heading">
           <p className="eyebrow">Scope</p>
-          <h2>What QCS examines and manages</h2>
+          <h2>What we inspect, operate, or change.</h2>
         </div>
         <div className="outcome-list">
-          {service.scope.map((item) => (
+          {service.scope.map((item, index) => (
             <article key={item}>
               <CardVisual title={item} context={service.title} />
               <h3>{item}</h3>
-              <p>Handled through discovery, validation, documentation, and a practical next action.</p>
+              <p>{scopeNarratives[index % scopeNarratives.length]}</p>
             </article>
           ))}
         </div>
@@ -185,14 +209,14 @@ export default async function ServicePage({ params }: ServicePageProps) {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">Deliverables</p>
-          <h2>What your team receives</h2>
+          <h2>What remains with your team after the work.</h2>
         </div>
         <div className="pillar-grid">
-          {service.deliverables.map((deliverable) => (
+          {service.deliverables.map((deliverable, index) => (
             <article className="pillar-card" key={deliverable}>
               <CardVisual title={deliverable} context={service.title} />
               <h3>{deliverable}</h3>
-              <p>Designed to be useful for owners, engineers, stakeholders, and future follow-up.</p>
+              <p>{deliverableNarratives[index % deliverableNarratives.length]}</p>
             </article>
           ))}
         </div>
@@ -201,7 +225,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
       <section className="section">
         <div className="section-heading">
           <p className="eyebrow">FAQ</p>
-          <h2>Short answers before you engage</h2>
+          <h2>Questions to resolve before work begins.</h2>
         </div>
         <div className="faq-grid">
           {service.faqs.map((faq) => (
@@ -217,7 +241,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
       <section className="section split" id="request-review">
         <div className="section-heading">
           <p className="eyebrow">Request review</p>
-          <h2>Share the environment and QCS can respond around {service.title}.</h2>
+          <h2>Share the environment, pressure, and desired outcome for {service.title}.</h2>
         </div>
         <LeadForm interest={service.title} pipeline={service.title} />
       </section>

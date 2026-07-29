@@ -46,7 +46,7 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
   const fixedVersions = strings(advisory.fixedVersions);
 
   return (
-    <main>
+    <main className="purpose-intelligence">
       <StructuredData
         data={[
           {
