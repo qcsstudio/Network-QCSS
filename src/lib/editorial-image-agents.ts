@@ -87,17 +87,32 @@ const visualDirectionJsonSchema = {
     "altText"
   ],
   properties: {
-    storyThesis: { type: "string" },
-    sceneConcept: { type: "string" },
-    focalSubject: { type: "string" },
-    supportingElements: { type: "array", items: { type: "string" } },
-    environment: { type: "string" },
-    viewpoint: { type: "string" },
-    lighting: { type: "string" },
-    palette: { type: "array", items: { type: "string" } },
-    avoid: { type: "array", items: { type: "string" } },
-    diversitySignature: { type: "string" },
-    altText: { type: "string" }
+    storyThesis: { type: "string", minLength: 20, maxLength: 500 },
+    sceneConcept: { type: "string", minLength: 40, maxLength: 1_200 },
+    focalSubject: { type: "string", minLength: 10, maxLength: 400 },
+    supportingElements: {
+      type: "array",
+      minItems: 1,
+      maxItems: 8,
+      items: { type: "string", minLength: 2, maxLength: 240 }
+    },
+    environment: { type: "string", minLength: 10, maxLength: 400 },
+    viewpoint: { type: "string", minLength: 5, maxLength: 240 },
+    lighting: { type: "string", minLength: 5, maxLength: 240 },
+    palette: {
+      type: "array",
+      minItems: 2,
+      maxItems: 7,
+      items: { type: "string", minLength: 2, maxLength: 80 }
+    },
+    avoid: {
+      type: "array",
+      minItems: 3,
+      maxItems: 12,
+      items: { type: "string", minLength: 2, maxLength: 240 }
+    },
+    diversitySignature: { type: "string", minLength: 10, maxLength: 240 },
+    altText: { type: "string", minLength: 20, maxLength: 240 }
   }
 };
 
@@ -120,9 +135,9 @@ const visualQaJsonSchema = {
     specificityScore: { type: "integer", minimum: 0, maximum: 100 },
     diversityScore: { type: "integer", minimum: 0, maximum: 100 },
     compositionScore: { type: "integer", minimum: 0, maximum: 100 },
-    violations: { type: "array", items: { type: "string" } },
-    rationale: { type: "string" },
-    correctionPrompt: { type: "string" }
+    violations: { type: "array", maxItems: 12, items: { type: "string", minLength: 2, maxLength: 300 } },
+    rationale: { type: "string", minLength: 10, maxLength: 900 },
+    correctionPrompt: { type: "string", maxLength: 1_200 }
   }
 };
 
