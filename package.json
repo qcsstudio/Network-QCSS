@@ -17,7 +17,7 @@
     "smoke": "node scripts/smoke.mjs",
     "site:qa": "node scripts/site-qa.mjs",
     "frontend:qa": "playwright test tests/frontend-qa.spec.ts",
-    "test:content": "node --experimental-strip-types --test tests/content-radar-domain.test.mjs",
+    "test:content": "node --experimental-strip-types --test tests/content-radar-domain.test.mjs tests/editorial-visuals.test.mjs",
     "test:verifygrid": "node --experimental-strip-types --test tests/verifygrid-domain.test.mjs",
     "content:seed": "node scripts/seed-content-studio.mjs",
     "prisma:generate": "prisma generate",

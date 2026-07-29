@@ -151,6 +151,7 @@ function operatingGuidance(context: string): OperatingGuidance {
 export function buildRadarPublicationPost(draft: RadarDraftInput): BlogPost {
   const today = new Date().toISOString().slice(0, 10);
   const title = compact(draft.title, 180);
+  const slug = compact(draft.slug.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), 180);
   const sourceName = compact(draft.sourceName || "Primary technical source", 180);
   const sourceUrl = absoluteSourceUrl(draft.sourceUrl);
   const sourcePublished = sourceDate(draft.sourcePublishedAt);
@@ -182,7 +183,7 @@ export function buildRadarPublicationPost(draft: RadarDraftInput): BlogPost {
 
   return {
     contentType: "blog",
-    slug: compact(draft.slug.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), 180),
+    slug,
     title,
     metaTitle: compact(draft.metaTitle || title, 60),
     description,
@@ -198,8 +199,8 @@ export function buildRadarPublicationPost(draft: RadarDraftInput): BlogPost {
     publishedAt: today,
     updatedAt: today,
     readTime: "8 min read",
-    image: draft.imageRecommendation.startsWith("/") ? draft.imageRecommendation : "/brand/envato/library/security-network-shield.webp",
-    imageAlt: compact(`QCS operational briefing visual for ${title}`, 240),
+    image: `/resources/${slug}/visual`,
+    imageAlt: compact(`Topic-specific QCS network intelligence visual for ${title}`, 240),
     relatedTools: (toolLinks.length ? toolLinks : ["/network-tools"]).slice(0, 4).map((href) => ({ label: labelFromPath(href), href })),
     relatedServices: (serviceLinks.length ? serviceLinks : ["/services/network-security-services"])
       .slice(0, 4)

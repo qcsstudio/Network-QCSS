@@ -303,6 +303,11 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     setDraft((current) => (current ? { ...current, [key]: value } : current));
   }
 
+  function patchSlug(value: string) {
+    const slug = value.toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+    setDraft((current) => (current ? { ...current, slug, image: `/resources/${slug}/visual` } : current));
+  }
+
   const filteredPosts = posts.filter((post) => contentFilter === "all" || (post.content.contentType || "blog") === contentFilter);
   const needsRegeneration = Boolean(draft && /draft required|replace this|todo|placeholder/i.test(JSON.stringify(draft)));
 
@@ -487,7 +492,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
             <legend>Article and search metadata</legend>
             <div className="content-field-grid">
               <label className="content-field content-field-wide"><span>Title</span><input value={draft.title} onChange={(event) => patchContent("title", event.target.value)} /></label>
-              <label className="content-field"><span>Slug</span><input value={draft.slug} onChange={(event) => patchContent("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))} /></label>
+              <label className="content-field"><span>Slug</span><input value={draft.slug} onChange={(event) => patchSlug(event.target.value)} /></label>
               <label className="content-field"><span>Category</span><input value={draft.category} onChange={(event) => patchContent("category", event.target.value)} /></label>
               <label className="content-field"><span>Content type</span><select value={draft.contentType || "blog"} onChange={(event) => patchContent("contentType", event.target.value as "blog" | "resource")}><option value="blog">Blog</option><option value="resource">Resource</option></select></label>
               <label className="content-field content-field-wide"><span>Meta title ({draft.metaTitle.length}/60)</span><input value={draft.metaTitle} onChange={(event) => patchContent("metaTitle", event.target.value)} /></label>
@@ -500,7 +505,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
               <label className="content-field"><span>Published date</span><input type="date" value={draft.publishedAt} onChange={(event) => patchContent("publishedAt", event.target.value)} /></label>
               <label className="content-field"><span>Updated date</span><input type="date" value={draft.updatedAt} onChange={(event) => patchContent("updatedAt", event.target.value)} /></label>
               <label className="content-field content-field-wide"><span>Primary source URL</span><input type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} /></label>
-              <label className="content-field"><span>Image path</span><input value={draft.image} onChange={(event) => patchContent("image", event.target.value)} /></label>
+              <label className="content-field"><span>Generated visual URL</span><input readOnly value={`/resources/${draft.slug}/visual`} /></label>
               <label className="content-field"><span>Image alt text</span><input value={draft.imageAlt} onChange={(event) => patchContent("imageAlt", event.target.value)} /></label>
               <LineListField label="Keywords" value={draft.keywords} onChange={(value) => patchContent("keywords", value)} hint="One keyword per line; use one primary intent and close supporting entities." />
             </div>

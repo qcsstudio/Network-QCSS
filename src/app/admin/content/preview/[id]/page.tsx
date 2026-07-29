@@ -34,7 +34,11 @@ export default async function ContentPreviewPage({ params }: PreviewPageProps) {
           Back to Content Studio
         </Link>
       </section>
-      <BlogArticle post={post.content} showLeadForm={false} />
+      <BlogArticle
+        post={post.content}
+        showLeadForm={false}
+        visualSrc={`/api/admin/content-posts/${post.id}/visual`}
+      />
     </main>
   );
 }

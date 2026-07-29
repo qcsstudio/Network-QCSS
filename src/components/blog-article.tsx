@@ -7,9 +7,10 @@ import type { BlogPost } from "@/lib/blog";
 type BlogArticleProps = {
   post: BlogPost;
   showLeadForm?: boolean;
+  visualSrc?: string;
 };
 
-export function BlogArticle({ post, showLeadForm = true }: BlogArticleProps) {
+export function BlogArticle({ post, showLeadForm = true, visualSrc }: BlogArticleProps) {
   return (
     <>
       <article>
@@ -36,7 +37,7 @@ export function BlogArticle({ post, showLeadForm = true }: BlogArticleProps) {
               fill
               priority
               sizes="(max-width: 1080px) 100vw, 42vw"
-              src={`/resources/${post.slug}/visual`}
+              src={visualSrc || `/resources/${post.slug}/visual`}
               unoptimized
             />
           </div>

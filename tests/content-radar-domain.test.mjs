@@ -40,6 +40,8 @@ test("radar publication content is complete and passes editorial limits", () => 
   assert.ok(post.questions.length >= 3);
   assert.equal(post.sources[0].url, radarDraft.sourceUrl);
   assert.equal(post.category, "Network Security");
+  assert.equal(post.image, `/resources/${post.slug}/visual`);
+  assert.match(post.imageAlt, /topic-specific qcs/i);
 });
 
 test("internal fallback sources are normalized to public URLs", () => {

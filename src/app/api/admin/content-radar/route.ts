@@ -386,8 +386,7 @@ function draftFromTopic(topic: RankedTopic, index: number) {
     businessAngle: topic.businessAngle,
     servicePath: topic.servicePath,
     keywordCluster: topic.keywordCluster,
-    imageRecommendation:
-      index % 2 === 0 ? "/brand/envato/library/security-network-shield.webp" : "/brand/envato/cyber/network-service-operator.jpg"
+    imageRecommendation: `/resources/${topic.suggestedSlug}/visual`
   };
 }
 

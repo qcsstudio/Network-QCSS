@@ -1,9 +1,8 @@
 import { ImageResponse } from "next/og";
+import { EditorialArtwork } from "@/components/editorial-artwork";
 import { getSecurityAdvisory } from "@/lib/advisories";
-import { advisoryVisualPath } from "@/lib/editorial-visuals";
-
-/* next/og requires a native image element while rendering server-side artwork. */
-/* eslint-disable @next/next/no-img-element */
+import { qcsEditorialLogo } from "@/lib/editorial-logo";
+import { advisoryVisualProfile, fallbackVisualProfile } from "@/lib/editorial-visuals";
 
 export const runtime = "nodejs";
 export const revalidate = 3600;
@@ -12,30 +11,18 @@ function strings(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
-export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const advisory = await getSecurityAdvisory(slug);
   const vendor = advisory?.vendor || "QCS Security Advisory Desk";
   const product = advisory ? strings(advisory.products)[0] || "Network security" : "Network security";
   const severity = advisory?.severity || "unrated";
-  const origin = new URL(request.url).origin;
-  const asset = new URL(advisory ? advisoryVisualPath(advisory) : "/brand/envato/library/security-network-shield.webp", origin).toString();
-  const logo = new URL("/brand/quantumcrafters-logo.png", origin).toString();
-  const accent = severity === "critical" ? "#b4233d" : severity === "high" ? "#c25320" : severity === "medium" ? "#9a6900" : "#426bcc";
+  const logo = await qcsEditorialLogo();
+  const title = advisory?.title || `${vendor}: ${product}`;
+  const profile = advisory ? advisoryVisualProfile(advisory) : fallbackVisualProfile(title);
 
   return new ImageResponse(
-    <div style={{ width: "100%", height: "100%", display: "flex", background: "#081525", color: "#f8fbff", fontFamily: "Arial" }}>
-      <div style={{ width: "36%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "53px 46px", borderRight: `10px solid ${accent}` }}>
-        <img alt="" src={logo} width={336} height={92} style={{ objectFit: "contain", objectPosition: "left center" }} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          <div style={{ display: "flex", alignSelf: "flex-start", background: accent, padding: "11px 17px", fontSize: 24, fontWeight: 900, textTransform: "uppercase" }}>{severity}</div>
-          <div style={{ display: "flex", color: "#69a7ff", fontSize: 32, fontWeight: 800 }}>{vendor}</div>
-          <div style={{ display: "flex", fontSize: 44, lineHeight: 1.1, fontWeight: 800 }}>{product}</div>
-        </div>
-        <div style={{ display: "flex", color: "#c9d7e6", fontSize: 26 }}>Source verified. Action oriented.</div>
-      </div>
-      <div style={{ width: "64%", height: "100%", display: "flex", background: "#dfe8f3", backgroundImage: `url(${asset})`, backgroundRepeat: "no-repeat", backgroundSize: "cover", backgroundPosition: "center" }} />
-    </div>,
+    <EditorialArtwork format="hero" logoUrl={logo} profile={profile} statusLabel={`${severity} advisory`} title={title} />,
     {
       width: 1440,
       height: 810,

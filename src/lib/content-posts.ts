@@ -167,9 +167,10 @@ export function starterContentPost(kind: "blog" | "resource"): BlogPost {
   const today = new Date().toISOString().slice(0, 10);
   const unique = Date.now().toString(36);
   const label = kind === "resource" ? "Network Operations Resource" : "Network Engineering Article";
+  const slug = `new-${kind}-${unique}`;
   return {
     contentType: kind,
-    slug: `new-${kind}-${unique}`,
+    slug,
     title: `New ${label}`,
     metaTitle: `New ${label} | QCS`,
     description: `Draft required: add a concise search description explaining the practical network outcome delivered by this ${kind}.`,
@@ -182,8 +183,8 @@ export function starterContentPost(kind: "blog" | "resource"): BlogPost {
     publishedAt: today,
     updatedAt: today,
     readTime: "7 min read",
-    image: kind === "resource" ? "/brand/envato/library/data-center-platform.webp" : "/brand/envato/library/security-network-shield.webp",
-    imageAlt: `QCS ${label.toLowerCase()} visual for practical network and security teams`,
+    image: `/resources/${slug}/visual`,
+    imageAlt: `Topic-specific QCS ${label.toLowerCase()} visual for practical network and security teams`,
     relatedTools: [{ label: "Network Tools", href: "/network-tools" }],
     relatedServices: [{ label: "Managed Network Services", href: "/services/managed-network-services" }],
     takeaways: [
