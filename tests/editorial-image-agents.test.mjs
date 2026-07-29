@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildImageRenderPrompt, restoreEditorialAgentTrace, visualQaPasses } from "../src/lib/editorial-image-agents.ts";
+import {
+  buildImageRenderPrompt,
+  normalizeVisualQaScores,
+  restoreEditorialAgentTrace,
+  visualQaPasses
+} from "../src/lib/editorial-image-agents.ts";
 
 const direction = {
   storyThesis: "An unauthorized route origin is checked against the operator's ROA evidence before policy changes.",
@@ -38,6 +43,22 @@ test("visual QA requires both model approval and hard score thresholds", () => {
   assert.equal(visualQaPasses({ ...passing, specificityScore: 81 }), false);
   assert.equal(visualQaPasses({ ...passing, violations: ["Contains embedded text"] }), false);
   assert.equal(visualQaPasses({ ...passing, approved: false }), false);
+});
+
+test("ten-point critic scores are normalized to the required hundred-point scale", () => {
+  const normalized = normalizeVisualQaScores({
+    approved: true,
+    relevanceScore: 10,
+    specificityScore: 10,
+    diversityScore: 9,
+    compositionScore: 9,
+    violations: [],
+    rationale: "The article-specific relationship is clear and publication ready.",
+    correctionPrompt: ""
+  });
+  assert.equal(normalized.relevanceScore, 100);
+  assert.equal(normalized.diversityScore, 90);
+  assert.equal(visualQaPasses(normalized), true);
 });
 
 test("QA correction is passed into the second image render", () => {

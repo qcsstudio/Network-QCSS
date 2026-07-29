@@ -288,6 +288,7 @@ async function inspectVisual(
       "Reject attractive but generic cybersecurity imagery, factual mismatches, repeated compositions, unreadable focal hierarchy, embedded text, cropped essential subjects, and LinkedIn-unsafe framing.",
       "This is an editorial hero image, not a technical diagram. It must communicate the article's one central technical relationship at a glance; it does not need to encode every secondary fact, workflow step, classification, version, or checklist item.",
       "Use violations only for publication-blocking defects: the wrong core story, materially misleading technology, generic or repeated symbolism, visible text or invented branding, broken anatomy or geometry, an incoherent focal hierarchy, or an essential subject outside the safe crop. Mention non-blocking omissions only in rationale and leave violations empty.",
+      "Every score must use the full 0-to-100 scale. For excellent work return values such as 90 or 95, never 9 or 9.5.",
       "Set approved true only when the image is article-specific and every score honestly meets professional publication quality.",
       "If rejected, correctionPrompt must give concrete visual changes for one regeneration. Return the required JSON only."
     ].join(" "),
@@ -340,6 +341,18 @@ export function visualQaPasses(qa: VisualQa) {
   );
 }
 
+export function normalizeVisualQaScores(qa: VisualQa) {
+  const scores = [qa.relevanceScore, qa.specificityScore, qa.diversityScore, qa.compositionScore];
+  if (!scores.every((score) => score >= 0 && score <= 10)) return qa;
+  return {
+    ...qa,
+    relevanceScore: qa.relevanceScore * 10,
+    specificityScore: qa.specificityScore * 10,
+    diversityScore: qa.diversityScore * 10,
+    compositionScore: qa.compositionScore * 10
+  };
+}
+
 export function restoreEditorialAgentTrace(value: unknown) {
   const result = editorialAgentTraceSchema.safeParse(value);
   return result.success ? result.data : null;
@@ -365,7 +378,7 @@ export async function runEditorialImageAgents(
 
   for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
     const source = await produceImage(editorialPrompt, direction, correction);
-    latestQa = await inspectVisual(editorialPrompt, direction, source, recentConcepts);
+    latestQa = normalizeVisualQaScores(await inspectVisual(editorialPrompt, direction, source, recentConcepts));
     const trace: EditorialAgentTrace = {
       provider: "openai-direct",
       qaPolicyVersion: 2,
