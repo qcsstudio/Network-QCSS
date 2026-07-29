@@ -359,6 +359,10 @@ export function restoreEditorialAgentTrace(value: unknown) {
   return result.success ? result.data : null;
 }
 
+export function traceForEditorialRetry(trace: EditorialAgentTrace | null) {
+  return trace && trace.renderAttempts < 3 ? trace : null;
+}
+
 function attemptsPerRun() {
   const configured = Number(env("EDITORIAL_IMAGE_ATTEMPTS_PER_RUN"));
   if (Number.isFinite(configured) && configured >= 1) return Math.min(Math.floor(configured), 2);
@@ -371,10 +375,11 @@ export async function runEditorialImageAgents(
   previousTrace: EditorialAgentTrace | null = null
 ) {
   const config = editorialAgentConfiguration();
-  const direction = previousTrace?.direction || (await directVisualDirection(editorialPrompt, recentConcepts));
-  let correction = previousTrace?.qa.correctionPrompt || previousTrace?.qa.violations.join("; ") || "";
+  const retryTrace = traceForEditorialRetry(previousTrace);
+  const direction = retryTrace?.direction || (await directVisualDirection(editorialPrompt, recentConcepts));
+  let correction = retryTrace?.qa.correctionPrompt || retryTrace?.qa.violations.join("; ") || "";
   let latestQa: VisualQa | undefined;
-  const priorAttempts = previousTrace?.renderAttempts || 0;
+  const priorAttempts = retryTrace?.renderAttempts || 0;
   const maximumAttempts = attemptsPerRun();
 
   for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {

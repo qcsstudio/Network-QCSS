@@ -4,6 +4,7 @@ import {
   buildImageRenderPrompt,
   normalizeVisualQaScores,
   restoreEditorialAgentTrace,
+  traceForEditorialRetry,
   visualQaPasses
 } from "../src/lib/editorial-image-agents.ts";
 
@@ -91,4 +92,29 @@ test("stored agent traces are validated before a production retry reuses them", 
   const legacyTrace = structuredClone(trace);
   delete legacyTrace.qaPolicyVersion;
   assert.equal(restoreEditorialAgentTrace(legacyTrace), null);
+});
+
+test("repeated failed renders request a fresh visual direction", () => {
+  const trace = {
+    provider: "openai-direct",
+    qaPolicyVersion: 2,
+    directorModel: "director",
+    imageModel: "image",
+    criticModel: "critic",
+    direction,
+    qa: {
+      approved: false,
+      relevanceScore: 90,
+      specificityScore: 86,
+      diversityScore: 40,
+      compositionScore: 90,
+      violations: ["The composition repeats a recent scene"],
+      rationale: "The image needs a genuinely different narrative mechanism.",
+      correctionPrompt: "Replace the bench scene with a different composition."
+    },
+    renderAttempts: 3
+  };
+  const retryable = { ...trace, renderAttempts: 2 };
+  assert.equal(traceForEditorialRetry(retryable), retryable);
+  assert.equal(traceForEditorialRetry(trace), null);
 });
