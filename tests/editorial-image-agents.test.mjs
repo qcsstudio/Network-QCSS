@@ -67,6 +67,7 @@ test("stored agent traces are validated before a production retry reuses them", 
   };
   assert.deepEqual(restoreEditorialAgentTrace(trace), trace);
   assert.equal(restoreEditorialAgentTrace({ ...trace, provider: "gateway" }), null);
-  const { qaPolicyVersion: _oldVersion, ...legacyTrace } = trace;
+  const legacyTrace = structuredClone(trace);
+  delete legacyTrace.qaPolicyVersion;
   assert.equal(restoreEditorialAgentTrace(legacyTrace), null);
 });
