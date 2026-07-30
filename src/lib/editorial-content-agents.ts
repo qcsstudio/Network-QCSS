@@ -4,8 +4,8 @@ import type { BlogPost } from "@/lib/blog";
 import { collectEditorialEvidence, type EditorialEvidenceSource } from "@/lib/editorial-source-policy";
 import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts";
 
-const defaultContentWriterModel = "gpt-5.4-mini";
-const defaultContentCriticModel = "gpt-5.4-mini";
+const defaultContentWriterModel = "gpt-4.1-mini";
+const defaultContentCriticModel = "gpt-4.1-mini";
 
 const advisoryContentSchema = z.object({
   plainLanguageSummary: z.string().min(80).max(1_200),
@@ -23,8 +23,8 @@ const advisoryContentSchema = z.object({
 
 const sectionSchema = z.object({
   heading: z.string().min(5).max(180),
-  body: z.string().min(150).max(5_000),
-  bullets: z.array(z.string().min(15).max(700)).min(2).max(12).optional(),
+  body: z.string().min(150).max(1_800),
+  bullets: z.array(z.string().min(15).max(500)).min(2).max(6).optional(),
   sourceUrls: z.array(z.string().url().max(1_000)).max(4)
 });
 
@@ -33,35 +33,35 @@ const blogContentSchema = z.object({
   metaTitle: z.string().min(10).max(70),
   description: z.string().min(50).max(180),
   excerpt: z.string().min(60).max(400),
-  answer: z.string().min(80).max(900),
+  answer: z.string().min(80).max(600),
   readerOutcome: z.string().min(40).max(360),
   category: z.string().min(2).max(100),
   audience: z.string().min(2).max(240),
   primaryKeyword: z.string().min(2).max(140),
   keywords: z.array(z.string().min(2).max(140)).min(3).max(16),
-  takeaways: z.array(z.string().min(20).max(500)).min(3).max(8),
+  takeaways: z.array(z.string().min(20).max(400)).min(3).max(6),
   definitions: z
     .array(z.object({ term: z.string().min(2).max(100), definition: z.string().min(30).max(500) }))
     .min(2)
-    .max(8),
+    .max(5),
   visualBrief: z.object({
     storyThesis: z.string().min(30).max(500),
     sceneConcept: z.string().min(50).max(1_000),
     factualAnchors: z.array(z.string().min(15).max(320)).min(2).max(6),
     avoid: z.array(z.string().min(10).max(240)).min(3).max(8)
   }),
-  sections: z.array(sectionSchema).min(5).max(12),
-  checklist: z.array(z.string().min(15).max(500)).min(6).max(16),
+  sections: z.array(sectionSchema).min(5).max(7),
+  checklist: z.array(z.string().min(15).max(400)).min(6).max(12),
   questions: z
     .array(
       z.object({
         question: z.string().min(10).max(240),
-        answer: z.string().min(50).max(1_200),
+        answer: z.string().min(50).max(800),
         sourceUrls: z.array(z.string().url().max(1_000)).max(4)
       })
     )
     .min(4)
-    .max(10),
+    .max(6),
   imageAlt: z.string().min(20).max(240)
 });
 
@@ -119,6 +119,10 @@ function env(name: string) {
   return process.env[name]?.trim() || "";
 }
 
+function usesReasoningControls(model: string) {
+  return model.startsWith("gpt-5");
+}
+
 export function editorialContentAgentConfiguration() {
   const credential = openAIApiKeyStatus();
   return {
@@ -137,8 +141,8 @@ function openAIClient() {
     apiKey: credential.apiKey,
     organization: env("OPENAI_ORGANIZATION") || undefined,
     project: env("OPENAI_PROJECT_ID") || undefined,
-    maxRetries: 2,
-    timeout: 240_000
+    maxRetries: 0,
+    timeout: 120_000
   });
 }
 
@@ -188,8 +192,8 @@ const sectionJsonSchema = {
   required: ["heading", "body", "bullets", "sourceUrls"],
   properties: {
     heading: { type: "string", minLength: 5, maxLength: 180 },
-    body: { type: "string", minLength: 150, maxLength: 5_000 },
-    bullets: { type: "array", minItems: 2, maxItems: 12, items: { type: "string", minLength: 15, maxLength: 700 } },
+    body: { type: "string", minLength: 150, maxLength: 1_800 },
+    bullets: { type: "array", minItems: 2, maxItems: 6, items: { type: "string", minLength: 15, maxLength: 500 } },
     sourceUrls: {
       type: "array",
       maxItems: 4,
@@ -225,17 +229,17 @@ const blogContentJsonSchema = {
     metaTitle: { type: "string", minLength: 10, maxLength: 70 },
     description: { type: "string", minLength: 50, maxLength: 180 },
     excerpt: { type: "string", minLength: 60, maxLength: 400 },
-    answer: { type: "string", minLength: 80, maxLength: 900 },
+    answer: { type: "string", minLength: 80, maxLength: 600 },
     readerOutcome: { type: "string", minLength: 40, maxLength: 360 },
     category: { type: "string", minLength: 2, maxLength: 100 },
     audience: { type: "string", minLength: 2, maxLength: 240 },
     primaryKeyword: { type: "string", minLength: 2, maxLength: 140 },
     keywords: { type: "array", minItems: 3, maxItems: 16, items: { type: "string", minLength: 2, maxLength: 140 } },
-    takeaways: { type: "array", minItems: 3, maxItems: 8, items: { type: "string", minLength: 20, maxLength: 500 } },
+    takeaways: { type: "array", minItems: 3, maxItems: 6, items: { type: "string", minLength: 20, maxLength: 400 } },
     definitions: {
       type: "array",
       minItems: 2,
-      maxItems: 8,
+      maxItems: 5,
       items: {
         type: "object",
         additionalProperties: false,
@@ -267,19 +271,19 @@ const blogContentJsonSchema = {
         }
       }
     },
-    sections: { type: "array", minItems: 5, maxItems: 12, items: sectionJsonSchema },
-    checklist: { type: "array", minItems: 6, maxItems: 16, items: { type: "string", minLength: 15, maxLength: 500 } },
+    sections: { type: "array", minItems: 5, maxItems: 7, items: sectionJsonSchema },
+    checklist: { type: "array", minItems: 6, maxItems: 12, items: { type: "string", minLength: 15, maxLength: 400 } },
     questions: {
       type: "array",
       minItems: 4,
-      maxItems: 10,
+      maxItems: 6,
       items: {
         type: "object",
         additionalProperties: false,
         required: ["question", "answer", "sourceUrls"],
         properties: {
           question: { type: "string", minLength: 10, maxLength: 240 },
-          answer: { type: "string", minLength: 50, maxLength: 1_200 },
+          answer: { type: "string", minLength: 50, maxLength: 800 },
           sourceUrls: {
             type: "array",
             maxItems: 4,
@@ -346,6 +350,27 @@ function contentQaPasses(qa: ContentQa) {
   );
 }
 
+function contentQaDeficits(qa: ContentQa) {
+  const deficits = [...qa.violations];
+  if (!qa.approved) deficits.push("The critic did not mark the draft approved; resolve the rationale before approving it.");
+  const thresholds: Array<[keyof ContentQa, number, string]> = [
+    ["factualGroundingScore", 90, "factual grounding"],
+    ["evidenceTraceabilityScore", 88, "evidence traceability"],
+    ["authorityScore", 86, "authority"],
+    ["clarityScore", 84, "clarity"],
+    ["structureScore", 86, "structure"],
+    ["usefulnessScore", 86, "operational usefulness"],
+    ["searchAnswerScore", 84, "search and answer-engine usefulness"]
+  ];
+  for (const [key, threshold, label] of thresholds) {
+    const score = qa[key];
+    if (typeof score === "number" && score < threshold) {
+      deficits.push(`Raise ${label} from ${score} to at least ${threshold}.`);
+    }
+  }
+  return [...new Set(deficits)];
+}
+
 function qualityScore(qa: ContentQa) {
   return Math.round(
     (qa.factualGroundingScore +
@@ -361,10 +386,12 @@ function qualityScore(qa: ContentQa) {
 
 async function inspectContent(kind: "advisory" | "blog", evidence: string, content: unknown) {
   const config = editorialContentAgentConfiguration();
+  const startedAt = Date.now();
+  console.info("QCS editorial agent started.", { stage: `${kind}-critic`, model: config.criticModel });
   const response = await openAIClient().responses.create({
     model: config.criticModel,
     store: false,
-    reasoning: { effort: "medium" },
+    reasoning: usesReasoningControls(config.criticModel) ? { effort: "low" } : undefined,
     instructions: [
       "You are the QCS Editorial QA Critic, a senior network-security editor and fact checker.",
       "Compare every factual claim with the supplied primary-source evidence. Reject unsupported versions, exploit claims, mitigations, commands, dates, or product behavior.",
@@ -372,24 +399,32 @@ async function inspectContent(kind: "advisory" | "blog", evidence: string, conte
       "Reject generic filler, repetitive template language, unexplained jargon, sensational phrasing, copied source wording, weak search intent, and content that would not help a real operator make a decision.",
       "For blogs, require a direct answer, a clear reader outcome, defined entities, useful headings, evidence-led reasoning, implementation and validation guidance, realistic limitations, and FAQs that resolve genuine follow-up questions.",
       "Plain-language passages should be understandable to an IT decision maker; technical passages must remain precise for engineers.",
-      "Set approved true only when the content is authoritative, useful, easy to understand, and ready for professional publication. Return JSON only."
+      "Set approved true only when the content is authoritative, useful, easy to understand, and ready for professional publication.",
+      "Required passing scores are factual grounding 90, evidence traceability 88, authority 86, clarity 84, structure 86, usefulness 86, and search/answer usefulness 84. If any score misses, name the exact deficit in violations and correctionPrompt. Keep approved and rationale consistent with the scores. Return JSON only."
     ].join(" "),
     input: `CONTENT TYPE: ${kind}\n\nPRIMARY-SOURCE EVIDENCE:\n${evidence}\n\nDRAFT TO REVIEW:\n${JSON.stringify(content)}`,
-    max_output_tokens: 2_400,
+    max_output_tokens: 1_600,
     text: {
-      verbosity: "low",
+      ...(usesReasoningControls(config.criticModel) ? { verbosity: "low" as const } : {}),
       format: { type: "json_schema", name: "qcs_editorial_content_qa", strict: true, schema: contentQaJsonSchema }
     }
+  });
+  console.info("QCS editorial agent completed.", {
+    stage: `${kind}-critic`,
+    model: config.criticModel,
+    durationMs: Date.now() - startedAt
   });
   return parseStructured(response.output_text, contentQaSchema, "QCS Editorial QA Critic");
 }
 
 async function writeAdvisory(input: AdvisoryEditorialInput, evidence: string, correction = "") {
   const config = editorialContentAgentConfiguration();
+  const startedAt = Date.now();
+  console.info("QCS editorial agent started.", { stage: "advisory-writer", model: config.writerModel });
   const response = await openAIClient().responses.create({
     model: config.writerModel,
     store: false,
-    reasoning: { effort: "medium" },
+    reasoning: usesReasoningControls(config.writerModel) ? { effort: "low" } : undefined,
     instructions: [
       "You are the QCS Security Advisory Analyst, a senior vulnerability-response engineer and plain-language technical writer.",
       "Use only the supplied primary-source evidence. Never infer affected or fixed versions, exploitation, workaround, severity, or product behavior that the evidence does not state.",
@@ -404,11 +439,16 @@ async function writeAdvisory(input: AdvisoryEditorialInput, evidence: string, co
     ]
       .filter(Boolean)
       .join("\n\n"),
-    max_output_tokens: 5_000,
+    max_output_tokens: 3_200,
     text: {
-      verbosity: "medium",
+      ...(usesReasoningControls(config.writerModel) ? { verbosity: "medium" as const } : {}),
       format: { type: "json_schema", name: "qcs_security_advisory_content", strict: true, schema: advisoryContentJsonSchema }
     }
+  });
+  console.info("QCS editorial agent completed.", {
+    stage: "advisory-writer",
+    model: config.writerModel,
+    durationMs: Date.now() - startedAt
   });
   return parseStructured(response.output_text, advisoryContentSchema, "QCS Security Advisory Analyst");
 }
@@ -423,6 +463,7 @@ export async function enrichSecurityAdvisory(input: AdvisoryEditorialInput) {
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     latestContent = await writeAdvisory(input, brief, correction);
     latestQa = await inspectContent("advisory", brief, latestContent);
+    console.info("QCS editorial QA result.", { kind: "advisory", attempt, qa: latestQa });
     if (contentQaPasses(latestQa)) {
       return {
         content: latestContent,
@@ -439,23 +480,26 @@ export async function enrichSecurityAdvisory(input: AdvisoryEditorialInput) {
         } satisfies EditorialAgentTrace
       };
     }
-    correction = latestQa.correctionPrompt || latestQa.violations.join("; ");
+    correction = latestQa.correctionPrompt || contentQaDeficits(latestQa).join("; ");
   }
   throw new Error(`Advisory editorial QA rejected the content: ${latestQa?.rationale || "unknown reason"}`);
 }
 
 async function writeBlog(input: BlogEditorialInput, evidence: string, correction = "") {
   const config = editorialContentAgentConfiguration();
+  const startedAt = Date.now();
+  console.info("QCS editorial agent started.", { stage: "blog-writer", model: config.writerModel });
   const response = await openAIClient().responses.create({
     model: config.writerModel,
     store: false,
-    reasoning: { effort: "medium" },
+    reasoning: usesReasoningControls(config.writerModel) ? { effort: "low" } : undefined,
     instructions: [
       "You are the QCS Research Editor, a senior network engineer, cybersecurity writer, SEO strategist, and educator.",
       "Create an original, authoritative article from the supplied primary-source evidence. Search demand may shape the question, but never treat a trend or headline as technical evidence.",
       "Answer the reader's real question immediately, explain terminology in plain English, then provide technically precise reasoning, examples, evidence, decisions, safeguards, and practical next steps.",
       "Build the article for human readers and answer engines: state a self-contained direct answer first; define important entities; organize the body around the reader's decision; distinguish evidence, interpretation, and recommendation; include implementation, validation, limitations, and escalation guidance where relevant.",
       "Use sourceUrls on each section and FAQ answer to cite only the supplied URL or URLs that support its factual claims. Use an empty array only for clearly labeled QCS analysis or practical advice that does not depend on an external fact.",
+      "Keep the finished article between roughly 1,400 and 1,900 words. Use five to seven focused sections, four to six genuine FAQs, and concise bullets only where they improve scanning.",
       "Create a topic-specific visualBrief from the article's concrete systems, evidence, and cause-and-effect relationship. Its factualAnchors must be supported by the article, and its avoid list must prevent likely visual misinterpretations or generic cyber imagery.",
       "Do not produce a vendor-news rewrite, generic checklist template, sales pitch, or repetitive QCS boilerplate. Do not invent versions, statistics, commands, exploit claims, outcomes, or quotations.",
       "Use short paragraphs, meaningful headings, active voice, and natural language suitable for informed readers worldwide and in India. Paraphrase sources and return JSON only."
@@ -467,11 +511,16 @@ async function writeBlog(input: BlogEditorialInput, evidence: string, correction
     ]
       .filter(Boolean)
       .join("\n\n"),
-    max_output_tokens: 10_000,
+    max_output_tokens: 4_000,
     text: {
-      verbosity: "medium",
+      ...(usesReasoningControls(config.writerModel) ? { verbosity: "medium" as const } : {}),
       format: { type: "json_schema", name: "qcs_researched_blog_content", strict: true, schema: blogContentJsonSchema }
     }
+  });
+  console.info("QCS editorial agent completed.", {
+    stage: "blog-writer",
+    model: config.writerModel,
+    durationMs: Date.now() - startedAt
   });
   return parseStructured(response.output_text, blogContentSchema, "QCS Research Editor");
 }
@@ -558,6 +607,7 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
     const written = await writeBlog(input, brief, correction);
     const content = buildBlogPost(input, written, usable);
     latestQa = await inspectContent("blog", brief, content);
+    console.info("QCS editorial QA result.", { kind: "blog", attempt, qa: latestQa });
     if (contentQaPasses(latestQa)) {
       return {
         content,
@@ -574,7 +624,9 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
         } satisfies EditorialAgentTrace
       };
     }
-    correction = latestQa.correctionPrompt || latestQa.violations.join("; ");
+    correction = latestQa.correctionPrompt || contentQaDeficits(latestQa).join("; ");
   }
-  throw new Error(`Blog editorial QA rejected the content: ${latestQa?.rationale || "unknown reason"}`);
+  throw new Error(
+    `Blog editorial QA rejected the content: ${latestQa?.rationale || "unknown reason"}. Deficits: ${latestQa ? contentQaDeficits(latestQa).join(" ") : "unknown"}`
+  );
 }

@@ -86,9 +86,15 @@ async function main() {
       ...(selectedSlug ? { slug: selectedSlug } : {})
     },
     orderBy: { publishedAt: "desc" },
-    select: { id: true, slug: true }
+    select: { id: true, slug: true, qualityScore: true, researchTrace: true }
   });
-  for (const post of posts) {
+  const pendingPosts = selectedSlug
+    ? posts
+    : posts.filter((post) => typeof post.qualityScore !== "number" || !post.researchTrace);
+  console.log(JSON.stringify({ phase: "content-upgrade-inventory", selectedSlug: selectedSlug || null, pending: pendingPosts.length }));
+  for (const post of pendingPosts) {
+    const startedAt = Date.now();
+    console.log(JSON.stringify({ phase: "content-upgrade-started", slug: post.slug }));
     try {
       const upgraded = await upgradePublishedContentPost(post.id, "editorial-library-upgrade-v2");
       console.log(
@@ -96,7 +102,8 @@ async function main() {
           phase: "content-upgraded",
           slug: post.slug,
           qualityScore: upgraded?.qualityScore || null,
-          contentVersion: upgraded?.content.contentVersion || null
+          contentVersion: upgraded?.content.contentVersion || null,
+          durationSeconds: Math.round((Date.now() - startedAt) / 1_000)
         })
       );
     } catch (error) {

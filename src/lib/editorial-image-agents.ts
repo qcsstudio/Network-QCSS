@@ -2,9 +2,9 @@ import OpenAI from "openai";
 import { z } from "zod";
 import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts";
 
-export const defaultEditorialDirectorModel = "gpt-5.4-mini";
+export const defaultEditorialDirectorModel = "gpt-4.1-mini";
 export const defaultEditorialImageModel = "gpt-image-2";
-export const defaultEditorialCriticModel = "gpt-5.4-mini";
+export const defaultEditorialCriticModel = "gpt-4.1-mini";
 
 const visualDirectionSchema = z.object({
   storyThesis: z.string().min(20).max(500),
@@ -176,6 +176,18 @@ function env(name: string) {
   return process.env[name]?.trim() || "";
 }
 
+function imageAgentTimeoutMs() {
+  const configured = Number(env("EDITORIAL_IMAGE_TIMEOUT_MS"));
+  if (Number.isFinite(configured) && configured >= 30_000) {
+    return Math.min(Math.floor(configured), 600_000);
+  }
+  return 270_000;
+}
+
+function usesReasoningControls(model: string) {
+  return model.startsWith("gpt-5");
+}
+
 export function editorialAgentConfiguration() {
   const credential = openAIApiKeyStatus();
   return {
@@ -195,8 +207,8 @@ function openAIClient() {
     apiKey: credential.apiKey,
     organization: env("OPENAI_ORGANIZATION") || undefined,
     project: env("OPENAI_PROJECT_ID") || undefined,
-    maxRetries: 2,
-    timeout: 240_000
+    maxRetries: 0,
+    timeout: imageAgentTimeoutMs()
   });
 }
 
@@ -225,7 +237,7 @@ async function directVisualDirection(editorialPrompt: string, recentConcepts: Re
   const response = await openAIClient().responses.create({
     model: config.directorModel,
     store: false,
-    reasoning: { effort: "medium" },
+    reasoning: usesReasoningControls(config.directorModel) ? { effort: "low" } : undefined,
     instructions: [
       "You are the QCS Visual Director, a senior editorial art director with deep network engineering and cybersecurity literacy.",
       "Translate the supplied article facts into one precise visual story. Do not use a category preset or generic cyber symbolism.",
@@ -245,7 +257,7 @@ async function directVisualDirection(editorialPrompt: string, recentConcepts: Re
     ].join("\n"),
     max_output_tokens: 2_400,
     text: {
-      verbosity: "low",
+      ...(usesReasoningControls(config.directorModel) ? { verbosity: "low" as const } : {}),
       format: {
         type: "json_schema",
         name: "qcs_visual_direction",
@@ -315,7 +327,7 @@ async function inspectVisual(
   const response = await openAIClient().responses.create({
     model: config.criticModel,
     store: false,
-    reasoning: { effort: "medium" },
+    reasoning: usesReasoningControls(config.criticModel) ? { effort: "low" } : undefined,
     instructions: [
       "You are the QCS Visual QA Critic. Inspect the actual generated image against the complete article brief and approved art direction.",
       "Reject attractive but generic cybersecurity imagery, factual mismatches, unsupported compromise or exploit implications, repeated compositions, unreadable focal hierarchy, embedded text, cropped essential subjects, and LinkedIn-unsafe framing.",
@@ -353,7 +365,7 @@ async function inspectVisual(
     ],
     max_output_tokens: 1_800,
     text: {
-      verbosity: "low",
+      ...(usesReasoningControls(config.criticModel) ? { verbosity: "low" as const } : {}),
       format: {
         type: "json_schema",
         name: "qcs_visual_qa",

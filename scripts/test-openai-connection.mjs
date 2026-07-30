@@ -3,7 +3,7 @@ import OpenAI from "openai";
 
 const envPath = process.argv[2] || ".env.local";
 const requestedModels = process.argv.slice(3);
-const models = requestedModels.length ? requestedModels : ["gpt-5-mini", "gpt-5.4-mini", "gpt-5.4-nano"];
+const models = requestedModels.length ? requestedModels : ["gpt-4.1-mini", "gpt-5-mini", "gpt-5.4-mini", "gpt-5.4-nano"];
 
 // A process-injected secret must win because Vercel masks sensitive values when exporting an env file.
 dotenv.config({ path: envPath, override: false, quiet: true });
@@ -71,10 +71,11 @@ async function probe(label, client) {
 
 async function testModel(client, model) {
   try {
+    const usesReasoningControls = model.startsWith("gpt-5");
     const response = await client.responses.create({
       model,
       store: false,
-      reasoning: { effort: "low" },
+      reasoning: usesReasoningControls ? { effort: "low" } : undefined,
       instructions: [
         "You are a network-security editorial test agent.",
         "Use only facts supplied in the evidence.",
@@ -85,7 +86,7 @@ async function testModel(client, model) {
         "Evidence: A vendor advisory says administrators should review its official bulletin before changing production controls. Write one concise verification sentence and list any unsupported claims you avoided.",
       max_output_tokens: 500,
       text: {
-        verbosity: "low",
+        ...(usesReasoningControls ? { verbosity: "low" } : {}),
         format: {
           type: "json_schema",
           name: "qcs_openai_smoke_test",

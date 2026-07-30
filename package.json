@@ -20,6 +20,7 @@
     "test:content": "node --experimental-strip-types --test tests/automation-auth.test.mjs tests/content-radar-domain.test.mjs tests/editorial-automation.test.mjs tests/editorial-image-agents.test.mjs tests/editorial-image-prompt.test.mjs tests/editorial-image-state.test.mjs tests/editorial-source-policy.test.mjs tests/editorial-visuals.test.mjs tests/linkedin-commentary.test.mjs tests/openai-config.test.mjs tests/social-publication-state.test.mjs",
     "test:verifygrid": "node --experimental-strip-types --test tests/verifygrid-domain.test.mjs",
     "content:seed": "node scripts/seed-content-studio.mjs",
+    "content:audit": "tsx -r dotenv/config scripts/audit-editorial-library.ts",
     "content:images:backfill": "tsx -r dotenv/config scripts/backfill-editorial-images.ts",
     "content:upgrade-library": "tsx -r dotenv/config scripts/upgrade-editorial-library.ts",
     "openai:test": "node scripts/test-openai-connection.mjs",

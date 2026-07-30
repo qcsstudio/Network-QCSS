@@ -124,13 +124,46 @@ export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
   });
   const existing = await prisma.socialPublication.findMany({
     where: { channel: "linkedin", contentType: "security_advisory", contentId: { in: advisories.map((advisory) => advisory.id) } },
-    select: { contentId: true }
+    orderBy: { createdAt: "desc" }
   });
-  const alreadyQueued = new Set(existing.map((publication) => publication.contentId));
+  const publicationsByContent = new Map<string, (typeof existing)[number][]>();
+  for (const publication of existing) {
+    const publications = publicationsByContent.get(publication.contentId) || [];
+    publications.push(publication);
+    publicationsByContent.set(publication.contentId, publications);
+  }
   let reconciled = 0;
   for (const advisory of advisories) {
-    if (alreadyQueued.has(advisory.id)) continue;
-    await queueLinkedInForAdvisory(advisory, advisory.revisions[0]?.version || 1);
+    const revision = String(advisory.revisions[0]?.version || 1);
+    const publications = publicationsByContent.get(advisory.id) || [];
+    if (publications.some((publication) => publication.contentRevision === revision)) continue;
+    const pendingPublication = publications.find((publication) => publication.status !== "published");
+    if (pendingPublication) {
+      const material = {
+        commentary: buildAdvisoryLinkedInCommentary(advisory),
+        imageAlt: `${advisory.severity} ${advisory.vendor} network security advisory: ${advisory.title}`,
+        imageUrl: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image?v=${encodeURIComponent(revision)}`,
+        sourceUrl: `${siteConfig.url}/security-advisories/${advisory.slug}`
+      };
+      await prisma.socialPublication.update({
+        where: { id: pendingPublication.id },
+        data: {
+          attempts: 0,
+          commentary: material.commentary,
+          contentRevision: revision,
+          imageUrl: material.imageUrl,
+          lastError: null,
+          metadata: { imageAlt: material.imageAlt },
+          nextAttemptAt: new Date(),
+          sourceUrl: material.sourceUrl,
+          status: "queued"
+        }
+      });
+      reconciled += 1;
+      continue;
+    }
+    if (publications.some((publication) => publication.status === "published")) continue;
+    await queueLinkedInForAdvisory(advisory, revision);
     reconciled += 1;
   }
   return reconciled;
