@@ -245,6 +245,7 @@ async function directVisualDirection(editorialPrompt: string, recentConcepts: Re
         "This is an authorized defensive-security editorial task. Never provide payloads, executable attack steps, or instructions for exploitation.",
         "Translate the supplied article facts into one precise visual story. Do not use a category preset or generic cyber symbolism.",
         "The scene must be technically plausible, visibly different from recent QCS work, and understandable without embedded text.",
+        "Do not make a screen, terminal, document, notebook, command output, code listing, keyboard, labeled control panel, or other text-bearing surface part of the scene. Show operational evidence through physical boundaries, component state, indicator light, cable path, material contrast, or human interaction with unlabeled equipment.",
         "Identify the factual anchors the scene is allowed to communicate, the exact mechanism actually supported by the brief, and the inferences the image must not imply.",
         "When an advisory does not establish an exploit mechanism, direct an evidence-and-remediation scene instead of dramatizing an invented attack.",
         "Describe only what the image producer should render. Never invent a vulnerability, product behavior, attack path, compromise, or factual claim absent from the brief.",
@@ -293,8 +294,8 @@ export function buildImageRenderPrompt(editorialPrompt: string, direction: Visua
     correction
   )
     ? [
-        "TEXT-VIOLATION OVERRIDE: Remove every screen, monitor, terminal, document, notebook, label, control panel, and keyboard marking that could produce character-like marks unless that surface is essential to the core story.",
-        "Any essential display must be blank or contain only a few large geometric shapes with no line resembling text, code, glyphs, letters, numbers, or symbols. This override supersedes conflicting screen, terminal, command, log, label, or document details in the approved direction."
+        "TEXT-VIOLATION OVERRIDE: Do not render any screen, monitor, terminal, document, notebook, label, control panel, keyboard, or other surface that could contain character-like marks. Remove those objects from the composition completely.",
+        "Communicate status only through physical component boundaries, indicator lights, cable paths, material contrast, and unlabeled geometric forms. This absolute override supersedes every conflicting screen, terminal, command, log, label, document, interface, or keyboard detail in the approved direction."
       ].join(" ")
     : "";
   return [

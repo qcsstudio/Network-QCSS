@@ -87,8 +87,8 @@ test("visible-text corrections structurally override conflicting screen details"
     "Remove all visible text and code from the monitor."
   );
   assert.match(prompt, /TEXT-VIOLATION OVERRIDE/i);
-  assert.match(prompt, /supersedes conflicting screen, terminal, command, log, label, or document details/i);
-  assert.match(prompt, /must be blank or contain only a few large geometric shapes/i);
+  assert.match(prompt, /Remove those objects from the composition completely/i);
+  assert.match(prompt, /supersedes every conflicting screen, terminal, command, log, label, document, interface, or keyboard detail/i);
 });
 
 test("stored agent traces are validated before a production retry reuses them", () => {
