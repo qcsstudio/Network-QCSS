@@ -311,9 +311,9 @@ export async function refreshLinkedInPublication(publicationId: string, replaceM
     });
   }
 
-  const generatedImage = await ensureEditorialImageForPublication(publication, true);
+  const generatedImage = await ensureEditorialImageForPublication(publication, false);
   if (!generatedImage?.generatedAt) {
-    throw new Error("A new contextual image could not be generated, so the existing LinkedIn post was left unchanged.");
+    throw new Error("The current contextual image is not ready, so the existing LinkedIn post was left unchanged.");
   }
   const generatedImageUrl = new URL(material.imageUrl);
   generatedImageUrl.searchParams.set("asset", generatedImage.generatedAt.toISOString());
