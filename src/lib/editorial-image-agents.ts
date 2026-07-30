@@ -289,6 +289,14 @@ async function directVisualDirection(editorialPrompt: string, recentConcepts: Re
 }
 
 export function buildImageRenderPrompt(editorialPrompt: string, direction: VisualDirection, correction = "") {
+  const textViolationCorrection = /\b(text|code|character|glyph|letter|number|word|label|caption|watermark)\b/i.test(
+    correction
+  )
+    ? [
+        "TEXT-VIOLATION OVERRIDE: Remove every screen, monitor, terminal, document, notebook, label, control panel, and keyboard marking that could produce character-like marks unless that surface is essential to the core story.",
+        "Any essential display must be blank or contain only a few large geometric shapes with no line resembling text, code, glyphs, letters, numbers, or symbols. This override supersedes conflicting screen, terminal, command, log, label, or document details in the approved direction."
+      ].join(" ")
+    : "";
   return [
     editorialPrompt,
     "",
@@ -307,6 +315,7 @@ export function buildImageRenderPrompt(editorialPrompt: string, direction: Visua
     `Palette: ${direction.palette.join(", ")}`,
     `Explicitly avoid: ${direction.avoid.join("; ")}`,
     correction ? `MANDATORY QA CORRECTION: ${correction}` : "",
+    textViolationCorrection,
     "Render a finished editorial image, not a design mockup or annotated diagram. Include no visible words, letters, numbers, logos, labels, captions, borders, or watermarks."
   ]
     .filter(Boolean)

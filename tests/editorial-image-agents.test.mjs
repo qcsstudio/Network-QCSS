@@ -76,6 +76,21 @@ test("QA correction is passed into the second image render", () => {
   assert.match(prompt, /MANDATORY QA CORRECTION: Show both capture points clearly/i);
 });
 
+test("visible-text corrections structurally override conflicting screen details", () => {
+  const screenDirection = {
+    ...direction,
+    supportingElements: ["A terminal displaying update commands and progress"]
+  };
+  const prompt = buildImageRenderPrompt(
+    "ARTICLE: apply the approved kernel update and reboot.",
+    screenDirection,
+    "Remove all visible text and code from the monitor."
+  );
+  assert.match(prompt, /TEXT-VIOLATION OVERRIDE/i);
+  assert.match(prompt, /supersedes conflicting screen, terminal, command, log, label, or document details/i);
+  assert.match(prompt, /must be blank or contain only a few large geometric shapes/i);
+});
+
 test("stored agent traces are validated before a production retry reuses them", () => {
   const trace = {
     provider: "openai-direct",
