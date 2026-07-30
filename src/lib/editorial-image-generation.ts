@@ -186,7 +186,7 @@ export async function ensureEditorialImage(input: EditorialImageInput, force = f
       }
     });
   }
-  if (asset.status === "ready" && asset.promptHash === promptHash && asset.heroImage && asset.socialImage) return asset;
+  if (!force && asset.status === "ready" && asset.promptHash === promptHash && asset.heroImage && asset.socialImage) return asset;
   const age = Date.now() - leaseUpdatedAt.getTime();
   if (shouldDeferEditorialImageGeneration({ ageMs: age, force, promptChanged, status: asset.status })) return null;
 
@@ -365,7 +365,7 @@ export async function generateMissingEditorialImages(limit = 1, force = false, e
     const currentPromptHash = crypto.createHash("sha256").update(buildEditorialImagePrompt(input)).digest("hex");
     const promptChanged = Boolean(existing && existing.promptHash !== currentPromptHash);
     const legacyAsset = existing?.status === "ready" && existing.provider !== "openai-direct";
-    if (existing?.status === "ready" && !legacyAsset && !promptChanged) continue;
+    if (!force && existing?.status === "ready" && !legacyAsset && !promptChanged) continue;
     if (
       existing &&
       shouldDeferEditorialImageGeneration({
