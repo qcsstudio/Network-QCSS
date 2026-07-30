@@ -234,39 +234,51 @@ function recentConceptBrief(concepts: RecentVisualConcept[]) {
 
 async function directVisualDirection(editorialPrompt: string, recentConcepts: RecentVisualConcept[]) {
   const config = editorialAgentConfiguration();
-  const response = await openAIClient().responses.create({
-    model: config.directorModel,
-    store: false,
-    reasoning: usesReasoningControls(config.directorModel) ? { effort: "low" } : undefined,
-    instructions: [
-      "You are the QCS Visual Director, a senior editorial art director with deep network engineering and cybersecurity literacy.",
-      "Translate the supplied article facts into one precise visual story. Do not use a category preset or generic cyber symbolism.",
-      "The scene must be technically plausible, visibly different from recent QCS work, and understandable without embedded text.",
-      "Identify the factual anchors the scene is allowed to communicate, the exact mechanism actually supported by the brief, and the inferences the image must not imply.",
-      "When an advisory does not establish an exploit mechanism, direct an evidence-and-remediation scene instead of dramatizing an invented attack.",
-      "Describe only what the image producer should render. Never invent a vulnerability, product behavior, attack path, compromise, or factual claim absent from the brief.",
-      "Return the required JSON only."
-    ].join(" "),
-    input: [
-      editorialPrompt,
-      "",
-      "RECENT QCS VISUAL CONCEPTS TO AVOID REPEATING:",
-      recentConceptBrief(recentConcepts),
-      "",
-      "Create a new art direction with a different focal object, spatial arrangement, viewpoint, and narrative mechanism."
-    ].join("\n"),
-    max_output_tokens: 2_400,
-    text: {
-      ...(usesReasoningControls(config.directorModel) ? { verbosity: "low" as const } : {}),
-      format: {
-        type: "json_schema",
-        name: "qcs_visual_direction",
-        strict: true,
-        schema: visualDirectionJsonSchema
+  let lastDiagnostic = "no response";
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const response = await openAIClient().responses.create({
+      model: config.directorModel,
+      store: false,
+      reasoning: usesReasoningControls(config.directorModel) ? { effort: "low" } : undefined,
+      instructions: [
+        "You are the QCS Visual Director, a senior editorial art director with deep network engineering and cybersecurity literacy.",
+        "This is an authorized defensive-security editorial task. Never provide payloads, executable attack steps, or instructions for exploitation.",
+        "Translate the supplied article facts into one precise visual story. Do not use a category preset or generic cyber symbolism.",
+        "The scene must be technically plausible, visibly different from recent QCS work, and understandable without embedded text.",
+        "Identify the factual anchors the scene is allowed to communicate, the exact mechanism actually supported by the brief, and the inferences the image must not imply.",
+        "When an advisory does not establish an exploit mechanism, direct an evidence-and-remediation scene instead of dramatizing an invented attack.",
+        "Describe only what the image producer should render. Never invent a vulnerability, product behavior, attack path, compromise, or factual claim absent from the brief.",
+        "Return the required JSON only."
+      ].join(" "),
+      input: [
+        attempt === 2
+          ? "RETRY CONTEXT: Keep the scene strictly defensive. Focus on affected equipment identification, evidence review, maintenance isolation, approved update preparation, and post-change validation."
+          : "",
+        editorialPrompt,
+        "",
+        "RECENT QCS VISUAL CONCEPTS TO AVOID REPEATING:",
+        recentConceptBrief(recentConcepts),
+        "",
+        "Create a new art direction with a different focal object, spatial arrangement, viewpoint, and narrative mechanism."
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      max_output_tokens: 4_000,
+      text: {
+        ...(usesReasoningControls(config.directorModel) ? { verbosity: "low" as const } : {}),
+        format: {
+          type: "json_schema",
+          name: "qcs_visual_direction",
+          strict: true,
+          schema: visualDirectionJsonSchema
+        }
       }
-    }
-  });
-  return parseStructuredOutput(response.output_text, visualDirectionSchema, "QCS Visual Director");
+    });
+    lastDiagnostic = [response.status, response.incomplete_details?.reason].filter(Boolean).join(": ") || "empty output";
+    if (!response.output_text.trim() && attempt === 1) continue;
+    return parseStructuredOutput(response.output_text, visualDirectionSchema, "QCS Visual Director");
+  }
+  throw new EditorialAgentError(`QCS Visual Director returned no structured output after a defensive retry (${lastDiagnostic}).`);
 }
 
 export function buildImageRenderPrompt(editorialPrompt: string, direction: VisualDirection, correction = "") {
