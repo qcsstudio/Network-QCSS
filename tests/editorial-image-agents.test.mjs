@@ -10,6 +10,10 @@ import {
 
 const direction = {
   storyThesis: "An unauthorized route origin is checked against the operator's ROA evidence before policy changes.",
+  mechanismStatement: "The observed BGP origin is compared with the prefix authorization in a published ROA.",
+  factualAnchors: ["An observed BGP route", "A separate ROA authorization record"],
+  prohibitedInferences: ["Do not imply an active hijack", "Do not imply traffic theft", "Do not show vendor-specific hardware"],
+  confidenceBoundary: "The scene shows validation evidence and a policy decision, not a confirmed malicious route hijack.",
   sceneConcept: "A physical route handoff is inspected at an exchange boundary, with one path isolated for evidence review.",
   focalSubject: "The disputed network path crossing an exchange boundary",
   supportingElements: ["Distinct authorized path", "Route validation evidence"],
@@ -32,6 +36,8 @@ test("render prompt preserves article facts and prohibits generated branding or 
 test("visual QA requires both model approval and hard score thresholds", () => {
   const passing = {
     approved: true,
+    factualAccuracyScore: 94,
+    inferenceDisciplineScore: 93,
     relevanceScore: 90,
     specificityScore: 88,
     diversityScore: 82,
@@ -49,6 +55,8 @@ test("visual QA requires both model approval and hard score thresholds", () => {
 test("ten-point critic scores are normalized to the required hundred-point scale", () => {
   const normalized = normalizeVisualQaScores({
     approved: true,
+    factualAccuracyScore: 10,
+    inferenceDisciplineScore: 10,
     relevanceScore: 10,
     specificityScore: 10,
     diversityScore: 9,
@@ -58,6 +66,7 @@ test("ten-point critic scores are normalized to the required hundred-point scale
     correctionPrompt: ""
   });
   assert.equal(normalized.relevanceScore, 100);
+  assert.equal(normalized.factualAccuracyScore, 100);
   assert.equal(normalized.diversityScore, 90);
   assert.equal(visualQaPasses(normalized), true);
 });
@@ -70,13 +79,15 @@ test("QA correction is passed into the second image render", () => {
 test("stored agent traces are validated before a production retry reuses them", () => {
   const trace = {
     provider: "openai-direct",
-    qaPolicyVersion: 2,
+    qaPolicyVersion: 3,
     directorModel: "director",
     imageModel: "image",
     criticModel: "critic",
     direction,
     qa: {
       approved: false,
+      factualAccuracyScore: 94,
+      inferenceDisciplineScore: 92,
       relevanceScore: 88,
       specificityScore: 80,
       diversityScore: 90,
@@ -90,20 +101,22 @@ test("stored agent traces are validated before a production retry reuses them", 
   assert.deepEqual(restoreEditorialAgentTrace(trace), trace);
   assert.equal(restoreEditorialAgentTrace({ ...trace, provider: "gateway" }), null);
   const legacyTrace = structuredClone(trace);
-  delete legacyTrace.qaPolicyVersion;
+  legacyTrace.qaPolicyVersion = 2;
   assert.equal(restoreEditorialAgentTrace(legacyTrace), null);
 });
 
 test("repeated failed renders request a fresh visual direction", () => {
   const trace = {
     provider: "openai-direct",
-    qaPolicyVersion: 2,
+    qaPolicyVersion: 3,
     directorModel: "director",
     imageModel: "image",
     criticModel: "critic",
     direction,
     qa: {
       approved: false,
+      factualAccuracyScore: 95,
+      inferenceDisciplineScore: 94,
       relevanceScore: 90,
       specificityScore: 86,
       diversityScore: 40,

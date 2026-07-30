@@ -22,6 +22,7 @@ const sourceLinkSchema = z.object({
 });
 
 export const blogPostSchema = z.object({
+  contentVersion: z.literal(2).optional(),
   contentType: z.enum(["blog", "resource"]).default("blog"),
   slug: z.string().trim().min(3).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   title: z.string().trim().min(10).max(180),
@@ -38,6 +39,26 @@ export const blogPostSchema = z.object({
   readTime: z.string().trim().min(3).max(40),
   image: z.string().trim().min(2).max(500).refine((value) => value.startsWith("/"), "Image paths must start with /."),
   imageAlt: z.string().trim().min(20).max(240),
+  readerOutcome: z.string().trim().min(40).max(360).optional(),
+  reviewedBy: z
+    .object({
+      name: z.string().trim().min(3).max(140),
+      role: z.string().trim().min(3).max(140)
+    })
+    .optional(),
+  editorialMethod: z.string().trim().min(40).max(700).optional(),
+  definitions: z
+    .array(z.object({ term: z.string().trim().min(2).max(100), definition: z.string().trim().min(30).max(500) }))
+    .max(8)
+    .optional(),
+  visualBrief: z
+    .object({
+      storyThesis: z.string().trim().min(30).max(500),
+      sceneConcept: z.string().trim().min(50).max(1000),
+      factualAnchors: z.array(z.string().trim().min(15).max(320)).min(2).max(6),
+      avoid: z.array(z.string().trim().min(10).max(240)).min(3).max(8)
+    })
+    .optional(),
   relatedTools: z.array(internalLinkSchema).min(1).max(8),
   relatedServices: z.array(internalLinkSchema).min(1).max(8),
   takeaways: z.array(z.string().trim().min(20).max(500)).min(3).max(12),
@@ -46,7 +67,8 @@ export const blogPostSchema = z.object({
       z.object({
         heading: z.string().trim().min(5).max(180),
         body: z.string().trim().min(80).max(5000),
-        bullets: z.array(z.string().trim().min(10).max(700)).min(2).max(15).optional()
+        bullets: z.array(z.string().trim().min(10).max(700)).min(2).max(15).optional(),
+        sourceUrls: z.array(z.string().trim().url().max(1000)).max(4).optional()
       })
     )
     .min(3)
@@ -56,7 +78,8 @@ export const blogPostSchema = z.object({
     .array(
       z.object({
         question: z.string().trim().min(10).max(240),
-        answer: z.string().trim().min(30).max(1200)
+        answer: z.string().trim().min(30).max(1200),
+        sourceUrls: z.array(z.string().trim().url().max(1000)).max(4).optional()
       })
     )
     .min(3)
@@ -162,12 +185,20 @@ export function publicationIssues(post: BlogPost) {
   if (post.sections.length < 3) issues.push("Add at least three substantive sections.");
   if (post.sources.length < 1) issues.push("Add at least one authoritative source.");
   if (!post.sources.some((source) => isTrustedEditorialUrl(source.url))) issues.push("Add at least one approved authoritative source.");
-  const bodyWords = post.sections
-    .flatMap((section) => [section.body, ...(section.bullets || [])])
-    .join(" ")
-    .split(/\s+/)
-    .filter(Boolean).length;
-  if (bodyWords < 650) issues.push("Develop the article to at least 650 useful body words before publication.");
+  const headings = post.sections.map((section) => section.heading.trim().toLowerCase());
+  if (new Set(headings).size !== headings.length) issues.push("Use a unique, decision-focused heading for every section.");
+  if (post.contentVersion === 2) {
+    if (post.sections.length < 5) issues.push("Add at least five substantive sections covering the decision from answer to validation.");
+    if (!post.readerOutcome) issues.push("State the practical reader outcome.");
+    if (!post.reviewedBy) issues.push("Name the technical review team.");
+    if (!post.editorialMethod) issues.push("Disclose the editorial research and review method.");
+    if (!post.definitions || post.definitions.length < 2) issues.push("Define at least two important entities or technical terms.");
+    if (!post.visualBrief) issues.push("Add a factual, topic-specific visual brief.");
+    const sourceSet = new Set(post.sources.map((source) => source.url));
+    const citations = [...post.sections, ...post.questions].flatMap((item) => item.sourceUrls || []);
+    if (new Set(citations).size < 1) issues.push("Attach primary-source citations to the claims they support.");
+    if (citations.some((url) => !sourceSet.has(url))) issues.push("Use only listed research sources for claim-level citations.");
+  }
   return issues;
 }
 
@@ -398,6 +429,48 @@ export async function regenerateRadarContentPost(id: string, actor: string) {
     }
   });
   await addRevision(id, content, "radar_content_regenerated", actor);
+  return getContentPost(id);
+}
+
+export async function upgradePublishedContentPost(id: string, actor: string) {
+  const existing = await getContentPost(id);
+  if (!existing) return null;
+  if (existing.status !== "published") throw new Error("Only a published article can be upgraded in place.");
+  const sources = existing.content.sources
+    .filter((item) => isTrustedEditorialUrl(item.url))
+    .map((item) => ({ label: sourceName(item.url, item.label), url: item.url }));
+  if (!sources.length) throw new Error("Add an approved primary source before upgrading this article.");
+  const internalLinks = [
+    ...existing.content.relatedServices.map((link) => link.href),
+    ...existing.content.relatedTools.map((link) => link.href)
+  ];
+  const researched = await createResearchedBlog({
+    slug: existing.content.slug,
+    topic: existing.content.title,
+    businessAngle: existing.content.answer,
+    keywordCluster: existing.content.keywords,
+    internalLinks,
+    servicePath: existing.content.relatedServices[0]?.href,
+    sources
+  });
+  const today = new Date().toISOString().slice(0, 10);
+  const content = {
+    ...researched.content,
+    publishedAt: existing.content.publishedAt,
+    updatedAt: today
+  };
+  const prisma = getPrismaClient();
+  await prisma.contentPost.update({
+    where: { id },
+    data: {
+      content: inputJson(content),
+      qualityScore: researched.qualityScore,
+      researchTrace: inputJson(researched.trace),
+      sourceUrl: sources[0].url,
+      title: content.title
+    }
+  });
+  await addRevision(id, content, "seo_aeo_content_upgraded", actor);
   return getContentPost(id);
 }
 

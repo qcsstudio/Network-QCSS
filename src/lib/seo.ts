@@ -26,9 +26,27 @@ type PageMetadataInput = {
   path: string;
   keywords?: string[];
   noIndex?: boolean;
+  image?: {
+    url: string;
+    width: number;
+    height: number;
+    alt: string;
+  };
+  article?: {
+    publishedTime: string;
+    modifiedTime: string;
+  };
 };
 
-export function createPageMetadata({ title, description, path, keywords = [], noIndex = false }: PageMetadataInput): Metadata {
+export function createPageMetadata({
+  title,
+  description,
+  path,
+  keywords = [],
+  noIndex = false,
+  image = defaultImage,
+  article
+}: PageMetadataInput): Metadata {
   return {
     title,
     description,
@@ -47,19 +65,31 @@ export function createPageMetadata({ title, description, path, keywords = [], no
             "max-video-preview": -1
           }
         },
-    openGraph: {
-      title,
-      description,
-      url: path,
-      siteName: siteConfig.name,
-      type: "website",
-      images: [defaultImage]
-    },
+    openGraph: article
+      ? {
+          title,
+          description,
+          url: path,
+          siteName: siteConfig.name,
+          type: "article",
+          publishedTime: article.publishedTime,
+          modifiedTime: article.modifiedTime,
+          authors: [siteConfig.url],
+          images: [image]
+        }
+      : {
+          title,
+          description,
+          url: path,
+          siteName: siteConfig.name,
+          type: "website",
+          images: [image]
+        },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [defaultImage.url]
+      images: [image.url]
     }
   };
 }

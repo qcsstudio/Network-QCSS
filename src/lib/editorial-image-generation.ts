@@ -136,7 +136,14 @@ function recentVisualConcepts(
 }
 
 function aggregateQaScore(trace: EditorialAgentTrace) {
-  const scores = [trace.qa.relevanceScore, trace.qa.specificityScore, trace.qa.diversityScore, trace.qa.compositionScore];
+  const scores = [
+    trace.qa.factualAccuracyScore,
+    trace.qa.inferenceDisciplineScore,
+    trace.qa.relevanceScore,
+    trace.qa.specificityScore,
+    trace.qa.diversityScore,
+    trace.qa.compositionScore
+  ];
   return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
 }
 
@@ -232,7 +239,13 @@ export async function ensureEditorialImage(input: EditorialImageInput, force = f
         provider: trace?.provider,
         qaScore: trace?.qa
           ? Math.round(
-              (trace.qa.relevanceScore + trace.qa.specificityScore + trace.qa.diversityScore + trace.qa.compositionScore) / 4
+              (trace.qa.factualAccuracyScore +
+                trace.qa.inferenceDisciplineScore +
+                trace.qa.relevanceScore +
+                trace.qa.specificityScore +
+                trace.qa.diversityScore +
+                trace.qa.compositionScore) /
+                6
             )
           : undefined,
         status: "failed"
@@ -349,20 +362,22 @@ export async function generateMissingEditorialImages(limit = 1, force = false, e
         }
       }
     });
+    const currentPromptHash = crypto.createHash("sha256").update(buildEditorialImagePrompt(input)).digest("hex");
+    const promptChanged = Boolean(existing && existing.promptHash !== currentPromptHash);
     const legacyAsset = existing?.status === "ready" && existing.provider !== "openai-direct";
-    if (existing?.status === "ready" && !legacyAsset) continue;
+    if (existing?.status === "ready" && !legacyAsset && !promptChanged) continue;
     if (
       existing &&
       shouldDeferEditorialImageGeneration({
         ageMs: Date.now() - existing.updatedAt.getTime(),
         force,
-        promptChanged: false,
+        promptChanged,
         status: existing.status
       })
     ) {
       continue;
     }
-    const generated = await ensureEditorialImage(input, force || legacyAsset);
+    const generated = await ensureEditorialImage(input, force || legacyAsset || promptChanged);
     outcomes.push({ contentId: input.contentId, status: generated?.status || "deferred" });
   }
   return outcomes;

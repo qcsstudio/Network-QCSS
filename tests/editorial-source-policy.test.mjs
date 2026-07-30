@@ -7,6 +7,7 @@ test("editorial evidence accepts approved vendor and government sources", () => 
   assert.equal(isTrustedEditorialUrl("https://www.cisa.gov/known-exploited-vulnerabilities-catalog"), true);
   assert.equal(isTrustedEditorialUrl("https://www.cert-in.org.in/s2cMainServlet?pageid=PUBADVLIST02"), true);
   assert.equal(isTrustedEditorialUrl("https://blog.cloudflare.com/example"), true);
+  assert.equal(isTrustedEditorialUrl("https://docs.cloud.google.com/architecture/blueprints/security-foundations"), true);
 });
 
 test("editorial evidence rejects discovery sites, insecure URLs, and hostname lookalikes", () => {

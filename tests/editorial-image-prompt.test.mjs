@@ -31,7 +31,7 @@ function article(overrides = {}) {
 
 test("article prompt is derived from the complete editorial brief", () => {
   const context = buildArticleImageContext(article());
-  const prompt = buildEditorialImagePrompt({ context, title: article().title });
+  const prompt = buildEditorialImagePrompt({ contentType: "content_post", context, title: article().title });
 
   assert.match(prompt, /origin ASN and prefix length/i);
   assert.match(prompt, /APNIC routing operations guidance/i);
@@ -62,14 +62,18 @@ test("different article facts produce materially different visual briefs", () =>
 test("security advisory context preserves product, exploit, fix, and action evidence", () => {
   const context = buildAdvisoryImageContext({
     affectedVersions: ["FortiOS 7.2.0 through 7.2.7"],
+    businessImpact: "An exposed remote access gateway could put private application access at risk.",
     cves: ["CVE-2026-12345"],
     cvssScore: 9.8,
+    evidenceChecklist: ["Confirm the installed FortiOS build", "Record whether SSL VPN is exposed"],
     exploitationStatus: "Known exploited",
     fixedVersions: ["FortiOS 7.2.8"],
     products: ["FortiGate", "FortiOS SSL VPN"],
     remediation: "Upgrade the exposed gateway and restrict SSL VPN access until validation is complete.",
     severity: "critical",
+    sourceUrl: "https://fortiguard.fortinet.com/psirt/example",
     summary: "A crafted request can cross the remote-access boundary before authentication.",
+    technicalExplanation: "The flaw affects request handling before authentication at the SSL VPN boundary.",
     title: "FortiOS SSL VPN vulnerability",
     vendor: "Fortinet",
     workaround: "Restrict the service to trusted source networks."
@@ -82,7 +86,7 @@ test("security advisory context preserves product, exploit, fix, and action evid
 });
 
 test("prompt explicitly protects full-bleed LinkedIn composition", () => {
-  const prompt = buildEditorialImagePrompt({ context: "A specific network operations event.", title: "Example" });
+  const prompt = buildEditorialImagePrompt({ contentType: "content_post", context: "A specific network operations event.", title: "Example" });
   assert.match(prompt, /full bleed/i);
   assert.match(prompt, /1\.91:1 LinkedIn crop remains complete/i);
   assert.match(prompt, /central 84%/i);

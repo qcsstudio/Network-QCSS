@@ -7,6 +7,10 @@ export const defaultEditorialCriticModel = "gpt-5.6-sol";
 
 const visualDirectionSchema = z.object({
   storyThesis: z.string().min(20).max(500),
+  mechanismStatement: z.string().min(20).max(600),
+  factualAnchors: z.array(z.string().min(10).max(320)).min(2).max(6),
+  prohibitedInferences: z.array(z.string().min(10).max(320)).min(3).max(8),
+  confidenceBoundary: z.string().min(20).max(500),
   sceneConcept: z.string().min(40).max(1_200),
   focalSubject: z.string().min(10).max(400),
   supportingElements: z.array(z.string().min(2).max(240)).min(1).max(8),
@@ -21,6 +25,8 @@ const visualDirectionSchema = z.object({
 
 const visualQaSchema = z.object({
   approved: z.boolean(),
+  factualAccuracyScore: z.number().int().min(0).max(100),
+  inferenceDisciplineScore: z.number().int().min(0).max(100),
   relevanceScore: z.number().int().min(0).max(100),
   specificityScore: z.number().int().min(0).max(100),
   diversityScore: z.number().int().min(0).max(100),
@@ -42,7 +48,7 @@ export type RecentVisualConcept = {
 
 export type EditorialAgentTrace = {
   provider: "openai-direct";
-  qaPolicyVersion: 2;
+  qaPolicyVersion: 3;
   directorModel: string;
   imageModel: string;
   criticModel: string;
@@ -53,7 +59,7 @@ export type EditorialAgentTrace = {
 
 const editorialAgentTraceSchema = z.object({
   provider: z.literal("openai-direct"),
-  qaPolicyVersion: z.literal(2),
+  qaPolicyVersion: z.literal(3),
   directorModel: z.string(),
   imageModel: z.string(),
   criticModel: z.string(),
@@ -77,6 +83,10 @@ const visualDirectionJsonSchema = {
   additionalProperties: false,
   required: [
     "storyThesis",
+    "mechanismStatement",
+    "factualAnchors",
+    "prohibitedInferences",
+    "confidenceBoundary",
     "sceneConcept",
     "focalSubject",
     "supportingElements",
@@ -90,6 +100,20 @@ const visualDirectionJsonSchema = {
   ],
   properties: {
     storyThesis: { type: "string", minLength: 20, maxLength: 500 },
+    mechanismStatement: { type: "string", minLength: 20, maxLength: 600 },
+    factualAnchors: {
+      type: "array",
+      minItems: 2,
+      maxItems: 6,
+      items: { type: "string", minLength: 10, maxLength: 320 }
+    },
+    prohibitedInferences: {
+      type: "array",
+      minItems: 3,
+      maxItems: 8,
+      items: { type: "string", minLength: 10, maxLength: 320 }
+    },
+    confidenceBoundary: { type: "string", minLength: 20, maxLength: 500 },
     sceneConcept: { type: "string", minLength: 40, maxLength: 1_200 },
     focalSubject: { type: "string", minLength: 10, maxLength: 400 },
     supportingElements: {
@@ -123,6 +147,8 @@ const visualQaJsonSchema = {
   additionalProperties: false,
   required: [
     "approved",
+    "factualAccuracyScore",
+    "inferenceDisciplineScore",
     "relevanceScore",
     "specificityScore",
     "diversityScore",
@@ -133,6 +159,8 @@ const visualQaJsonSchema = {
   ],
   properties: {
     approved: { type: "boolean" },
+    factualAccuracyScore: { type: "integer", minimum: 0, maximum: 100 },
+    inferenceDisciplineScore: { type: "integer", minimum: 0, maximum: 100 },
     relevanceScore: { type: "integer", minimum: 0, maximum: 100 },
     specificityScore: { type: "integer", minimum: 0, maximum: 100 },
     diversityScore: { type: "integer", minimum: 0, maximum: 100 },
@@ -203,7 +231,9 @@ async function directVisualDirection(editorialPrompt: string, recentConcepts: Re
       "You are the QCS Visual Director, a senior editorial art director with deep network engineering and cybersecurity literacy.",
       "Translate the supplied article facts into one precise visual story. Do not use a category preset or generic cyber symbolism.",
       "The scene must be technically plausible, visibly different from recent QCS work, and understandable without embedded text.",
-      "Describe only what the image producer should render. Never invent a vulnerability, product behavior, or factual claim absent from the brief.",
+      "Identify the factual anchors the scene is allowed to communicate, the exact mechanism actually supported by the brief, and the inferences the image must not imply.",
+      "When an advisory does not establish an exploit mechanism, direct an evidence-and-remediation scene instead of dramatizing an invented attack.",
+      "Describe only what the image producer should render. Never invent a vulnerability, product behavior, attack path, compromise, or factual claim absent from the brief.",
       "Return the required JSON only."
     ].join(" "),
     input: [
@@ -234,6 +264,10 @@ export function buildImageRenderPrompt(editorialPrompt: string, direction: Visua
     "",
     "APPROVED ART DIRECTION:",
     `Story thesis: ${direction.storyThesis}`,
+    `Supported mechanism: ${direction.mechanismStatement}`,
+    `Factual anchors: ${direction.factualAnchors.join("; ")}`,
+    `Do not imply: ${direction.prohibitedInferences.join("; ")}`,
+    `Confidence boundary: ${direction.confidenceBoundary}`,
     `Scene: ${direction.sceneConcept}`,
     `Focal subject: ${direction.focalSubject}`,
     `Supporting elements: ${direction.supportingElements.join("; ")}`,
@@ -285,7 +319,8 @@ async function inspectVisual(
     reasoning: { effort: "medium" },
     instructions: [
       "You are the QCS Visual QA Critic. Inspect the actual generated image against the complete article brief and approved art direction.",
-      "Reject attractive but generic cybersecurity imagery, factual mismatches, repeated compositions, unreadable focal hierarchy, embedded text, cropped essential subjects, and LinkedIn-unsafe framing.",
+      "Reject attractive but generic cybersecurity imagery, factual mismatches, unsupported compromise or exploit implications, repeated compositions, unreadable focal hierarchy, embedded text, cropped essential subjects, and LinkedIn-unsafe framing.",
+      "Check every visible narrative claim against the direction's factualAnchors, prohibitedInferences, and confidenceBoundary. A technically attractive image fails when it tells a more dramatic story than the source supports.",
       "This is an editorial hero image, not a technical diagram. It must communicate the article's one central technical relationship at a glance; it does not need to encode every secondary fact, workflow step, classification, version, or checklist item.",
       "Use violations only for publication-blocking defects: the wrong core story, materially misleading technology, generic or repeated symbolism, visible text or invented branding, broken anatomy or geometry, an incoherent focal hierarchy, or an essential subject outside the safe crop. Mention non-blocking omissions only in rationale and leave violations empty.",
       "A mismatch in an optional person's age, gender presentation, ethnicity, clothing, hand position, or other casting detail is never a blocking violation unless that identity is an explicit factual subject of the article. Likewise, shared domain objects such as routers, cables, racks, or laptops do not make a composition repetitive by themselves; judge diversity from the overall scene, viewpoint, focal mechanism, and spatial arrangement.",
@@ -335,6 +370,8 @@ export function visualQaPasses(qa: VisualQa) {
   return (
     qa.approved &&
     qa.violations.length === 0 &&
+    qa.factualAccuracyScore >= 90 &&
+    qa.inferenceDisciplineScore >= 90 &&
     qa.relevanceScore >= 82 &&
     qa.specificityScore >= 82 &&
     qa.diversityScore >= 78 &&
@@ -343,10 +380,19 @@ export function visualQaPasses(qa: VisualQa) {
 }
 
 export function normalizeVisualQaScores(qa: VisualQa) {
-  const scores = [qa.relevanceScore, qa.specificityScore, qa.diversityScore, qa.compositionScore];
+  const scores = [
+    qa.factualAccuracyScore,
+    qa.inferenceDisciplineScore,
+    qa.relevanceScore,
+    qa.specificityScore,
+    qa.diversityScore,
+    qa.compositionScore
+  ];
   if (!scores.every((score) => score >= 0 && score <= 10)) return qa;
   return {
     ...qa,
+    factualAccuracyScore: qa.factualAccuracyScore * 10,
+    inferenceDisciplineScore: qa.inferenceDisciplineScore * 10,
     relevanceScore: qa.relevanceScore * 10,
     specificityScore: qa.specificityScore * 10,
     diversityScore: qa.diversityScore * 10,
@@ -387,7 +433,7 @@ export async function runEditorialImageAgents(
     latestQa = normalizeVisualQaScores(await inspectVisual(editorialPrompt, direction, source, recentConcepts));
     const trace: EditorialAgentTrace = {
       provider: "openai-direct",
-      qaPolicyVersion: 2,
+      qaPolicyVersion: 3,
       directorModel: config.directorModel,
       imageModel: config.imageModel,
       criticModel: config.criticModel,
@@ -407,7 +453,7 @@ export async function runEditorialImageAgents(
 
   throw new EditorialAgentError("Visual generation ended without an approved image.", {
     provider: "openai-direct",
-    qaPolicyVersion: 2,
+    qaPolicyVersion: 3,
     directorModel: config.directorModel,
     imageModel: config.imageModel,
     criticModel: config.criticModel,

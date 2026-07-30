@@ -1,4 +1,5 @@
 export type BlogPost = {
+  contentVersion?: 2;
   contentType?: "blog" | "resource";
   slug: string;
   title: string;
@@ -15,12 +16,25 @@ export type BlogPost = {
   readTime: string;
   image: string;
   imageAlt: string;
+  readerOutcome?: string;
+  reviewedBy?: {
+    name: string;
+    role: string;
+  };
+  editorialMethod?: string;
+  definitions?: { term: string; definition: string }[];
+  visualBrief?: {
+    storyThesis: string;
+    sceneConcept: string;
+    factualAnchors: string[];
+    avoid: string[];
+  };
   relatedTools: { label: string; href: string }[];
   relatedServices: { label: string; href: string }[];
   takeaways: string[];
-  sections: { heading: string; body: string; bullets?: string[] }[];
+  sections: { heading: string; body: string; bullets?: string[]; sourceUrls?: string[] }[];
   checklist: string[];
-  questions: { question: string; answer: string }[];
+  questions: { question: string; answer: string; sourceUrls?: string[] }[];
   sources: { label: string; url: string }[];
 };
 

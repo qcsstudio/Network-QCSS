@@ -7,6 +7,7 @@ const trustedEditorialHosts = [
   "cisco.com",
   "cisa.gov",
   "cloud.google.com",
+  "docs.cloud.google.com",
   "cloudapps.cisco.com",
   "cloudflare.com",
   "f5.com",

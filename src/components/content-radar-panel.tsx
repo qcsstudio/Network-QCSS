@@ -235,7 +235,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     window.setTimeout(() => document.querySelector("#content-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
-  async function mutate(action: "save" | "regenerate" | "approve" | "publish" | "archive" | "restore") {
+  async function mutate(action: "save" | "regenerate" | "upgrade" | "approve" | "publish" | "archive" | "restore") {
     if (!selected || !draft) return;
     setBusy(action);
     try {
@@ -568,6 +568,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
               ) : (
                 <>
                   <button className="button secondary" disabled={Boolean(busy)} type="submit"><Save aria-hidden="true" size={17} /> {busy === "save" ? "Saving..." : "Save draft"}</button>
+                  {selected.status === "published" ? <button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("upgrade")} type="button"><Sparkles aria-hidden="true" size={17} /> {busy === "upgrade" ? "Upgrading..." : "Upgrade research"}</button> : null}
                   {needsRegeneration ? <button className="button secondary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={() => mutate("regenerate")} type="button"><Sparkles aria-hidden="true" size={17} /> {busy === "regenerate" ? "Completing..." : "Complete draft"}</button> : null}
                   <button className="button secondary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={() => mutate("approve")} type="button"><ShieldCheck aria-hidden="true" size={17} /> Approve</button>
                   <button className="button primary" disabled={Boolean(busy) || selected.status !== "approved"} onClick={() => mutate("publish")} type="button"><Upload aria-hidden="true" size={17} /> Publish</button>

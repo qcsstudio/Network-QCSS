@@ -23,7 +23,8 @@ const advisoryContentSchema = z.object({
 const sectionSchema = z.object({
   heading: z.string().min(5).max(180),
   body: z.string().min(150).max(5_000),
-  bullets: z.array(z.string().min(15).max(700)).min(2).max(12).optional()
+  bullets: z.array(z.string().min(15).max(700)).min(2).max(12).optional(),
+  sourceUrls: z.array(z.string().url().max(1_000)).max(4)
 });
 
 const blogContentSchema = z.object({
@@ -32,18 +33,30 @@ const blogContentSchema = z.object({
   description: z.string().min(50).max(180),
   excerpt: z.string().min(60).max(400),
   answer: z.string().min(80).max(900),
+  readerOutcome: z.string().min(40).max(360),
   category: z.string().min(2).max(100),
   audience: z.string().min(2).max(240),
   primaryKeyword: z.string().min(2).max(140),
   keywords: z.array(z.string().min(2).max(140)).min(3).max(16),
   takeaways: z.array(z.string().min(20).max(500)).min(3).max(8),
+  definitions: z
+    .array(z.object({ term: z.string().min(2).max(100), definition: z.string().min(30).max(500) }))
+    .min(2)
+    .max(8),
+  visualBrief: z.object({
+    storyThesis: z.string().min(30).max(500),
+    sceneConcept: z.string().min(50).max(1_000),
+    factualAnchors: z.array(z.string().min(15).max(320)).min(2).max(6),
+    avoid: z.array(z.string().min(10).max(240)).min(3).max(8)
+  }),
   sections: z.array(sectionSchema).min(5).max(12),
   checklist: z.array(z.string().min(15).max(500)).min(6).max(16),
   questions: z
     .array(
       z.object({
         question: z.string().min(10).max(240),
-        answer: z.string().min(50).max(1_200)
+        answer: z.string().min(50).max(1_200),
+        sourceUrls: z.array(z.string().url().max(1_000)).max(4)
       })
     )
     .min(4)
@@ -54,8 +67,10 @@ const blogContentSchema = z.object({
 const contentQaSchema = z.object({
   approved: z.boolean(),
   factualGroundingScore: z.number().int().min(0).max(100),
+  evidenceTraceabilityScore: z.number().int().min(0).max(100),
   authorityScore: z.number().int().min(0).max(100),
   clarityScore: z.number().int().min(0).max(100),
+  structureScore: z.number().int().min(0).max(100),
   usefulnessScore: z.number().int().min(0).max(100),
   searchAnswerScore: z.number().int().min(0).max(100),
   violations: z.array(z.string().min(2).max(320)).max(12),
@@ -68,6 +83,7 @@ export type AdvisoryEditorialContent = z.infer<typeof advisoryContentSchema>;
 
 type EditorialAgentTrace = {
   provider: "openai-direct";
+  contentPolicyVersion: 2;
   writerModel: string;
   criticModel: string;
   attempts: number;
@@ -166,11 +182,16 @@ const advisoryContentJsonSchema = {
 const sectionJsonSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["heading", "body", "bullets"],
+  required: ["heading", "body", "bullets", "sourceUrls"],
   properties: {
     heading: { type: "string", minLength: 5, maxLength: 180 },
     body: { type: "string", minLength: 150, maxLength: 5_000 },
-    bullets: { type: "array", minItems: 2, maxItems: 12, items: { type: "string", minLength: 15, maxLength: 700 } }
+    bullets: { type: "array", minItems: 2, maxItems: 12, items: { type: "string", minLength: 15, maxLength: 700 } },
+    sourceUrls: {
+      type: "array",
+      maxItems: 4,
+      items: { type: "string", maxLength: 1_000 }
+    }
   }
 };
 
@@ -183,11 +204,14 @@ const blogContentJsonSchema = {
     "description",
     "excerpt",
     "answer",
+    "readerOutcome",
     "category",
     "audience",
     "primaryKeyword",
     "keywords",
     "takeaways",
+    "definitions",
+    "visualBrief",
     "sections",
     "checklist",
     "questions",
@@ -199,11 +223,47 @@ const blogContentJsonSchema = {
     description: { type: "string", minLength: 50, maxLength: 180 },
     excerpt: { type: "string", minLength: 60, maxLength: 400 },
     answer: { type: "string", minLength: 80, maxLength: 900 },
+    readerOutcome: { type: "string", minLength: 40, maxLength: 360 },
     category: { type: "string", minLength: 2, maxLength: 100 },
     audience: { type: "string", minLength: 2, maxLength: 240 },
     primaryKeyword: { type: "string", minLength: 2, maxLength: 140 },
     keywords: { type: "array", minItems: 3, maxItems: 16, items: { type: "string", minLength: 2, maxLength: 140 } },
     takeaways: { type: "array", minItems: 3, maxItems: 8, items: { type: "string", minLength: 20, maxLength: 500 } },
+    definitions: {
+      type: "array",
+      minItems: 2,
+      maxItems: 8,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["term", "definition"],
+        properties: {
+          term: { type: "string", minLength: 2, maxLength: 100 },
+          definition: { type: "string", minLength: 30, maxLength: 500 }
+        }
+      }
+    },
+    visualBrief: {
+      type: "object",
+      additionalProperties: false,
+      required: ["storyThesis", "sceneConcept", "factualAnchors", "avoid"],
+      properties: {
+        storyThesis: { type: "string", minLength: 30, maxLength: 500 },
+        sceneConcept: { type: "string", minLength: 50, maxLength: 1_000 },
+        factualAnchors: {
+          type: "array",
+          minItems: 2,
+          maxItems: 6,
+          items: { type: "string", minLength: 15, maxLength: 320 }
+        },
+        avoid: {
+          type: "array",
+          minItems: 3,
+          maxItems: 8,
+          items: { type: "string", minLength: 10, maxLength: 240 }
+        }
+      }
+    },
     sections: { type: "array", minItems: 5, maxItems: 12, items: sectionJsonSchema },
     checklist: { type: "array", minItems: 6, maxItems: 16, items: { type: "string", minLength: 15, maxLength: 500 } },
     questions: {
@@ -213,10 +273,15 @@ const blogContentJsonSchema = {
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["question", "answer"],
+        required: ["question", "answer", "sourceUrls"],
         properties: {
           question: { type: "string", minLength: 10, maxLength: 240 },
-          answer: { type: "string", minLength: 50, maxLength: 1_200 }
+          answer: { type: "string", minLength: 50, maxLength: 1_200 },
+          sourceUrls: {
+            type: "array",
+            maxItems: 4,
+            items: { type: "string", maxLength: 1_000 }
+          }
         }
       }
     },
@@ -230,8 +295,10 @@ const contentQaJsonSchema = {
   required: [
     "approved",
     "factualGroundingScore",
+    "evidenceTraceabilityScore",
     "authorityScore",
     "clarityScore",
+    "structureScore",
     "usefulnessScore",
     "searchAnswerScore",
     "violations",
@@ -241,8 +308,10 @@ const contentQaJsonSchema = {
   properties: {
     approved: { type: "boolean" },
     factualGroundingScore: { type: "integer", minimum: 0, maximum: 100 },
+    evidenceTraceabilityScore: { type: "integer", minimum: 0, maximum: 100 },
     authorityScore: { type: "integer", minimum: 0, maximum: 100 },
     clarityScore: { type: "integer", minimum: 0, maximum: 100 },
+    structureScore: { type: "integer", minimum: 0, maximum: 100 },
     usefulnessScore: { type: "integer", minimum: 0, maximum: 100 },
     searchAnswerScore: { type: "integer", minimum: 0, maximum: 100 },
     violations: { type: "array", maxItems: 12, items: { type: "string", minLength: 2, maxLength: 320 } },
@@ -265,8 +334,10 @@ function contentQaPasses(qa: ContentQa) {
     qa.approved &&
     qa.violations.length === 0 &&
     qa.factualGroundingScore >= 90 &&
+    qa.evidenceTraceabilityScore >= 88 &&
     qa.authorityScore >= 86 &&
     qa.clarityScore >= 84 &&
+    qa.structureScore >= 86 &&
     qa.usefulnessScore >= 86 &&
     qa.searchAnswerScore >= 84
   );
@@ -274,7 +345,14 @@ function contentQaPasses(qa: ContentQa) {
 
 function qualityScore(qa: ContentQa) {
   return Math.round(
-    (qa.factualGroundingScore + qa.authorityScore + qa.clarityScore + qa.usefulnessScore + qa.searchAnswerScore) / 5
+    (qa.factualGroundingScore +
+      qa.evidenceTraceabilityScore +
+      qa.authorityScore +
+      qa.clarityScore +
+      qa.structureScore +
+      qa.usefulnessScore +
+      qa.searchAnswerScore) /
+      7
   );
 }
 
@@ -287,7 +365,9 @@ async function inspectContent(kind: "advisory" | "blog", evidence: string, conte
     instructions: [
       "You are the QCS Editorial QA Critic, a senior network-security editor and fact checker.",
       "Compare every factual claim with the supplied primary-source evidence. Reject unsupported versions, exploit claims, mitigations, commands, dates, or product behavior.",
+      "For blogs, verify that sourceUrls point only to supplied evidence and are attached to the sections or answers whose claims they support. A source list alone is not traceability.",
       "Reject generic filler, repetitive template language, unexplained jargon, sensational phrasing, copied source wording, weak search intent, and content that would not help a real operator make a decision.",
+      "For blogs, require a direct answer, a clear reader outcome, defined entities, useful headings, evidence-led reasoning, implementation and validation guidance, realistic limitations, and FAQs that resolve genuine follow-up questions.",
       "Plain-language passages should be understandable to an IT decision maker; technical passages must remain precise for engineers.",
       "Set approved true only when the content is authoritative, useful, easy to understand, and ready for professional publication. Return JSON only."
     ].join(" "),
@@ -346,6 +426,7 @@ export async function enrichSecurityAdvisory(input: AdvisoryEditorialInput) {
         qualityScore: qualityScore(latestQa),
         trace: {
           provider: "openai-direct",
+          contentPolicyVersion: 2,
           writerModel: editorialContentAgentConfiguration().writerModel,
           criticModel: editorialContentAgentConfiguration().criticModel,
           attempts: attempt,
@@ -370,6 +451,9 @@ async function writeBlog(input: BlogEditorialInput, evidence: string, correction
       "You are the QCS Research Editor, a senior network engineer, cybersecurity writer, SEO strategist, and educator.",
       "Create an original, authoritative article from the supplied primary-source evidence. Search demand may shape the question, but never treat a trend or headline as technical evidence.",
       "Answer the reader's real question immediately, explain terminology in plain English, then provide technically precise reasoning, examples, evidence, decisions, safeguards, and practical next steps.",
+      "Build the article for human readers and answer engines: state a self-contained direct answer first; define important entities; organize the body around the reader's decision; distinguish evidence, interpretation, and recommendation; include implementation, validation, limitations, and escalation guidance where relevant.",
+      "Use sourceUrls on each section and FAQ answer to cite only the supplied URL or URLs that support its factual claims. Use an empty array only for clearly labeled QCS analysis or practical advice that does not depend on an external fact.",
+      "Create a topic-specific visualBrief from the article's concrete systems, evidence, and cause-and-effect relationship. Its factualAnchors must be supported by the article, and its avoid list must prevent likely visual misinterpretations or generic cyber imagery.",
       "Do not produce a vendor-news rewrite, generic checklist template, sales pitch, or repetitive QCS boilerplate. Do not invent versions, statistics, commands, exploit claims, outcomes, or quotations.",
       "Use short paragraphs, meaningful headings, active voice, and natural language suitable for informed readers worldwide and in India. Paraphrase sources and return JSON only."
     ].join(" "),
@@ -418,8 +502,11 @@ function buildBlogPost(input: BlogEditorialInput, draft: z.infer<typeof blogCont
     .join(" ")
     .split(/\s+/)
     .filter(Boolean).length;
+  const allowedSourceUrls = new Set(evidence.map((source) => source.url));
+  const sourceUrls = (values: string[]) => [...new Set(values.filter((url) => allowedSourceUrls.has(url)))];
 
   return {
+    contentVersion: 2,
     contentType: "blog",
     slug: input.slug,
     title: compact(draft.title, 180),
@@ -436,14 +523,22 @@ function buildBlogPost(input: BlogEditorialInput, draft: z.infer<typeof blogCont
     readTime: `${Math.max(5, Math.ceil(wordCount / 210))} min read`,
     image: `/resources/${input.slug}/visual`,
     imageAlt: draft.imageAlt,
+    readerOutcome: draft.readerOutcome,
+    reviewedBy: {
+      name: "QCS Network & Security Engineering",
+      role: "Technical review team"
+    },
+    editorialMethod: `Researched from the listed primary and official sources, written for operational decision-making, and reviewed through QCS editorial QA. Sources checked ${today}.`,
+    definitions: draft.definitions,
+    visualBrief: draft.visualBrief,
     relatedTools: (tools.length ? tools : ["/network-tools"]).slice(0, 4).map((href) => ({ label: labelFromPath(href), href })),
     relatedServices: (services.length ? services : ["/services/managed-network-services"])
       .slice(0, 4)
       .map((href) => ({ label: labelFromPath(href), href })),
     takeaways: draft.takeaways,
-    sections: draft.sections,
+    sections: draft.sections.map((section) => ({ ...section, sourceUrls: sourceUrls(section.sourceUrls) })),
     checklist: draft.checklist,
-    questions: draft.questions,
+    questions: draft.questions.map((question) => ({ ...question, sourceUrls: sourceUrls(question.sourceUrls) })),
     sources: evidence.map((source) => ({ label: source.label, url: source.url }))
   } satisfies BlogPost;
 }
@@ -466,6 +561,7 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
         qualityScore: qualityScore(latestQa),
         trace: {
           provider: "openai-direct",
+          contentPolicyVersion: 2,
           writerModel: editorialContentAgentConfiguration().writerModel,
           criticModel: editorialContentAgentConfiguration().criticModel,
           attempts: attempt,

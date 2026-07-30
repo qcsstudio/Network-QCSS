@@ -10,7 +10,8 @@ import {
   publishContentPost,
   regenerateRadarContentPost,
   restoreContentPost,
-  updateContentPost
+  updateContentPost,
+  upgradePublishedContentPost
 } from "@/lib/content-posts";
 import { rateLimit } from "@/lib/rate-limit";
 import { requestContext } from "@/lib/security";
@@ -57,6 +58,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
         ? await approveContentPost(id, actor)
         : action === "publish"
           ? await publishContentPost(id, actor)
+          : action === "upgrade"
+            ? await upgradePublishedContentPost(id, actor)
           : action === "regenerate"
             ? await regenerateRadarContentPost(id, actor)
             : action === "archive"
@@ -70,7 +73,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       { action: `content.post_${action}`, actor, target: id, metadata: { slug: post.slug, status: post.status } },
       await requestContext()
     );
-    if (action === "publish" || action === "archive") {
+    if (action === "publish" || action === "upgrade" || action === "archive") {
       revalidatePath("/resources");
       revalidatePath(`/resources/${post.slug}`);
       revalidatePath("/sitemap.xml");
