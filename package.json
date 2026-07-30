@@ -21,6 +21,7 @@
     "test:verifygrid": "node --experimental-strip-types --test tests/verifygrid-domain.test.mjs",
     "content:seed": "node scripts/seed-content-studio.mjs",
     "content:images:backfill": "tsx -r dotenv/config scripts/backfill-editorial-images.ts",
+    "content:upgrade-library": "tsx -r dotenv/config scripts/upgrade-editorial-library.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy"

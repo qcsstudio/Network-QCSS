@@ -12,6 +12,7 @@ const trustedEditorialHosts = [
   "cloudflare.com",
   "f5.com",
   "fortiguard.com",
+  "fortinet.com",
   "googleblog.com",
   "ietf.org",
   "juniper.net",

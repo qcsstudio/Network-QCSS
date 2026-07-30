@@ -8,6 +8,7 @@ test("editorial evidence accepts approved vendor and government sources", () => 
   assert.equal(isTrustedEditorialUrl("https://www.cert-in.org.in/s2cMainServlet?pageid=PUBADVLIST02"), true);
   assert.equal(isTrustedEditorialUrl("https://blog.cloudflare.com/example"), true);
   assert.equal(isTrustedEditorialUrl("https://docs.cloud.google.com/architecture/blueprints/security-foundations"), true);
+  assert.equal(isTrustedEditorialUrl("https://www.fortinet.com/corporate/about-us/newsroom/press-releases/example"), true);
 });
 
 test("editorial evidence rejects discovery sites, insecure URLs, and hostname lookalikes", () => {
