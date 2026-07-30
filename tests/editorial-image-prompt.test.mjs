@@ -91,3 +91,29 @@ test("prompt explicitly protects full-bleed LinkedIn composition", () => {
   assert.match(prompt, /1\.91:1 LinkedIn crop remains complete/i);
   assert.match(prompt, /central 84%/i);
 });
+
+test("large advisory identifier sets are compacted before visual generation", () => {
+  const context = buildAdvisoryImageContext({
+    affectedVersions: ["Ubuntu 22.04 LTS"],
+    businessImpact: "A local issue can expose kernel memory on affected systems.",
+    cves: Array.from({ length: 500 }, (_, index) => `CVE-2026-${String(index + 1).padStart(4, "0")}`),
+    cvssScore: null,
+    evidenceChecklist: Array.from({ length: 20 }, (_, index) => `Evidence item ${index + 1}`),
+    exploitationStatus: "Not stated by the vendor",
+    fixedVersions: ["5.15.0-fixed"],
+    products: ["Ubuntu", "linux-azure-fips"],
+    remediation: "Install the fixed package and reboot.",
+    severity: "unrated",
+    sourceUrl: "https://ubuntu.com/security/notices/example",
+    summary: "A vendor kernel update addresses multiple vulnerabilities.",
+    technicalExplanation: "A crafted filesystem image can cause an out-of-bounds read.",
+    title: "Linux kernel advisory",
+    vendor: "Ubuntu",
+    workaround: null
+  });
+
+  assert.match(context, /CVE scope: 500 listed; representative identifiers:/);
+  assert.match(context, /497 additional|Do not attempt to visualize the remaining identifiers/);
+  assert.doesNotMatch(context, /CVE-2026-0500/);
+  assert.ok(context.length < 3_000);
+});

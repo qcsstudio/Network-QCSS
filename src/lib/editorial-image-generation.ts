@@ -20,7 +20,7 @@ import {
 import { shouldDeferEditorialImageGeneration } from "@/lib/editorial-image-state";
 import { getPrismaClient } from "@/lib/prisma";
 
-type EditorialImageInput = {
+export type EditorialImageInput = {
   altText: string;
   contentId: string;
   contentRevision: string;
@@ -256,7 +256,7 @@ export async function ensureEditorialImage(input: EditorialImageInput, force = f
   }
 }
 
-async function inputForPublication(publication: PublicationIdentity) {
+export async function editorialImageInputForPublication(publication: PublicationIdentity) {
   const prisma = getPrismaClient();
   if (publication.contentType === "content_post") {
     const post = await prisma.contentPost.findUnique({ where: { id: publication.contentId } });
@@ -272,7 +272,7 @@ async function inputForPublication(publication: PublicationIdentity) {
 }
 
 export async function ensureEditorialImageForPublication(publication: PublicationIdentity, force = false) {
-  return ensureEditorialImage(await inputForPublication(publication), force);
+  return ensureEditorialImage(await editorialImageInputForPublication(publication), force);
 }
 
 export async function getContextualEditorialImage(

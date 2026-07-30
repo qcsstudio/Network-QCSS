@@ -22,6 +22,7 @@
     "content:seed": "node scripts/seed-content-studio.mjs",
     "content:audit": "tsx -r dotenv/config scripts/audit-editorial-library.ts",
     "content:images:backfill": "tsx -r dotenv/config scripts/backfill-editorial-images.ts",
+    "content:images:carry-forward": "tsx -r dotenv/config scripts/carry-forward-editorial-images.ts",
     "content:upgrade-library": "tsx -r dotenv/config scripts/upgrade-editorial-library.ts",
     "openai:test": "node scripts/test-openai-connection.mjs",
     "prisma:generate": "prisma generate",

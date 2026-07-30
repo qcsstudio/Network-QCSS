@@ -58,6 +58,14 @@ function clip(value: string, limit: number) {
   return `${partial.slice(0, Math.max(partial.lastIndexOf(" "), Math.floor(limit * 0.75))).replace(/[,:;.!?\s]+$/, "")}...`;
 }
 
+function listSummary(value: unknown, limit: number, fallback: string) {
+  const values = strings(value).map(normalize).filter(Boolean);
+  if (!values.length) return fallback;
+  const visible = values.slice(0, limit).join(", ");
+  const remaining = values.length - limit;
+  return remaining > 0 ? `${visible} (${remaining} additional items in the authoritative source)` : visible;
+}
+
 export function buildArticleImageContext(content: ArticleImageBrief) {
   const sections = content.sections.map((section) => {
     const bullets = section.bullets?.join("; ") || "";
@@ -85,20 +93,24 @@ export function buildArticleImageContext(content: ArticleImageBrief) {
   ].join("\n");
 }
 export function buildAdvisoryImageContext(advisory: AdvisoryImageBrief) {
+  const cves = strings(advisory.cves);
+  const cveScope = cves.length
+    ? `${cves.length} listed; representative identifiers: ${cves.slice(0, 3).join(", ")}${cves.length > 3 ? ". Do not attempt to visualize the remaining identifiers" : ""}`
+    : "Not assigned";
   return [
     `Vendor: ${advisory.vendor}.`,
     `Severity: ${advisory.severity}${advisory.cvssScore === null ? "" : `, CVSS ${advisory.cvssScore}`}.`,
     `Exploitation status: ${advisory.exploitationStatus}.`,
-    `Affected products: ${strings(advisory.products).join(", ") || "See vendor advisory"}.`,
-    `Affected versions: ${strings(advisory.affectedVersions).join(", ") || "See vendor advisory"}.`,
-    `Fixed versions: ${strings(advisory.fixedVersions).join(", ") || "See vendor advisory"}.`,
-    `CVE identifiers: ${strings(advisory.cves).join(", ") || "Not assigned"}.`,
+    `Affected products: ${listSummary(advisory.products, 6, "See vendor advisory")}.`,
+    `Affected versions: ${listSummary(advisory.affectedVersions, 4, "See vendor advisory")}.`,
+    `Fixed versions: ${listSummary(advisory.fixedVersions, 4, "See vendor advisory")}.`,
+    `CVE scope: ${cveScope}.`,
     `Plain-language summary: ${clip(advisory.summary, 1_000)}`,
     `Technical mechanism from the reviewed advisory: ${clip(advisory.technicalExplanation, 1_400)}`,
     `Operational and business consequence: ${clip(advisory.businessImpact, 800)}`,
     `Required action: ${clip(advisory.remediation, 800)}`,
     `Workaround: ${clip(advisory.workaround || "No vendor workaround stated", 500)}`,
-    `Evidence an operator should verify: ${strings(advisory.evidenceChecklist).join("; ") || "Confirm product, version, exposure, and remediation state"}.`,
+    `Evidence an operator should verify: ${listSummary(advisory.evidenceChecklist, 6, "Confirm product, version, exposure, and remediation state")}.`,
     `Authoritative source: ${advisory.sourceUrl}.`,
     "Accuracy boundary: if the source does not describe an exact exploit mechanism, visualize the affected product boundary, observable evidence, and remediation decision instead of inventing an attack sequence."
   ].join("\n");
