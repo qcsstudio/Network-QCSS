@@ -50,7 +50,26 @@ async function main() {
     const current = await prisma.editorialImage.findUnique({
       where: { contentType_contentId_contentRevision: publication }
     });
-    if (current?.status === "ready") continue;
+    const input = await editorialImageInputForPublication(publication);
+    const prompt = buildEditorialImagePrompt(input);
+    const promptHash = crypto.createHash("sha256").update(prompt).digest("hex");
+    if (
+      current?.status === "ready" &&
+      current.provider === "openai-direct" &&
+      current.model === "gpt-image-2" &&
+      Number(current.qaScore || 0) >= 90 &&
+      current.heroImage &&
+      current.socialImage
+    ) {
+      if (current.promptHash !== promptHash || current.prompt !== prompt) {
+        await prisma.editorialImage.update({
+          where: { id: current.id },
+          data: { prompt, promptHash }
+        });
+        outcomes.push({ ...publication, qaScore: current.qaScore, status: "approved-prompt-refreshed" });
+      }
+      continue;
+    }
     if (current?.status === "generating" && Date.now() - current.updatedAt.getTime() < 12 * 60_000) {
       outcomes.push({ ...publication, status: "skipped-active-generation" });
       continue;
@@ -74,9 +93,6 @@ async function main() {
       outcomes.push({ ...publication, status: "generation-required" });
       continue;
     }
-    const input = await editorialImageInputForPublication(publication);
-    const prompt = buildEditorialImagePrompt(input);
-    const promptHash = crypto.createHash("sha256").update(prompt).digest("hex");
     await prisma.editorialImage.upsert({
       where: { contentType_contentId_contentRevision: publication },
       create: {
