@@ -248,6 +248,7 @@ async function directVisualDirection(editorialPrompt: string, recentConcepts: Re
         "Identify the factual anchors the scene is allowed to communicate, the exact mechanism actually supported by the brief, and the inferences the image must not imply.",
         "When an advisory does not establish an exploit mechanism, direct an evidence-and-remediation scene instead of dramatizing an invented attack.",
         "Describe only what the image producer should render. Never invent a vulnerability, product behavior, attack path, compromise, or factual claim absent from the brief.",
+        "Be concise. Use short sentences and no more than one concrete idea per array item so the complete JSON remains comfortably within the response budget.",
         "Return the required JSON only."
       ].join(" "),
       input: [
@@ -263,7 +264,7 @@ async function directVisualDirection(editorialPrompt: string, recentConcepts: Re
       ]
         .filter(Boolean)
         .join("\n"),
-      max_output_tokens: 4_000,
+      max_output_tokens: 6_000,
       text: {
         ...(usesReasoningControls(config.directorModel) ? { verbosity: "low" as const } : {}),
         format: {
@@ -276,7 +277,13 @@ async function directVisualDirection(editorialPrompt: string, recentConcepts: Re
     });
     lastDiagnostic = [response.status, response.incomplete_details?.reason].filter(Boolean).join(": ") || "empty output";
     if (!response.output_text.trim() && attempt === 1) continue;
-    return parseStructuredOutput(response.output_text, visualDirectionSchema, "QCS Visual Director");
+    try {
+      return parseStructuredOutput(response.output_text, visualDirectionSchema, "QCS Visual Director");
+    } catch (error) {
+      lastDiagnostic = error instanceof Error ? error.message : lastDiagnostic;
+      if (attempt === 1) continue;
+      throw error;
+    }
   }
   throw new EditorialAgentError(`QCS Visual Director returned no structured output after a defensive retry (${lastDiagnostic}).`);
 }
