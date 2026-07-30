@@ -28,20 +28,21 @@ export async function POST(request: Request) {
   }
   const parsed = await readJsonBody(request);
   if (!parsed.ok) return parsed.response;
-  const body = parsed.data as { excludeContentIds?: unknown; force?: unknown; limit?: unknown };
+  const body = parsed.data as { contentId?: unknown; excludeContentIds?: unknown; force?: unknown; limit?: unknown };
   const limit = typeof body.limit === "number" ? Math.max(1, Math.min(Math.floor(body.limit), 5)) : 1;
   const force = body.force === true;
+  const contentId = typeof body.contentId === "string" && body.contentId.length <= 160 ? body.contentId.trim() : "";
   const excludeContentIds = Array.isArray(body.excludeContentIds)
     ? body.excludeContentIds.filter((value): value is string => typeof value === "string" && value.length <= 160).slice(0, 100)
     : [];
-  const outcomes = await generateMissingEditorialImages(limit, force, excludeContentIds);
+  const outcomes = await generateMissingEditorialImages(limit, force, excludeContentIds, contentId);
   const session = await getAdminSession();
   await createAuditLog(
     {
       action: "content.editorial_images_generated",
       actor: session?.email || "admin-api",
       target: "editorial-images",
-      metadata: { excluded: excludeContentIds.length, force, limit, outcomes }
+      metadata: { contentId: contentId || null, excluded: excludeContentIds.length, force, limit, outcomes }
     },
     await requestContext()
   );
