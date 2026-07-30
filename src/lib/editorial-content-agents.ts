@@ -2,9 +2,10 @@ import OpenAI from "openai";
 import { z } from "zod";
 import type { BlogPost } from "@/lib/blog";
 import { collectEditorialEvidence, type EditorialEvidenceSource } from "@/lib/editorial-source-policy";
+import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts";
 
-const defaultContentWriterModel = "gpt-5.6-sol";
-const defaultContentCriticModel = "gpt-5.6-sol";
+const defaultContentWriterModel = "gpt-5.4-mini";
+const defaultContentCriticModel = "gpt-5.4-mini";
 
 const advisoryContentSchema = z.object({
   plainLanguageSummary: z.string().min(80).max(1_200),
@@ -119,8 +120,10 @@ function env(name: string) {
 }
 
 export function editorialContentAgentConfiguration() {
+  const credential = openAIApiKeyStatus();
   return {
-    configured: Boolean(env("OPENAI_API_KEY")),
+    configured: credential.configured,
+    credentialIssue: credential.credentialIssue,
     provider: "OpenAI direct API",
     writerModel: env("EDITORIAL_CONTENT_WRITER_MODEL") || defaultContentWriterModel,
     criticModel: env("EDITORIAL_CONTENT_CRITIC_MODEL") || defaultContentCriticModel
@@ -128,10 +131,10 @@ export function editorialContentAgentConfiguration() {
 }
 
 function openAIClient() {
-  const apiKey = env("OPENAI_API_KEY");
-  if (!apiKey) throw new Error("OPENAI_API_KEY is required for the direct QCS editorial content agents.");
+  const credential = openAIApiKeyStatus();
+  if (!credential.configured) throw new Error(openAICredentialMessage(credential));
   return new OpenAI({
-    apiKey,
+    apiKey: credential.apiKey,
     organization: env("OPENAI_ORGANIZATION") || undefined,
     project: env("OPENAI_PROJECT_ID") || undefined,
     maxRetries: 2,

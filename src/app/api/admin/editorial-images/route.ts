@@ -17,8 +17,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   if (!isAdminRequest(request)) return jsonError("Unauthorized", 401);
-  if (!editorialAgentConfiguration().configured) {
-    return jsonError("OPENAI_API_KEY is required for the direct QCS editorial agent team. No AI gateway is used.", 503);
+  const agent = editorialAgentConfiguration();
+  if (!agent.configured) {
+    return jsonError(
+      agent.credentialIssue === "malformed"
+        ? "OPENAI_API_KEY is malformed. Add the complete OpenAI secret key value beginning with sk-."
+        : "OPENAI_API_KEY is required for the direct QCS editorial agent team. No AI gateway is used.",
+      503
+    );
   }
   const parsed = await readJsonBody(request);
   if (!parsed.ok) return parsed.response;

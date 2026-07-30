@@ -1,9 +1,10 @@
 import OpenAI from "openai";
 import { z } from "zod";
+import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts";
 
-export const defaultEditorialDirectorModel = "gpt-5.6-sol";
+export const defaultEditorialDirectorModel = "gpt-5.4-mini";
 export const defaultEditorialImageModel = "gpt-image-2";
-export const defaultEditorialCriticModel = "gpt-5.6-sol";
+export const defaultEditorialCriticModel = "gpt-5.4-mini";
 
 const visualDirectionSchema = z.object({
   storyThesis: z.string().min(20).max(500),
@@ -176,8 +177,10 @@ function env(name: string) {
 }
 
 export function editorialAgentConfiguration() {
+  const credential = openAIApiKeyStatus();
   return {
-    configured: Boolean(env("OPENAI_API_KEY")),
+    configured: credential.configured,
+    credentialIssue: credential.credentialIssue,
     provider: "OpenAI direct API",
     directorModel: env("EDITORIAL_DIRECTOR_MODEL") || defaultEditorialDirectorModel,
     imageModel: env("EDITORIAL_IMAGE_MODEL") || defaultEditorialImageModel,
@@ -186,14 +189,10 @@ export function editorialAgentConfiguration() {
 }
 
 function openAIClient() {
-  const apiKey = env("OPENAI_API_KEY");
-  if (!apiKey) {
-    throw new EditorialAgentError(
-      "OPENAI_API_KEY is not configured. Add a direct OpenAI API key to Vercel before generating editorial images."
-    );
-  }
+  const credential = openAIApiKeyStatus();
+  if (!credential.configured) throw new EditorialAgentError(openAICredentialMessage(credential));
   return new OpenAI({
-    apiKey,
+    apiKey: credential.apiKey,
     organization: env("OPENAI_ORGANIZATION") || undefined,
     project: env("OPENAI_PROJECT_ID") || undefined,
     maxRetries: 2,

@@ -156,7 +156,11 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
         <article className="distribution-module">
           <div className="distribution-module-heading"><ImageIcon aria-hidden="true" /><div><p className="eyebrow">QCS OpenAI agent studio</p><h3>Researched, written, rendered, and inspected</h3></div></div>
           <span className={`status-pill ${snapshot?.editorialImages.agent.configured ? "ready" : "missing"}`}>
-            {snapshot?.editorialImages.agent.configured ? "Direct API ready" : "OpenAI key required"}
+            {snapshot?.editorialImages.agent.configured
+              ? "Direct API ready"
+              : snapshot?.editorialImages.agent.credentialIssue === "malformed"
+                ? "OpenAI key malformed"
+                : "OpenAI key required"}
           </span>
           <p>Research and critic agents ground the article in approved sources. A visual director, image agent, and visual critic create a contextual asset before website or LinkedIn delivery.</p>
           <div className="content-action-row">
