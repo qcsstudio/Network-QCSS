@@ -223,5 +223,6 @@ export async function deleteLinkedInPost(externalId: string) {
     signal: AbortSignal.timeout(requestTimeoutMs),
     cache: "no-store"
   });
+  if (response.status === 404) return;
   if (!response.ok) throw await responseError(response, "LinkedIn post deletion");
 }
