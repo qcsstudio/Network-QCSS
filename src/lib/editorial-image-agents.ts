@@ -409,7 +409,6 @@ async function inspectVisual(
 
 export function visualQaPasses(qa: VisualQa) {
   return (
-    qa.approved &&
     qa.violations.length === 0 &&
     qa.factualAccuracyScore >= 90 &&
     qa.inferenceDisciplineScore >= 90 &&

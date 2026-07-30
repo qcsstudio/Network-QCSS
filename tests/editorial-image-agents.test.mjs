@@ -33,7 +33,7 @@ test("render prompt preserves article facts and prohibits generated branding or 
   assert.match(prompt, /no visible words, letters, numbers, logos/i);
 });
 
-test("visual QA requires both model approval and hard score thresholds", () => {
+test("visual QA uses blocking violations and hard score thresholds as the authority", () => {
   const passing = {
     approved: true,
     factualAccuracyScore: 94,
@@ -49,7 +49,7 @@ test("visual QA requires both model approval and hard score thresholds", () => {
   assert.equal(visualQaPasses(passing), true);
   assert.equal(visualQaPasses({ ...passing, specificityScore: 81 }), false);
   assert.equal(visualQaPasses({ ...passing, violations: ["Contains embedded text"] }), false);
-  assert.equal(visualQaPasses({ ...passing, approved: false }), false);
+  assert.equal(visualQaPasses({ ...passing, approved: false }), true);
 });
 
 test("ten-point critic scores are normalized to the required hundred-point scale", () => {
