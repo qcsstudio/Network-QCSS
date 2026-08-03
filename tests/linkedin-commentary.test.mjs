@@ -74,26 +74,33 @@ test("security advisory commentary carries product, CVE, remediation, and decisi
       summary: "A static credential permits access to a low-privileged management account.",
       technicalExplanation: "A static credential embedded in the management interface permits an unauthenticated remote actor to sign in as a low-privileged user. The vendor rates this high because it can be combined with other management vulnerabilities to elevate privileges.",
       title: "Example Router OS static credential vulnerability",
-      vendor: "Example Networks"
+      vendor: "Example Networks",
+      workaround: "No workaround is available."
     },
     "https://www.qcsstudio.com/security-advisories/example"
   );
-  assert.match(commentary, /CVE-2026-1234/);
+  assert.match(commentary, /#NetworkSecurity EXAMPLE NETWORKS CVE-2026-1234: ACTIVELY EXPLOITED/);
   assert.match(commentary, /Example Router OS/);
   assert.match(commentary, /fixed release or version-specific hotfix/);
-  assert.match(commentary, /active exploitation/i);
+  assert.match(commentary, /actively exploited/i);
   assert.match(commentary, /static credentials in the management web interface/i);
   assert.match(commentary, /7\.6\.2 hotfix 4/i);
   assert.match(commentary, /inspect authentication logs/i);
   assert.doesNotMatch(commentary, /Can your team prove/i);
   assert.doesNotMatch(commentary, /\|/);
-  assert.match(commentary, /ACTIVE EXPLOITATION CONFIRMED/);
-  assert.match(commentary, /EXAMPLE NETWORKS RATING CRITICAL \/ CVSS 5\.3/);
+  assert.match(commentary, /EXAMPLE NETWORKS CRITICAL \/ CVSS 5\.3 \/ CHAINABLE PRIVILEGE RISK \/ NO WORKAROUND/);
   assert.match(commentary, /WHY EXAMPLE NETWORKS RATES IT CRITICAL/);
   assert.match(commentary, /DEFENDER ACTIONS/);
   assert.match(commentary, /QCS technical brief with the vendor source: https:\/\/www\.qcsstudio\.com\/security-advisories\/example/);
   assert.match(commentary, /#NetworkSecurity/);
   assert.doesNotMatch(commentary, /\.\.\./);
   assert.match(commentary.trimEnd(), /#VulnerabilityManagement$/);
+  const preview = commentary.split("\n").slice(0, 3).join("\n");
+  assert.match(preview, /ACTIVELY EXPLOITED/);
+  assert.match(preview, /CVSS 5\.3/);
+  assert.match(preview, /NO WORKAROUND/);
+  assert.match(preview, /CHAINABLE PRIVILEGE RISK/);
+  assert.match(preview, /Fixes 7\.6/);
+  assert.match(preview, /inventory, restrict UI, patch, verify logs/);
   assert.ok(commentary.length < 1800);
 });

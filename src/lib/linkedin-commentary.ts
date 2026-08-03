@@ -256,6 +256,13 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
     /CVSS(?: base)? score(?: is)?\s+(10(?:\.0)?|[0-9](?:\.[0-9])?)/i
   );
   const cvssScore = advisory.cvssScore ?? (scoreFromText ? Number(scoreFromText[1]) : null);
+  const fixedTrains = [
+    ...new Set(
+      (advisory.fixedVersions || [])
+        .map((entry) => entry.match(/\b\d{1,2}\.\d+\b/)?.[0] || "")
+        .filter(Boolean)
+    )
+  ];
   const sentenceSummary = (value: string, limit: number, count = 2) => {
     const sentences = normalize(value).split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, count);
     let result = "";
@@ -288,16 +295,27 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
     : sentenceSummary(advisory.remediation, 130, 1);
   const severity = advisory.severity.toLowerCase() === "unrated" ? "NOT RATED" : advisory.severity.toUpperCase();
   const text = `${title} ${advisory.vendor} ${products} ${cves}`.toLowerCase();
-  const rating = [leadIdentifier, `${advisory.vendor.toUpperCase()} RATING ${severity}`, cvssScore === null ? "" : `CVSS ${cvssScore.toFixed(1)}`]
-    .filter(Boolean)
-    .join(" / ");
+  const ciscoAdvisory = /\bcisco\b/.test(text);
   const privilegeChain = /(?:combine|used with|in conjunction with)[^.]{0,120}(?:elevate|increase)[^.]{0,60}privilege/i.test(combined);
   const priorityExplanation = privilegeChain
     ? `${advisory.vendor} rates this ${severity} because attackers can combine the low-privileged access with other management-platform vulnerabilities to elevate privileges.`
     : sentenceSummary(advisory.businessImpact || advisory.summary, 210, 1);
+  const visibleHashtag = ciscoAdvisory ? "#CiscoSecurity" : "#NetworkSecurity";
+  const subjectLabel = ciscoAdvisory ? (fmcAdvisory ? "FMC" : "CISCO") : `${advisory.vendor.toUpperCase()}${fmcAdvisory ? " FMC" : ""}`;
   const alertLabel = activelyExploited
-    ? `${advisory.vendor.toUpperCase()}${fmcAdvisory ? " FMC" : ""}: ACTIVE EXPLOITATION CONFIRMED`
-    : `${advisory.vendor.toUpperCase()}${fmcAdvisory ? " FMC" : ""}: SECURITY ADVISORY`;
+    ? `${visibleHashtag} ${subjectLabel} ${leadIdentifier}: ACTIVELY EXPLOITED`
+    : `${visibleHashtag} ${subjectLabel}: SECURITY ADVISORY`;
+  const previewRating = [
+    `${advisory.vendor.toUpperCase()} ${severity}`,
+    cvssScore === null ? "" : `CVSS ${cvssScore.toFixed(1)}`,
+    privilegeChain ? "CHAINABLE PRIVILEGE RISK" : "",
+    noWorkaround ? "NO WORKAROUND" : ""
+  ]
+    .filter(Boolean)
+    .join(" / ");
+  const previewAction = staticCredential
+    ? `${fixedTrains.length ? `Fixes ${fixedTrains.join("/")}. ` : ""}Act: inventory, restrict UI, patch, verify logs.`
+    : "Act: identify affected assets, contain exposure, remediate, and verify the fixed state.";
   const workaroundNote = noWorkaround
     ? staticCredential
       ? "There is no workaround. Restricting public or untrusted management access reduces exposure, but it does not remove the static credential."
@@ -305,7 +323,10 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
     : "Use the vendor workaround only as temporary containment and verify the final fixed state.";
   const commentary = [
     alertLabel,
-    rating,
+    previewRating,
+    previewAction,
+    "",
+    "TECHNICAL IMPACT",
     `Affected: ${clip(products, 125)}`,
     mechanism,
     "",
@@ -325,7 +346,9 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
     "",
     `QCS technical brief with the vendor source: ${url}`,
     "",
-    relevantHashtags(text, ["#NetworkSecurity"]).join(" ")
+    relevantHashtags(text, ["#NetworkSecurity"])
+      .filter((tag) => tag !== visibleHashtag)
+      .join(" ")
   ]
     .join("\n")
     .replace(/\|/g, ":");
