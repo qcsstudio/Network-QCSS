@@ -66,6 +66,7 @@ const contentSecurityPolicy = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  serverExternalPackages: ["@resvg/resvg-js"],
   images: {
     qualities: [65, 75]
   },

@@ -23,7 +23,7 @@ test("advisory fallback produces a retina-ready contextual source without a paid
   assert.equal(metadata.width, 1440);
   assert.equal(metadata.height, 810);
   assert.equal(generated.trace.provider, "qcs-procedural");
-  assert.equal(generated.trace.imageModel, "qcs-editorial-pango-v4");
+  assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v5");
   assert.match(generated.trace.direction.focalSubject, /static credential/i);
   assert.equal(generated.trace.qa.approved, true);
   assert.ok(headlineStats.entropy > 2, "the headline region should contain rendered text, not only the background grid");

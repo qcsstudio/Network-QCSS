@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import sharp from "sharp";
+import { Resvg } from "@resvg/resvg-js";
 import type { EditorialAgentTrace, VisualDirection } from "@/lib/editorial-image-agents";
 
 export type ProceduralEditorialInput = {
@@ -54,32 +54,10 @@ function wrap(value: string, maxCharacters: number, maxLines: number) {
   return clipped;
 }
 
-async function textOverlay(input: {
-  color: string;
-  fontFile: string;
-  left: number;
-  lines: string[];
-  size: number;
-  spacing?: number;
-  top: number;
-  width: number;
-}) {
-  const text = input.lines.map(xml).join("\n");
-  const buffer = await sharp({
-    text: {
-      align: "left",
-      font: `Geist ${input.size}`,
-      fontfile: input.fontFile,
-      rgba: true,
-      spacing: input.spacing || 0,
-      text: `<span foreground="${input.color}">${text}</span>`,
-      width: input.width,
-      wrap: "word-char"
-    }
-  })
-    .png()
-    .toBuffer();
-  return { input: buffer, left: input.left, top: input.top };
+function textBlock(lines: string[], x: number, y: number, size: number, lineHeight: number, color: string) {
+  return lines
+    .map((line, index) => `<text x="${x}" y="${y + index * lineHeight}" fill="${color}" font-family="Geist" font-size="${size}" font-weight="400">${xml(line)}</text>`)
+    .join("");
 }
 
 function seededByte(seed: string, index: number) {
@@ -182,7 +160,7 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
   ];
   const evidenceSignals = Array.from({ length: 9 }, (_, index) => {
     const x = 790 + (seededByte(identitySeed, index + 2) % 540);
-    const y = 176 + (seededByte(identitySeed, index + 11) % 490);
+    const y = 250 + (seededByte(identitySeed, index + 11) % 390);
     const radius = 3 + (seededByte(identitySeed, index + 20) % 6);
     const color = index % 3 === 0 ? profile.accent2 : index % 2 === 0 ? "#28c99a" : profile.accent;
     return `<circle cx="${x}" cy="${y}" r="${radius}" fill="${color}" fill-opacity="0.42"/>`;
@@ -198,7 +176,12 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
       <rect width="1440" height="810" fill="url(#bg)"/>
       <rect width="1440" height="810" fill="url(#grid)"/>
       <path d="M0 0H1440" stroke="url(#line)" stroke-width="8"/>
+      <text x="70" y="202" fill="${profile.accent2}" font-family="Geist" font-size="19" font-weight="400">${xml(vendor.toUpperCase())} / ${xml(severity.toUpperCase())}</text>
+      ${textBlock(titleLines, 70, 258, 42, 50, "#f8fafc")}
+      ${textBlock(productLines, 70, 500, 21, 30, "#aebbd0")}
       <rect x="70" y="602" width="620" height="98" rx="12" fill="#0a1323" stroke="#30415d"/>
+      <text x="96" y="636" fill="${profile.accent}" font-family="Geist" font-size="16" font-weight="400">${xml(profile.category)}</text>
+      ${textBlock(signalLines, 96, 672, 24, 29, "#f8fafc")}
       <rect x="760" y="150" width="610" height="550" rx="18" fill="#091425" fill-opacity="0.88" stroke="#31435f" stroke-width="2"/>
       ${evidenceSignals}
       <path d="M820 389 C900 270 1015 270 1118 390 C1015 520 920 540 820 389Z" fill="none" stroke="url(#line)" stroke-width="6" filter="url(#glow)"/>
@@ -206,27 +189,27 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
       <circle cx="1000" cy="390" r="72" fill="#f8fafc"/>
       <circle cx="1000" cy="390" r="38" fill="${profile.accent2}" fill-opacity="0.18" stroke="${profile.accent2}" stroke-width="5"/>
       <path d="M982 390l13 13 28-34" fill="none" stroke="${profile.accent2}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-      ${diagramNodes.map((node) => `<rect x="${node.x - 100}" y="${node.y - 30}" width="200" height="60" rx="10" fill="#f8fafc"/><circle cx="${node.x - 74}" cy="${node.y}" r="7" fill="${node.color}"/>`).join("")}
+      ${diagramNodes.map((node) => `<rect x="${node.x - 100}" y="${node.y - 30}" width="200" height="60" rx="10" fill="#f8fafc"/><circle cx="${node.x - 74}" cy="${node.y}" r="7" fill="${node.color}"/><text x="${node.x - 58}" y="${node.y + 5}" fill="#172238" font-family="Geist" font-size="12" font-weight="400">${xml(node.label)}</text>`).join("")}
+      <text x="796" y="188" fill="#91a4c2" font-family="Geist" font-size="15" font-weight="400">QCS OPERATING MAP</text>
+      <text x="796" y="224" fill="#f8fafc" font-family="Geist" font-size="25" font-weight="400">${xml(profile.focus)}</text>
       <rect x="760" y="724" width="610" height="2" fill="url(#line)"/>
+      ${profile.steps.map((step, index) => `<text x="${790 + index * 198}" y="766" fill="#c6d1e1" font-family="Geist" font-size="15" font-weight="400">0${index + 1}  ${xml(step)}</text>`).join("")}
     </svg>`);
-  const overlays = await Promise.all([
-    textOverlay({ color: profile.accent2, fontFile, left: 70, lines: [`${vendor.toUpperCase()} / ${severity.toUpperCase()}`], size: 19, top: 184, width: 620 }),
-    textOverlay({ color: "#f8fafc", fontFile, left: 70, lines: titleLines, size: 42, spacing: 7, top: 220, width: 620 }),
-    textOverlay({ color: "#aebbd0", fontFile, left: 70, lines: productLines, size: 21, spacing: 4, top: 478, width: 590 }),
-    textOverlay({ color: profile.accent, fontFile, left: 96, lines: [profile.category], size: 16, top: 617, width: 550 }),
-    textOverlay({ color: "#f8fafc", fontFile, left: 96, lines: signalLines, size: 24, spacing: 3, top: 651, width: 540 }),
-    textOverlay({ color: "#91a4c2", fontFile, left: 796, lines: ["QCS OPERATING MAP"], size: 15, top: 174, width: 260 }),
-    textOverlay({ color: "#f8fafc", fontFile, left: 796, lines: [profile.focus], size: 25, top: 201, width: 500 }),
-    ...diagramNodes.map((node) => textOverlay({ color: "#172238", fontFile, left: node.x - 58, lines: [node.label], size: 12, top: node.y - 8, width: 144 })),
-    ...profile.steps.map((step, index) => textOverlay({ color: "#c6d1e1", fontFile, left: 790 + index * 198, lines: [`0${index + 1}  ${step}`], size: 15, top: 748, width: 178 }))
-  ]);
-  const source = await sharp(svg).composite(overlays).png().toBuffer();
+  const source = Buffer.from(
+    new Resvg(svg, {
+      font: { defaultFontFamily: "Geist", fontFiles: [fontFile], loadSystemFonts: false },
+      shapeRendering: 2,
+      textRendering: 2
+    })
+      .render()
+      .asPng()
+  );
   const direction = directionFor(input, profile);
   const trace: EditorialAgentTrace = {
     provider: "qcs-procedural",
     qaPolicyVersion: 4,
     directorModel: "qcs-context-classifier-v1",
-    imageModel: "qcs-editorial-pango-v4",
+    imageModel: "qcs-editorial-resvg-v5",
     criticModel: "deterministic-layout-validation-v1",
     direction,
     qa: {
