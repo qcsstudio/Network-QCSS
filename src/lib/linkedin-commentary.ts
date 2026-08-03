@@ -241,16 +241,12 @@ export function composeEditorialLinkedInPost(post: LinkedInEditorialPost, url: s
 export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url: string) {
   const title = cleanHeadline(advisory.title);
   const combined = `${title} ${advisory.vendor} ${advisory.summary} ${advisory.technicalExplanation || ""} ${advisory.businessImpact || ""}`.toLowerCase();
-  const products = advisory.products.slice(0, 4).join(", ") || "Use the vendor's affected-product table";
-  const fixed = advisory.fixedVersions?.slice(0, 6).join(", ") || "Use the fixed package or release listed by the vendor";
-  const cves = advisory.cves.slice(0, 3).join(", ");
   const exploitation = normalize(advisory.exploitationStatus || "The vendor did not state an exploitation status.");
   const activelyExploited =
     /active exploitation|actively exploited|exploited in the wild/i.test(exploitation) &&
     !/not specify|no evidence|not known|no active/i.test(exploitation);
   const staticCredential = /static credential|embedded credential|preset username/.test(combined);
-  const kernelIssue = /linux kernel|intel iotg|ntfs/.test(combined);
-  const fmcAdvisory = /firewall management center|\bfmc\b/i.test(products);
+  const fmcAdvisory = /firewall management center|\bfmc\b/i.test(advisory.products.join(" "));
   const noWorkaround = /no (?:available )?workarounds?|no workaround (?:is|was) available/i.test(advisory.workaround || advisory.remediation);
   const scoreFromText = `${advisory.technicalExplanation || ""} ${advisory.summary}`.match(
     /CVSS(?: base)? score(?: is)?\s+(10(?:\.0)?|[0-9](?:\.[0-9])?)/i
@@ -262,95 +258,49 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
         .map((entry) => entry.match(/\b\d{1,2}\.\d+\b/)?.[0] || "")
         .filter(Boolean)
     )
-  ];
-  const sentenceSummary = (value: string, limit: number, count = 2) => {
-    const sentences = normalize(value).split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, count);
-    let result = "";
-    for (const sentence of sentences) {
-      const candidate = result ? `${result} ${sentence}` : sentence;
-      if (candidate.length > limit && result) break;
-      result = candidate;
-    }
-    return clip(result || value, limit);
-  };
-  const mechanism = staticCredential
-    ? `${advisory.vendor} says static credentials in the management web interface let an unauthenticated remote attacker sign in to a low-privileged account and access sensitive data.`
-    : sentenceSummary(advisory.technicalExplanation || advisory.summary, 185, 1);
+  ].slice(0, 6);
   const leadIdentifier = advisory.cves[0] || title;
-  const scopeAction = staticCredential
-    ? `Find every ${advisory.vendor}${fmcAdvisory ? " Secure FMC" : " management"} instance and verify its running release.`
-    : kernelIssue
-      ? "Map the running kernel release, architecture, workload role, and third-party modules."
-      : `Match ${products} to owned assets, running releases, and reachable service paths.`;
-  const validationAction = staticCredential
-    ? "Verify the fixed state and inspect authentication logs for unexpected low-privileged sessions."
-    : kernelIssue
-      ? "Reboot into the fixed kernel, verify the running release, and confirm workload health."
-      : "Verify the fixed state, service health, relevant telemetry, and residual exposure.";
-  const containmentAction = staticCredential
-    ? "Restrict internet and untrusted access to affected management interfaces."
-    : "Reduce unnecessary exposure and privileged reachability while remediation is pending.";
-  const remediationAction = staticCredential
-    ? `Apply the ${advisory.vendor} fixed release or version-specific hotfix.`
-    : sentenceSummary(advisory.remediation, 130, 1);
   const severity = advisory.severity.toLowerCase() === "unrated" ? "NOT RATED" : advisory.severity.toUpperCase();
-  const text = `${title} ${advisory.vendor} ${products} ${cves}`.toLowerCase();
+  const severityLabel = severity === "NOT RATED" ? "Not rated" : `${severity[0]}${severity.slice(1).toLowerCase()}`;
+  const text = `${title} ${advisory.vendor} ${advisory.products.join(" ")} ${advisory.cves.join(" ")}`.toLowerCase();
   const ciscoAdvisory = /\bcisco\b/.test(text);
   const privilegeChain = /(?:combine|used with|in conjunction with)[^.]{0,120}(?:elevate|increase)[^.]{0,60}privilege/i.test(combined);
-  const priorityExplanation = privilegeChain
-    ? `${advisory.vendor} rates this ${severity} because attackers can combine the low-privileged access with other management-platform vulnerabilities to elevate privileges.`
-    : sentenceSummary(advisory.businessImpact || advisory.summary, 210, 1);
   const visibleHashtag = ciscoAdvisory ? "#CiscoSecurity" : "#NetworkSecurity";
-  const subjectLabel = ciscoAdvisory ? (fmcAdvisory ? "FMC" : "CISCO") : `${advisory.vendor.toUpperCase()}${fmcAdvisory ? " FMC" : ""}`;
-  const alertLabel = activelyExploited
-    ? `${visibleHashtag} ${subjectLabel} ${leadIdentifier}: ACTIVELY EXPLOITED`
-    : `${visibleHashtag} ${subjectLabel}: SECURITY ADVISORY`;
-  const previewRating = [
-    `${advisory.vendor.toUpperCase()} ${severity}`,
-    cvssScore === null ? "" : `CVSS ${cvssScore.toFixed(1)}`,
-    privilegeChain ? "CHAINABLE PRIVILEGE RISK" : "",
-    noWorkaround ? "NO WORKAROUND" : ""
-  ]
-    .filter(Boolean)
-    .join(" / ");
-  const previewAction = staticCredential
-    ? `${fixedTrains.length ? `Fixes ${fixedTrains.join("/")}. ` : ""}Act: inventory, restrict UI, patch, verify logs.`
-    : "Act: identify affected assets, contain exposure, remediate, and verify the fixed state.";
-  const workaroundNote = noWorkaround
-    ? staticCredential
-      ? "There is no workaround. Restricting public or untrusted management access reduces exposure, but it does not remove the static credential."
-      : "The vendor states that no workaround is available; complete the prescribed remediation."
-    : "Use the vendor workaround only as temporary containment and verify the final fixed state.";
-  const commentary = [
-    alertLabel,
-    previewRating,
-    previewAction,
-    "",
-    "TECHNICAL IMPACT",
-    `Affected: ${clip(products, 125)}`,
-    mechanism,
-    "",
-    `WHY ${advisory.vendor.toUpperCase()} RATES IT ${severity}`,
-    priorityExplanation,
-    "",
-    "DEFENDER ACTIONS",
-    `1. ${clip(scopeAction, 110)}`,
-    `2. ${clip(containmentAction, 105)}`,
-    `3. ${remediationAction}`,
-    `4. ${clip(validationAction, 110)}`,
-    "",
-    "WORKAROUND STATUS",
-    workaroundNote,
-    "",
-    `FIXED RELEASES: ${clip(fixed, 285)}`,
-    "",
-    `QCS technical brief with the vendor source: ${url}`,
-    "",
-    relevantHashtags(text, ["#NetworkSecurity"])
-      .filter((tag) => tag !== visibleHashtag)
-      .join(" ")
-  ]
-    .join("\n")
-    .replace(/\|/g, ":");
-  return commentary;
+  const shortCode = leadIdentifier.match(/^CVE-\d{4}-(\d+)$/i)?.[1];
+  const briefUrl = (() => {
+    const parsed = new URL(url);
+    return shortCode ? `${parsed.origin}/a/${shortCode}` : `${parsed.origin}/security-advisories`;
+  })();
+  const vendorLabel = clip(advisory.vendor, 18);
+  const statusLabel = activelyExploited ? "ACTIVELY EXPLOITED" : "SECURITY ADVISORY";
+  const scoreLabel = cvssScore === null ? severityLabel : `${severityLabel} vs CVSS ${cvssScore.toFixed(1)}`;
+  const riskLine = staticCredential && fmcAdvisory && privilegeChain
+    ? `${vendorLabel} ${scoreLabel}: low-priv FMC access can chain to higher privileges${noWorkaround ? "; no workaround" : ""}.`
+    : `${vendorLabel} ${scoreLabel}: ${clip(advisory.businessImpact || advisory.summary, noWorkaround ? 62 : 78)}${noWorkaround ? "; no workaround" : ""}.`;
+  const actionLine = staticCredential
+    ? "Act: inventory, restrict UI, apply hotfix, verify release/logs."
+    : "Act: inventory, contain exposure, apply vendor fix, verify state/logs.";
+  const fixedLine = fixedTrains.length ? `Fixes: ${fixedTrains.join("/")}` : "Fix: use the vendor-supported release/hotfix.";
+  const sourceLabel = ciscoAdvisory ? "Cisco" : clip(advisory.vendor, 10);
+  const secondaryHashtag = visibleHashtag === "#NetworkSecurity" ? "#VulnerabilityManagement" : "#NetworkSecurity";
+  const lines = [
+    `${visibleHashtag} ${leadIdentifier}: ${statusLabel}`,
+    riskLine,
+    actionLine,
+    fixedLine,
+    `Brief/${sourceLabel}: ${briefUrl}`,
+    secondaryHashtag
+  ];
+  let commentary = lines.join("\n");
+  if (commentary.length <= 300) return commentary;
+
+  if (visibleHashtag === "#NetworkSecurity") {
+    lines.pop();
+    commentary = lines.join("\n");
+    if (commentary.length <= 300) return commentary;
+  }
+
+  const overflow = commentary.length - 300;
+  lines[1] = clip(lines[1], Math.max(58, lines[1].length - overflow));
+  return lines.join("\n").slice(0, 300);
 }

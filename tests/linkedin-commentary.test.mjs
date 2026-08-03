@@ -58,7 +58,7 @@ test("different editorial topics do not collapse into one caption", () => {
   assert.notEqual(routing, capture);
 });
 
-test("security advisory commentary carries product, CVE, remediation, and decision context", () => {
+test("security advisory commentary exposes the complete decision brief before LinkedIn's 300-character cutoff", () => {
   const commentary = composeAdvisoryLinkedInPost(
     {
       affectedVersions: ["7.2 through 7.6"],
@@ -68,7 +68,7 @@ test("security advisory commentary carries product, CVE, remediation, and decisi
       evidenceChecklist: ["Confirm whether the management interface is reachable from an untrusted network."],
       exploitationStatus: "The vendor reports active exploitation in July 2026.",
       fixedVersions: ["7.6.2 hotfix 4"],
-      products: ["Example Router OS"],
+      products: ["Example Firewall Management Center"],
       remediation: "Upgrade to the vendor-fixed release and restrict management access until complete.",
       severity: "critical",
       summary: "A static credential permits access to a low-privileged management account.",
@@ -79,28 +79,12 @@ test("security advisory commentary carries product, CVE, remediation, and decisi
     },
     "https://www.qcsstudio.com/security-advisories/example"
   );
-  assert.match(commentary, /#NetworkSecurity EXAMPLE NETWORKS CVE-2026-1234: ACTIVELY EXPLOITED/);
-  assert.match(commentary, /Example Router OS/);
-  assert.match(commentary, /fixed release or version-specific hotfix/);
+  assert.match(commentary, /#NetworkSecurity CVE-2026-1234: ACTIVELY EXPLOITED/);
   assert.match(commentary, /actively exploited/i);
-  assert.match(commentary, /static credentials in the management web interface/i);
-  assert.match(commentary, /7\.6\.2 hotfix 4/i);
-  assert.match(commentary, /inspect authentication logs/i);
-  assert.doesNotMatch(commentary, /Can your team prove/i);
-  assert.doesNotMatch(commentary, /\|/);
-  assert.match(commentary, /EXAMPLE NETWORKS CRITICAL \/ CVSS 5\.3 \/ CHAINABLE PRIVILEGE RISK \/ NO WORKAROUND/);
-  assert.match(commentary, /WHY EXAMPLE NETWORKS RATES IT CRITICAL/);
-  assert.match(commentary, /DEFENDER ACTIONS/);
-  assert.match(commentary, /QCS technical brief with the vendor source: https:\/\/www\.qcsstudio\.com\/security-advisories\/example/);
+  assert.match(commentary, /Example Networks Critical vs CVSS 5\.3: low-priv FMC access can chain to higher privileges; no workaround/);
+  assert.match(commentary, /Act: inventory, restrict UI, apply hotfix, verify release\/logs/);
+  assert.match(commentary, /Fixes: 7\.6/);
+  assert.match(commentary, /Brief\/Example\.\.\.: https:\/\/www\.qcsstudio\.com\/a\/1234/);
   assert.match(commentary, /#NetworkSecurity/);
-  assert.doesNotMatch(commentary, /\.\.\./);
-  assert.match(commentary.trimEnd(), /#VulnerabilityManagement$/);
-  const preview = commentary.split("\n").slice(0, 3).join("\n");
-  assert.match(preview, /ACTIVELY EXPLOITED/);
-  assert.match(preview, /CVSS 5\.3/);
-  assert.match(preview, /NO WORKAROUND/);
-  assert.match(preview, /CHAINABLE PRIVILEGE RISK/);
-  assert.match(preview, /Fixes 7\.6/);
-  assert.match(preview, /inventory, restrict UI, patch, verify logs/);
-  assert.ok(commentary.length < 1800);
+  assert.ok(commentary.length <= 300);
 });
