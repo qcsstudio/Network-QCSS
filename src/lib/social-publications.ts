@@ -260,7 +260,7 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
           imageUrl,
           publishedAt: new Date(),
           lastError: null,
-          metadata: { ...metadata, permalink: result.permalink } as Prisma.InputJsonValue
+          metadata: { ...metadata, deliveryReceipt: result.receipt, permalink: result.permalink } as Prisma.InputJsonValue
         }
       });
       outcomes.push({ id: job.id, status: "published", externalId: result.externalId });
@@ -378,6 +378,7 @@ export async function refreshLinkedInPublication(publicationId: string, replaceM
         imageAlt: material.imageAlt,
         mediaReplacedAt: new Date().toISOString(),
         permalink: replacement.permalink,
+        deliveryReceipt: replacement.receipt,
         previousExternalIds: [...previousExternalIds, publication.externalId]
       } as Prisma.InputJsonValue
     }

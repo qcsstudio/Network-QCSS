@@ -19,11 +19,14 @@ test("advisory fallback produces a retina-ready contextual source without a paid
     title: "Cisco FMC static credential vulnerability"
   });
   const metadata = await sharp(generated.source).metadata();
+  const headlineStats = await sharp(generated.source).extract({ left: 60, top: 170, width: 630, height: 400 }).stats();
   assert.equal(metadata.width, 1440);
   assert.equal(metadata.height, 810);
   assert.equal(generated.trace.provider, "qcs-procedural");
+  assert.equal(generated.trace.imageModel, "qcs-editorial-pango-v4");
   assert.match(generated.trace.direction.focalSubject, /static credential/i);
   assert.equal(generated.trace.qa.approved, true);
+  assert.ok(headlineStats.entropy > 2, "the headline region should contain rendered text, not only the background grid");
 });
 
 test("related advisories produce distinct evidence maps", async () => {

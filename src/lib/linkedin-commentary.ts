@@ -259,8 +259,7 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
     }
     return clip(result || value, limit);
   };
-  const mechanism = sentenceSummary(advisory.technicalExplanation || advisory.summary, 430, 2);
-  const impact = sentenceSummary(advisory.businessImpact || advisory.summary, 320, 1);
+  const mechanism = sentenceSummary(advisory.technicalExplanation || advisory.summary, 300, 2);
   const leadIdentifier = advisory.cves[0] || title;
   const hook = activelyExploited
     ? `${advisory.vendor} reports active exploitation of ${leadIdentifier}. This is an immediate exposure-verification and remediation event.`
@@ -275,39 +274,34 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
     : /linux kernel|intel iotg|ntfs/.test(combined)
       ? "Reboot into the fixed kernel, verify the running release, rebuild required third-party modules, and confirm workload and telemetry health."
       : "Verify the running fixed state, service health, relevant telemetry, rollback outcome, and any accepted residual exposure.";
-  const evidence = (advisory.evidenceChecklist || []).map((item) => sentenceSummary(item, 175, 1)).filter(Boolean).slice(0, 2);
   const severity = advisory.severity.toLowerCase() === "unrated" ? "VENDOR SEVERITY NOT ASSIGNED" : `${advisory.severity.toUpperCase()} SEVERITY`;
   const text = `${title} ${advisory.vendor} ${products} ${cves}`.toLowerCase();
   return [
-    `${advisory.vendor.toUpperCase()} SECURITY UPDATE | ${severity}`,
+    title,
+    severity,
     "",
     hook,
     "",
-    "WHAT THE VENDOR DISCLOSED",
+    "What the vendor disclosed",
     mechanism,
     "",
-    "OPERATIONAL IMPACT",
-    impact,
-    "",
-    "SCOPE TO VERIFY",
-    `Products: ${products}`,
-    `Affected releases: ${affected}`,
-    `Fixed releases or hotfixes: ${fixed}`,
+    "Affected scope",
+    `Products: ${clip(products, 145)}`,
+    `Affected: ${clip(affected, 150)}`,
+    `Fixed: ${clip(fixed, 150)}`,
     ...(cves ? [`Representative identifiers: ${cves}${advisory.cves.length > 3 ? "; consult the vendor notice for the complete set" : ""}`] : []),
-    `Exploitation status: ${sentenceSummary(exploitation, 190, 1)}`,
+    ...(!activelyExploited ? [`Exploitation status: ${sentenceSummary(exploitation, 145, 1)}`] : []),
     "",
-    "DEFENDER ACTIONS",
-    `1. ${clip(scopeAction, 210)}`,
-    `2. ${sentenceSummary(advisory.remediation, 240, 2)}`,
-    `3. ${clip(validationAction, 210)}`,
+    "What defenders should do now",
+    `1. ${clip(scopeAction, 170)}`,
+    `2. ${sentenceSummary(advisory.remediation, 180, 2)}`,
+    `3. ${clip(validationAction, 170)}`,
     "",
-    ...(evidence.length ? ["EVIDENCE TO RETAIN", ...evidence.map((item) => `- ${item}`), ""] : []),
-    activelyExploited
-      ? "Priority: isolate unnecessary management exposure and move affected systems into emergency change control."
-      : "Priority should follow confirmed applicability, exposure, privilege, service criticality, and rollback readiness.",
-    "",
-    `Read the source-linked QCS technical brief: ${url}`,
+    `Read the source-linked QCS brief: ${url}`,
     "",
     relevantHashtags(text, ["#NetworkSecurity"]).join(" ")
-  ].join("\n").slice(0, 2950);
+  ]
+    .join("\n")
+    .replace(/\|/g, ":")
+    .slice(0, 1800);
 }

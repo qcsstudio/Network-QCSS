@@ -85,5 +85,6 @@ test("security advisory commentary carries product, CVE, remediation, and decisi
   assert.match(commentary, /7\.6\.2 hotfix 4/i);
   assert.match(commentary, /review authentication and access logs/i);
   assert.doesNotMatch(commentary, /Can your team prove/i);
-  assert.ok(commentary.length < 3000);
+  assert.doesNotMatch(commentary, /\|/);
+  assert.ok(commentary.length < 1800);
 });

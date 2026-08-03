@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { getPrismaClient } from "@/lib/prisma";
 import { decryptIntegrationSecret, encryptIntegrationSecret } from "@/lib/integration-secrets";
@@ -181,9 +182,10 @@ export async function publishLinkedInPost(input: LinkedInPublishInput) {
   const connection = await activeConnection();
   const author = `urn:li:person:${connection.accountId}`;
   const image = input.imageUrl ? await uploadImage(connection.accessToken, author, input.imageUrl) : "";
+  const commentary = input.commentary.slice(0, 2900);
   const body = {
     author,
-    commentary: input.commentary.slice(0, 2900),
+    commentary,
     visibility: "PUBLIC",
     distribution: { feedDistribution: "MAIN_FEED", targetEntities: [], thirdPartyDistributionChannels: [] },
     ...(image ? { content: { media: { id: image, altText: (input.imageAlt || "QCS network security intelligence").slice(0, 120) } } } : {}),
@@ -200,7 +202,16 @@ export async function publishLinkedInPost(input: LinkedInPublishInput) {
   if (!response.ok) throw await responseError(response, "LinkedIn post publication");
   const externalId = response.headers.get("x-restli-id") || response.headers.get("x-linkedin-id") || "";
   if (!externalId) throw new Error("LinkedIn published the post without returning a post identifier.");
-  return { externalId, permalink: `https://www.linkedin.com/feed/update/${externalId}/` };
+  return {
+    externalId,
+    permalink: `https://www.linkedin.com/feed/update/${externalId}/`,
+    receipt: {
+      apiVersion: process.env.LINKEDIN_API_VERSION?.trim() || "202607",
+      commentaryHash: crypto.createHash("sha256").update(commentary).digest("hex"),
+      commentaryLength: commentary.length,
+      imageAssetId: image
+    }
+  };
 }
 
 export async function getLinkedInPost(externalId: string) {
