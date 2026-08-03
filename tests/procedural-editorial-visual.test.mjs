@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import sharp from "sharp";
-import { advisoryFixedReleaseTrains, createProceduralEditorialVisual } from "../src/lib/procedural-editorial-visual.ts";
+import {
+  advisoryFixedReleaseTrains,
+  createProceduralEditorialVisual,
+  proceduralVisualLayout
+} from "../src/lib/procedural-editorial-visual.ts";
 
 test("advisory hotfix trains preserve major releases beyond 7.x", () => {
   assert.deepEqual(
@@ -32,7 +36,7 @@ test("advisory fallback produces a retina-ready contextual source without a paid
   assert.equal(metadata.width, 1440);
   assert.equal(metadata.height, 810);
   assert.equal(generated.trace.provider, "qcs-procedural");
-  assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v7");
+  assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v8");
   assert.match(generated.trace.direction.focalSubject, /static credential/i);
   assert.equal(generated.trace.qa.approved, true);
   assert.ok(headlineStats.entropy > 2, "the headline region should contain rendered text, not only the background grid");
@@ -84,5 +88,23 @@ test("FortiGate CAPWAP advisories render a managed-device trust boundary instead
   assert.deepEqual(generated.trace.direction.supportingElements, ["MAP DEVICES", "PATCH FORTIOS", "REVIEW EVENTS"]);
   assert.match(generated.trace.direction.mechanismStatement, /extension device to fortigate/i);
   assert.doesNotMatch(generated.trace.direction.sceneConcept, /route origin/i);
-  assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v7");
+  assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v8");
+});
+
+test("procedural layout keeps message text, diagram nodes, and actions inside their safe areas", () => {
+  const signalLastBaseline = proceduralVisualLayout.signalTextY + proceduralVisualLayout.signalLineHeight;
+  const signalBottom = proceduralVisualLayout.signalBox.y + proceduralVisualLayout.signalBox.height;
+  assert.ok(signalLastBaseline + 7 <= signalBottom - 14);
+
+  const panelLeft = proceduralVisualLayout.diagramPanel.x + proceduralVisualLayout.diagramInset;
+  const panelRight = proceduralVisualLayout.diagramPanel.x + proceduralVisualLayout.diagramPanel.width - proceduralVisualLayout.diagramInset;
+  const panelTop = proceduralVisualLayout.diagramPanel.y + proceduralVisualLayout.diagramInset;
+  const panelBottom = proceduralVisualLayout.diagramPanel.y + proceduralVisualLayout.diagramPanel.height - proceduralVisualLayout.diagramInset;
+  for (const node of proceduralVisualLayout.diagramNodes) {
+    assert.ok(node.x - proceduralVisualLayout.diagramNodeWidth / 2 >= panelLeft);
+    assert.ok(node.x + proceduralVisualLayout.diagramNodeWidth / 2 <= panelRight);
+    assert.ok(node.y - proceduralVisualLayout.diagramNodeHeight / 2 >= panelTop);
+    assert.ok(node.y + proceduralVisualLayout.diagramNodeHeight / 2 <= panelBottom);
+  }
+  assert.ok(proceduralVisualLayout.actionTextY <= proceduralVisualLayout.socialSafeBottom);
 });
