@@ -136,6 +136,15 @@ export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
   for (const advisory of advisories) {
     const revision = String(advisory.revisions[0]?.version || 1);
     const publications = publicationsByContent.get(advisory.id) || [];
+    if (publications.some((publication) => publication.status === "published")) {
+      const duplicateCandidates = publications.filter((publication) => publication.status !== "published");
+      if (duplicateCandidates.length) {
+        await prisma.socialPublication.deleteMany({
+          where: { id: { in: duplicateCandidates.map((publication) => publication.id) } }
+        });
+      }
+      continue;
+    }
     const staleUnpublished = publications.filter(
       (publication) => publication.contentRevision !== revision && publication.status !== "published"
     );
@@ -171,7 +180,6 @@ export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
       reconciled += 1;
       continue;
     }
-    if (currentPublications.some((publication) => publication.status === "published")) continue;
     await queueLinkedInForAdvisory(advisory, revision);
     reconciled += 1;
   }
