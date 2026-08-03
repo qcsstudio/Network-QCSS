@@ -242,13 +242,14 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
   const title = cleanHeadline(advisory.title);
   const combined = `${title} ${advisory.vendor} ${advisory.summary} ${advisory.technicalExplanation || ""}`.toLowerCase();
   const products = advisory.products.slice(0, 4).join(", ") || "Use the vendor's affected-product table";
-  const affected = advisory.affectedVersions?.slice(0, 4).join(", ") || "Check the affected-package table in the vendor advisory";
   const fixed = advisory.fixedVersions?.slice(0, 4).join(", ") || "Use the fixed package or release listed by the vendor";
   const cves = advisory.cves.slice(0, 3).join(", ");
   const exploitation = normalize(advisory.exploitationStatus || "The vendor did not state an exploitation status.");
   const activelyExploited =
     /active exploitation|actively exploited|exploited in the wild/i.test(exploitation) &&
     !/not specify|no evidence|not known|no active/i.test(exploitation);
+  const staticCredential = /static credential|embedded credential|preset username/.test(combined);
+  const kernelIssue = /linux kernel|intel iotg|ntfs/.test(combined);
   const sentenceSummary = (value: string, limit: number, count = 2) => {
     const sentences = normalize(value).split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, count);
     let result = "";
@@ -259,49 +260,51 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
     }
     return clip(result || value, limit);
   };
-  const mechanism = sentenceSummary(advisory.technicalExplanation || advisory.summary, 300, 2);
+  const mechanism = staticCredential
+    ? `${advisory.vendor} says a static credential in the management web interface can let an unauthenticated remote actor sign in to a low-privileged account.`
+    : sentenceSummary(advisory.technicalExplanation || advisory.summary, 185, 1);
+  const impact = sentenceSummary(advisory.businessImpact || advisory.summary, 185, 1);
   const leadIdentifier = advisory.cves[0] || title;
-  const hook = activelyExploited
-    ? `${advisory.vendor} reports active exploitation of ${leadIdentifier}. This is an immediate exposure-verification and remediation event.`
-    : `${title}: the useful response starts with the affected technology and mechanism, not the headline alone.`;
-  const scopeAction = /static credential|embedded credential|preset username/.test(combined)
-    ? `Inventory every ${advisory.vendor} management instance, its running release, and whether its administrative interface is reachable from the internet or another untrusted path.`
-    : /linux kernel|intel iotg|ntfs/.test(combined)
-      ? "Map the running kernel release, package flavour, architecture, workload role, and third-party kernel modules on each potentially affected system."
-      : `Match ${products} to owned assets, running releases, deployment roles, and reachable management or service paths.`;
-  const validationAction = /static credential|embedded credential|preset username/.test(combined)
-    ? "After remediation, verify the running hotfix or release and review authentication and access logs for unexpected low-privileged sessions."
-    : /linux kernel|intel iotg|ntfs/.test(combined)
-      ? "Reboot into the fixed kernel, verify the running release, rebuild required third-party modules, and confirm workload and telemetry health."
-      : "Verify the running fixed state, service health, relevant telemetry, rollback outcome, and any accepted residual exposure.";
+  const scopeAction = staticCredential
+    ? `Find every ${advisory.vendor} management instance and verify its running release.`
+    : kernelIssue
+      ? "Map the running kernel release, architecture, workload role, and third-party modules."
+      : `Match ${products} to owned assets, running releases, and reachable service paths.`;
+  const validationAction = staticCredential
+    ? "Verify the fixed state and inspect authentication logs for unexpected low-privileged sessions."
+    : kernelIssue
+      ? "Reboot into the fixed kernel, verify the running release, and confirm workload health."
+      : "Verify the fixed state, service health, relevant telemetry, and residual exposure.";
+  const containmentAction = staticCredential
+    ? "Restrict internet and untrusted access to affected management interfaces."
+    : "Reduce unnecessary exposure and privileged reachability while remediation is pending.";
+  const remediationAction = staticCredential
+    ? `Apply the ${advisory.vendor} fixed release or version-specific hotfix.`
+    : sentenceSummary(advisory.remediation, 130, 1);
   const severity = advisory.severity.toLowerCase() === "unrated" ? "VENDOR SEVERITY NOT ASSIGNED" : `${advisory.severity.toUpperCase()} SEVERITY`;
   const text = `${title} ${advisory.vendor} ${products} ${cves}`.toLowerCase();
-  return [
-    title,
-    severity,
+  const alertLabel = /firewall management center|\bfmc\b/i.test(products) ? `${advisory.vendor.toUpperCase()} FMC SECURITY ALERT` : `${advisory.vendor.toUpperCase()} SECURITY ALERT`;
+  const commentary = [
+    alertLabel,
+    activelyExploited ? `${leadIdentifier} / ACTIVE EXPLOITATION REPORTED` : `${leadIdentifier} / ${severity}`,
     "",
-    hook,
-    "",
-    "What the vendor disclosed",
+    `Affected: ${clip(products, 100)}`,
     mechanism,
+    `Risk: ${impact}`,
     "",
-    "Affected scope",
-    `Products: ${clip(products, 145)}`,
-    `Affected: ${clip(affected, 150)}`,
-    `Fixed: ${clip(fixed, 150)}`,
-    ...(cves ? [`Representative identifiers: ${cves}${advisory.cves.length > 3 ? "; consult the vendor notice for the complete set" : ""}`] : []),
-    ...(!activelyExploited ? [`Exploitation status: ${sentenceSummary(exploitation, 145, 1)}`] : []),
+    "RESPOND NOW",
+    `1. ${clip(scopeAction, 110)}`,
+    `2. ${clip(containmentAction, 105)}`,
+    `3. ${remediationAction}`,
+    `4. ${clip(validationAction, 110)}`,
     "",
-    "What defenders should do now",
-    `1. ${clip(scopeAction, 170)}`,
-    `2. ${sentenceSummary(advisory.remediation, 180, 2)}`,
-    `3. ${clip(validationAction, 170)}`,
+    `FIXED RELEASES: ${clip(fixed, 160)}`,
     "",
-    `Read the source-linked QCS brief: ${url}`,
+    `Source-linked QCS brief: ${url}`,
     "",
     relevantHashtags(text, ["#NetworkSecurity"]).join(" ")
   ]
     .join("\n")
-    .replace(/\|/g, ":")
-    .slice(0, 1800);
+    .replace(/\|/g, ":");
+  return commentary;
 }

@@ -79,9 +79,9 @@ function imageInputForAdvisory(advisory: SecurityAdvisory, contentRevision: stri
 
 async function brandPanel(width: number) {
   const compact = width <= 1200;
-  const panelWidth = compact ? 284 : 336;
-  const panelHeight = compact ? 102 : 120;
-  const logoWidth = compact ? 236 : 278;
+  const panelWidth = compact ? 230 : 280;
+  const panelHeight = compact ? 82 : 100;
+  const logoWidth = compact ? 190 : 230;
   const panel = Buffer.from(
     `<svg width="${panelWidth}" height="${panelHeight}" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="${panelWidth - 2}" height="${panelHeight - 2}" rx="10" fill="white" fill-opacity="0.94" stroke="#d7e0eb" stroke-width="2"/><rect x="0" y="${panelHeight - 6}" width="${panelWidth}" height="6" rx="3" fill="#ef3d78"/></svg>`
   );
@@ -95,7 +95,7 @@ async function brandPanel(width: number) {
 
 async function brandedVariant(source: Uint8Array, width: number, height: number) {
   const panel = await brandPanel(width);
-  const margin = width <= 1200 ? 32 : 44;
+  const margin = width <= 1200 ? 30 : 40;
   return sharp(source)
     .resize(width, height, { fit: "cover", position: "centre" })
     .composite([{ input: panel, left: margin, top: margin }])

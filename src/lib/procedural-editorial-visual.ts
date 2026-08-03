@@ -118,23 +118,108 @@ function visualProfile(input: ProceduralEditorialInput): VisualProfile {
 }
 
 function directionFor(input: ProceduralEditorialInput, profile: VisualProfile): VisualDirection {
+  const credentialBoundary = profile.focus === "STATIC CREDENTIAL";
   return {
-    storyThesis: `${input.title} is presented as an evidence-led operational decision.`,
+    storyThesis: credentialBoundary
+      ? `${input.title} is presented as a management-interface authentication boundary with an explicit defensive response.`
+      : `${input.title} is presented as an evidence-led operational decision.`,
     mechanismStatement: profile.signal,
     factualAnchors: [profile.focus, ...profile.steps],
     prohibitedInferences: ["No invented compromise", "No unsupported exploit path", "No generated vendor branding"],
     confidenceBoundary: "The visual states only the title, supplied scope and defensive action sequence.",
-    sceneConcept: `A deterministic QCS editorial operating map for ${profile.focus}, using a protected boundary, observable path and three validation actions.`,
+    sceneConcept: credentialBoundary
+      ? "A QCS security-alert brief showing the confirmed static credential inside the affected web-management authentication path, with remediation actions sized for a LinkedIn feed."
+      : `A deterministic QCS editorial operating map for ${profile.focus}, using a protected boundary, observable path and three validation actions.`,
     focalSubject: profile.focus,
     supportingElements: profile.steps,
-    environment: "QCS editorial network operations field",
-    viewpoint: "Wide orthographic operating-map composition",
+    environment: credentialBoundary ? "Affected web-management authentication boundary" : "QCS editorial network operations field",
+    viewpoint: credentialBoundary ? "Wide incident-brief composition" : "Wide orthographic operating-map composition",
     lighting: "High-contrast technical illumination",
     palette: [profile.accent, profile.accent2, "#0c172a", "#f7f9fc"],
     avoid: ["Generic stock imagery", "Invented vendor hardware", "Decorative cyber symbolism"],
     diversitySignature: crypto.createHash("sha256").update(`${input.title}:${profile.focus}`).digest("hex").slice(0, 18),
     altText: input.altText
   };
+}
+
+function credentialAdvisorySvg(input: {
+  cve: string;
+  fixedVersions: string;
+  profile: VisualProfile;
+  severity: string;
+  vendor: string;
+}) {
+  const fixedTrains = [
+    ...new Set(
+      input.fixedVersions
+        .split(",")
+        .map((entry) => entry.match(/\b7\.\d\b/)?.[0] || "")
+        .filter(Boolean)
+    )
+  ];
+  const fixLabel = fixedTrains.length ? `HOTFIX TRAINS  ${fixedTrains.join("  /  ")}` : "VENDOR FIX AVAILABLE";
+  const active = /active exploitation/i.test(input.profile.signal);
+  return Buffer.from(`
+    <svg width="1440" height="810" viewBox="0 0 1440 810" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="credential-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#101e35"/></linearGradient>
+        <linearGradient id="credential-accent" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#ef3d78"/><stop offset="1" stop-color="#ff9b42"/></linearGradient>
+        <linearGradient id="console" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#13243d"/><stop offset="1" stop-color="#0a1425"/></linearGradient>
+        <pattern id="credential-grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#9bb1d0" stroke-opacity="0.08"/></pattern>
+        <filter id="credential-glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="shadow"><feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#020611" flood-opacity="0.5"/></filter>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#ef3d78"/></marker>
+      </defs>
+      <rect width="1440" height="810" fill="url(#credential-bg)"/>
+      <rect width="1440" height="810" fill="url(#credential-grid)"/>
+      <rect width="1440" height="7" fill="url(#credential-accent)"/>
+
+      <text x="70" y="205" fill="#ff9b42" font-family="Geist" font-size="18" font-weight="500">${xml(input.vendor.toUpperCase())} SECURE FMC / ${xml(input.severity.toUpperCase())}</text>
+      <text x="70" y="293" fill="#f8fafc" font-family="Geist" font-size="70" font-weight="500">${xml(input.cve)}</text>
+      <rect x="70" y="326" width="360" height="42" rx="6" fill="${active ? "#ef3d78" : "#4f72d8"}"/>
+      <text x="90" y="354" fill="#ffffff" font-family="Geist" font-size="17" font-weight="500">${active ? "ACTIVE EXPLOITATION REPORTED" : "VENDOR SECURITY ADVISORY"}</text>
+      <text x="70" y="421" fill="#f8fafc" font-family="Geist" font-size="29" font-weight="500">STATIC CREDENTIAL IN WEB INTERFACE</text>
+      <text x="70" y="461" fill="#aebbd0" font-family="Geist" font-size="20" font-weight="400">Unauthenticated path to a low-privileged management account</text>
+      <rect x="70" y="500" width="650" height="86" rx="10" fill="#0a1425" stroke="#314661" stroke-width="2"/>
+      <text x="94" y="532" fill="#8fa5c4" font-family="Geist" font-size="14" font-weight="500">CISCO REMEDIATION PATH</text>
+      <text x="94" y="567" fill="#f8fafc" font-family="Geist" font-size="23" font-weight="500">${xml(fixLabel)}</text>
+
+      <rect x="790" y="96" width="580" height="500" rx="16" fill="url(#console)" stroke="#38506f" stroke-width="2" filter="url(#shadow)"/>
+      <rect x="790" y="96" width="580" height="54" rx="16" fill="#172a45"/>
+      <rect x="790" y="134" width="580" height="16" fill="#172a45"/>
+      <circle cx="820" cy="123" r="6" fill="#ef3d78"/><circle cx="841" cy="123" r="6" fill="#ff9b42"/><circle cx="862" cy="123" r="6" fill="#28c99a"/>
+      <text x="904" y="130" fill="#d9e3f0" font-family="Geist" font-size="15" font-weight="500">FMC WEB MANAGEMENT / AUTHENTICATION BOUNDARY</text>
+
+      <circle cx="860" cy="302" r="48" fill="#0a1425" stroke="#ef3d78" stroke-width="3"/>
+      <path d="M840 312h40M848 299l12-15 12 15" fill="none" stroke="#ef3d78" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="822" y="375" fill="#aebbd0" font-family="Geist" font-size="13" font-weight="500">UNTRUSTED PATH</text>
+      <path d="M916 302H972" stroke="#ef3d78" stroke-width="4" marker-end="url(#arrow)" filter="url(#credential-glow)"/>
+
+      <rect x="990" y="190" width="320" height="300" rx="12" fill="#f7f9fc"/>
+      <text x="1018" y="230" fill="#172238" font-family="Geist" font-size="17" font-weight="500">SECURE FIREWALL MANAGEMENT</text>
+      <text x="1018" y="253" fill="#66748a" font-family="Geist" font-size="13" font-weight="400">Web interface sign-in</text>
+      <rect x="1018" y="282" width="264" height="50" rx="7" fill="#e8edf5" stroke="#cad4e2"/>
+      <circle cx="1042" cy="307" r="9" fill="#4f72d8"/>
+      <text x="1062" y="313" fill="#27364d" font-family="Geist" font-size="14" font-weight="500">STATIC USERNAME</text>
+      <rect x="1018" y="346" width="264" height="50" rx="7" fill="#fff2f6" stroke="#ef3d78" stroke-width="2"/>
+      <circle cx="1042" cy="371" r="9" fill="#ef3d78"/>
+      <text x="1062" y="377" fill="#8f244d" font-family="Geist" font-size="14" font-weight="500">EMBEDDED CREDENTIAL</text>
+      <path d="M1150 410v30" stroke="#ff9b42" stroke-width="3" marker-end="url(#arrow)"/>
+      <rect x="1034" y="444" width="232" height="32" rx="6" fill="#172238"/>
+      <text x="1060" y="465" fill="#f8fafc" font-family="Geist" font-size="13" font-weight="500">LOW-PRIVILEGED ACCOUNT</text>
+      <rect x="1228" y="171" width="105" height="30" rx="5" fill="#ef3d78"/>
+      <text x="1244" y="191" fill="#ffffff" font-family="Geist" font-size="12" font-weight="500">FIX NOW</text>
+
+      <rect x="40" y="640" width="1360" height="126" rx="12" fill="#0a1425" stroke="#314661"/>
+      <rect x="40" y="640" width="1360" height="3" fill="url(#credential-accent)"/>
+      <line x1="486" y1="666" x2="486" y2="742" stroke="#314661"/><line x1="944" y1="666" x2="944" y2="742" stroke="#314661"/>
+      <text x="72" y="686" fill="#ef3d78" font-family="Geist" font-size="14" font-weight="500">01 / CONTAIN</text>
+      <text x="72" y="724" fill="#f8fafc" font-family="Geist" font-size="22" font-weight="500">Restrict management access</text>
+      <text x="518" y="686" fill="#ff9b42" font-family="Geist" font-size="14" font-weight="500">02 / REMEDIATE</text>
+      <text x="518" y="724" fill="#f8fafc" font-family="Geist" font-size="22" font-weight="500">Apply the Cisco hotfix</text>
+      <text x="976" y="686" fill="#28c99a" font-family="Geist" font-size="14" font-weight="500">03 / VERIFY</text>
+      <text x="976" y="724" fill="#f8fafc" font-family="Geist" font-size="22" font-weight="500">Review authentication logs</text>
+    </svg>`);
 }
 
 export async function createProceduralEditorialVisual(input: ProceduralEditorialInput, fallbackReason = "") {
@@ -148,6 +233,12 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
   const severity = lineValue(input.context, "Severity").split(",")[0] || "EVIDENCE LED";
   const products = lineValue(input.context, "Affected products") || lineValue(input.context, "Primary topic") || profile.focus;
   const fixedVersions = lineValue(input.context, "Fixed versions");
+  const cve = input.context.match(/\bCVE-\d{4}-\d{4,}\b/i)?.[0]?.toUpperCase() || "SECURITY ADVISORY";
+  const isCiscoFmcCredentialAdvisory =
+    profile.focus === "STATIC CREDENTIAL" &&
+    input.contentType === "security_advisory" &&
+    /cisco/i.test(vendor) &&
+    /firewall management center|\bfmc\b/i.test(`${input.title} ${products}`);
   const firstFixedVersion = fixedVersions.split(",")[0];
   const titleLines = wrap(input.title, 27, 4);
   const productLines = [...wrap(products, 50, 1), ...(firstFixedVersion ? [`Fixed path: ${firstFixedVersion}`] : [])].slice(0, 2);
@@ -165,7 +256,9 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
     const color = index % 3 === 0 ? profile.accent2 : index % 2 === 0 ? "#28c99a" : profile.accent;
     return `<circle cx="${x}" cy="${y}" r="${radius}" fill="${color}" fill-opacity="0.42"/>`;
   }).join("");
-  const svg = Buffer.from(`
+  const svg = isCiscoFmcCredentialAdvisory
+    ? credentialAdvisorySvg({ cve, fixedVersions, profile, severity, vendor })
+    : Buffer.from(`
     <svg width="1440" height="810" viewBox="0 0 1440 810" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071221"/><stop offset="1" stop-color="#13213a"/></linearGradient>
@@ -209,7 +302,7 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
     provider: "qcs-procedural",
     qaPolicyVersion: 4,
     directorModel: "qcs-context-classifier-v1",
-    imageModel: "qcs-editorial-resvg-v5",
+    imageModel: "qcs-editorial-resvg-v6",
     criticModel: "deterministic-layout-validation-v1",
     direction,
     qa: {
