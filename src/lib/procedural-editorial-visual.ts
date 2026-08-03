@@ -142,6 +142,17 @@ function directionFor(input: ProceduralEditorialInput, profile: VisualProfile): 
   };
 }
 
+export function advisoryFixedReleaseTrains(value: string) {
+  return [
+    ...new Set(
+      value
+        .split(",")
+        .map((entry) => entry.match(/\b\d{1,2}\.\d+\b/)?.[0] || "")
+        .filter(Boolean)
+    )
+  ];
+}
+
 function credentialAdvisorySvg(input: {
   cve: string;
   fixedVersions: string;
@@ -149,14 +160,7 @@ function credentialAdvisorySvg(input: {
   severity: string;
   vendor: string;
 }) {
-  const fixedTrains = [
-    ...new Set(
-      input.fixedVersions
-        .split(",")
-        .map((entry) => entry.match(/\b7\.\d\b/)?.[0] || "")
-        .filter(Boolean)
-    )
-  ];
+  const fixedTrains = advisoryFixedReleaseTrains(input.fixedVersions);
   const fixLabel = fixedTrains.length ? `HOTFIX TRAINS  ${fixedTrains.join("  /  ")}` : "VENDOR FIX AVAILABLE";
   const active = /active exploitation/i.test(input.profile.signal);
   return Buffer.from(`

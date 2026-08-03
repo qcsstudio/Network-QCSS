@@ -103,7 +103,7 @@ export function buildAdvisoryImageContext(advisory: AdvisoryImageBrief) {
     `Exploitation status: ${advisory.exploitationStatus}.`,
     `Affected products: ${listSummary(advisory.products, 6, "See vendor advisory")}.`,
     `Affected versions: ${listSummary(advisory.affectedVersions, 4, "See vendor advisory")}.`,
-    `Fixed versions: ${listSummary(advisory.fixedVersions, 4, "See vendor advisory")}.`,
+    `Fixed versions: ${listSummary(advisory.fixedVersions, 6, "See vendor advisory")}.`,
     `CVE scope: ${cveScope}.`,
     `Plain-language summary: ${clip(advisory.summary, 1_000)}`,
     `Technical mechanism from the reviewed advisory: ${clip(advisory.technicalExplanation, 1_400)}`,

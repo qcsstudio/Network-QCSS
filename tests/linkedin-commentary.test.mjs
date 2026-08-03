@@ -64,6 +64,7 @@ test("security advisory commentary carries product, CVE, remediation, and decisi
       affectedVersions: ["7.2 through 7.6"],
       businessImpact: "An attacker could read sensitive management data and combine the access with another weakness.",
       cves: ["CVE-2026-1234"],
+      cvssScore: 5.3,
       evidenceChecklist: ["Confirm whether the management interface is reachable from an untrusted network."],
       exploitationStatus: "The vendor reports active exploitation in July 2026.",
       fixedVersions: ["7.6.2 hotfix 4"],
@@ -71,7 +72,7 @@ test("security advisory commentary carries product, CVE, remediation, and decisi
       remediation: "Upgrade to the vendor-fixed release and restrict management access until complete.",
       severity: "critical",
       summary: "A static credential permits access to a low-privileged management account.",
-      technicalExplanation: "A static credential embedded in the management interface permits an unauthenticated remote actor to sign in as a low-privileged user.",
+      technicalExplanation: "A static credential embedded in the management interface permits an unauthenticated remote actor to sign in as a low-privileged user. The vendor rates this high because it can be combined with other management vulnerabilities to elevate privileges.",
       title: "Example Router OS static credential vulnerability",
       vendor: "Example Networks"
     },
@@ -81,16 +82,18 @@ test("security advisory commentary carries product, CVE, remediation, and decisi
   assert.match(commentary, /Example Router OS/);
   assert.match(commentary, /fixed release or version-specific hotfix/);
   assert.match(commentary, /active exploitation/i);
-  assert.match(commentary, /static credential in the management web interface/i);
+  assert.match(commentary, /static credentials in the management web interface/i);
   assert.match(commentary, /7\.6\.2 hotfix 4/i);
   assert.match(commentary, /inspect authentication logs/i);
   assert.doesNotMatch(commentary, /Can your team prove/i);
   assert.doesNotMatch(commentary, /\|/);
-  assert.match(commentary, /SECURITY ALERT/);
-  assert.match(commentary, /RESPOND NOW/);
-  assert.match(commentary, /Source-linked QCS brief: https:\/\/www\.qcsstudio\.com\/security-advisories\/example/);
+  assert.match(commentary, /ACTIVE EXPLOITATION CONFIRMED/);
+  assert.match(commentary, /EXAMPLE NETWORKS RATING CRITICAL \/ CVSS 5\.3/);
+  assert.match(commentary, /WHY EXAMPLE NETWORKS RATES IT CRITICAL/);
+  assert.match(commentary, /DEFENDER ACTIONS/);
+  assert.match(commentary, /QCS technical brief with the vendor source: https:\/\/www\.qcsstudio\.com\/security-advisories\/example/);
   assert.match(commentary, /#NetworkSecurity/);
   assert.doesNotMatch(commentary, /\.\.\./);
   assert.match(commentary.trimEnd(), /#VulnerabilityManagement$/);
-  assert.ok(commentary.length < 1300);
+  assert.ok(commentary.length < 1800);
 });

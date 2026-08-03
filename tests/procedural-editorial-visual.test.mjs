@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import sharp from "sharp";
-import { createProceduralEditorialVisual } from "../src/lib/procedural-editorial-visual.ts";
+import { advisoryFixedReleaseTrains, createProceduralEditorialVisual } from "../src/lib/procedural-editorial-visual.ts";
+
+test("advisory hotfix trains preserve major releases beyond 7.x", () => {
+  assert.deepEqual(
+    advisoryFixedReleaseTrains(
+      "7.0 Hotfix GB-7.0.9.1-3, 7.2 Hotfix HL-7.2.11.1-4, 7.7 Hotfix AM-7.7.12.1-2, 10.0 Hotfix P-10.0.1.1-2"
+    ),
+    ["7.0", "7.2", "7.7", "10.0"]
+  );
+});
 
 test("advisory fallback produces a retina-ready contextual source without a paid provider", async () => {
   const generated = await createProceduralEditorialVisual({
