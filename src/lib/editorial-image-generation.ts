@@ -188,7 +188,10 @@ export async function ensureEditorialImage(input: EditorialImageInput, force = f
   }
   if (!force && asset.status === "ready" && asset.promptHash === promptHash && asset.heroImage && asset.socialImage) return asset;
   const age = Date.now() - leaseUpdatedAt.getTime();
-  if (shouldDeferEditorialImageGeneration({ ageMs: age, force, promptChanged, status: asset.status })) return null;
+  if (
+    shouldDeferEditorialImageGeneration({ ageMs: age, force, lastError: asset.lastError, promptChanged, status: asset.status })
+  )
+    return null;
 
   const claimed = await prisma.editorialImage.updateMany({
     where: {
@@ -377,6 +380,7 @@ export async function generateMissingEditorialImages(
       shouldDeferEditorialImageGeneration({
         ageMs: Date.now() - existing.updatedAt.getTime(),
         force,
+        lastError: existing.lastError,
         promptChanged,
         status: existing.status
       })

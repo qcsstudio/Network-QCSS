@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  editorialImageBillingRetryDelayMs,
   editorialImageGenerationLeaseMs,
   editorialImageRetryDelayMs,
   shouldDeferEditorialImageGeneration
@@ -25,6 +26,19 @@ test("failed editorial images become retryable after the next automation cycle",
     }),
     false
   );
+});
+
+test("OpenAI billing failures use a longer retry backoff without blocking a forced admin retry", () => {
+  const input = {
+    ageMs: editorialImageBillingRetryDelayMs - 1,
+    force: false,
+    lastError: "429 You have no credits remaining.",
+    promptChanged: false,
+    status: "failed"
+  };
+  assert.equal(shouldDeferEditorialImageGeneration(input), true);
+  assert.equal(shouldDeferEditorialImageGeneration({ ...input, ageMs: editorialImageBillingRetryDelayMs }), false);
+  assert.equal(shouldDeferEditorialImageGeneration({ ...input, force: true }), false);
 });
 
 test("stale generation leases recover and prompt changes bypass old leases", () => {
