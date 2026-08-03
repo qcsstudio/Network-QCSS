@@ -203,6 +203,17 @@ export async function publishLinkedInPost(input: LinkedInPublishInput) {
   return { externalId, permalink: `https://www.linkedin.com/feed/update/${externalId}/` };
 }
 
+export async function getLinkedInPost(externalId: string) {
+  const connection = await activeConnection();
+  const response = await fetch(`${linkedinApiBase}/posts/${encodeURIComponent(externalId)}`, {
+    headers: apiHeaders(connection.accessToken),
+    signal: AbortSignal.timeout(requestTimeoutMs),
+    cache: "no-store"
+  });
+  if (!response.ok) throw await responseError(response, "LinkedIn post lookup");
+  return response.json() as Promise<Record<string, unknown>>;
+}
+
 export async function updateLinkedInPostCommentary(externalId: string, commentary: string) {
   const connection = await activeConnection();
   const response = await fetch(`${linkedinApiBase}/posts/${encodeURIComponent(externalId)}`, {

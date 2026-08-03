@@ -1,12 +1,41 @@
 import { NextResponse } from "next/server";
 import { getAdminSession, isAdminRequest } from "@/lib/admin-auth";
 import { jsonError, noStoreHeaders, readJsonBody } from "@/lib/api";
+import { getLinkedInPost } from "@/lib/linkedin";
+import { getPrismaClient } from "@/lib/prisma";
 import { requestContext } from "@/lib/security";
 import { rebuildLinkedInPublication, refreshLinkedInPublication } from "@/lib/social-publications";
 import { createAuditLog } from "@/lib/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!isAdminRequest(request)) return jsonError("Unauthorized", 401);
+  try {
+    const { id } = await params;
+    const publication = await getPrismaClient().socialPublication.findUnique({ where: { id } });
+    if (!publication || publication.channel !== "linkedin") return jsonError("LinkedIn publication not found.", 404);
+    if (!publication.externalId) return jsonError("LinkedIn publication has no external post identifier.", 409);
+    const livePost = await getLinkedInPost(publication.externalId);
+    return NextResponse.json(
+      {
+        ok: true,
+        publication: {
+          id: publication.id,
+          externalId: publication.externalId,
+          commentary: publication.commentary,
+          imageUrl: publication.imageUrl,
+          status: publication.status
+        },
+        livePost
+      },
+      { headers: noStoreHeaders }
+    );
+  } catch (error) {
+    return jsonError(error instanceof Error ? error.message : "Unable to inspect the LinkedIn publication.", 502);
+  }
+}
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!isAdminRequest(request)) return jsonError("Unauthorized", 401);
