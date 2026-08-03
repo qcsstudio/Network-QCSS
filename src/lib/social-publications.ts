@@ -202,7 +202,7 @@ export async function resetFailedLinkedInPublications() {
   return result.count;
 }
 
-export async function processLinkedInQueue(limit = 5) {
+export async function processLinkedInQueue(limit = 5, publicationId = "") {
   const prisma = getPrismaClient();
   await prisma.socialPublication.updateMany({
     where: {
@@ -217,7 +217,12 @@ export async function processLinkedInQueue(limit = 5) {
     }
   });
   const due = await prisma.socialPublication.findMany({
-    where: { channel: "linkedin", status: { in: ["queued", "retry"] }, nextAttemptAt: { lte: new Date() } },
+    where: {
+      channel: "linkedin",
+      ...(publicationId ? { id: publicationId } : {}),
+      status: { in: ["queued", "retry"] },
+      nextAttemptAt: { lte: new Date() }
+    },
     orderBy: [{ nextAttemptAt: "asc" }, { createdAt: "asc" }],
     take: Math.max(1, Math.min(limit, 10))
   });
@@ -379,6 +384,54 @@ export async function refreshLinkedInPublication(publicationId: string, replaceM
   });
 }
 
+export async function rebuildLinkedInPublication(publicationId: string) {
+  const prisma = getPrismaClient();
+  const publication = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
+  if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
+
+  const material = await currentPublicationMaterial(publication);
+  if (publication.contentType === "security_advisory") {
+    await ensureEditorialImageForPublication(publication, true);
+  } else {
+    await ensureEditorialImageForPublication(publication, false);
+  }
+
+  if (publication.status === "published" && publication.externalId) {
+    const replaced = await refreshLinkedInPublication(publication.id, true);
+    return {
+      id: publication.id,
+      status: "replaced",
+      contentType: publication.contentType,
+      commentaryLength: replaced.commentary.length,
+      externalId: replaced.externalId || undefined
+    };
+  }
+
+  const metadata = metadataObject(publication.metadata);
+  await prisma.socialPublication.update({
+    where: { id: publication.id },
+    data: {
+      attempts: 0,
+      commentary: material.commentary,
+      imageUrl: material.imageUrl,
+      lastError: null,
+      metadata: { ...metadata, imageAlt: material.imageAlt, rebuiltAt: new Date().toISOString() } as Prisma.InputJsonValue,
+      nextAttemptAt: new Date(),
+      sourceUrl: material.sourceUrl,
+      status: "queued"
+    }
+  });
+  const [published] = await processLinkedInQueue(1, publication.id);
+  return {
+    id: publication.id,
+    status: published?.status || "queued",
+    contentType: publication.contentType,
+    commentaryLength: material.commentary.length,
+    externalId: published?.externalId,
+    error: published?.error
+  };
+}
+
 export async function rebuildLinkedInPublicationsSince(since: Date, apply = false) {
   if (Number.isNaN(since.getTime())) throw new Error("A valid LinkedIn rebuild start date is required.");
   const prisma = getPrismaClient();
@@ -413,46 +466,7 @@ export async function rebuildLinkedInPublicationsSince(since: Date, apply = fals
       continue;
     }
 
-    if (publication.contentType === "security_advisory") {
-      await ensureEditorialImageForPublication(publication, true);
-    } else {
-      await ensureEditorialImageForPublication(publication, false);
-    }
-
-    if (publication.status === "published" && publication.externalId) {
-      const replaced = await refreshLinkedInPublication(publication.id, true);
-      outcomes.push({
-        id: publication.id,
-        status: "replaced",
-        contentType: publication.contentType,
-        commentaryLength: replaced.commentary.length,
-        externalId: replaced.externalId || undefined
-      });
-      continue;
-    }
-
-    const metadata = metadataObject(publication.metadata);
-    await prisma.socialPublication.update({
-      where: { id: publication.id },
-      data: {
-        attempts: 0,
-        commentary: material.commentary,
-        imageUrl: material.imageUrl,
-        lastError: null,
-        metadata: { ...metadata, imageAlt: material.imageAlt, rebuiltAt: new Date().toISOString() } as Prisma.InputJsonValue,
-        nextAttemptAt: new Date(),
-        sourceUrl: material.sourceUrl,
-        status: "queued"
-      }
-    });
-    const [published] = await processLinkedInQueue(1);
-    outcomes.push({
-      id: publication.id,
-      status: published?.status || "queued",
-      contentType: publication.contentType,
-      commentaryLength: material.commentary.length,
-      externalId: published?.externalId
-    });
+    outcomes.push(await rebuildLinkedInPublication(publication.id));
   }
   return outcomes;
 }
