@@ -176,7 +176,7 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
       <rect width="1440" height="810" fill="url(#bg)"/>
       <rect width="1440" height="810" fill="url(#grid)"/>
       <path d="M0 0H1440" stroke="url(#line)" stroke-width="8"/>
-      <text x="70" y="202" fill="${profile.accent2}" font-family="Geist" font-size="19" font-weight="400">${xml(vendor.toUpperCase())} / ${xml(severity.toUpperCase())}</text>
+      <text x="70" y="220" fill="${profile.accent2}" font-family="Geist" font-size="19" font-weight="400">${xml(vendor.toUpperCase())} / ${xml(severity.toUpperCase())}</text>
       ${textBlock(titleLines, 70, 258, 42, 50, "#f8fafc")}
       ${textBlock(productLines, 70, 500, 21, 30, "#aebbd0")}
       <rect x="70" y="602" width="620" height="98" rx="12" fill="#0a1323" stroke="#30415d"/>
