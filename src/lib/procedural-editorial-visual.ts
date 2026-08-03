@@ -87,6 +87,16 @@ function visualProfile(input: ProceduralEditorialInput): VisualProfile {
       steps: ["MAP KERNEL", "UPDATE + REBOOT", "VERIFY MODULES"]
     };
   }
+  if (/\bcapwap\b/.test(text) && /\bfortigate\b|\bfortios\b/.test(text)) {
+    return {
+      accent: "#28c99a",
+      accent2: "#ff9b42",
+      category: "MANAGED DEVICE TRUST",
+      focus: "CAPWAP CONTROL PATH",
+      signal: "EXTENSION DEVICE TO FORTIGATE",
+      steps: ["MAP DEVICES", "PATCH FORTIOS", "REVIEW EVENTS"]
+    };
+  }
   if (/bgp|rpki|route origin|routing/.test(text)) {
     return {
       accent: "#26b7d4",
@@ -306,7 +316,7 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
     provider: "qcs-procedural",
     qaPolicyVersion: 4,
     directorModel: "qcs-context-classifier-v1",
-    imageModel: "qcs-editorial-resvg-v6",
+    imageModel: "qcs-editorial-resvg-v7",
     criticModel: "deterministic-layout-validation-v1",
     direction,
     qa: {

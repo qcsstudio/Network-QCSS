@@ -32,7 +32,7 @@ test("advisory fallback produces a retina-ready contextual source without a paid
   assert.equal(metadata.width, 1440);
   assert.equal(metadata.height, 810);
   assert.equal(generated.trace.provider, "qcs-procedural");
-  assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v6");
+  assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v7");
   assert.match(generated.trace.direction.focalSubject, /static credential/i);
   assert.equal(generated.trace.qa.approved, true);
   assert.ok(headlineStats.entropy > 2, "the headline region should contain rendered text, not only the background grid");
@@ -62,4 +62,27 @@ test("related advisories produce distinct evidence maps", async () => {
   });
   assert.notDeepEqual(first.source, second.source);
   assert.notEqual(first.trace.direction.diversitySignature, second.trace.direction.diversitySignature);
+});
+
+test("FortiGate CAPWAP advisories render a managed-device trust boundary instead of routing assurance", async () => {
+  const generated = await createProceduralEditorialVisual({
+    altText: "QCS FortiGate CAPWAP vulnerability advisory visual",
+    contentId: "fortinet-cve-2025-53844",
+    contentRevision: "2",
+    contentType: "security_advisory",
+    context: [
+      "Vendor: Fortinet.",
+      "Severity: high, CVSS 8.3.",
+      "Affected products: FortiGate, FortiOS, FortiAP, FortiExtender, FortiSwitch.",
+      "Technical mechanism from the reviewed advisory: An out-of-bounds write in the CAPWAP daemon can cross an authenticated managed-device trust relationship.",
+      "Operational and business consequence: A compromised extension device may gain execution privileges on the FortiGate and affect firewall policy or routing.",
+      "Required action: Patch FortiOS and review managed-device events."
+    ].join("\n"),
+    title: "Fortinet FortiOS CAPWAP Out-of-Bounds Write Vulnerability"
+  });
+  assert.equal(generated.trace.direction.focalSubject, "CAPWAP CONTROL PATH");
+  assert.deepEqual(generated.trace.direction.supportingElements, ["MAP DEVICES", "PATCH FORTIOS", "REVIEW EVENTS"]);
+  assert.match(generated.trace.direction.mechanismStatement, /extension device to fortigate/i);
+  assert.doesNotMatch(generated.trace.direction.sceneConcept, /route origin/i);
+  assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v7");
 });
