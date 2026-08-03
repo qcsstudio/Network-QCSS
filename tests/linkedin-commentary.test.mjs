@@ -79,13 +79,13 @@ test("security advisory commentary exposes the complete decision brief before Li
     },
     "https://www.qcsstudio.com/security-advisories/example"
   );
-  assert.match(commentary, /#CiscoSecurity\nCVE-2026-1234: ACTIVELY EXPLOITED/);
+  assert.match(commentary, /#CiscoSecurity CVE-2026-1234: ACTIVELY EXPLOITED/);
   assert.match(commentary, /actively exploited/i);
-  assert.match(commentary, /\n\nRISK\nCisco Critical; CVSS 5\.3\nLow-priv FMC access can escalate privileges\.\nNo workaround\./);
-  assert.match(commentary, /\n\nACT\n1 Inventory\n2 Restrict UI\n3 Patch FMC\n4 Check logs/);
+  assert.match(commentary, /\n\nRISK: Cisco Critical; CVSS 5\.3\nLow-priv FMC access can escalate privileges\. No workaround\./);
+  assert.match(commentary, /\n\nACT: Inventory; restrict UI; patch FMC; check logs\./);
   assert.doesNotMatch(commentary, /\|/);
-  assert.match(commentary, /\n\nFIX\n7\.6/);
-  assert.match(commentary, /\n\nREAD\nhttps:\/\/qcsstudio\.com\/a\/1234/);
+  assert.match(commentary, /\n\nFIX: 7\.6/);
+  assert.match(commentary, /\n\nREAD: https:\/\/qcsstudio\.com\/a\/1234/);
   assert.match(commentary, /#NetworkSecurity/);
   assert.equal(commentary.match(/#[A-Za-z0-9]+/g)?.length, 5);
   assert.ok(commentary.length <= 300);

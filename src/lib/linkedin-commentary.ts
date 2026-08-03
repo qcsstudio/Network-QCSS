@@ -285,23 +285,21 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
   const hashtags = ciscoAdvisory && fmcAdvisory
     ? ["#CiscoSecurity", "#CiscoFMC", "#CVE", "#NetworkSecurity", "#InfoSec"]
     : [visibleHashtag, "#CVE", "#CyberSecurity", "#InfoSec", "#VulnerabilityManagement"];
+  const riskDetail = `${clip(riskCore, staticCredential && fmcAdvisory && privilegeChain ? 80 : noWorkaround ? 58 : 74)}${noWorkaround ? " No workaround." : ""}`;
+  const actionSummary = actions
+    .map((action, index) => index === 0 ? action : `${action[0].toLowerCase()}${action.slice(1)}`)
+    .join("; ");
   const lines = [
-    hashtags[0],
-    `${leadIdentifier}: ${statusLabel}`,
+    `${hashtags[0]} ${leadIdentifier}: ${statusLabel}`,
     "",
-    "RISK",
-    `${vendorLabel} ${scoreLabel}`,
-    clip(riskCore, staticCredential && fmcAdvisory && privilegeChain ? 80 : noWorkaround ? 58 : 74),
-    ...(noWorkaround ? ["No workaround."] : []),
+    `RISK: ${vendorLabel} ${scoreLabel}`,
+    riskDetail,
     "",
-    "ACT",
-    ...actions.map((action, index) => `${index + 1} ${action}`),
+    `ACT: ${actionSummary}.`,
     "",
-    "FIX",
-    fixedLine,
+    `FIX: ${fixedLine}`,
     "",
-    "READ",
-    briefUrl,
+    `READ: ${briefUrl}`,
     "",
     hashtags.slice(1).join(" ")
   ];
@@ -309,7 +307,8 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
   if (commentary.length <= 300) return commentary;
 
   const overflow = commentary.length - 300;
-  const riskIndex = lines.indexOf(clip(riskCore, staticCredential && fmcAdvisory && privilegeChain ? 80 : noWorkaround ? 58 : 74));
-  lines[riskIndex] = clip(riskCore, Math.max(18, lines[riskIndex].length - overflow));
+  const riskIndex = lines.indexOf(riskDetail);
+  const workaroundSuffix = noWorkaround ? " No workaround." : "";
+  lines[riskIndex] = `${clip(riskCore, Math.max(18, lines[riskIndex].length - overflow - workaroundSuffix.length))}${workaroundSuffix}`;
   return lines.join("\n").slice(0, 300);
 }
