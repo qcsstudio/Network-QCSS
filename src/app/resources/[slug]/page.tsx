@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
     image: {
       url: `/resources/${post.slug}/opengraph-image`,
       width: 1200,
-      height: 628,
+      height: 627,
       alt: post.imageAlt
     },
     article: {
@@ -63,7 +63,7 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
               "@type": "ImageObject",
               url: `${siteConfig.url}/resources/${post.slug}/opengraph-image`,
               width: 1200,
-              height: 628,
+              height: 627,
               caption: post.imageAlt
             },
             datePublished: post.publishedAt,

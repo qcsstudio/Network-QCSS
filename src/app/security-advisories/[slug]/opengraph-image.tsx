@@ -7,7 +7,7 @@ import { advisoryVisualProfile, fallbackVisualProfile } from "@/lib/editorial-vi
 
 export const runtime = "nodejs";
 export const alt = "QCS network security advisory";
-export const size = { width: 1200, height: 628 };
+export const size = { width: 1200, height: 627 };
 export const contentType = "image/png";
 
 export default async function AdvisoryOpenGraphImage({ params }: { params: Promise<{ slug: string }> }) {
@@ -19,7 +19,7 @@ export default async function AdvisoryOpenGraphImage({ params }: { params: Promi
       <div style={{ display: "flex", width: "100%", height: "100%" }}>
         {/* next/og requires a native image element for generated binary artwork. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img alt={generated.altText} height={628} src={editorialImageDataUrl(generated)} style={{ display: "flex", width: "100%", height: "100%", objectFit: "cover" }} width={1200} />
+        <img alt={generated.altText} height={627} src={editorialImageDataUrl(generated)} style={{ display: "flex", width: "100%", height: "100%", objectFit: "cover" }} width={1200} />
       </div>,
       size
     );
