@@ -6,6 +6,8 @@ import { createProceduralEditorialVisual } from "../src/lib/procedural-editorial
 test("advisory fallback produces a retina-ready contextual source without a paid provider", async () => {
   const generated = await createProceduralEditorialVisual({
     altText: "QCS advisory visual for a Cisco FMC static credential vulnerability",
+    contentId: "advisory-cisco-fmc-static-credential",
+    contentRevision: "1",
     contentType: "security_advisory",
     context: [
       "Vendor: Cisco.",
@@ -22,4 +24,30 @@ test("advisory fallback produces a retina-ready contextual source without a paid
   assert.equal(generated.trace.provider, "qcs-procedural");
   assert.match(generated.trace.direction.focalSubject, /static credential/i);
   assert.equal(generated.trace.qa.approved, true);
+});
+
+test("related advisories produce distinct evidence maps", async () => {
+  const common = {
+    altText: "QCS Ubuntu Linux kernel advisory visual",
+    contentRevision: "1",
+    contentType: "security_advisory",
+    context: [
+      "Vendor: Ubuntu.",
+      "Severity: unrated.",
+      "Affected products: Ubuntu Intel IoTG kernel.",
+      "Technical mechanism from the reviewed advisory: NTFS validation can expose kernel memory."
+    ].join("\n")
+  };
+  const first = await createProceduralEditorialVisual({
+    ...common,
+    contentId: "ubuntu-usn-8620-3",
+    title: "USN-8620-3: Linux kernel (Intel IoTG) vulnerabilities"
+  });
+  const second = await createProceduralEditorialVisual({
+    ...common,
+    contentId: "ubuntu-usn-8620-4",
+    title: "USN-8620-4: Linux kernel (Intel IoTG) vulnerabilities"
+  });
+  assert.notDeepEqual(first.source, second.source);
+  assert.notEqual(first.trace.direction.diversitySignature, second.trace.direction.diversitySignature);
 });
