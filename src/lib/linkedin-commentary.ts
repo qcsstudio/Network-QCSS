@@ -269,38 +269,38 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
   const shortCode = leadIdentifier.match(/^CVE-\d{4}-(\d+)$/i)?.[1];
   const briefUrl = (() => {
     const parsed = new URL(url);
-    return shortCode ? `${parsed.origin}/a/${shortCode}` : `${parsed.origin}/security-advisories`;
+    const conciseOrigin = parsed.origin.replace("://www.", "://");
+    return shortCode ? `${conciseOrigin}/a/${shortCode}` : `${conciseOrigin}/security-advisories`;
   })();
   const vendorLabel = clip(advisory.vendor, 18);
   const statusLabel = activelyExploited ? "ACTIVELY EXPLOITED" : "SECURITY ADVISORY";
-  const scoreLabel = cvssScore === null ? severityLabel : `${severityLabel} vs CVSS ${cvssScore.toFixed(1)}`;
-  const riskLine = staticCredential && fmcAdvisory && privilegeChain
-    ? `${vendorLabel} ${scoreLabel}: low-priv FMC access can chain to higher privileges${noWorkaround ? "; no workaround" : ""}.`
-    : `${vendorLabel} ${scoreLabel}: ${clip(advisory.businessImpact || advisory.summary, noWorkaround ? 62 : 78)}${noWorkaround ? "; no workaround" : ""}.`;
+  const scoreLabel = cvssScore === null ? severityLabel : `${severityLabel}/${cvssScore.toFixed(1)} CVSS`;
+  const riskPrefix = `RISK: ${vendorLabel} ${scoreLabel}; `;
+  const riskCore = staticCredential && fmcAdvisory && privilegeChain
+    ? "low-priv FMC access can enable privilege escalation"
+    : normalize(advisory.businessImpact || advisory.summary);
+  const riskSuffix = noWorkaround ? ". No workaround" : "";
+  const riskLine = `${riskPrefix}${clip(riskCore, staticCredential && fmcAdvisory && privilegeChain ? 80 : noWorkaround ? 58 : 74)}${riskSuffix}`;
   const actionLine = staticCredential
-    ? "Act: inventory, restrict UI, apply hotfix, verify release/logs."
-    : "Act: inventory, contain exposure, apply vendor fix, verify state/logs.";
-  const fixedLine = fixedTrains.length ? `Fixes: ${fixedTrains.join("/")}` : "Fix: use the vendor-supported release/hotfix.";
-  const sourceLabel = ciscoAdvisory ? "Cisco" : clip(advisory.vendor, 10);
-  const secondaryHashtag = visibleHashtag === "#NetworkSecurity" ? "#VulnerabilityManagement" : "#NetworkSecurity";
+    ? "ACT: Inventory | Restrict UI | Patch | Check logs"
+    : "ACT: Inventory | Contain | Patch | Verify state";
+  const fixedLine = fixedTrains.length ? `FIX: ${fixedTrains.join("/")}` : "FIX: Use the vendor-supported release/hotfix";
+  const hashtags = ciscoAdvisory && fmcAdvisory
+    ? ["#CiscoSecurity", "#CiscoFMC", "#CVE", "#NetworkSecurity", "#InfoSec"]
+    : [visibleHashtag, "#CVE", "#CyberSecurity", "#InfoSec", "#VulnerabilityManagement"];
   const lines = [
-    `${visibleHashtag} ${leadIdentifier}: ${statusLabel}`,
+    `${hashtags[0]} ${leadIdentifier}: ${statusLabel}`,
     riskLine,
     actionLine,
     fixedLine,
-    `Brief/${sourceLabel}: ${briefUrl}`,
-    secondaryHashtag
+    `READ: ${briefUrl}`,
+    hashtags.slice(1).join(" ")
   ];
-  let commentary = lines.join("\n");
+  const commentary = lines.join("\n");
   if (commentary.length <= 300) return commentary;
 
-  if (visibleHashtag === "#NetworkSecurity") {
-    lines.pop();
-    commentary = lines.join("\n");
-    if (commentary.length <= 300) return commentary;
-  }
-
   const overflow = commentary.length - 300;
-  lines[1] = clip(lines[1], Math.max(58, lines[1].length - overflow));
+  const targetRiskLength = Math.max(58, lines[1].length - overflow);
+  lines[1] = `${riskPrefix}${clip(riskCore, Math.max(24, targetRiskLength - riskPrefix.length - riskSuffix.length))}${riskSuffix}`;
   return lines.join("\n").slice(0, 300);
 }

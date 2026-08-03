@@ -68,23 +68,24 @@ test("security advisory commentary exposes the complete decision brief before Li
       evidenceChecklist: ["Confirm whether the management interface is reachable from an untrusted network."],
       exploitationStatus: "The vendor reports active exploitation in July 2026.",
       fixedVersions: ["7.6.2 hotfix 4"],
-      products: ["Example Firewall Management Center"],
+      products: ["Cisco Secure Firewall Management Center"],
       remediation: "Upgrade to the vendor-fixed release and restrict management access until complete.",
       severity: "critical",
       summary: "A static credential permits access to a low-privileged management account.",
       technicalExplanation: "A static credential embedded in the management interface permits an unauthenticated remote actor to sign in as a low-privileged user. The vendor rates this high because it can be combined with other management vulnerabilities to elevate privileges.",
-      title: "Example Router OS static credential vulnerability",
-      vendor: "Example Networks",
+      title: "Cisco Secure Firewall Management Center static credential vulnerability",
+      vendor: "Cisco",
       workaround: "No workaround is available."
     },
     "https://www.qcsstudio.com/security-advisories/example"
   );
-  assert.match(commentary, /#NetworkSecurity CVE-2026-1234: ACTIVELY EXPLOITED/);
+  assert.match(commentary, /#CiscoSecurity CVE-2026-1234: ACTIVELY EXPLOITED/);
   assert.match(commentary, /actively exploited/i);
-  assert.match(commentary, /Example Networks Critical vs CVSS 5\.3: low-priv FMC access can chain to higher privileges; no workaround/);
-  assert.match(commentary, /Act: inventory, restrict UI, apply hotfix, verify release\/logs/);
-  assert.match(commentary, /Fixes: 7\.6/);
-  assert.match(commentary, /Brief\/Example\.\.\.: https:\/\/www\.qcsstudio\.com\/a\/1234/);
+  assert.match(commentary, /RISK: Cisco Critical\/5\.3 CVSS; low-priv FMC access can enable privilege escalation\. No workaround/);
+  assert.match(commentary, /ACT: Inventory \| Restrict UI \| Patch \| Check logs/);
+  assert.match(commentary, /FIX: 7\.6/);
+  assert.match(commentary, /READ: https:\/\/qcsstudio\.com\/a\/1234/);
   assert.match(commentary, /#NetworkSecurity/);
+  assert.equal(commentary.match(/#[A-Za-z0-9]+/g)?.length, 5);
   assert.ok(commentary.length <= 300);
 });
