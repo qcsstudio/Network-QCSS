@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { z } from "zod";
+import { editorialReadingQualityInstruction } from "./editorial-quality-policy.ts";
 import type { BlogPost } from "@/lib/blog";
 import { collectEditorialEvidence, type EditorialEvidenceSource } from "@/lib/editorial-source-policy";
 import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts";
@@ -399,6 +400,7 @@ async function inspectContent(kind: "advisory" | "blog", evidence: string, conte
       "Reject generic filler, repetitive template language, unexplained jargon, sensational phrasing, copied source wording, weak search intent, and content that would not help a real operator make a decision.",
       "For blogs, require a direct answer, a clear reader outcome, defined entities, useful headings, evidence-led reasoning, implementation and validation guidance, realistic limitations, and FAQs that resolve genuine follow-up questions.",
       "Plain-language passages should be understandable to an IT decision maker; technical passages must remain precise for engineers.",
+      editorialReadingQualityInstruction,
       "Set approved true only when the content is authoritative, useful, easy to understand, and ready for professional publication.",
       "Required passing scores are factual grounding 90, evidence traceability 88, authority 86, clarity 84, structure 86, usefulness 86, and search/answer usefulness 84. If any score misses, name the exact deficit in violations and correctionPrompt. Keep approved and rationale consistent with the scores. Return JSON only."
     ].join(" "),
@@ -430,6 +432,7 @@ async function writeAdvisory(input: AdvisoryEditorialInput, evidence: string, co
       "Use only the supplied primary-source evidence. Never infer affected or fixed versions, exploitation, workaround, severity, or product behavior that the evidence does not state.",
       "When a detail is absent, leave its array empty or state that the official source does not specify it. Do not call a mitigation a fix.",
       "Explain the issue first for a non-specialist, then accurately for network and security engineers. Paraphrase the source; do not reproduce long source passages.",
+      editorialReadingQualityInstruction,
       "Return the required JSON only."
     ].join(" "),
     input: [
@@ -502,6 +505,7 @@ async function writeBlog(input: BlogEditorialInput, evidence: string, correction
       "Keep the finished article between roughly 1,400 and 1,900 words. Use five to seven focused sections, four to six genuine FAQs, and concise bullets only where they improve scanning.",
       "Create a topic-specific visualBrief from the article's concrete systems, evidence, and cause-and-effect relationship. Its factualAnchors must be supported by the article, and its avoid list must prevent likely visual misinterpretations or generic cyber imagery.",
       "Do not produce a vendor-news rewrite, generic checklist template, sales pitch, or repetitive QCS boilerplate. Do not invent versions, statistics, commands, exploit claims, outcomes, or quotations.",
+      editorialReadingQualityInstruction,
       "Use short paragraphs, meaningful headings, active voice, and natural language suitable for informed readers worldwide and in India. Paraphrase sources and return JSON only."
     ].join(" "),
     input: [

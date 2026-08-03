@@ -6,6 +6,12 @@ import {
   createProceduralEditorialVisual,
   proceduralVisualLayout
 } from "../src/lib/procedural-editorial-visual.ts";
+import {
+  assertRetinaVariantDimensions,
+  contrastRatio,
+  editorialVisualQualityPolicy,
+  visualReadingAssessment
+} from "../src/lib/editorial-quality-policy.ts";
 
 test("advisory hotfix trains preserve major releases beyond 7.x", () => {
   assert.deepEqual(
@@ -36,7 +42,7 @@ test("advisory fallback produces a retina-ready contextual source without a paid
   assert.equal(metadata.width, 1440);
   assert.equal(metadata.height, 810);
   assert.equal(generated.trace.provider, "qcs-procedural");
-  assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v8");
+  assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v9");
   assert.match(generated.trace.direction.focalSubject, /static credential/i);
   assert.equal(generated.trace.qa.approved, true);
   assert.ok(headlineStats.entropy > 2, "the headline region should contain rendered text, not only the background grid");
@@ -88,7 +94,32 @@ test("FortiGate CAPWAP advisories render a managed-device trust boundary instead
   assert.deepEqual(generated.trace.direction.supportingElements, ["MAP DEVICES", "PATCH FORTIOS", "REVIEW EVENTS"]);
   assert.match(generated.trace.direction.mechanismStatement, /extension device to fortigate/i);
   assert.doesNotMatch(generated.trace.direction.sceneConcept, /route origin/i);
-  assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v8");
+  assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v9");
+});
+
+test("editorial quality policy enforces Retina output, readable type, and WCAG contrast", () => {
+  assert.doesNotThrow(() =>
+    assertRetinaVariantDimensions(
+      "social",
+      editorialVisualQualityPolicy.social.width,
+      editorialVisualQualityPolicy.social.height
+    )
+  );
+  assert.throws(() => assertRetinaVariantDimensions("social", 800, 418), /not Retina-ready/i);
+  assert.ok(contrastRatio("#f8fafc", "#091425") >= editorialVisualQualityPolicy.minimumContrastRatio);
+
+  const passing = visualReadingAssessment([
+    { text: "PATCH FORTIOS", fontSize: 18, foreground: "#172238", background: "#f8fafc" },
+    { text: "QCS OPERATING MAP", fontSize: 18, foreground: "#91a4c2", background: "#091425" }
+  ]);
+  assert.equal(passing.score, 100);
+  assert.deepEqual(passing.violations, []);
+
+  const failing = visualReadingAssessment([
+    { text: "A cramped and unnecessarily long technical label that should wrap", fontSize: 12, foreground: "#4f72d8", background: "#0a1323" }
+  ]);
+  assert.ok(failing.score < editorialVisualQualityPolicy.minimumReadingScore);
+  assert.ok(failing.violations.length >= 3);
 });
 
 test("procedural layout keeps message text, diagram nodes, and actions inside their safe areas", () => {

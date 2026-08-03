@@ -90,6 +90,11 @@ test("prompt explicitly protects full-bleed LinkedIn composition", () => {
   assert.match(prompt, /full bleed/i);
   assert.match(prompt, /1\.91:1 LinkedIn crop remains complete/i);
   assert.match(prompt, /central 84%/i);
+  assert.match(prompt, /Retina and resize quality are mandatory/i);
+  assert.match(prompt, /1200 x 627 LinkedIn derivative/i);
+  assert.match(prompt, /4\.5:1 effective contrast/i);
+  assert.match(prompt, /at least 18 px source type/i);
+  assert.match(prompt, /no more than 32 characters or six words/i);
 });
 
 test("large advisory identifier sets are compacted before visual generation", () => {

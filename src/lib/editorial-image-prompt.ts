@@ -1,3 +1,5 @@
+import { editorialVisualQualityInstructions } from "./editorial-quality-policy.ts";
+
 type ArticleImageBrief = {
   answer: string;
   audience: string;
@@ -136,6 +138,7 @@ export function buildEditorialImagePrompt(input: EditorialImagePromptInput) {
     "",
     "VISUAL REQUIREMENTS:",
     ...contextRules,
+    ...editorialVisualQualityInstructions,
     "- Show the concrete technical situation described in this brief. Use only infrastructure, interfaces, paths, environments, people, or operational artifacts that belong to this exact subject.",
     "- Communicate the article's core relationship or tension at a glance. Derive it from the brief rather than from a predefined theme, preset, motif library, or category template.",
     "- Choose the most suitable visual language for this specific story: realistic editorial scene, architectural cutaway, process-focused technical illustration, evidence-led close-up, or another original approach. Do not force different stories into the same composition style.",

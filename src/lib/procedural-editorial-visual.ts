@@ -2,6 +2,11 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { Resvg } from "@resvg/resvg-js";
 import type { EditorialAgentTrace, VisualDirection } from "@/lib/editorial-image-agents";
+import {
+  contrastRatio,
+  editorialVisualQualityPolicy,
+  visualReadingAssessment
+} from "./editorial-quality-policy.ts";
 
 export type ProceduralEditorialInput = {
   altText: string;
@@ -29,12 +34,12 @@ export const proceduralVisualLayout = {
   signalLineHeight: 27,
   diagramPanel: { x: 760, y: 136, width: 610, height: 564 },
   diagramInset: 24,
-  diagramNodeWidth: 200,
-  diagramNodeHeight: 60,
+  diagramNodeWidth: 270,
+  diagramNodeHeight: 66,
   diagramNodes: [
-    { x: 890, y: 286 },
-    { x: 1210, y: 410 },
-    { x: 890, y: 534 }
+    { x: 920, y: 286 },
+    { x: 1208, y: 410 },
+    { x: 920, y: 534 }
   ],
   diagramCenter: { x: 1055, y: 410 },
   actionRuleY: 714,
@@ -85,7 +90,7 @@ function seededByte(seed: string, index: number) {
   return Number.parseInt(seed.slice(offset, offset + 2), 16);
 }
 
-function validateProceduralLayout(signalLines: string[], nodes: Array<{ x: number; y: number }>) {
+function validateProceduralLayout(signalLines: string[], nodes: Array<{ label: string; x: number; y: number }>) {
   const violations: string[] = [];
   const layout = proceduralVisualLayout;
   const signalBottom = layout.signalTextY + Math.max(0, signalLines.length - 1) * layout.signalLineHeight + 7;
@@ -103,9 +108,15 @@ function validateProceduralLayout(signalLines: string[], nodes: Array<{ x: numbe
     if (node.y - layout.diagramNodeHeight / 2 < panelTop || node.y + layout.diagramNodeHeight / 2 > panelBottom) {
       violations.push("diagram node breaches vertical panel padding");
     }
+    const estimatedLabelWidth = node.label.length * 18 * 0.62;
+    if (estimatedLabelWidth > layout.diagramNodeWidth - 50) violations.push(`diagram label "${node.label}" exceeds its text area`);
   }
   if (layout.actionTextY > layout.socialSafeBottom) violations.push("action labels breach the social-image safe area");
   if (violations.length) throw new Error(`Procedural editorial layout rejected: ${[...new Set(violations)].join("; ")}.`);
+}
+
+function readableAccent(accent: string) {
+  return contrastRatio(accent, "#0a1323") >= editorialVisualQualityPolicy.minimumContrastRatio ? accent : "#6f8dea";
 }
 
 function visualProfile(input: ProceduralEditorialInput): VisualProfile {
@@ -234,47 +245,47 @@ function credentialAdvisorySvg(input: {
       <text x="70" y="205" fill="#ff9b42" font-family="Geist" font-size="18" font-weight="500">${xml(input.vendor.toUpperCase())} SECURE FMC / ${xml(input.severity.toUpperCase())}</text>
       <text x="70" y="293" fill="#f8fafc" font-family="Geist" font-size="70" font-weight="500">${xml(input.cve)}</text>
       <rect x="70" y="326" width="360" height="42" rx="6" fill="${active ? "#ef3d78" : "#4f72d8"}"/>
-      <text x="90" y="354" fill="#ffffff" font-family="Geist" font-size="17" font-weight="500">${active ? "ACTIVE EXPLOITATION REPORTED" : "VENDOR SECURITY ADVISORY"}</text>
+      <text x="90" y="354" fill="#ffffff" font-family="Geist" font-size="18" font-weight="500">${active ? "ACTIVE EXPLOITATION REPORTED" : "VENDOR SECURITY ADVISORY"}</text>
       <text x="70" y="421" fill="#f8fafc" font-family="Geist" font-size="29" font-weight="500">STATIC CREDENTIAL IN WEB INTERFACE</text>
       <text x="70" y="461" fill="#aebbd0" font-family="Geist" font-size="20" font-weight="400">Unauthenticated path to a low-privileged management account</text>
       <rect x="70" y="500" width="650" height="86" rx="10" fill="#0a1425" stroke="#314661" stroke-width="2"/>
-      <text x="94" y="532" fill="#8fa5c4" font-family="Geist" font-size="14" font-weight="500">CISCO REMEDIATION PATH</text>
+      <text x="94" y="532" fill="#aebbd0" font-family="Geist" font-size="18" font-weight="500">CISCO REMEDIATION PATH</text>
       <text x="94" y="567" fill="#f8fafc" font-family="Geist" font-size="23" font-weight="500">${xml(fixLabel)}</text>
 
       <rect x="790" y="96" width="580" height="500" rx="16" fill="url(#console)" stroke="#38506f" stroke-width="2" filter="url(#shadow)"/>
       <rect x="790" y="96" width="580" height="54" rx="16" fill="#172a45"/>
       <rect x="790" y="134" width="580" height="16" fill="#172a45"/>
       <circle cx="820" cy="123" r="6" fill="#ef3d78"/><circle cx="841" cy="123" r="6" fill="#ff9b42"/><circle cx="862" cy="123" r="6" fill="#28c99a"/>
-      <text x="904" y="130" fill="#d9e3f0" font-family="Geist" font-size="15" font-weight="500">FMC WEB MANAGEMENT / AUTHENTICATION BOUNDARY</text>
+      <text x="904" y="130" fill="#d9e3f0" font-family="Geist" font-size="18" font-weight="500">FMC WEB MANAGEMENT / AUTHENTICATION BOUNDARY</text>
 
       <circle cx="860" cy="302" r="48" fill="#0a1425" stroke="#ef3d78" stroke-width="3"/>
       <path d="M840 312h40M848 299l12-15 12 15" fill="none" stroke="#ef3d78" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="822" y="375" fill="#aebbd0" font-family="Geist" font-size="13" font-weight="500">UNTRUSTED PATH</text>
+      <text x="818" y="375" fill="#c6d1e1" font-family="Geist" font-size="16" font-weight="500">UNTRUSTED PATH</text>
       <path d="M916 302H972" stroke="#ef3d78" stroke-width="4" marker-end="url(#arrow)" filter="url(#credential-glow)"/>
 
       <rect x="990" y="190" width="320" height="300" rx="12" fill="#f7f9fc"/>
       <text x="1018" y="230" fill="#172238" font-family="Geist" font-size="17" font-weight="500">SECURE FIREWALL MANAGEMENT</text>
-      <text x="1018" y="253" fill="#66748a" font-family="Geist" font-size="13" font-weight="400">Web interface sign-in</text>
+      <text x="1018" y="253" fill="#66748a" font-family="Geist" font-size="16" font-weight="400">Web interface sign-in</text>
       <rect x="1018" y="282" width="264" height="50" rx="7" fill="#e8edf5" stroke="#cad4e2"/>
       <circle cx="1042" cy="307" r="9" fill="#4f72d8"/>
-      <text x="1062" y="313" fill="#27364d" font-family="Geist" font-size="14" font-weight="500">STATIC USERNAME</text>
+      <text x="1062" y="313" fill="#27364d" font-family="Geist" font-size="16" font-weight="500">STATIC USERNAME</text>
       <rect x="1018" y="346" width="264" height="50" rx="7" fill="#fff2f6" stroke="#ef3d78" stroke-width="2"/>
       <circle cx="1042" cy="371" r="9" fill="#ef3d78"/>
-      <text x="1062" y="377" fill="#8f244d" font-family="Geist" font-size="14" font-weight="500">EMBEDDED CREDENTIAL</text>
+      <text x="1062" y="377" fill="#8f244d" font-family="Geist" font-size="16" font-weight="500">EMBEDDED CREDENTIAL</text>
       <path d="M1150 410v30" stroke="#ff9b42" stroke-width="3" marker-end="url(#arrow)"/>
       <rect x="1034" y="444" width="232" height="32" rx="6" fill="#172238"/>
-      <text x="1060" y="465" fill="#f8fafc" font-family="Geist" font-size="13" font-weight="500">LOW-PRIVILEGED ACCOUNT</text>
+      <text x="1060" y="465" fill="#f8fafc" font-family="Geist" font-size="16" font-weight="500">LOW-PRIVILEGED ACCOUNT</text>
       <rect x="1228" y="171" width="105" height="30" rx="5" fill="#ef3d78"/>
-      <text x="1244" y="191" fill="#ffffff" font-family="Geist" font-size="12" font-weight="500">FIX NOW</text>
+      <text x="1238" y="191" fill="#ffffff" font-family="Geist" font-size="16" font-weight="500">FIX NOW</text>
 
       <rect x="40" y="640" width="1360" height="126" rx="12" fill="#0a1425" stroke="#314661"/>
       <rect x="40" y="640" width="1360" height="3" fill="url(#credential-accent)"/>
       <line x1="486" y1="666" x2="486" y2="742" stroke="#314661"/><line x1="944" y1="666" x2="944" y2="742" stroke="#314661"/>
-      <text x="72" y="686" fill="#ef3d78" font-family="Geist" font-size="14" font-weight="500">01 / CONTAIN</text>
+      <text x="72" y="686" fill="#ef3d78" font-family="Geist" font-size="16" font-weight="500">01 / CONTAIN</text>
       <text x="72" y="724" fill="#f8fafc" font-family="Geist" font-size="22" font-weight="500">Restrict management access</text>
-      <text x="518" y="686" fill="#ff9b42" font-family="Geist" font-size="14" font-weight="500">02 / REMEDIATE</text>
+      <text x="518" y="686" fill="#ff9b42" font-family="Geist" font-size="16" font-weight="500">02 / REMEDIATE</text>
       <text x="518" y="724" fill="#f8fafc" font-family="Geist" font-size="22" font-weight="500">Apply the Cisco hotfix</text>
-      <text x="976" y="686" fill="#28c99a" font-family="Geist" font-size="14" font-weight="500">03 / VERIFY</text>
+      <text x="976" y="686" fill="#28c99a" font-family="Geist" font-size="16" font-weight="500">03 / VERIFY</text>
       <text x="976" y="724" fill="#f8fafc" font-family="Geist" font-size="22" font-weight="500">Review authentication logs</text>
     </svg>`);
 }
@@ -298,14 +309,38 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
     /firewall management center|\bfmc\b/i.test(`${input.title} ${products}`);
   const firstFixedVersion = fixedVersions.split(",")[0];
   const titleLines = wrap(input.title, 27, 4);
-  const productLines = [...wrap(products, 50, 1), ...(firstFixedVersion ? [`Fixed path: ${firstFixedVersion}`] : [])].slice(0, 2);
+  const productSummary = products
+    .split(",")
+    .map(normalize)
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(" / ");
+  const fixedSummary = firstFixedVersion.replace(/\s+or later$/i, "+");
+  const productLines = [
+    ...wrap(productSummary || products, 32, 1),
+    ...(fixedSummary ? wrap(`Fixed: ${fixedSummary}`, 32, 1) : [])
+  ].slice(0, 2);
   const signalLines = wrap(profile.signal, 28, 2);
+  const accentText = readableAccent(profile.accent);
   const diagramNodes = proceduralVisualLayout.diagramNodes.map((node, index) => ({
     ...node,
     label: index === 1 ? profile.focus : profile.steps[index === 0 ? 0 : 2],
     color: index === 0 ? profile.accent : index === 1 ? profile.accent2 : "#28c99a"
   }));
   validateProceduralLayout(signalLines, diagramNodes);
+  const readability = visualReadingAssessment([
+    ...titleLines.map((text) => ({ text, fontSize: 42, foreground: "#f8fafc", background: "#071221" })),
+    ...productLines.map((text) => ({ text, fontSize: 21, foreground: "#aebbd0", background: "#071221" })),
+    { text: profile.category, fontSize: 18, foreground: accentText, background: "#0a1323" },
+    ...signalLines.map((text) => ({ text, fontSize: 24, foreground: "#f8fafc", background: "#0a1323" })),
+    { text: "QCS OPERATING MAP", fontSize: 18, foreground: "#91a4c2", background: "#091425" },
+    { text: profile.focus, fontSize: 25, foreground: "#f8fafc", background: "#091425" },
+    ...diagramNodes.map((node) => ({ text: node.label, fontSize: 18, foreground: "#172238", background: "#f8fafc" })),
+    ...profile.steps.map((text) => ({ text: `0 ${text}`, fontSize: 18, foreground: "#c6d1e1", background: "#091425" }))
+  ]);
+  if (readability.score < editorialVisualQualityPolicy.minimumReadingScore || readability.violations.length) {
+    throw new Error(`Procedural editorial readability rejected: ${readability.violations.join("; ")}.`);
+  }
   const evidenceSignals = Array.from({ length: 9 }, (_, index) => {
     const x = 790 + (seededByte(identitySeed, index + 2) % 540);
     const y = 250 + (seededByte(identitySeed, index + 11) % 390);
@@ -330,7 +365,7 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
       ${textBlock(titleLines, 70, 258, 42, 50, "#f8fafc")}
       ${textBlock(productLines, 70, 500, 21, 30, "#aebbd0")}
       <rect x="${proceduralVisualLayout.signalBox.x}" y="${proceduralVisualLayout.signalBox.y}" width="${proceduralVisualLayout.signalBox.width}" height="${proceduralVisualLayout.signalBox.height}" rx="12" fill="#0a1323" stroke="#30415d"/>
-      <text x="96" y="${proceduralVisualLayout.signalCategoryY}" fill="${profile.accent}" font-family="Geist" font-size="16" font-weight="400">${xml(profile.category)}</text>
+      <text x="96" y="${proceduralVisualLayout.signalCategoryY}" fill="${accentText}" font-family="Geist" font-size="18" font-weight="400">${xml(profile.category)}</text>
       ${textBlock(signalLines, 96, proceduralVisualLayout.signalTextY, 24, proceduralVisualLayout.signalLineHeight, "#f8fafc")}
       <rect x="${proceduralVisualLayout.diagramPanel.x}" y="${proceduralVisualLayout.diagramPanel.y}" width="${proceduralVisualLayout.diagramPanel.width}" height="${proceduralVisualLayout.diagramPanel.height}" rx="18" fill="#091425" fill-opacity="0.88" stroke="#31435f" stroke-width="2"/>
       ${evidenceSignals}
@@ -339,11 +374,11 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
       <circle cx="${proceduralVisualLayout.diagramCenter.x}" cy="${proceduralVisualLayout.diagramCenter.y}" r="68" fill="#f8fafc"/>
       <circle cx="${proceduralVisualLayout.diagramCenter.x}" cy="${proceduralVisualLayout.diagramCenter.y}" r="36" fill="${profile.accent2}" fill-opacity="0.18" stroke="${profile.accent2}" stroke-width="5"/>
       <path d="M1038 410l13 13 27-33" fill="none" stroke="${profile.accent2}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-      ${diagramNodes.map((node) => `<rect x="${node.x - 100}" y="${node.y - 30}" width="200" height="60" rx="10" fill="#f8fafc"/><circle cx="${node.x - 74}" cy="${node.y}" r="7" fill="${node.color}"/><text x="${node.x - 58}" y="${node.y + 5}" fill="#172238" font-family="Geist" font-size="12" font-weight="400">${xml(node.label)}</text>`).join("")}
-      <text x="796" y="188" fill="#91a4c2" font-family="Geist" font-size="15" font-weight="400">QCS OPERATING MAP</text>
+      ${diagramNodes.map((node) => `<rect x="${node.x - proceduralVisualLayout.diagramNodeWidth / 2}" y="${node.y - proceduralVisualLayout.diagramNodeHeight / 2}" width="${proceduralVisualLayout.diagramNodeWidth}" height="${proceduralVisualLayout.diagramNodeHeight}" rx="10" fill="#f8fafc"/><circle cx="${node.x - 105}" cy="${node.y}" r="7" fill="${node.color}"/><text x="${node.x - 85}" y="${node.y + 6}" fill="#172238" font-family="Geist" font-size="18" font-weight="400">${xml(node.label)}</text>`).join("")}
+      <text x="796" y="188" fill="#91a4c2" font-family="Geist" font-size="18" font-weight="400">QCS OPERATING MAP</text>
       <text x="796" y="224" fill="#f8fafc" font-family="Geist" font-size="25" font-weight="400">${xml(profile.focus)}</text>
       <rect x="760" y="${proceduralVisualLayout.actionRuleY}" width="610" height="2" fill="url(#line)"/>
-      ${profile.steps.map((step, index) => `<text x="${850 + index * 205}" y="${proceduralVisualLayout.actionTextY}" text-anchor="middle" fill="#c6d1e1" font-family="Geist" font-size="14" font-weight="400">0${index + 1}  ${xml(step)}</text>`).join("")}
+      ${profile.steps.map((step, index) => `<text x="${850 + index * 205}" y="${proceduralVisualLayout.actionTextY}" text-anchor="middle" fill="#c6d1e1" font-family="Geist" font-size="18" font-weight="400">0${index + 1}  ${xml(step)}</text>`).join("")}
     </svg>`);
   const source = Buffer.from(
     new Resvg(svg, {
@@ -359,8 +394,8 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
     provider: "qcs-procedural",
     qaPolicyVersion: 4,
     directorModel: "qcs-context-classifier-v1",
-    imageModel: "qcs-editorial-resvg-v8",
-    criticModel: "deterministic-layout-validation-v1",
+    imageModel: "qcs-editorial-resvg-v9",
+    criticModel: "deterministic-layout-readability-validation-v2",
     direction,
     qa: {
       approved: true,
@@ -372,8 +407,8 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
       compositionScore: 94,
       violations: [],
       rationale: fallbackReason
-        ? `The deterministic QCS visual passed layout and factual-field validation after premium generation was unavailable: ${fallbackReason.slice(0, 240)}`
-        : "The deterministic QCS visual passed layout, crop, contrast and factual-field validation.",
+        ? `The deterministic QCS visual passed layout, Retina source, crop, contrast, factual-field, and ${readability.score}/100 readability validation after premium generation was unavailable: ${fallbackReason.slice(0, 180)}`
+        : `The deterministic QCS visual passed layout, Retina source, crop, contrast, and ${readability.score}/100 readability validation.`,
       correctionPrompt: ""
     },
     renderAttempts: 1

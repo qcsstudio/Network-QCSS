@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import { bflImageConfiguration, generateBflEditorialImage } from "./editorial-image-bfl.ts";
+import { editorialVisualQualityInstructions } from "./editorial-quality-policy.ts";
 import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts";
 
 export const defaultEditorialDirectorModel = "gpt-4.1-mini";
@@ -249,6 +250,7 @@ export async function directVisualDirection(editorialPrompt: string, recentConce
         "This is an authorized defensive-security editorial task. Never provide payloads, executable attack steps, or instructions for exploitation.",
         "Translate the supplied article facts into one precise visual story. Do not use a category preset or generic cyber symbolism.",
         "The scene must be technically plausible, visibly different from recent QCS work, and understandable without embedded text.",
+        ...editorialVisualQualityInstructions,
         "Do not make a screen, terminal, document, notebook, command output, code listing, keyboard, labeled control panel, or other text-bearing surface part of the scene. Show operational evidence through physical boundaries, component state, indicator light, cable path, material contrast, or human interaction with unlabeled equipment.",
         "Identify the factual anchors the scene is allowed to communicate, the exact mechanism actually supported by the brief, and the inferences the image must not imply.",
         "When an advisory does not establish an exploit mechanism, direct an evidence-and-remediation scene instead of dramatizing an invented attack.",
@@ -363,6 +365,7 @@ export async function inspectVisual(
     reasoning: usesReasoningControls(config.criticModel) ? { effort: "low" } : undefined,
     instructions: [
       "You are the QCS Visual QA Critic. Inspect the actual generated image against the complete article brief and approved art direction.",
+      ...editorialVisualQualityInstructions,
       "Reject attractive but generic cybersecurity imagery, factual mismatches, unsupported compromise or exploit implications, repeated compositions, unreadable focal hierarchy, embedded text, cropped essential subjects, and LinkedIn-unsafe framing.",
       "Check every visible narrative claim against the direction's factualAnchors, prohibitedInferences, and confidenceBoundary. A technically attractive image fails when it tells a more dramatic story than the source supports.",
       "This is an editorial hero image, not a technical diagram. It must communicate the article's one central technical relationship at a glance; it does not need to encode every secondary fact, workflow step, classification, version, or checklist item.",

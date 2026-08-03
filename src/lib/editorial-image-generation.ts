@@ -20,6 +20,7 @@ import {
   buildEditorialImagePrompt
 } from "@/lib/editorial-image-prompt";
 import { shouldDeferEditorialImageGeneration } from "@/lib/editorial-image-state";
+import { assertRetinaVariantDimensions, editorialVisualQualityPolicy } from "@/lib/editorial-quality-policy";
 import { getPrismaClient } from "@/lib/prisma";
 import { createProceduralEditorialVisual } from "@/lib/procedural-editorial-visual";
 
@@ -137,9 +138,12 @@ async function createContextualImages(
     );
   }
   const [heroImage, socialImage] = await Promise.all([
-    brandedVariant(generated.source, 1440, 810),
-    brandedVariant(generated.source, 1200, 627)
+    brandedVariant(generated.source, editorialVisualQualityPolicy.hero.width, editorialVisualQualityPolicy.hero.height),
+    brandedVariant(generated.source, editorialVisualQualityPolicy.social.width, editorialVisualQualityPolicy.social.height)
   ]);
+  const [heroMetadata, socialMetadata] = await Promise.all([sharp(heroImage).metadata(), sharp(socialImage).metadata()]);
+  assertRetinaVariantDimensions("hero", heroMetadata.width || 0, heroMetadata.height || 0);
+  assertRetinaVariantDimensions("social", socialMetadata.width || 0, socialMetadata.height || 0);
   return { heroImage, socialImage, trace: generated.trace };
 }
 
