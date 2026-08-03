@@ -97,7 +97,7 @@ async function brandedVariant(source: Uint8Array, width: number, height: number)
   const panel = await brandPanel(width);
   const margin = width <= 1200 ? 32 : 44;
   return sharp(source)
-    .resize(width, height, { fit: "cover", position: "attention" })
+    .resize(width, height, { fit: "cover", position: "centre" })
     .composite([{ input: panel, left: margin, top: margin }])
     .flatten({ background: "#eef3f8" })
     .jpeg({ quality: 88, progressive: true, chromaSubsampling: "4:4:4" })
