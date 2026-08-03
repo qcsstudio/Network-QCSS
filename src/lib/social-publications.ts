@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import type { Prisma, SecurityAdvisory } from "@prisma/client";
 import type { ContentPostRecord } from "@/lib/content-posts";
 import { siteConfig } from "@/lib/content";
@@ -329,13 +330,24 @@ export async function refreshLinkedInPublication(publicationId: string, replaceM
   const material = await currentPublicationMaterial(publication);
   const metadata = metadataObject(publication.metadata);
   if (!replaceMedia) {
-    await updateLinkedInPostCommentary(publication.externalId, material.commentary);
+    const commentary = material.commentary.slice(0, 2900);
+    await updateLinkedInPostCommentary(publication.externalId, commentary);
+    const previousReceipt = metadataObject((metadata.deliveryReceipt as Prisma.JsonValue | undefined) || null);
     return prisma.socialPublication.update({
       where: { id: publication.id },
       data: {
-        commentary: material.commentary,
+        commentary,
         lastError: null,
-        metadata: { ...metadata, commentaryRefreshedAt: new Date().toISOString() } as Prisma.InputJsonValue,
+        metadata: {
+          ...metadata,
+          commentaryRefreshedAt: new Date().toISOString(),
+          deliveryReceipt: {
+            ...previousReceipt,
+            apiVersion: process.env.LINKEDIN_API_VERSION?.trim() || "202607",
+            commentaryHash: crypto.createHash("sha256").update(commentary).digest("hex"),
+            commentaryLength: commentary.length
+          }
+        } as Prisma.InputJsonValue,
         sourceUrl: material.sourceUrl
       }
     });
