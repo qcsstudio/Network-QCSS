@@ -8,10 +8,12 @@ import {
   EditorialAgentError,
   editorialAgentConfiguration,
   restoreEditorialAgentTrace,
+  runBflEditorialImageAgents,
   runEditorialImageAgents,
   type EditorialAgentTrace,
   type RecentVisualConcept
 } from "@/lib/editorial-image-agents";
+import { bflImageConfiguration } from "@/lib/editorial-image-bfl";
 import {
   buildAdvisoryImageContext,
   buildArticleImageContext,
@@ -19,6 +21,7 @@ import {
 } from "@/lib/editorial-image-prompt";
 import { shouldDeferEditorialImageGeneration } from "@/lib/editorial-image-state";
 import { getPrismaClient } from "@/lib/prisma";
+import { createProceduralEditorialVisual } from "@/lib/procedural-editorial-visual";
 
 export type EditorialImageInput = {
   altText: string;
@@ -102,16 +105,65 @@ async function brandedVariant(source: Uint8Array, width: number, height: number)
 }
 
 async function createContextualImages(
+  input: EditorialImageInput,
   prompt: string,
   recentConcepts: RecentVisualConcept[],
-  previousTrace: EditorialAgentTrace | null
+  previousTrace: EditorialAgentTrace | null,
+  premiumAllowed: boolean
 ) {
-  const generated = await runEditorialImageAgents(prompt, recentConcepts, previousTrace);
+  let generated: Awaited<ReturnType<typeof runEditorialImageAgents>>;
+  if (input.contentType === "security_advisory") {
+    generated = await createProceduralEditorialVisual(input);
+  } else if (premiumAllowed && bflImageConfiguration().configured) {
+    try {
+      generated = await runBflEditorialImageAgents(prompt, recentConcepts, previousTrace);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "FLUX generation was unavailable";
+      console.error(`Premium editorial image generation fell back to the QCS renderer for ${input.contentId}.`, error);
+      generated = await createProceduralEditorialVisual(input, reason);
+    }
+  } else if (premiumAllowed && process.env.EDITORIAL_IMAGE_OPENAI_FALLBACK?.trim() === "1") {
+    try {
+      generated = await runEditorialImageAgents(prompt, recentConcepts, previousTrace);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "OpenAI image generation was unavailable";
+      console.error(`OpenAI editorial image generation fell back to the QCS renderer for ${input.contentId}.`, error);
+      generated = await createProceduralEditorialVisual(input, reason);
+    }
+  } else {
+    generated = await createProceduralEditorialVisual(
+      input,
+      premiumAllowed ? "No premium image provider is configured" : "The paid-image budget is exhausted"
+    );
+  }
   const [heroImage, socialImage] = await Promise.all([
     brandedVariant(generated.source, 1440, 810),
-    brandedVariant(generated.source, 1200, 628)
+    brandedVariant(generated.source, 1200, 627)
   ]);
   return { heroImage, socialImage, trace: generated.trace };
+}
+
+function positiveLimit(name: string, fallback: number) {
+  const configured = Number(process.env[name]);
+  return Number.isFinite(configured) && configured >= 0 ? Math.floor(configured) : fallback;
+}
+
+async function premiumImageBudgetAvailable() {
+  const config = bflImageConfiguration();
+  if (!config.configured && process.env.EDITORIAL_IMAGE_OPENAI_FALLBACK?.trim() !== "1") return false;
+  const now = new Date();
+  const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const providers = config.configured ? ["black-forest-labs"] : ["openai-direct"];
+  const prisma = getPrismaClient();
+  const [daily, monthly] = await Promise.all([
+    prisma.editorialImage.count({ where: { provider: { in: providers }, updatedAt: { gte: startOfDay } } }),
+    prisma.editorialImage.count({ where: { provider: { in: providers }, updatedAt: { gte: startOfMonth } } })
+  ]);
+  return (
+    daily < positiveLimit("EDITORIAL_PAID_IMAGES_DAILY_LIMIT", 2) &&
+    monthly < positiveLimit("EDITORIAL_PAID_IMAGES_MONTHLY_LIMIT", 12)
+  );
 }
 
 function record(value: Prisma.JsonValue | null | undefined) {
@@ -211,9 +263,11 @@ export async function ensureEditorialImage(input: EditorialImageInput, force = f
       select: { agentTrace: true, contentId: true }
     });
     const generated = await createContextualImages(
+      input,
       prompt,
       recentVisualConcepts(recentAssets),
-      restoreEditorialAgentTrace(asset.agentTrace)
+      restoreEditorialAgentTrace(asset.agentTrace),
+      await premiumImageBudgetAvailable()
     );
     return await prisma.editorialImage.update({
       where: { id: asset.id },
@@ -373,7 +427,8 @@ export async function generateMissingEditorialImages(
     });
     const currentPromptHash = crypto.createHash("sha256").update(buildEditorialImagePrompt(input)).digest("hex");
     const promptChanged = Boolean(existing && existing.promptHash !== currentPromptHash);
-    const legacyAsset = existing?.status === "ready" && existing.provider !== "openai-direct";
+    const acceptedProviders = new Set(["openai-direct", "black-forest-labs", "qcs-procedural"]);
+    const legacyAsset = existing?.status === "ready" && !acceptedProviders.has(existing.provider || "");
     if (!force && existing?.status === "ready" && !legacyAsset && !promptChanged) continue;
     if (
       existing &&

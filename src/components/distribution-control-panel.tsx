@@ -154,15 +154,11 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
         </article>
 
         <article className="distribution-module">
-          <div className="distribution-module-heading"><ImageIcon aria-hidden="true" /><div><p className="eyebrow">QCS OpenAI agent studio</p><h3>Researched, written, rendered, and inspected</h3></div></div>
+          <div className="distribution-module-heading"><ImageIcon aria-hidden="true" /><div><p className="eyebrow">QCS visual studio</p><h3>Contextual artwork with controlled spend</h3></div></div>
           <span className={`status-pill ${snapshot?.editorialImages.agent.configured ? "ready" : "missing"}`}>
-            {snapshot?.editorialImages.agent.configured
-              ? "Direct API ready"
-              : snapshot?.editorialImages.agent.credentialIssue === "malformed"
-                ? "OpenAI key malformed"
-                : "OpenAI key required"}
+            {snapshot?.editorialImages.agent.premiumConfigured ? "Premium + fallback ready" : "QCS fallback ready"}
           </span>
-          <p>Research and critic agents ground the article in approved sources. A visual director, image agent, and visual critic create a contextual asset before website or LinkedIn delivery.</p>
+          <p>Advisories use deterministic, evidence-led QCS graphics. Weekly articles use one premium contextual render when FLUX is configured, then fall back without blocking publication.</p>
           <div className="content-action-row">
             <button className="button primary compact-button" disabled={Boolean(busy) || !snapshot?.editorialImages.agent.configured} onClick={() => generateEditorialImage(false)} type="button"><ImageIcon aria-hidden="true" size={16} /> Generate next</button>
             {snapshot?.editorialImages.counts.failed ? <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => generateEditorialImage(true)} type="button"><RefreshCw aria-hidden="true" size={16} /> Retry latest</button> : null}

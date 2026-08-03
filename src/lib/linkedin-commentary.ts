@@ -25,13 +25,21 @@ export type LinkedInEditorialPost = {
 };
 
 export type LinkedInAdvisoryPost = {
+  affectedVersions?: string[];
+  businessImpact?: string;
   cves: string[];
+  cvssScore?: number | null;
+  evidenceChecklist?: string[];
+  exploitationStatus?: string;
+  fixedVersions?: string[];
   products: string[];
   remediation: string;
   severity: string;
   summary: string;
+  technicalExplanation?: string;
   title: string;
   vendor: string;
+  workaround?: string;
 };
 
 type EditorialPlan = {
@@ -84,6 +92,7 @@ function relevantHashtags(text: string, defaults: string[]) {
     [/zero trust|ztna/, "#ZeroTrust"],
     [/bgp|rpki|roa/, "#BGP"],
     [/cloud|aws|azure|gcp|vpc|vnet/, "#CloudSecurity"],
+    [/ubuntu|linux kernel|intel iotg/, "#LinuxSecurity"],
     [/vulnerab|cve|privilege escalation|hardening/, "#VulnerabilityManagement"],
     [/packet capture|tcpdump|pcap/, "#NetworkTroubleshooting"]
   ];
@@ -231,35 +240,74 @@ export function composeEditorialLinkedInPost(post: LinkedInEditorialPost, url: s
 
 export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url: string) {
   const title = cleanHeadline(advisory.title);
-  const products = advisory.products.slice(0, 4).join(", ") || "Refer to the vendor's affected-product list";
-  const cves = advisory.cves.slice(0, 4).join(", ");
+  const combined = `${title} ${advisory.vendor} ${advisory.summary} ${advisory.technicalExplanation || ""}`.toLowerCase();
+  const products = advisory.products.slice(0, 4).join(", ") || "Use the vendor's affected-product table";
+  const affected = advisory.affectedVersions?.slice(0, 4).join(", ") || "Check the affected-package table in the vendor advisory";
+  const fixed = advisory.fixedVersions?.slice(0, 4).join(", ") || "Use the fixed package or release listed by the vendor";
+  const cves = advisory.cves.slice(0, 3).join(", ");
+  const exploitation = normalize(advisory.exploitationStatus || "The vendor did not state an exploitation status.");
+  const activelyExploited =
+    /active exploitation|actively exploited|exploited in the wild/i.test(exploitation) &&
+    !/not specify|no evidence|not known|no active/i.test(exploitation);
+  const sentenceSummary = (value: string, limit: number, count = 2) => {
+    const sentences = normalize(value).split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, count);
+    let result = "";
+    for (const sentence of sentences) {
+      const candidate = result ? `${result} ${sentence}` : sentence;
+      if (candidate.length > limit && result) break;
+      result = candidate;
+    }
+    return clip(result || value, limit);
+  };
+  const mechanism = sentenceSummary(advisory.technicalExplanation || advisory.summary, 430, 2);
+  const impact = sentenceSummary(advisory.businessImpact || advisory.summary, 320, 1);
+  const leadIdentifier = advisory.cves[0] || title;
+  const hook = activelyExploited
+    ? `${advisory.vendor} reports active exploitation of ${leadIdentifier}. This is an immediate exposure-verification and remediation event.`
+    : `${title}: the useful response starts with the affected technology and mechanism, not the headline alone.`;
+  const scopeAction = /static credential|embedded credential|preset username/.test(combined)
+    ? `Inventory every ${advisory.vendor} management instance, its running release, and whether its administrative interface is reachable from the internet or another untrusted path.`
+    : /linux kernel|intel iotg|ntfs/.test(combined)
+      ? "Map the running kernel release, package flavour, architecture, workload role, and third-party kernel modules on each potentially affected system."
+      : `Match ${products} to owned assets, running releases, deployment roles, and reachable management or service paths.`;
+  const validationAction = /static credential|embedded credential|preset username/.test(combined)
+    ? "After remediation, verify the running hotfix or release and review authentication and access logs for unexpected low-privileged sessions."
+    : /linux kernel|intel iotg|ntfs/.test(combined)
+      ? "Reboot into the fixed kernel, verify the running release, rebuild required third-party modules, and confirm workload and telemetry health."
+      : "Verify the running fixed state, service health, relevant telemetry, rollback outcome, and any accepted residual exposure.";
+  const evidence = (advisory.evidenceChecklist || []).map((item) => sentenceSummary(item, 175, 1)).filter(Boolean).slice(0, 2);
+  const severity = advisory.severity.toLowerCase() === "unrated" ? "VENDOR SEVERITY NOT ASSIGNED" : `${advisory.severity.toUpperCase()} SEVERITY`;
   const text = `${title} ${advisory.vendor} ${products} ${cves}`.toLowerCase();
-  const urgency = /critical/i.test(advisory.severity)
-    ? "A critical rating deserves immediate triage, but the first operational decision is still whether the affected product, release, role, and exposure exist in your environment."
-    : "Severity starts the triage; confirmed deployment role, reachability, business impact, and compensating controls determine the response order.";
   return [
-    `${advisory.severity.toUpperCase()} | ${advisory.vendor.toUpperCase()} SECURITY ADVISORY`,
+    `${advisory.vendor.toUpperCase()} SECURITY UPDATE | ${severity}`,
     "",
-    title,
+    hook,
     "",
-    "WHY THIS REQUIRES ATTENTION",
-    urgency,
+    "WHAT THE VENDOR DISCLOSED",
+    mechanism,
     "",
-    "AFFECTED SCOPE TO VERIFY",
+    "OPERATIONAL IMPACT",
+    impact,
+    "",
+    "SCOPE TO VERIFY",
     `Products: ${products}`,
-    ...(cves ? [`Identifiers: ${cves}`] : []),
-    clip(advisory.summary, 360),
+    `Affected releases: ${affected}`,
+    `Fixed releases or hotfixes: ${fixed}`,
+    ...(cves ? [`Representative identifiers: ${cves}${advisory.cves.length > 3 ? "; consult the vendor notice for the complete set" : ""}`] : []),
+    `Exploitation status: ${sentenceSummary(exploitation, 190, 1)}`,
     "",
-    "CONTROLLED RESPONSE",
-    "1. Match the vendor criteria to inventory, running release, deployment role, and management-plane reachability.",
-    `2. Follow the vendor-supported action: ${clip(advisory.remediation, 260)}`,
-    "3. Validate the running state, exposure, logs, service health, and residual exceptions before closure.",
+    "DEFENDER ACTIONS",
+    `1. ${clip(scopeAction, 210)}`,
+    `2. ${sentenceSummary(advisory.remediation, 240, 2)}`,
+    `3. ${clip(validationAction, 210)}`,
     "",
-    "DECISION POINT",
-    `Can your team prove which ${advisory.vendor} assets are affected, which are exposed, and which owner is accountable for remediation?`,
+    ...(evidence.length ? ["EVIDENCE TO RETAIN", ...evidence.map((item) => `- ${item}`), ""] : []),
+    activelyExploited
+      ? "Priority: isolate unnecessary management exposure and move affected systems into emergency change control."
+      : "Priority should follow confirmed applicability, exposure, privilege, service criticality, and rollback readiness.",
     "",
-    `Source-verified QCS advisory: ${url}`,
+    `Read the source-linked QCS technical brief: ${url}`,
     "",
-    relevantHashtags(text, ["#SecurityAdvisory", "#NetworkSecurity"]).join(" ")
-  ].join("\n").slice(0, 2900);
+    relevantHashtags(text, ["#NetworkSecurity"]).join(" ")
+  ].join("\n").slice(0, 2950);
 }

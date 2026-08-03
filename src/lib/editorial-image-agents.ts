@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { z } from "zod";
+import { bflImageConfiguration, generateBflEditorialImage } from "./editorial-image-bfl.ts";
 import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts";
 
 export const defaultEditorialDirectorModel = "gpt-4.1-mini";
@@ -48,8 +49,8 @@ export type RecentVisualConcept = {
 };
 
 export type EditorialAgentTrace = {
-  provider: "openai-direct";
-  qaPolicyVersion: 3;
+  provider: "openai-direct" | "black-forest-labs" | "qcs-procedural";
+  qaPolicyVersion: 3 | 4;
   directorModel: string;
   imageModel: string;
   criticModel: string;
@@ -59,8 +60,8 @@ export type EditorialAgentTrace = {
 };
 
 const editorialAgentTraceSchema = z.object({
-  provider: z.literal("openai-direct"),
-  qaPolicyVersion: z.literal(3),
+  provider: z.enum(["openai-direct", "black-forest-labs", "qcs-procedural"]),
+  qaPolicyVersion: z.union([z.literal(3), z.literal(4)]),
   directorModel: z.string(),
   imageModel: z.string(),
   criticModel: z.string(),
@@ -190,12 +191,15 @@ function usesReasoningControls(model: string) {
 
 export function editorialAgentConfiguration() {
   const credential = openAIApiKeyStatus();
+  const bfl = bflImageConfiguration();
   return {
-    configured: credential.configured,
+    configured: true,
     credentialIssue: credential.credentialIssue,
-    provider: "OpenAI direct API",
+    openAIConfigured: credential.configured,
+    premiumConfigured: credential.configured && bfl.configured,
+    provider: bfl.configured ? "QCS procedural + FLUX.2 + OpenAI QA" : "QCS procedural + OpenAI direct fallback",
     directorModel: env("EDITORIAL_DIRECTOR_MODEL") || defaultEditorialDirectorModel,
-    imageModel: env("EDITORIAL_IMAGE_MODEL") || defaultEditorialImageModel,
+    imageModel: bfl.configured ? bfl.model : env("EDITORIAL_IMAGE_MODEL") || defaultEditorialImageModel,
     criticModel: env("EDITORIAL_CRITIC_MODEL") || defaultEditorialCriticModel
   };
 }
@@ -232,7 +236,7 @@ function recentConceptBrief(concepts: RecentVisualConcept[]) {
     .join("\n");
 }
 
-async function directVisualDirection(editorialPrompt: string, recentConcepts: RecentVisualConcept[]) {
+export async function directVisualDirection(editorialPrompt: string, recentConcepts: RecentVisualConcept[]) {
   const config = editorialAgentConfiguration();
   let lastDiagnostic = "no response";
   for (let attempt = 1; attempt <= 2; attempt += 1) {
@@ -346,7 +350,7 @@ async function produceImage(editorialPrompt: string, direction: VisualDirection,
   return Buffer.from(encoded, "base64");
 }
 
-async function inspectVisual(
+export async function inspectVisual(
   editorialPrompt: string,
   direction: VisualDirection,
   source: Buffer,
@@ -446,13 +450,11 @@ export function restoreEditorialAgentTrace(value: unknown) {
 }
 
 export function traceForEditorialRetry(trace: EditorialAgentTrace | null) {
-  return trace && trace.renderAttempts < 3 ? trace : null;
+  return trace && trace.renderAttempts < 1 ? trace : null;
 }
 
 function attemptsPerRun() {
-  const configured = Number(env("EDITORIAL_IMAGE_ATTEMPTS_PER_RUN"));
-  if (Number.isFinite(configured) && configured >= 1) return Math.min(Math.floor(configured), 2);
-  return process.env.VERCEL ? 1 : 2;
+  return 1;
 }
 
 export async function runEditorialImageAgents(
@@ -473,7 +475,7 @@ export async function runEditorialImageAgents(
     latestQa = normalizeVisualQaScores(await inspectVisual(editorialPrompt, direction, source, recentConcepts));
     const trace: EditorialAgentTrace = {
       provider: "openai-direct",
-      qaPolicyVersion: 3,
+      qaPolicyVersion: 4,
       directorModel: config.directorModel,
       imageModel: config.imageModel,
       criticModel: config.criticModel,
@@ -493,7 +495,7 @@ export async function runEditorialImageAgents(
 
   throw new EditorialAgentError("Visual generation ended without an approved image.", {
     provider: "openai-direct",
-    qaPolicyVersion: 3,
+    qaPolicyVersion: 4,
     directorModel: config.directorModel,
     imageModel: config.imageModel,
     criticModel: config.criticModel,
@@ -501,4 +503,33 @@ export async function runEditorialImageAgents(
     qa: latestQa,
     renderAttempts: priorAttempts
   });
+}
+
+export async function runBflEditorialImageAgents(
+  editorialPrompt: string,
+  recentConcepts: RecentVisualConcept[],
+  previousTrace: EditorialAgentTrace | null = null
+) {
+  const config = editorialAgentConfiguration();
+  const bfl = bflImageConfiguration();
+  if (!bfl.configured) throw new EditorialAgentError("BFL_API_KEY is not configured.");
+  const retryTrace = traceForEditorialRetry(previousTrace);
+  const direction = retryTrace?.direction || (await directVisualDirection(editorialPrompt, recentConcepts));
+  const correction = retryTrace?.qa.correctionPrompt || retryTrace?.qa.violations.join("; ") || "";
+  const generated = await generateBflEditorialImage(buildImageRenderPrompt(editorialPrompt, direction, correction));
+  const qa = normalizeVisualQaScores(await inspectVisual(editorialPrompt, direction, generated.source, recentConcepts));
+  const trace: EditorialAgentTrace = {
+    provider: "black-forest-labs",
+    qaPolicyVersion: 4,
+    directorModel: config.directorModel,
+    imageModel: generated.model,
+    criticModel: config.criticModel,
+    direction,
+    qa,
+    renderAttempts: 1
+  };
+  if (!visualQaPasses(qa)) {
+    throw new EditorialAgentError(`Visual QA rejected the FLUX image after one paid render: ${qa.rationale}`, trace);
+  }
+  return { source: generated.source, trace };
 }

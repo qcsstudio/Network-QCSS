@@ -31,13 +31,21 @@ export function buildAdvisoryLinkedInCommentary(advisory: SecurityAdvisory) {
   const url = trackedUrl(`/security-advisories/${advisory.slug}`, "security-advisory-desk", advisory.slug);
   return composeAdvisoryLinkedInPost(
     {
+      affectedVersions: jsonStrings(advisory.affectedVersions),
+      businessImpact: advisory.businessImpact,
       cves: jsonStrings(advisory.cves),
+      cvssScore: advisory.cvssScore,
+      evidenceChecklist: jsonStrings(advisory.evidenceChecklist),
+      exploitationStatus: advisory.exploitationStatus,
+      fixedVersions: jsonStrings(advisory.fixedVersions),
       products: jsonStrings(advisory.products),
       remediation: advisory.remediation,
       severity: advisory.severity,
       summary: advisory.summary,
+      technicalExplanation: advisory.technicalExplanation,
       title: advisory.title,
-      vendor: advisory.vendor
+      vendor: advisory.vendor,
+      workaround: advisory.workaround || ""
     },
     url
   );
@@ -369,6 +377,84 @@ export async function refreshLinkedInPublication(publicationId: string, replaceM
       } as Prisma.InputJsonValue
     }
   });
+}
+
+export async function rebuildLinkedInPublicationsSince(since: Date, apply = false) {
+  if (Number.isNaN(since.getTime())) throw new Error("A valid LinkedIn rebuild start date is required.");
+  const prisma = getPrismaClient();
+  const publications = await prisma.socialPublication.findMany({
+    where: {
+      channel: "linkedin",
+      OR: [{ publishedAt: { gte: since } }, { createdAt: { gte: since } }]
+    },
+    orderBy: { createdAt: "asc" },
+    take: 20
+  });
+  const outcomes: Array<{
+    id: string;
+    status: string;
+    contentType: string;
+    commentaryLength: number;
+    commentary?: string;
+    externalId?: string;
+  }> = [];
+
+  for (const publication of publications) {
+    const material = await currentPublicationMaterial(publication);
+    if (!apply) {
+      outcomes.push({
+        id: publication.id,
+        status: "preview",
+        contentType: publication.contentType,
+        commentaryLength: material.commentary.length,
+        commentary: material.commentary,
+        externalId: publication.externalId || undefined
+      });
+      continue;
+    }
+
+    if (publication.contentType === "security_advisory") {
+      await ensureEditorialImageForPublication(publication, true);
+    } else {
+      await ensureEditorialImageForPublication(publication, false);
+    }
+
+    if (publication.status === "published" && publication.externalId) {
+      const replaced = await refreshLinkedInPublication(publication.id, true);
+      outcomes.push({
+        id: publication.id,
+        status: "replaced",
+        contentType: publication.contentType,
+        commentaryLength: replaced.commentary.length,
+        externalId: replaced.externalId || undefined
+      });
+      continue;
+    }
+
+    const metadata = metadataObject(publication.metadata);
+    await prisma.socialPublication.update({
+      where: { id: publication.id },
+      data: {
+        attempts: 0,
+        commentary: material.commentary,
+        imageUrl: material.imageUrl,
+        lastError: null,
+        metadata: { ...metadata, imageAlt: material.imageAlt, rebuiltAt: new Date().toISOString() } as Prisma.InputJsonValue,
+        nextAttemptAt: new Date(),
+        sourceUrl: material.sourceUrl,
+        status: "queued"
+      }
+    });
+    const [published] = await processLinkedInQueue(1);
+    outcomes.push({
+      id: publication.id,
+      status: published?.status || "queued",
+      contentType: publication.contentType,
+      commentaryLength: material.commentary.length,
+      externalId: published?.externalId
+    });
+  }
+  return outcomes;
 }
 
 export async function getSocialPublicationSummary() {

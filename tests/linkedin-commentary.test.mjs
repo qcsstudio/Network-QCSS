@@ -61,12 +61,18 @@ test("different editorial topics do not collapse into one caption", () => {
 test("security advisory commentary carries product, CVE, remediation, and decision context", () => {
   const commentary = composeAdvisoryLinkedInPost(
     {
+      affectedVersions: ["7.2 through 7.6"],
+      businessImpact: "An attacker could read sensitive management data and combine the access with another weakness.",
       cves: ["CVE-2026-1234"],
+      evidenceChecklist: ["Confirm whether the management interface is reachable from an untrusted network."],
+      exploitationStatus: "The vendor reports active exploitation in July 2026.",
+      fixedVersions: ["7.6.2 hotfix 4"],
       products: ["Example Router OS"],
       remediation: "Upgrade to the vendor-fixed release and restrict management access until complete.",
       severity: "critical",
-      summary: "A vulnerability could permit an authenticated administrator to gain elevated privileges.",
-      title: "Example Router OS privilege escalation vulnerability",
+      summary: "A static credential permits access to a low-privileged management account.",
+      technicalExplanation: "A static credential embedded in the management interface permits an unauthenticated remote actor to sign in as a low-privileged user.",
+      title: "Example Router OS static credential vulnerability",
       vendor: "Example Networks"
     },
     "https://www.qcsstudio.com/security-advisories/example"
@@ -74,5 +80,10 @@ test("security advisory commentary carries product, CVE, remediation, and decisi
   assert.match(commentary, /CVE-2026-1234/);
   assert.match(commentary, /Example Router OS/);
   assert.match(commentary, /vendor-fixed release/);
-  assert.match(commentary, /which Example Networks assets are affected/i);
+  assert.match(commentary, /active exploitation/i);
+  assert.match(commentary, /static credential embedded in the management interface/i);
+  assert.match(commentary, /7\.6\.2 hotfix 4/i);
+  assert.match(commentary, /review authentication and access logs/i);
+  assert.doesNotMatch(commentary, /Can your team prove/i);
+  assert.ok(commentary.length < 3000);
 });

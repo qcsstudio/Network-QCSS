@@ -129,6 +129,13 @@ function groups() {
           { warning: true }
         ),
         item(
+          "flux-editorial-images",
+          "Premium FLUX weekly article images",
+          isConfigured("BFL_API_KEY"),
+          "BFL_API_KEY (optional; advisories use the zero-cost QCS renderer)",
+          { warning: true }
+        ),
+        item(
           "linkedin-publishing",
           "LinkedIn profile publishing",
           isConfigured("LINKEDIN_CLIENT_ID") &&

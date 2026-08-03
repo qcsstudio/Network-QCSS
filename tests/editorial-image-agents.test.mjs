@@ -120,7 +120,7 @@ test("stored agent traces are validated before a production retry reuses them", 
   assert.equal(restoreEditorialAgentTrace(legacyTrace), null);
 });
 
-test("repeated failed renders request a fresh visual direction", () => {
+test("paid renders are never retried automatically", () => {
   const trace = {
     provider: "openai-direct",
     qaPolicyVersion: 3,
@@ -142,7 +142,7 @@ test("repeated failed renders request a fresh visual direction", () => {
     },
     renderAttempts: 3
   };
-  const retryable = { ...trace, renderAttempts: 2 };
-  assert.equal(traceForEditorialRetry(retryable), retryable);
+  const firstAttempt = { ...trace, renderAttempts: 1 };
+  assert.equal(traceForEditorialRetry(firstAttempt), null);
   assert.equal(traceForEditorialRetry(trace), null);
 });
