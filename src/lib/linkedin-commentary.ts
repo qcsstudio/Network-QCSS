@@ -274,33 +274,42 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
   })();
   const vendorLabel = clip(advisory.vendor, 18);
   const statusLabel = activelyExploited ? "ACTIVELY EXPLOITED" : "SECURITY ADVISORY";
-  const scoreLabel = cvssScore === null ? severityLabel : `${severityLabel}/${cvssScore.toFixed(1)} CVSS`;
-  const riskPrefix = `RISK: ${vendorLabel} ${scoreLabel}; `;
+  const scoreLabel = cvssScore === null ? severityLabel : `${severityLabel}; CVSS ${cvssScore.toFixed(1)}`;
   const riskCore = staticCredential && fmcAdvisory && privilegeChain
-    ? "low-priv FMC access can enable privilege escalation"
+    ? "Low-priv FMC access can escalate privileges."
     : normalize(advisory.businessImpact || advisory.summary);
-  const riskSuffix = noWorkaround ? ". No workaround" : "";
-  const riskLine = `${riskPrefix}${clip(riskCore, staticCredential && fmcAdvisory && privilegeChain ? 80 : noWorkaround ? 58 : 74)}${riskSuffix}`;
-  const actionLine = staticCredential
-    ? "ACT: Inventory; Restrict UI; Patch; Check logs"
-    : "ACT: Inventory; Contain; Patch; Verify state";
-  const fixedLine = fixedTrains.length ? `FIX: ${fixedTrains.join("/")}` : "FIX: Use the vendor-supported release/hotfix";
+  const actions = staticCredential
+    ? ["Inventory", "Restrict UI", "Patch FMC", "Check logs"]
+    : ["Inventory", "Contain", "Apply fix", "Verify state"];
+  const fixedLine = fixedTrains.length ? fixedTrains.join("/") : "Vendor-supported release/hotfix";
   const hashtags = ciscoAdvisory && fmcAdvisory
     ? ["#CiscoSecurity", "#CiscoFMC", "#CVE", "#NetworkSecurity", "#InfoSec"]
     : [visibleHashtag, "#CVE", "#CyberSecurity", "#InfoSec", "#VulnerabilityManagement"];
   const lines = [
-    `${hashtags[0]} ${leadIdentifier}: ${statusLabel}`,
-    riskLine,
-    actionLine,
+    hashtags[0],
+    `${leadIdentifier}: ${statusLabel}`,
+    "",
+    "RISK",
+    `${vendorLabel} ${scoreLabel}`,
+    clip(riskCore, staticCredential && fmcAdvisory && privilegeChain ? 80 : noWorkaround ? 58 : 74),
+    ...(noWorkaround ? ["No workaround."] : []),
+    "",
+    "ACT",
+    ...actions.map((action, index) => `${index + 1} ${action}`),
+    "",
+    "FIX",
     fixedLine,
-    `READ: ${briefUrl}`,
+    "",
+    "READ",
+    briefUrl,
+    "",
     hashtags.slice(1).join(" ")
   ];
   const commentary = lines.join("\n");
   if (commentary.length <= 300) return commentary;
 
   const overflow = commentary.length - 300;
-  const targetRiskLength = Math.max(58, lines[1].length - overflow);
-  lines[1] = `${riskPrefix}${clip(riskCore, Math.max(24, targetRiskLength - riskPrefix.length - riskSuffix.length))}${riskSuffix}`;
+  const riskIndex = lines.indexOf(clip(riskCore, staticCredential && fmcAdvisory && privilegeChain ? 80 : noWorkaround ? 58 : 74));
+  lines[riskIndex] = clip(riskCore, Math.max(18, lines[riskIndex].length - overflow));
   return lines.join("\n").slice(0, 300);
 }
