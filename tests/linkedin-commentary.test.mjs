@@ -90,3 +90,34 @@ test("security advisory commentary exposes the complete decision brief before Li
   assert.equal(commentary.match(/#[A-Za-z0-9]+/g)?.length, 5);
   assert.ok(commentary.length <= 300);
 });
+
+test("FortiGate CAPWAP advisory commentary preserves the trust path and exact fixed releases", () => {
+  const commentary = composeAdvisoryLinkedInPost(
+    {
+      affectedVersions: ["FortiOS 7.6.0 through 7.6.3", "FortiOS 7.4.0 through 7.4.8", "FortiOS 7.2.0 through 7.2.11"],
+      businessImpact: "A compromised managed extension device could execute unauthorized code or commands on the FortiGate.",
+      cves: ["CVE-2025-53844"],
+      cvssScore: 8.3,
+      evidenceChecklist: ["Inventory every managed extension device authenticated to each FortiGate."],
+      exploitationStatus: "Fortinet reports Known Exploited: No.",
+      fixedVersions: ["FortiOS 7.6.4 or later", "FortiOS 7.4.9 or later", "FortiOS 7.2.12 or later"],
+      products: ["FortiGate", "FortiOS", "FortiAP", "FortiExtender", "FortiSwitch"],
+      remediation: "Upgrade each affected FortiGate to the fixed FortiOS release for its train.",
+      severity: "high",
+      summary: "An out-of-bounds write in the FortiOS CAPWAP daemon crosses a trusted managed-device boundary.",
+      technicalExplanation: "An attacker controlling an authenticated FortiAP, FortiExtender, or FortiSwitch can reach execution privileges on FortiGate through CAPWAP.",
+      title: "Fortinet FortiOS CAPWAP Out-of-Bounds Write Vulnerability",
+      vendor: "Fortinet",
+      workaround: "Fortinet documents disabling the CAPWAP daemon when immediate patching is not possible."
+    },
+    "https://www.qcsstudio.com/security-advisories/fortinet-fortios-capwap-out-of-bounds-cve-2025-53844"
+  );
+  assert.match(commentary, /#Fortinet CVE-2025-53844: PATCH PRIORITY/);
+  assert.match(commentary, /Compromised FortiAP\/Extender\/Switch may reach FortiGate execution\./i);
+  assert.match(commentary, /ACT: Map devices; isolate suspects; patch FortiOS; review logs\./);
+  assert.match(commentary, /FIX: 7\.6\.4\/7\.4\.9\/7\.2\.12/);
+  assert.match(commentary, /#FortiGate #FortiOS #CVE #NetworkSecurity/);
+  assert.doesNotMatch(commentary, /ACT: Inventory; contain; apply fix; verify state/i);
+  assert.equal(commentary.match(/#[A-Za-z0-9]+/g)?.length, 5);
+  assert.ok(commentary.length <= 300);
+});

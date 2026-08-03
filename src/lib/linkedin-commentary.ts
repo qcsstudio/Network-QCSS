@@ -247,6 +247,10 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
     !/not specify|no evidence|not known|no active/i.test(exploitation);
   const staticCredential = /static credential|embedded credential|preset username/.test(combined);
   const fmcAdvisory = /firewall management center|\bfmc\b/i.test(advisory.products.join(" "));
+  const fortinetCapwapAdvisory =
+    /\bfortinet\b/i.test(advisory.vendor) &&
+    /\bcapwap\b/i.test(combined) &&
+    /\bfortigate\b|\bfortios\b/i.test(`${title} ${advisory.products.join(" ")}`);
   const noWorkaround = /no (?:available )?workarounds?|no workaround (?:is|was) available/i.test(advisory.workaround || advisory.remediation);
   const scoreFromText = `${advisory.technicalExplanation || ""} ${advisory.summary}`.match(
     /CVSS(?: base)? score(?: is)?\s+(10(?:\.0)?|[0-9](?:\.[0-9])?)/i
@@ -255,7 +259,7 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
   const fixedTrains = [
     ...new Set(
       (advisory.fixedVersions || [])
-        .map((entry) => entry.match(/\b\d{1,2}\.\d+\b/)?.[0] || "")
+        .map((entry) => entry.match(fortinetCapwapAdvisory ? /\b\d{1,2}(?:\.\d+){2}\b/ : /\b\d{1,2}\.\d+\b/)?.[0] || "")
         .filter(Boolean)
     )
   ].slice(0, 6);
@@ -273,17 +277,23 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
     return shortCode ? `${conciseOrigin}/a/${shortCode}` : `${conciseOrigin}/security-advisories`;
   })();
   const vendorLabel = clip(advisory.vendor, 18);
-  const statusLabel = activelyExploited ? "ACTIVELY EXPLOITED" : "SECURITY ADVISORY";
+  const statusLabel = activelyExploited ? "ACTIVELY EXPLOITED" : fortinetCapwapAdvisory ? "PATCH PRIORITY" : "SECURITY ADVISORY";
   const scoreLabel = cvssScore === null ? severityLabel : `${severityLabel}; CVSS ${cvssScore.toFixed(1)}`;
   const riskCore = staticCredential && fmcAdvisory && privilegeChain
     ? "Low-priv FMC access can escalate privileges."
+    : fortinetCapwapAdvisory
+      ? "Compromised FortiAP/Extender/Switch may reach FortiGate execution."
     : normalize(advisory.businessImpact || advisory.summary);
   const actions = staticCredential
     ? ["Inventory", "Restrict UI", "Patch FMC", "Check logs"]
+    : fortinetCapwapAdvisory
+      ? ["Map devices", "Isolate suspects", "Patch FortiOS", "Review logs"]
     : ["Inventory", "Contain", "Apply fix", "Verify state"];
   const fixedLine = fixedTrains.length ? fixedTrains.join("/") : "Vendor-supported release/hotfix";
   const hashtags = ciscoAdvisory && fmcAdvisory
     ? ["#CiscoSecurity", "#CiscoFMC", "#CVE", "#NetworkSecurity", "#InfoSec"]
+    : fortinetCapwapAdvisory
+      ? ["#Fortinet", "#FortiGate", "#FortiOS", "#CVE", "#NetworkSecurity"]
     : [visibleHashtag, "#CVE", "#CyberSecurity", "#InfoSec", "#VulnerabilityManagement"];
   const riskDetail = `${clip(riskCore, staticCredential && fmcAdvisory && privilegeChain ? 80 : noWorkaround ? 58 : 74)}${noWorkaround ? " No workaround." : ""}`;
   const actionSummary = actions
@@ -292,7 +302,7 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
   const lines = [
     `${hashtags[0]} ${leadIdentifier}: ${statusLabel}`,
     "",
-    `RISK: ${vendorLabel} ${scoreLabel}`,
+    `RISK: ${fortinetCapwapAdvisory ? scoreLabel : `${vendorLabel} ${scoreLabel}`}`,
     riskDetail,
     "",
     `ACT: ${actionSummary}.`,
