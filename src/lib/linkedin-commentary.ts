@@ -282,8 +282,8 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
   const riskSuffix = noWorkaround ? ". No workaround" : "";
   const riskLine = `${riskPrefix}${clip(riskCore, staticCredential && fmcAdvisory && privilegeChain ? 80 : noWorkaround ? 58 : 74)}${riskSuffix}`;
   const actionLine = staticCredential
-    ? "ACT: Inventory | Restrict UI | Patch | Check logs"
-    : "ACT: Inventory | Contain | Patch | Verify state";
+    ? "ACT: Inventory; Restrict UI; Patch; Check logs"
+    : "ACT: Inventory; Contain; Patch; Verify state";
   const fixedLine = fixedTrains.length ? `FIX: ${fixedTrains.join("/")}` : "FIX: Use the vendor-supported release/hotfix";
   const hashtags = ciscoAdvisory && fmcAdvisory
     ? ["#CiscoSecurity", "#CiscoFMC", "#CVE", "#NetworkSecurity", "#InfoSec"]

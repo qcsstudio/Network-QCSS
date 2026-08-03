@@ -82,7 +82,8 @@ test("security advisory commentary exposes the complete decision brief before Li
   assert.match(commentary, /#CiscoSecurity CVE-2026-1234: ACTIVELY EXPLOITED/);
   assert.match(commentary, /actively exploited/i);
   assert.match(commentary, /RISK: Cisco Critical\/5\.3 CVSS; low-priv FMC access can enable privilege escalation\. No workaround/);
-  assert.match(commentary, /ACT: Inventory \| Restrict UI \| Patch \| Check logs/);
+  assert.match(commentary, /ACT: Inventory; Restrict UI; Patch; Check logs/);
+  assert.doesNotMatch(commentary, /\|/);
   assert.match(commentary, /FIX: 7\.6/);
   assert.match(commentary, /READ: https:\/\/qcsstudio\.com\/a\/1234/);
   assert.match(commentary, /#NetworkSecurity/);
