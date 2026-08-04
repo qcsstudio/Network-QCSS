@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import { ShieldCheck } from "lucide-react";
+import { AdminLoginForm } from "@/components/admin-login-form";
 import { adminCredentialsConfigured, getAdminSession } from "@/lib/admin-auth";
 import { redirect } from "next/navigation";
 
@@ -25,29 +28,38 @@ export default async function AdminLoginPage({
 
   return (
     <main className="admin-login-page">
-      <section className="page-hero">
-        <p className="eyebrow">Private layer</p>
-        <h1>Admin login</h1>
-        <p>Access lead intelligence, assessment data, event activity, and export tools.</p>
-      </section>
-      <section className="section auth-section">
-        <form className="lead-form auth-form" method="post" action="/api/admin/login">
-          <label>
-            Admin email
-            <input name="email" type="email" required placeholder="admin@network-qcss.local" />
-          </label>
-          <label>
-            Password
-            <input name="password" type="password" required placeholder="Admin password" />
-          </label>
-          <button className="button primary" type="submit">
-            Sign in
-          </button>
-          {error ? <p className="form-note error">{errorMessage}</p> : null}
-          {!credentialsReady ? (
-            <p className="form-note error">Production admin credentials have not been configured.</p>
-          ) : null}
-        </form>
+      <section aria-labelledby="admin-login-title" className="admin-login-shell">
+        <div className="admin-login-visual">
+          <Image
+            alt="QuantumCrafters Studio Pvt. Ltd."
+            className="admin-login-logo"
+            height={100}
+            priority
+            src="/brand/quantumcrafters-logo.png"
+            width={328}
+          />
+          <div className="admin-login-copy">
+            <span className="admin-login-security"><ShieldCheck aria-hidden="true" size={18} /> Secure operator portal</span>
+            <p className="eyebrow">QCS Network Command</p>
+            <h1 id="admin-login-title">Private operations console.</h1>
+            <p>Network intelligence, publishing, lead operations, and VerifyGrid in one controlled workspace.</p>
+          </div>
+          <div className="admin-login-visual-status">
+            <span><i aria-hidden="true" /> Administrative actions are audited</span>
+            <strong>QuantumCrafters Studio Private Limited</strong>
+          </div>
+        </div>
+
+        <div className="admin-login-access">
+          <div className="admin-login-heading">
+            <span className="admin-login-shield"><ShieldCheck aria-hidden="true" size={24} /></span>
+            <p className="eyebrow">Authorized access</p>
+            <h2>Sign in</h2>
+            <p>Continue to the QCS administration workspace.</p>
+          </div>
+          <AdminLoginForm credentialsReady={credentialsReady} errorMessage={errorMessage} showError={Boolean(error)} />
+          <p className="admin-login-policy">Protected by rate limiting, secure sessions, and audit logging.</p>
+        </div>
       </section>
     </main>
   );
