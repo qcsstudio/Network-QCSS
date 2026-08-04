@@ -5,10 +5,11 @@ import {
   createContentPost,
   createResearchedContentPostFromRadar,
   importBuiltInContentPosts,
-  listContentPosts,
+  searchContentPosts,
   starterContentPost,
   type RadarDraftInput
 } from "@/lib/content-posts";
+import { normalizeContentPostListQuery } from "@/lib/content-admin-domain";
 import { rateLimit } from "@/lib/rate-limit";
 import { requestContext } from "@/lib/security";
 import { createAuditLog } from "@/lib/store";
@@ -26,7 +27,9 @@ async function adminActor(request: Request) {
 export async function GET(request: Request) {
   if (!isAdminRequest(request)) return jsonError("Unauthorized", 401);
   try {
-    return NextResponse.json({ ok: true, posts: await listContentPosts() }, { headers: noStoreHeaders });
+    const params = Object.fromEntries(new URL(request.url).searchParams.entries());
+    const result = await searchContentPosts(normalizeContentPostListQuery(params));
+    return NextResponse.json({ ok: true, ...result }, { headers: noStoreHeaders });
   } catch (error) {
     console.error("Unable to list content posts.", error);
     return jsonError("Content studio storage is unavailable.", 503);

@@ -1,15 +1,21 @@
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { blogPosts, type BlogPost } from "@/lib/blog";
+import {
+  assertContentPostAction,
+  contentPostStatuses,
+  emptyContentPostStatusCounts,
+  type ContentPostListQuery,
+  type ContentPostStatus
+} from "@/lib/content-admin-domain";
 import { buildRadarPublicationPost, type RadarDraftInput } from "@/lib/content-radar-domain";
 import { createResearchedBlog } from "@/lib/editorial-content-agents";
 import { isTrustedEditorialUrl } from "@/lib/editorial-source-policy";
 import { getPrismaClient } from "@/lib/prisma";
 
 export type { RadarDraftInput } from "@/lib/content-radar-domain";
-
-export const contentPostStatuses = ["draft", "approved", "published", "archived", "deleted"] as const;
-export type ContentPostStatus = (typeof contentPostStatuses)[number];
+export { contentPostStatuses } from "@/lib/content-admin-domain";
+export type { ContentPostListQuery, ContentPostStatus } from "@/lib/content-admin-domain";
 
 const internalLinkSchema = z.object({
   label: z.string().trim().min(2).max(140),
@@ -108,6 +114,15 @@ export type ContentPostRecord = {
     actor: string;
     createdAt: string;
   }[];
+};
+
+export type ContentPostListResult = {
+  counts: Record<ContentPostStatus, number>;
+  page: number;
+  pageSize: number;
+  posts: ContentPostRecord[];
+  total: number;
+  totalPages: number;
 };
 
 function inputJson(value: unknown) {
@@ -264,6 +279,60 @@ export async function listContentPosts() {
   return records.map(mapContentPost);
 }
 
+export async function searchContentPosts(query: ContentPostListQuery): Promise<ContentPostListResult> {
+  const prisma = getPrismaClient();
+  const filters: Prisma.ContentPostWhereInput[] = [];
+  if (query.status !== "all") filters.push({ status: query.status });
+  if (query.format !== "all") {
+    filters.push({ content: { path: ["contentType"], equals: query.format } });
+  }
+  if (query.query) {
+    filters.push({
+      OR: [
+        { title: { contains: query.query, mode: "insensitive" } },
+        { slug: { contains: query.query, mode: "insensitive" } },
+        { sourceUrl: { contains: query.query, mode: "insensitive" } }
+      ]
+    });
+  }
+  const where: Prisma.ContentPostWhereInput = filters.length ? { AND: filters } : {};
+  const orderBy: Prisma.ContentPostOrderByWithRelationInput[] =
+    query.sort === "updated-asc"
+      ? [{ updatedAt: "asc" }]
+      : query.sort === "published-desc"
+        ? [{ publishedAt: "desc" }, { updatedAt: "desc" }]
+        : query.sort === "title-asc"
+          ? [{ title: "asc" }]
+          : [{ updatedAt: "desc" }];
+  const [total, groupedCounts] = await Promise.all([
+    prisma.contentPost.count({ where }),
+    prisma.contentPost.groupBy({ by: ["status"], _count: { _all: true } })
+  ]);
+  const totalPages = Math.max(1, Math.ceil(total / query.pageSize));
+  const page = Math.min(query.page, totalPages);
+  const records = await prisma.contentPost.findMany({
+    where,
+    orderBy,
+    skip: (page - 1) * query.pageSize,
+    take: query.pageSize,
+    include: { revisions: { orderBy: { version: "desc" }, take: 8 } }
+  });
+  const counts = emptyContentPostStatusCounts();
+  for (const group of groupedCounts) {
+    if (contentPostStatuses.includes(group.status as ContentPostStatus)) {
+      counts[group.status as ContentPostStatus] = group._count._all;
+    }
+  }
+  return {
+    counts,
+    page,
+    pageSize: query.pageSize,
+    posts: records.map(mapContentPost),
+    total,
+    totalPages
+  };
+}
+
 export async function importBuiltInContentPosts(actor: string) {
   const prisma = getPrismaClient();
   const existing = await prisma.contentPost.findMany({
@@ -371,6 +440,7 @@ export async function updateContentPost(id: string, contentValue: unknown, sourc
   const prisma = getPrismaClient();
   const existing = await prisma.contentPost.findUnique({ where: { id } });
   if (!existing) return null;
+  assertContentPostAction(parseStatus(existing.status), "save");
   await prisma.contentPost.update({
     where: { id },
     data: {
@@ -381,6 +451,7 @@ export async function updateContentPost(id: string, contentValue: unknown, sourc
       status: "draft",
       approvedAt: null,
       approvedBy: null,
+      publishedAt: null,
       qualityScore: null
     }
   });
@@ -391,6 +462,7 @@ export async function updateContentPost(id: string, contentValue: unknown, sourc
 export async function regenerateRadarContentPost(id: string, actor: string) {
   const existing = await getContentPost(id);
   if (!existing) return null;
+  assertContentPostAction(existing.status, "regenerate");
   const source = existing.content.sources[0];
   const primarySourceUrl = existing.sourceUrl || source?.url || "https://www.qcsstudio.com/resources";
   const internalLinks = [
@@ -424,6 +496,7 @@ export async function regenerateRadarContentPost(id: string, actor: string) {
       status: "draft",
       approvedAt: null,
       approvedBy: null,
+      publishedAt: null,
       qualityScore: researched.qualityScore,
       researchTrace: inputJson(researched.trace)
     }
@@ -516,6 +589,7 @@ export async function approveContentPost(id: string, actor: string) {
   const prisma = getPrismaClient();
   const existing = await getContentPost(id);
   if (!existing) return null;
+  assertContentPostAction(existing.status, "approve");
   const issues = publicationIssues(existing.content);
   if (issues.length) throw new Error(issues.join(" "));
   await prisma.contentPost.update({
@@ -530,7 +604,7 @@ export async function publishContentPost(id: string, actor: string) {
   const prisma = getPrismaClient();
   const existing = await getContentPost(id);
   if (!existing) return null;
-  if (existing.status !== "approved") throw new Error("Approve the reviewed post before publishing it.");
+  assertContentPostAction(existing.status, "publish");
   const issues = publicationIssues(existing.content);
   if (issues.length) throw new Error(issues.join(" "));
   const today = new Date().toISOString().slice(0, 10);
@@ -547,6 +621,7 @@ export async function archiveContentPost(id: string, actor: string) {
   const prisma = getPrismaClient();
   const existing = await getContentPost(id);
   if (!existing) return null;
+  assertContentPostAction(existing.status, "archive");
   await prisma.contentPost.update({ where: { id }, data: { status: "archived" } });
   await addRevision(id, existing.content, "archived", actor);
   return getContentPost(id);
@@ -556,7 +631,8 @@ export async function deleteContentPost(id: string, actor: string) {
   const prisma = getPrismaClient();
   const existing = await getContentPost(id);
   if (!existing) return null;
-  await prisma.contentPost.update({ where: { id }, data: { status: "deleted", approvedAt: null, approvedBy: null } });
+  assertContentPostAction(existing.status, "delete");
+  await prisma.contentPost.update({ where: { id }, data: { status: "deleted", approvedAt: null, approvedBy: null, publishedAt: null } });
   await addRevision(id, existing.content, "deleted", actor);
   return getContentPost(id);
 }
@@ -565,8 +641,22 @@ export async function restoreContentPost(id: string, actor: string) {
   const prisma = getPrismaClient();
   const existing = await getContentPost(id);
   if (!existing) return null;
-  await prisma.contentPost.update({ where: { id }, data: { status: "draft", approvedAt: null, approvedBy: null } });
+  assertContentPostAction(existing.status, "restore");
+  await prisma.contentPost.update({ where: { id }, data: { status: "draft", approvedAt: null, approvedBy: null, publishedAt: null } });
   await addRevision(id, existing.content, "restored", actor);
+  return getContentPost(id);
+}
+
+export async function moveContentPostToDraft(id: string, actor: string) {
+  const prisma = getPrismaClient();
+  const existing = await getContentPost(id);
+  if (!existing) return null;
+  assertContentPostAction(existing.status, "draft");
+  await prisma.contentPost.update({
+    where: { id },
+    data: { status: "draft", approvedAt: null, approvedBy: null, publishedAt: null }
+  });
+  await addRevision(id, existing.content, "moved_to_draft", actor);
   return getContentPost(id);
 }
 

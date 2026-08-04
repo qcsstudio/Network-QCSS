@@ -7,11 +7,11 @@ import {
   archiveContentPost,
   deleteContentPost,
   getContentPost,
+  moveContentPostToDraft,
   publishContentPost,
   regenerateRadarContentPost,
   restoreContentPost,
-  updateContentPost,
-  upgradePublishedContentPost
+  updateContentPost
 } from "@/lib/content-posts";
 import { rateLimit } from "@/lib/rate-limit";
 import { requestContext } from "@/lib/security";
@@ -52,28 +52,31 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   try {
     const payload = body.data as { action?: string; content?: unknown; sourceUrl?: string };
-    const action = payload.action || "save";
+    const action = String(payload.action || "save");
     const post =
       action === "approve"
         ? await approveContentPost(id, actor)
         : action === "publish"
           ? await publishContentPost(id, actor)
-          : action === "upgrade"
-            ? await upgradePublishedContentPost(id, actor)
-          : action === "regenerate"
-            ? await regenerateRadarContentPost(id, actor)
-            : action === "archive"
-              ? await archiveContentPost(id, actor)
-              : action === "restore"
-                ? await restoreContentPost(id, actor)
-                : await updateContentPost(id, payload.content, String(payload.sourceUrl || ""), actor);
+          : action === "draft"
+            ? await moveContentPostToDraft(id, actor)
+            : action === "regenerate"
+              ? await regenerateRadarContentPost(id, actor)
+              : action === "archive"
+                ? await archiveContentPost(id, actor)
+                : action === "restore"
+                  ? await restoreContentPost(id, actor)
+                  : action === "save"
+                    ? await updateContentPost(id, payload.content, String(payload.sourceUrl || ""), actor)
+                    : undefined;
+    if (post === undefined) return jsonError("Unsupported content workflow action.", 400);
     if (!post) return jsonError("Post not found.", 404);
 
     await createAuditLog(
       { action: `content.post_${action}`, actor, target: id, metadata: { slug: post.slug, status: post.status } },
       await requestContext()
     );
-    if (action === "publish" || action === "upgrade" || action === "archive") {
+    if (action === "publish" || action === "archive" || action === "draft") {
       revalidatePath("/resources");
       revalidatePath(`/resources/${post.slug}`);
       revalidatePath("/sitemap.xml");

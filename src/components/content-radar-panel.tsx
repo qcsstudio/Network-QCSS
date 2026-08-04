@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Archive, BookOpen, Clipboard, ExternalLink, Eye, FilePlus2, FileText, RefreshCw, RotateCcw, Save, ShieldCheck, Sparkles, Trash2, Upload } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { Archive, BookOpen, ChevronLeft, ChevronRight, Clipboard, ExternalLink, Eye, FilePenLine, FilePlus2, FileText, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Sparkles, Trash2, Upload } from "lucide-react";
 import type { BlogPost } from "@/lib/blog";
+import { contentPostStatuses, type ContentPostStatus } from "@/lib/content-admin-domain";
 
 type RadarDraft = {
   slot: string;
@@ -51,7 +52,7 @@ export type ContentPostRecord = {
   id: string;
   slug: string;
   title: string;
-  status: "draft" | "approved" | "published" | "archived" | "deleted";
+  status: ContentPostStatus;
   content: BlogPost;
   sourceUrl: string;
   approvedBy: string;
@@ -64,6 +65,32 @@ export type ContentPostRecord = {
 
 type LinkItem = { label: string; href: string };
 type SourceItem = { label: string; url: string };
+type ContentKindFilter = "all" | "blog" | "resource";
+type ContentStatusFilter = "all" | ContentPostStatus;
+type ContentSort = "updated-desc" | "updated-asc" | "published-desc" | "title-asc";
+type ContentListResponse = {
+  posts?: ContentPostRecord[];
+  counts?: Record<ContentPostStatus, number>;
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  totalPages?: number;
+  error?: string;
+};
+
+const statusLabels: Record<ContentPostStatus, string> = {
+  approved: "Approved",
+  archived: "Archived",
+  deleted: "Deleted",
+  draft: "Draft",
+  published: "Published"
+};
+
+function initialStatusCounts(posts: ContentPostRecord[]) {
+  const counts = Object.fromEntries(contentPostStatuses.map((item) => [item, 0])) as Record<ContentPostStatus, number>;
+  for (const post of posts) counts[post.status] += 1;
+  return counts;
+}
 
 function draftText(draft: RadarDraft) {
   return [
@@ -99,18 +126,20 @@ function LineListField({ label, value, onChange, hint }: { label: string; value:
 }
 
 function LinkListEditor({
+  disabled = false,
   label,
   items,
   pathKey,
   onChange
 }: {
+  disabled?: boolean;
   label: string;
   items: (LinkItem | SourceItem)[];
   pathKey: "href" | "url";
   onChange: (items: (LinkItem | SourceItem)[]) => void;
 }) {
   return (
-    <fieldset className="content-array-editor">
+    <fieldset className="content-array-editor" disabled={disabled}>
       <legend>{label}</legend>
       {items.map((item, index) => (
         <div className="content-pair-row" key={`${pathKey}-${index}`}>
@@ -158,14 +187,51 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
   const [sourceUrl, setSourceUrl] = useState("");
   const [status, setStatus] = useState("Content Studio is ready. Scan sources, review a complete article, or continue a saved draft.");
   const [busy, setBusy] = useState("");
-  const [contentFilter, setContentFilter] = useState<"all" | "blog" | "resource">("all");
+  const [listLoading, setListLoading] = useState(false);
+  const [contentFilter, setContentFilter] = useState<ContentKindFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<ContentStatusFilter>("all");
+  const [sort, setSort] = useState<ContentSort>("updated-desc");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(12);
+  const [total, setTotal] = useState(initialPosts.length);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusCounts, setStatusCounts] = useState(() => initialStatusCounts(initialPosts));
 
-  async function loadPosts() {
-    const response = await fetch("/api/admin/content-posts", { cache: "no-store" });
-    const result = (await response.json()) as { posts?: ContentPostRecord[]; error?: string };
-    if (!response.ok || !result.posts) throw new Error(result.error || "Unable to load the editorial queue.");
-    setPosts(result.posts);
-  }
+  const loadPosts = useCallback(async (signal?: AbortSignal) => {
+    setListLoading(true);
+    try {
+      const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize), sort });
+      if (searchQuery) params.set("q", searchQuery);
+      if (contentFilter !== "all") params.set("format", contentFilter);
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      const response = await fetch(`/api/admin/content-posts?${params.toString()}`, { cache: "no-store", signal });
+      const result = (await response.json()) as ContentListResponse;
+      if (!response.ok || !result.posts) throw new Error(result.error || "Unable to load the editorial queue.");
+      setPosts(result.posts);
+      setTotal(result.total ?? result.posts.length);
+      setTotalPages(result.totalPages || 1);
+      if (result.counts) setStatusCounts(result.counts);
+      if (result.page && result.page !== page) setPage(result.page);
+    } finally {
+      if (!signal?.aborted) setListLoading(false);
+    }
+  }, [contentFilter, page, pageSize, searchQuery, sort, statusFilter]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => {
+      loadPosts(controller.signal).catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setStatus(error instanceof Error ? error.message : "Unable to load the editorial queue.");
+      });
+    }, 0);
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [loadPosts]);
 
   async function scan() {
     setBusy("scan");
@@ -218,7 +284,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
       });
       const result = (await response.json()) as { imported?: number; posts?: ContentPostRecord[]; error?: string };
       if (!response.ok || !result.posts) throw new Error(result.error || "Unable to synchronize the public site library.");
-      setPosts(result.posts);
+      await loadPosts();
       setStatus(result.imported ? `${result.imported} public article(s) imported. Every live guide is now manageable here.` : "The public site library is already fully managed.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Unable to synchronize the public site library.");
@@ -235,8 +301,16 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     window.setTimeout(() => document.querySelector("#content-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
-  async function mutate(action: "save" | "regenerate" | "upgrade" | "approve" | "publish" | "archive" | "restore") {
+  async function mutate(action: "save" | "regenerate" | "approve" | "publish" | "archive" | "restore" | "draft") {
     if (!selected || !draft) return;
+    if (action === "draft" && selected.status === "published") {
+      const confirmed = window.confirm("Move this published article to draft? It will be removed from the public blog and sitemap until it is approved and published again.");
+      if (!confirmed) return;
+    }
+    if (action === "archive" && selected.status === "published") {
+      const confirmed = window.confirm("Archive this published article? It will be removed from the public blog and sitemap.");
+      if (!confirmed) return;
+    }
     setBusy(action);
     try {
       const response = await fetch(`/api/admin/content-posts/${selected.id}`, {
@@ -246,16 +320,80 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
       });
       const result = (await response.json()) as { post?: ContentPostRecord; error?: string };
       if (!response.ok || !result.post) throw new Error(result.error || `Unable to ${action} the article.`);
-      setSelected(result.post);
-      setDraft(structuredClone(result.post.content));
-      setSourceUrl(result.post.sourceUrl);
       await loadPosts();
+      if (action === "publish" || action === "archive") {
+        setSelected(null);
+        setDraft(null);
+        setSourceUrl("");
+      } else {
+        setSelected(result.post);
+        setDraft(structuredClone(result.post.content));
+        setSourceUrl(result.post.sourceUrl);
+      }
       setStatus(`${result.post.title} is now ${result.post.status}.`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : `Unable to ${action} the article.`);
     } finally {
       setBusy("");
     }
+  }
+
+  async function transitionPost(
+    post: ContentPostRecord,
+    action: "approve" | "publish" | "archive" | "restore" | "draft",
+    options: { openEditor?: boolean } = {}
+  ) {
+    if (action === "draft" && post.status === "published") {
+      const confirmed = window.confirm("Move this published article to draft? It will be removed from the public blog and sitemap until it is approved and published again.");
+      if (!confirmed) return;
+    }
+    if (action === "archive" && post.status === "published") {
+      const confirmed = window.confirm("Archive this published article? It will be removed from the public blog and sitemap.");
+      if (!confirmed) return;
+    }
+    const operation = `${action}-${post.id}`;
+    setBusy(operation);
+    try {
+      const response = await fetch(`/api/admin/content-posts/${post.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action })
+      });
+      const result = (await response.json()) as { post?: ContentPostRecord; error?: string };
+      if (!response.ok || !result.post) throw new Error(result.error || `Unable to ${action} the article.`);
+      await loadPosts();
+      if (options.openEditor || selected?.id === post.id) {
+        setSelected(result.post);
+        setDraft(structuredClone(result.post.content));
+        setSourceUrl(result.post.sourceUrl);
+      }
+      if (options.openEditor) {
+        window.setTimeout(() => document.querySelector("#content-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+      }
+      setStatus(
+        action === "draft" || action === "restore"
+          ? `${result.post.title} is now an editable draft.`
+          : action === "publish"
+            ? `${result.post.title} is published. The public blog and LinkedIn delivery queue were updated.`
+            : `${result.post.title} is now ${result.post.status}.`
+      );
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : `Unable to ${action} the article.`);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function openForEditing(post: ContentPostRecord) {
+    if (post.status === "draft") {
+      editPost(post);
+      return;
+    }
+    if (post.status === "deleted" || post.status === "archived") {
+      await transitionPost(post, "restore", { openEditor: true });
+      return;
+    }
+    await transitionPost(post, "draft", { openEditor: true });
   }
 
   async function deletePost(post: ContentPostRecord) {
@@ -310,8 +448,29 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     setDraft((current) => (current ? { ...current, slug, image: `/resources/${slug}/visual` } : current));
   }
 
-  const filteredPosts = posts.filter((post) => contentFilter === "all" || (post.content.contentType || "blog") === contentFilter);
+  const allStatusCount = useMemo(() => contentPostStatuses.reduce((sum, item) => sum + statusCounts[item], 0), [statusCounts]);
+  const rangeStart = total ? (page - 1) * pageSize + 1 : 0;
+  const rangeEnd = total ? Math.min(page * pageSize, total) : 0;
   const needsRegeneration = Boolean(draft && /draft required|replace this|todo|placeholder/i.test(JSON.stringify(draft)));
+
+  function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const next = String(form.get("q") || "").replace(/\s+/g, " ").trim();
+    setSearchInput(next);
+    setPage(1);
+    if (next === searchQuery && page === 1) loadPosts().catch((error) => setStatus(error instanceof Error ? error.message : "Unable to search content."));
+    else setSearchQuery(next);
+  }
+
+  function resetQueue() {
+    setSearchInput("");
+    setSearchQuery("");
+    setContentFilter("all");
+    setStatusFilter("all");
+    setSort("updated-desc");
+    setPage(1);
+  }
 
   return (
     <section className="admin-panel content-radar-panel" id="content-studio">
@@ -322,8 +481,8 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
           <p>Radar findings become researched, editable articles. Every Monday and Thursday the scheduler prepares one evidence-grounded draft for your approval.</p>
         </div>
         <div className="content-action-row">
-          <button className="button secondary" disabled={Boolean(busy)} onClick={() => loadPosts().catch((error) => setStatus(String(error)))} type="button">
-            <RefreshCw aria-hidden="true" size={17} /> Refresh
+          <button className="button secondary" disabled={Boolean(busy) || listLoading} onClick={() => loadPosts().catch((error) => setStatus(String(error)))} type="button">
+            <RefreshCw aria-hidden="true" size={17} /> {listLoading ? "Refreshing..." : "Refresh"}
           </button>
           <button className="button primary" disabled={Boolean(busy)} onClick={scan} type="button">
             <RefreshCw aria-hidden="true" size={17} /> {busy === "scan" ? "Scanning..." : "Scan topics"}
@@ -345,51 +504,124 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
       <div className="content-queue-header">
         <div>
           <h3>Editorial queue</h3>
-          <p>{posts.length} saved article(s), with admin approval and revision history.</p>
+          <p>Search the complete library, review status, and move every article through a controlled publishing workflow.</p>
         </div>
-        <div className="content-filter-tabs" aria-label="Filter editorial queue">
-          {(["all", "blog", "resource"] as const).map((filter) => (
-            <button aria-pressed={contentFilter === filter} key={filter} onClick={() => setContentFilter(filter)} type="button">{filter}</button>
-          ))}
+        <div className="content-queue-count">
+          <strong>{total}</strong>
+          <span>{total === 1 ? "matching item" : "matching items"}</span>
         </div>
       </div>
 
-      <div className="content-queue">
-        {filteredPosts.length ? (
-          filteredPosts.map((post) => (
+      <div aria-label="Filter by publication status" className="content-status-tabs" role="group">
+        <button aria-pressed={statusFilter === "all"} disabled={listLoading} onClick={() => { setStatusFilter("all"); setPage(1); }} type="button">
+          <span>All</span><strong>{allStatusCount}</strong>
+        </button>
+        {contentPostStatuses.map((item) => (
+          <button aria-pressed={statusFilter === item} disabled={listLoading} key={item} onClick={() => { setStatusFilter(item); setPage(1); }} type="button">
+            <span>{statusLabels[item]}</span><strong>{statusCounts[item]}</strong>
+          </button>
+        ))}
+      </div>
+
+      <form className="content-queue-toolbar" onSubmit={submitSearch} role="search">
+        <label className="content-queue-search">
+          <span>Search articles</span>
+          <div>
+            <Search aria-hidden="true" size={17} />
+            <input name="q" onChange={(event) => setSearchInput(event.target.value)} placeholder="Title, slug, vendor, or source URL" type="search" value={searchInput} />
+          </div>
+        </label>
+        <label>
+          <span>Content type</span>
+          <select onChange={(event) => { setContentFilter(event.target.value as ContentKindFilter); setPage(1); }} value={contentFilter}>
+            <option value="all">Blogs and resources</option>
+            <option value="blog">Blogs</option>
+            <option value="resource">Resources</option>
+          </select>
+        </label>
+        <label>
+          <span>Sort by</span>
+          <select onChange={(event) => { setSort(event.target.value as ContentSort); setPage(1); }} value={sort}>
+            <option value="updated-desc">Recently updated</option>
+            <option value="updated-asc">Oldest updated</option>
+            <option value="published-desc">Recently published</option>
+            <option value="title-asc">Title A-Z</option>
+          </select>
+        </label>
+        <button className="button primary compact-button" disabled={Boolean(busy) || listLoading} type="submit"><Search aria-hidden="true" size={16} /> {listLoading ? "Loading..." : "Search"}</button>
+        <button className="icon-button" disabled={Boolean(busy) || listLoading} onClick={resetQueue} title="Reset queue filters" type="button"><RotateCcw aria-hidden="true" size={17} /></button>
+      </form>
+
+      <div className="content-queue-result-row" aria-live="polite">
+        <span>{listLoading ? "Refreshing editorial queue..." : total ? `Showing ${rangeStart}-${rangeEnd} of ${total}` : "No matching content"}</span>
+        {searchQuery ? <span>Search: {searchQuery}</span> : null}
+      </div>
+
+      <div aria-busy={listLoading} className="content-queue">
+        {posts.length ? (
+          posts.map((post) => (
             <article className="content-queue-card" key={post.id}>
-              <div>
+              <div className="content-queue-card-main">
                 <div className="content-card-statuses">
                   <span className={`status-pill content-status-${post.status}`}>{post.status}</span>
                   <span className="status-pill content-kind-pill">{post.content.contentType || "blog"}</span>
                   {post.qualityScore !== null ? <span className="status-pill content-kind-pill">QA {post.qualityScore}</span> : <span className="status-pill content-kind-pill">manual review</span>}
                 </div>
                 <h4>{post.title}</h4>
-                <p>Updated {new Date(post.updatedAt).toLocaleString("en-IN")} | Revision {post.revisions[0]?.version || 1}</p>
+                <p className="content-queue-excerpt">{post.content.excerpt}</p>
+                <dl className="content-queue-facts">
+                  <div><dt>Category</dt><dd>{post.content.category}</dd></div>
+                  <div><dt>Updated</dt><dd>{new Date(post.updatedAt).toLocaleString("en-IN")}</dd></div>
+                  <div><dt>Revision</dt><dd>{post.revisions[0]?.version || 1}</dd></div>
+                  <div><dt>Slug</dt><dd>{post.slug}</dd></div>
+                </dl>
               </div>
-              <div className="content-action-row">
-                {post.status === "deleted" ? (
-                  <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => restorePost(post)} type="button">
-                    <RotateCcw aria-hidden="true" size={16} /> Restore
-                  </button>
-                ) : (
+              <div className="content-queue-actions">
+                {post.status === "draft" ? (
                   <>
-                    <button className="button secondary compact-button" onClick={() => editPost(post)} type="button">
-                      <Save aria-hidden="true" size={16} /> Edit
-                    </button>
-                    <a className="icon-button" href={`/admin/content/preview/${post.id}`} rel="noreferrer" target="_blank" title="Preview article">
-                      <Eye aria-hidden="true" size={18} />
-                    </a>
-                    <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => deletePost(post)} title={`Delete ${post.content.contentType || "blog"}`} type="button"><Trash2 aria-hidden="true" size={18} /></button>
+                    <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => editPost(post)} type="button"><FilePenLine aria-hidden="true" size={16} /> Edit draft</button>
+                    <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => transitionPost(post, "approve")} type="button"><ShieldCheck aria-hidden="true" size={16} /> Approve</button>
                   </>
-                )}
+                ) : null}
+                {post.status === "approved" ? (
+                  <>
+                    <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => openForEditing(post)} type="button"><FilePenLine aria-hidden="true" size={16} /> Edit as draft</button>
+                    <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => transitionPost(post, "publish")} type="button"><Upload aria-hidden="true" size={16} /> Publish</button>
+                  </>
+                ) : null}
+                {post.status === "published" ? (
+                  <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => transitionPost(post, "draft")} type="button"><FilePenLine aria-hidden="true" size={16} /> Move to draft</button>
+                ) : null}
+                {post.status === "archived" || post.status === "deleted" ? (
+                  <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => transitionPost(post, "restore", { openEditor: true })} type="button"><RotateCcw aria-hidden="true" size={16} /> Restore draft</button>
+                ) : null}
+                {post.status !== "deleted" ? (
+                  <a className="icon-button" href={`/admin/content/preview/${post.id}`} rel="noreferrer" target="_blank" title="Open private preview"><Eye aria-hidden="true" size={18} /></a>
+                ) : null}
+                {post.status === "published" ? (
+                  <a className="icon-button" href={`/resources/${post.slug}`} rel="noreferrer" target="_blank" title="Open public article"><ExternalLink aria-hidden="true" size={18} /></a>
+                ) : null}
+                {post.status === "draft" || post.status === "approved" || post.status === "published" ? (
+                  <button className="icon-button" disabled={Boolean(busy)} onClick={() => transitionPost(post, "archive")} title="Archive article" type="button"><Archive aria-hidden="true" size={18} /></button>
+                ) : null}
+                {post.status !== "deleted" ? (
+                  <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => deletePost(post)} title={`Delete ${post.content.contentType || "blog"}`} type="button"><Trash2 aria-hidden="true" size={18} /></button>
+                ) : null}
               </div>
             </article>
           ))
         ) : (
-          <div className="content-empty-state">No saved drafts yet. Scan the radar or create a new article.</div>
+          <div className="content-empty-state">No content matches these filters. Reset the queue or create a new article.</div>
         )}
       </div>
+
+      {totalPages > 1 ? (
+        <nav aria-label="Editorial queue pages" className="content-queue-pagination">
+          <button className="button secondary compact-button" disabled={Boolean(busy) || listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} type="button"><ChevronLeft aria-hidden="true" size={16} /> Previous</button>
+          <span>Page {page} of {totalPages}</span>
+          <button className="button secondary compact-button" disabled={Boolean(busy) || listLoading || page >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} type="button">Next <ChevronRight aria-hidden="true" size={16} /></button>
+        </nav>
+      ) : null}
 
       {radar ? (
         <div className="content-radar-grid">
@@ -438,7 +670,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
                             <RotateCcw aria-hidden="true" size={16} /> Restore draft
                           </button>
                         ) : (
-                          <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => editPost(savedPost)} type="button">
+                          <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => openForEditing(savedPost)} type="button">
                             <FileText aria-hidden="true" size={16} /> Open {savedPost.status}
                           </button>
                         )
@@ -491,7 +723,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
             </div>
           </div>
 
-          <fieldset className="content-editor-section">
+          <fieldset className="content-editor-section" disabled={selected.status !== "draft"}>
             <legend>Article and search metadata</legend>
             <div className="content-field-grid">
               <label className="content-field content-field-wide"><span>Title</span><input value={draft.title} onChange={(event) => patchContent("title", event.target.value)} /></label>
@@ -514,7 +746,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
             </div>
           </fieldset>
 
-          <fieldset className="content-editor-section">
+          <fieldset className="content-editor-section" disabled={selected.status !== "draft"}>
             <legend>Answer depth</legend>
             <div className="content-field-grid">
               <LineListField label="Key takeaways" value={draft.takeaways} onChange={(value) => patchContent("takeaways", value)} />
@@ -522,7 +754,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
             </div>
           </fieldset>
 
-          <fieldset className="content-editor-section">
+          <fieldset className="content-editor-section" disabled={selected.status !== "draft"}>
             <legend>Article sections</legend>
             <div className="content-section-list">
               {draft.sections.map((section, index) => (
@@ -537,7 +769,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
             <button className="button secondary compact-button" onClick={() => patchContent("sections", [...draft.sections, { heading: "New section", body: "Develop this section with verified facts, operational evidence, and a clear next action." }])} type="button"><FilePlus2 aria-hidden="true" size={16} /> Add section</button>
           </fieldset>
 
-          <fieldset className="content-editor-section">
+          <fieldset className="content-editor-section" disabled={selected.status !== "draft"}>
             <legend>Questions and answers</legend>
             <div className="content-section-list">
               {draft.questions.map((faq, index) => (
@@ -552,30 +784,38 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
           </fieldset>
 
           <div className="content-link-grid">
-            <LinkListEditor label="Related tools" items={draft.relatedTools} pathKey="href" onChange={(items) => patchContent("relatedTools", items as LinkItem[])} />
-            <LinkListEditor label="Related services" items={draft.relatedServices} pathKey="href" onChange={(items) => patchContent("relatedServices", items as LinkItem[])} />
-            <LinkListEditor label="Sources" items={draft.sources} pathKey="url" onChange={(items) => patchContent("sources", items as SourceItem[])} />
+            <LinkListEditor disabled={selected.status !== "draft"} label="Related tools" items={draft.relatedTools} pathKey="href" onChange={(items) => patchContent("relatedTools", items as LinkItem[])} />
+            <LinkListEditor disabled={selected.status !== "draft"} label="Related services" items={draft.relatedServices} pathKey="href" onChange={(items) => patchContent("relatedServices", items as LinkItem[])} />
+            <LinkListEditor disabled={selected.status !== "draft"} label="Sources" items={draft.sources} pathKey="url" onChange={(items) => patchContent("sources", items as SourceItem[])} />
           </div>
 
           <div className="content-publish-bar">
             <div>
               <span className={`status-pill content-status-${selected.status}`}>{selected.status}</span>
-              <small>Save, review the private preview, approve, then publish. Scheduled jobs create drafts only; every editorial action is recorded.</small>
+              <small>Drafts are editable. Approval locks the reviewed revision; publishing updates the public blog, sitemap, and LinkedIn delivery queue.</small>
             </div>
             <div className="content-action-row">
-              {selected.status === "deleted" ? (
-                <button className="button secondary" disabled={Boolean(busy)} onClick={() => restorePost(selected)} type="button"><RotateCcw aria-hidden="true" size={17} /> Restore draft</button>
-              ) : (
+              {selected.status === "draft" ? (
                 <>
                   <button className="button secondary" disabled={Boolean(busy)} type="submit"><Save aria-hidden="true" size={17} /> {busy === "save" ? "Saving..." : "Save draft"}</button>
-                  {selected.status === "published" ? <button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("upgrade")} type="button"><Sparkles aria-hidden="true" size={17} /> {busy === "upgrade" ? "Upgrading..." : "Upgrade research"}</button> : null}
                   {needsRegeneration ? <button className="button secondary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={() => mutate("regenerate")} type="button"><Sparkles aria-hidden="true" size={17} /> {busy === "regenerate" ? "Completing..." : "Complete draft"}</button> : null}
-                  <button className="button secondary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={() => mutate("approve")} type="button"><ShieldCheck aria-hidden="true" size={17} /> Approve</button>
-                  <button className="button primary" disabled={Boolean(busy) || selected.status !== "approved"} onClick={() => mutate("publish")} type="button"><Upload aria-hidden="true" size={17} /> Publish</button>
+                  <button className="button primary" disabled={Boolean(busy)} onClick={() => mutate("approve")} type="button"><ShieldCheck aria-hidden="true" size={17} /> Approve</button>
                   <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => mutate("archive")} title="Archive article" type="button"><Archive aria-hidden="true" size={18} /></button>
                   <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => deletePost(selected)} title={`Delete ${draft.contentType || "blog"}`} type="button"><Trash2 aria-hidden="true" size={18} /></button>
                 </>
-              )}
+              ) : null}
+              {selected.status === "approved" ? (
+                <>
+                  <button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("draft")} type="button"><FilePenLine aria-hidden="true" size={17} /> Return to draft</button>
+                  <button className="button primary" disabled={Boolean(busy)} onClick={() => mutate("publish")} type="button"><Upload aria-hidden="true" size={17} /> Publish</button>
+                </>
+              ) : null}
+              {selected.status === "published" ? (
+                <button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("draft")} type="button"><FilePenLine aria-hidden="true" size={17} /> Move to draft</button>
+              ) : null}
+              {selected.status === "archived" || selected.status === "deleted" ? (
+                <button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("restore")} type="button"><RotateCcw aria-hidden="true" size={17} /> Restore draft</button>
+              ) : null}
             </div>
           </div>
         </form>
