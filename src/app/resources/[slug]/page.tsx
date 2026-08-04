@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BlogArticle } from "@/components/blog-article";
 import { StructuredData } from "@/components/structured-data";
-import { getPublishedBlogPost } from "@/lib/content-posts";
+import { getAllPublishedBlogPosts, getPublishedBlogPost } from "@/lib/content-posts";
 import { siteConfig } from "@/lib/content";
+import { relatedBlogPosts } from "@/lib/blog-presentation";
 import { createPageMetadata } from "@/lib/seo";
 
 type BlogPageProps = {
@@ -37,8 +38,10 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
 
 export default async function BlogPostPage({ params }: BlogPageProps) {
   const { slug } = await params;
-  const post = await getPublishedBlogPost(slug);
+  const posts = await getAllPublishedBlogPosts();
+  const post = posts.find((item) => item.slug === slug);
   if (!post) notFound();
+  const relatedPosts = relatedBlogPosts(posts, post);
   const wordCount = [
     post.answer,
     ...post.takeaways,
@@ -68,19 +71,24 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
             },
             datePublished: post.publishedAt,
             dateModified: post.updatedAt,
+            inLanguage: "en",
+            isAccessibleForFree: true,
             mainEntityOfPage: `${siteConfig.url}/resources/${post.slug}`,
             author: {
               "@type": "Organization",
-              name: post.reviewedBy?.name || siteConfig.name,
+              "@id": `${siteConfig.url}/#organization`,
+              name: siteConfig.name,
               url: siteConfig.url
             },
             reviewedBy: {
               "@type": "Organization",
+              "@id": `${siteConfig.url}/#organization`,
               name: post.reviewedBy?.name || "QCS Network & Security Engineering",
               url: siteConfig.url
             },
             publisher: {
               "@type": "Organization",
+              "@id": `${siteConfig.url}/#organization`,
               name: siteConfig.name,
               logo: {
                 "@type": "ImageObject",
@@ -91,6 +99,8 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
             about: post.keywords.map((keyword) => ({ "@type": "Thing", name: keyword })),
             keywords: post.keywords.join(", "),
             wordCount,
+            abstract: post.answer,
+            citation: post.sources.map((source) => source.url),
             isBasedOn: post.sources.map((source) => source.url),
             audience: {
               "@type": "Audience",
@@ -120,11 +130,23 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
                 item: `${siteConfig.url}/resources/${post.slug}`
               }
             ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: post.questions.map((question) => ({
+              "@type": "Question",
+              name: question.question,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: question.answer
+              }
+            }))
           }
         ]}
       />
 
-      <BlogArticle post={post} />
+      <BlogArticle post={post} relatedPosts={relatedPosts} />
     </main>
   );
 }

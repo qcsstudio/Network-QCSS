@@ -1,11 +1,14 @@
+import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import type { BlogPost } from "@/lib/blog";
+import { articleParagraphs } from "@/lib/blog-presentation";
 
 type BlogArticleProps = {
   post: BlogPost;
+  relatedPosts?: BlogPost[];
   showLeadForm?: boolean;
   visualSrc?: string;
 };
@@ -18,7 +21,7 @@ function sectionId(heading: string, index: number) {
   return `${slug || "section"}-${index + 1}`;
 }
 
-export function BlogArticle({ post, showLeadForm = true, visualSrc }: BlogArticleProps) {
+export function BlogArticle({ post, relatedPosts = [], showLeadForm = true, visualSrc }: BlogArticleProps) {
   const published = new Date(post.publishedAt).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
@@ -50,6 +53,11 @@ export function BlogArticle({ post, showLeadForm = true, visualSrc }: BlogArticl
       <article>
         <section className="page-hero blog-hero">
           <div>
+            <nav aria-label="Breadcrumb" className="article-breadcrumb">
+              <Link href="/resources">Blog and resources</Link>
+              <span aria-hidden="true">/</span>
+              <span>{post.category}</span>
+            </nav>
             <p className="eyebrow">{post.category}</p>
             <h1>{post.title}</h1>
             <p>{post.description}</p>
@@ -75,7 +83,113 @@ export function BlogArticle({ post, showLeadForm = true, visualSrc }: BlogArticl
         </section>
 
         <section className="section blog-layout">
-          <aside className="blog-sidebar" aria-label="Article actions">
+          <div className="blog-article">
+            <section className="answer-panel blog-answer" id="direct-answer">
+              <h2>{post.contentType === "resource" ? "Resource outcome" : "Direct answer"}</h2>
+              <div className="article-prose">
+                {articleParagraphs(post.answer).map((paragraph) => (
+                  <p key={paragraph}>{paragraph}</p>
+                ))}
+              </div>
+            </section>
+
+            <section id="key-takeaways">
+              <h2>Key Takeaways</h2>
+              <ul className="check-list">
+                {post.takeaways.map((takeaway) => (
+                  <li key={takeaway}>{takeaway}</li>
+                ))}
+              </ul>
+            </section>
+
+            {post.definitions?.length ? (
+              <section id="definitions">
+                <h2>Terms Used in This Guide</h2>
+                <dl className="article-definitions">
+                  {post.definitions.map((item) => (
+                    <div key={item.term}>
+                      <dt>{item.term}</dt>
+                      <dd>{item.definition}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            ) : null}
+
+            {post.sections.map((section, index) => (
+              <section id={sectionId(section.heading, index)} key={section.heading}>
+                <h2>{section.heading}</h2>
+                <div className="article-prose">
+                  {articleParagraphs(section.body).map((paragraph, paragraphIndex, paragraphs) => (
+                    <p key={paragraph}>
+                      {paragraph} {paragraphIndex === paragraphs.length - 1 ? citations(section.sourceUrls) : null}
+                    </p>
+                  ))}
+                </div>
+                {section.bullets ? (
+                  <ul className="check-list muted">
+                    {section.bullets.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+            ))}
+
+            <section id="practical-checklist">
+              <h2>Practical Checklist</h2>
+              <div className="article-check-grid">
+                {post.checklist.map((item) => (
+                  <article key={item}>
+                    <CardVisual title={item} context={post.category} />
+                    <p>{item}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section id="questions">
+              <h2>Questions Teams Ask</h2>
+              <div className="article-faq-list">
+                {post.questions.map((faq, index) => (
+                  <details key={faq.question} open={index === 0}>
+                    <summary>
+                      <span>{faq.question}</span>
+                      <ChevronDown aria-hidden="true" size={20} />
+                    </summary>
+                    <p>
+                      {faq.answer} {citations(faq.sourceUrls)}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </section>
+
+            <section id="sources">
+              <h2>Sources and Further Reading</h2>
+              <div className="stack-list">
+                {post.sources.map((source, index) => (
+                  <a className="stack-item compact-link" href={source.url} key={source.url} rel="noreferrer" target="_blank">
+                    <span>[{index + 1}]</span> {source.label}
+                  </a>
+                ))}
+              </div>
+            </section>
+
+            <section className="article-method" id="editorial-method">
+              <h2>How This Guide Was Prepared</h2>
+              <p>
+                {post.editorialMethod ||
+                  "QCS reviewed the listed sources and organized the findings around practical network and security decisions."}
+              </p>
+              <p>
+                <strong>Technical review:</strong> {post.reviewedBy?.name || "QCS Network & Security Engineering"}
+                {post.reviewedBy?.role ? `, ${post.reviewedBy.role}` : ""}.
+              </p>
+            </section>
+          </div>
+
+          <aside className="blog-sidebar" aria-label="Article navigation and actions">
             <div>
               <p className="eyebrow">What you will leave with</p>
               <strong>{post.readerOutcome || post.excerpt}</strong>
@@ -83,11 +197,16 @@ export function BlogArticle({ post, showLeadForm = true, visualSrc }: BlogArticl
             <nav aria-label="Article contents">
               <p className="eyebrow">In this guide</p>
               <ol className="article-toc">
+                <li><a href="#direct-answer">Direct answer</a></li>
+                <li><a href="#key-takeaways">Key takeaways</a></li>
                 {post.sections.map((section, index) => (
                   <li key={section.heading}>
                     <a href={`#${sectionId(section.heading, index)}`}>{section.heading}</a>
                   </li>
                 ))}
+                <li><a href="#practical-checklist">Practical checklist</a></li>
+                <li><a href="#questions">Questions teams ask</a></li>
+                <li><a href="#sources">Sources</a></li>
               </ol>
             </nav>
             <div>
@@ -115,102 +234,37 @@ export function BlogArticle({ post, showLeadForm = true, visualSrc }: BlogArticl
               </div>
             </div>
           </aside>
-
-          <div className="blog-article">
-            <section className="answer-panel blog-answer">
-              <h2>{post.contentType === "resource" ? "Resource outcome" : "Direct answer"}</h2>
-              <p>{post.answer}</p>
-            </section>
-
-            <section>
-              <h2>Key Takeaways</h2>
-              <ul className="check-list">
-                {post.takeaways.map((takeaway) => (
-                  <li key={takeaway}>{takeaway}</li>
-                ))}
-              </ul>
-            </section>
-
-            {post.definitions?.length ? (
-              <section>
-                <h2>Terms Used in This Guide</h2>
-                <dl className="article-definitions">
-                  {post.definitions.map((item) => (
-                    <div key={item.term}>
-                      <dt>{item.term}</dt>
-                      <dd>{item.definition}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            ) : null}
-
-            {post.sections.map((section, index) => (
-              <section id={sectionId(section.heading, index)} key={section.heading}>
-                <h2>{section.heading}</h2>
-                <p>
-                  {section.body} {citations(section.sourceUrls)}
-                </p>
-                {section.bullets ? (
-                  <ul className="check-list muted">
-                    {section.bullets.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                ) : null}
-              </section>
-            ))}
-
-            <section>
-              <h2>Practical Checklist</h2>
-              <div className="article-check-grid">
-                {post.checklist.map((item) => (
-                  <article key={item}>
-                    <CardVisual title={item} context={post.category} />
-                    <p>{item}</p>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section>
-              <h2>Questions Teams Ask</h2>
-              <div className="faq-grid">
-                {post.questions.map((faq) => (
-                  <article className="faq-card" key={faq.question}>
-                    <h3>{faq.question}</h3>
-                    <p>
-                      {faq.answer} {citations(faq.sourceUrls)}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section>
-              <h2>Sources and Further Reading</h2>
-              <div className="stack-list">
-                {post.sources.map((source, index) => (
-                  <a className="stack-item compact-link" href={source.url} key={source.url} rel="noreferrer" target="_blank">
-                    <span>[{index + 1}]</span> {source.label}
-                  </a>
-                ))}
-              </div>
-            </section>
-
-            <section className="article-method">
-              <h2>How This Guide Was Prepared</h2>
-              <p>
-                {post.editorialMethod ||
-                  "QCS reviewed the listed sources and organized the findings around practical network and security decisions."}
-              </p>
-              <p>
-                <strong>Technical review:</strong> {post.reviewedBy?.name || "QCS Network & Security Engineering"}
-                {post.reviewedBy?.role ? `, ${post.reviewedBy.role}` : ""}.
-              </p>
-            </section>
-          </div>
         </section>
+
+        {relatedPosts.length ? (
+          <section className="section article-related-reading">
+            <div className="section-heading">
+              <p className="eyebrow">Continue the decision</p>
+              <h2>Related network and security guidance</h2>
+            </div>
+            <div className="article-related-grid">
+              {relatedPosts.map((related) => (
+                <article key={related.slug}>
+                  <Link aria-label={related.title} className="article-related-media" href={`/resources/${related.slug}`}>
+                    <Image
+                      alt={related.imageAlt}
+                      fill
+                      sizes="(max-width: 720px) 100vw, 30vw"
+                      src={`/resources/${related.slug}/visual`}
+                      unoptimized
+                    />
+                  </Link>
+                  <div>
+                    <p className="eyebrow">{related.category}</p>
+                    <h3><Link href={`/resources/${related.slug}`}>{related.title}</Link></h3>
+                    <p>{related.excerpt}</p>
+                    <Link className="text-link" href={`/resources/${related.slug}`}>Read article</Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </article>
 
       {showLeadForm ? (

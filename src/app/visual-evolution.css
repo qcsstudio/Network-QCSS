@@ -687,6 +687,17 @@
   background: #091425;
 }
 
+.footer-brand-stack,
+.footer-action-panel,
+.footer-link-grid > div {
+  background: #091425;
+}
+
+.footer-signal-row span,
+.footer-bottom-bar span {
+  background: #16263d;
+}
+
 .footer-command-panel {
   gap: 34px;
   max-width: var(--evolution-container);
@@ -703,8 +714,7 @@
 /* Avoid rendering work for deep sections until the viewport approaches. */
 @supports (content-visibility: auto) {
   main > .section,
-  .asset-command-band,
-  .site-footer {
+  .asset-command-band {
     content-visibility: auto;
     contain-intrinsic-size: auto 780px;
   }
