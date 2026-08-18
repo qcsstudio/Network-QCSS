@@ -1,4 +1,6 @@
 import { siteConfig } from "@/lib/content";
+import { sendEmail } from "@/lib/email-delivery";
+import { emailDeliveryConfigured } from "@/lib/email-config";
 
 type EmailInput = {
   to: string | string[];
@@ -11,6 +13,7 @@ type EmailInput = {
 export type VerifyGridEmailResult = {
   sent: boolean;
   reason: "sent" | "not_configured" | "provider_error";
+  provider?: "smtp" | "resend";
   providerId?: string;
 };
 
@@ -28,41 +31,18 @@ function escapeHtml(value: string) {
 }
 
 export function verifyGridEmailConfigured() {
-  return Boolean(process.env.RESEND_API_KEY?.trim() && configuredSender());
+  return emailDeliveryConfigured();
 }
 
 async function sendVerifyGridEmail(input: EmailInput): Promise<VerifyGridEmailResult> {
-  const token = process.env.RESEND_API_KEY?.trim();
   const from = configuredSender();
-  if (!token || !from) return { sent: false, reason: "not_configured" };
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8_000);
-  try {
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        "Idempotency-Key": input.idempotencyKey.slice(0, 256)
-      },
-      body: JSON.stringify({ from, to: Array.isArray(input.to) ? input.to : [input.to], subject: input.subject, text: input.text, html: input.html }),
-      cache: "no-store",
-      redirect: "error",
-      signal: controller.signal
-    });
-    const payload = await response.json().catch(() => ({})) as { id?: string };
-    if (!response.ok) {
-      console.error("VerifyGrid email provider rejected a message.", { status: response.status, subject: input.subject });
-      return { sent: false, reason: "provider_error" };
-    }
-    return { sent: true, reason: "sent", providerId: payload.id };
-  } catch (error) {
-    console.error("VerifyGrid email delivery failed.", error);
-    return { sent: false, reason: "provider_error" };
-  } finally {
-    clearTimeout(timeout);
-  }
+  const result = await sendEmail({ ...input, from: from || undefined });
+  return {
+    sent: result.sent,
+    reason: result.reason,
+    provider: result.provider || undefined,
+    providerId: result.providerId
+  };
 }
 
 function emailShell(title: string, body: string, actionLabel?: string, actionUrl?: string) {
@@ -154,5 +134,38 @@ export function sendVerifyGridPortalLinksEmail(input: { email: string; links: Ar
     text: ["Use the one-time link below to sign in. It expires in one hour.", "", ...rows, "", "If you did not request this message, you can ignore it."].join("\n"),
     html: emailShell("Your sign-in link", `<p style="line-height:1.7">Use the one-time workspace link below. It expires in one hour.</p>${actions}<p style="line-height:1.7;color:#667085">If you did not request this message, you can ignore it.</p>`),
     idempotencyKey: `verifygrid-portal-links/${input.links.map((item) => item.tokenId).join("-")}`
+  });
+}
+
+export function sendVerifyGridReportReadyEmail(input: {
+  to: string[];
+  organizationName: string;
+  reportTitle: string;
+  reportType: string;
+  version: number;
+  portalUrl: string;
+  reportId: string;
+}) {
+  if (!input.to.length) return Promise.resolve<VerifyGridEmailResult>({ sent: false, reason: "not_configured" });
+  const text = [
+    `${input.reportTitle} is ready in QCS VerifyGrid.`,
+    "",
+    `Organization: ${input.organizationName}`,
+    `Report: ${input.reportType} v${input.version}`,
+    `Open the client portal: ${input.portalUrl}`,
+    "",
+    "The released report includes its integrity hash and release record. Use your one-time sign-in flow if your portal session has expired."
+  ].join("\n");
+  return sendVerifyGridEmail({
+    to: input.to,
+    subject: `VerifyGrid report ready: ${input.reportTitle}`,
+    text,
+    html: emailShell(
+      "Your assurance report is ready",
+      `<p style="line-height:1.7"><strong>${escapeHtml(input.reportTitle)}</strong> has been released for ${escapeHtml(input.organizationName)}.</p><p style="line-height:1.7;color:#667085">Report type: ${escapeHtml(input.reportType)} v${input.version}. The portal record includes the report integrity hash and release evidence.</p>`,
+      "Open client portal",
+      input.portalUrl
+    ),
+    idempotencyKey: `verifygrid-report-ready/${input.reportId}/v${input.version}`
   });
 }

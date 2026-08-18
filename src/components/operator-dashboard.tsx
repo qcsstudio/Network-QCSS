@@ -1,4 +1,5 @@
 import type { DashboardSnapshot } from "@/lib/types";
+import { EmailTestControl } from "@/components/email-test-control";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -116,6 +117,7 @@ export function OperatorDashboard({ snapshot }: { snapshot: DashboardSnapshot })
             </div>
           ))}
         </div>
+        <EmailTestControl />
       </section>
 
       <div className="admin-grid">

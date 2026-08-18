@@ -56,7 +56,7 @@ function parseAccessToken(value: string) {
 export async function inviteVerifyGridMember(workspaceId: string, value: unknown, actor: string) {
   const input = membershipInviteSchema.parse(value);
   const prisma = getPrismaClient();
-  const workspace = await prisma.verifyGridWorkspace.findUnique({ where: { id: workspaceId }, select: { id: true } });
+  const workspace = await prisma.verifyGridWorkspace.findUnique({ where: { id: workspaceId }, select: { id: true, name: true } });
   if (!workspace) throw new Error("VerifyGrid workspace not found.");
   const accessId = crypto.randomUUID();
   const secret = randomSecret();
@@ -75,6 +75,7 @@ export async function inviteVerifyGridMember(workspaceId: string, value: unknown
   const token = `vg_access_${accessId}.${secret}`;
   return {
     membership: { id: membership.id, email: membership.email, displayName: membership.displayName || "", role: membership.role, status: membership.status },
+    organizationName: workspace.name,
     accessUrl: `${siteConfig.url}/portal/access#token=${encodeURIComponent(token)}`,
     tokenId: accessId,
     expiresAt: expiresAt.toISOString()

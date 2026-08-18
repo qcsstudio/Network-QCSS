@@ -1,4 +1,5 @@
 import type { StoredLead } from "@/lib/types";
+import { sendEmail } from "@/lib/email-delivery";
 
 type IntegrationResult = {
   name: string;
@@ -222,33 +223,34 @@ async function sendEmailWebhook(lead: StoredLead) {
   });
 }
 
-async function sendResendEmail(lead: StoredLead) {
-  const token = process.env.RESEND_API_KEY;
-  const from = process.env.LEAD_ALERT_EMAIL_FROM;
+async function sendLeadAlertEmail(lead: StoredLead) {
   const to = process.env.LEAD_ALERT_EMAIL_TO;
-  if (!token || !from || !to) return skipped("resend-email");
-
-  return postJson(
-    "resend-email",
-    "https://api.resend.com/emails",
-    { Authorization: `Bearer ${token}` },
-    {
-      from,
-      to: to.split(",").map((email) => email.trim()),
-      subject: `New ${lead.priority} lead: ${lead.pipeline}`,
-      text: [
-        `Name: ${lead.name}`,
-        `Email: ${lead.email}`,
-        `Phone: ${lead.phone}`,
-        `Interest: ${lead.interest}`,
-        `Pipeline: ${lead.pipeline}`,
-        `Score: ${lead.score}`,
-        `Priority: ${lead.priority}`,
-        `Country: ${lead.country}`,
-        `Challenge: ${lead.challenge || "None provided"}`
-      ].join("\n")
-    }
-  );
+  if (!to) return skipped("email-alert");
+  const result = await sendEmail({
+    from: process.env.LEAD_ALERT_EMAIL_FROM?.trim() || undefined,
+    to: to.split(",").map((email) => email.trim()).filter(Boolean),
+    replyTo: lead.email,
+    subject: `New ${lead.priority} lead: ${lead.pipeline}`,
+    text: [
+      `Name: ${lead.name}`,
+      `Email: ${lead.email}`,
+      `Phone: ${lead.phone}`,
+      `Interest: ${lead.interest}`,
+      `Pipeline: ${lead.pipeline}`,
+      `Score: ${lead.score}`,
+      `Priority: ${lead.priority}`,
+      `Country: ${lead.country}`,
+      `Challenge: ${lead.challenge || "None provided"}`
+    ].join("\n"),
+    idempotencyKey: `lead-alert/${lead.id}`
+  });
+  if (result.reason === "not_configured") return skipped("email-alert");
+  return {
+    name: "email-alert",
+    skipped: false,
+    ok: result.sent,
+    error: result.sent ? undefined : `${result.provider || "Email"} delivery failed.`
+  };
 }
 
 export async function dispatchLeadIntegrations(lead: StoredLead) {
@@ -257,7 +259,7 @@ export async function dispatchLeadIntegrations(lead: StoredLead) {
     sendHubSpot(lead),
     sendZoho(lead),
     sendEmailWebhook(lead),
-    lead.priority === "hot" ? sendResendEmail(lead) : Promise.resolve(skipped("resend-email")),
+    lead.priority === "hot" ? sendLeadAlertEmail(lead) : Promise.resolve(skipped("email-alert")),
     sendWhatsAppWebhook(lead),
     lead.priority === "hot" ? sendWhatsAppCloudApi(lead) : Promise.resolve(skipped("whatsapp-cloud-api"))
   ];

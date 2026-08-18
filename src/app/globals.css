@@ -4774,6 +4774,29 @@ td span {
   text-transform: uppercase;
 }
 
+.email-test-control {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.email-test-control span {
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.email-test-success {
+  color: #166534;
+}
+
+.email-test-error {
+  color: #991b1b;
+}
+
 .resource-card button {
   margin-top: 8px;
 }

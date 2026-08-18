@@ -56,6 +56,9 @@ function buildGroups(): ReadinessGroup[] {
   const postgresSelected = storeDriver === "postgres";
   const hubspotMappingValid = jsonIsValid("HUBSPOT_FIELD_MAPPING_JSON");
   const zohoMappingValid = jsonIsValid("ZOHO_FIELD_MAPPING_JSON");
+  const smtpEmailReady = isConfigured("SMTP_HOST") && isConfigured("SMTP_USER") && isConfigured("SMTP_PASSWORD") && hasAny(["EMAIL_FROM", "SMTP_USER"]);
+  const resendEmailReady = isConfigured("RESEND_API_KEY") && hasAny(["EMAIL_FROM", "VERIFYGRID_EMAIL_FROM", "LEAD_ALERT_EMAIL_FROM"]);
+  const emailDeliveryReady = smtpEmailReady || resendEmailReady;
 
   return [
     {
@@ -115,8 +118,8 @@ function buildGroups(): ReadinessGroup[] {
         item(
           "verifygrid-email",
           "Client access email delivery",
-          isConfigured("RESEND_API_KEY") && hasAny(["VERIFYGRID_EMAIL_FROM", "LEAD_ALERT_EMAIL_FROM"]),
-          "Required for email verification and passwordless portal links. Configure RESEND_API_KEY and VERIFYGRID_EMAIL_FROM.",
+          emailDeliveryReady,
+          "Required for verification, invitations, passwordless portal access, and report-release notices. Configure Gmail SMTP or Resend.",
           { warning: true }
         ),
         item("verifygrid-nvd", "NVD API enrichment", isConfigured("NVD_API_KEY"), "Raises NVD enrichment throughput while the no-key path remains deliberately bounded.", {
@@ -173,8 +176,8 @@ function buildGroups(): ReadinessGroup[] {
         item(
           "email-alerts",
           "Email alerts",
-          hasAny(["EMAIL_WEBHOOK_URL"]) || (isConfigured("RESEND_API_KEY") && isConfigured("LEAD_ALERT_EMAIL_FROM") && isConfigured("LEAD_ALERT_EMAIL_TO")),
-          "Sends lead alerts through webhook or Resend.",
+          hasAny(["EMAIL_WEBHOOK_URL"]) || (emailDeliveryReady && isConfigured("LEAD_ALERT_EMAIL_TO")),
+          "Sends hot-lead alerts through Gmail SMTP, Resend, or an email webhook.",
           { warning: true }
         ),
         item(
