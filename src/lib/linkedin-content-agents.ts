@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   advisoryLinkedInQualityIssues,
   editorialLinkedInQualityIssues,
+  formatAgentLinkedInCommentary,
   type LinkedInAdvisoryPost,
   type LinkedInEditorialPost
 } from "@/lib/linkedin-commentary";
@@ -329,6 +330,15 @@ async function createLinkedInPost(input: LinkedInAgentInput): Promise<LinkedInRe
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     latestDraft = await writePost(input, correction);
+    latestDraft = {
+      ...latestDraft,
+      commentary: formatAgentLinkedInCommentary({
+        actions: latestDraft.actions,
+        commentary: latestDraft.commentary,
+        hashtags: latestDraft.hashtags,
+        url: input.url
+      })
+    };
     const hardIssues = deterministicIssues(input, latestDraft.commentary);
     if (hardIssues.length) {
       correction = `The deterministic publication gate rejected the draft. Fix every item without losing supported facts: ${hardIssues.join(" ")}`;

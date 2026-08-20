@@ -4,7 +4,8 @@ import {
   advisoryLinkedInQualityIssues,
   composeAdvisoryLinkedInPost,
   composeEditorialLinkedInPost,
-  editorialLinkedInQualityIssues
+  editorialLinkedInQualityIssues,
+  formatAgentLinkedInCommentary
 } from "../src/lib/linkedin-commentary.ts";
 
 const articleUrl = "https://www.qcsstudio.com/resources/example?utm_source=linkedin";
@@ -154,6 +155,36 @@ test("LinkedIn publication gate rejects generic, clipped, form-like editorial ca
   assert.ok(issues.some((issue) => /decision-useful content/i.test(issue)));
   assert.ok(issues.some((issue) => /clipped sentences|ellipses/i.test(issue)));
   assert.ok(issues.some((issue) => /stock or reusable/i.test(issue)));
+});
+
+test("agent presentation pass repairs mobile structure without losing the draft analysis", () => {
+  const trackedUrl = "https://www.qcsstudio.com/resources/dns-bgp?utm_source=linkedin";
+  const commentary = [
+    "DNS cold starts and BGP route-origin mistakes often appear as separate incidents, but both expose the same operational weakness: teams cannot prove which dependency or route decision changed first when cloud connectivity fails across regions and providers.",
+    "Which telemetry should the team inspect first? Which owner can validate the external route?",
+    "Validate recursive DNS timing against route-origin and cloud path evidence before changing production policy.",
+    "Confirm the DNS resolver path and its cold-cache timing",
+    "Validate route-origin authorization for the affected prefixes",
+    "Assign one owner to correlate cloud flow logs with BGP evidence",
+    trackedUrl,
+    "#BGP"
+  ].join("\n\n");
+  const formatted = formatAgentLinkedInCommentary({
+    actions: [
+      "Confirm the DNS resolver path and its cold-cache timing",
+      "Validate route-origin authorization for the affected prefixes",
+      "Assign one owner to correlate cloud flow logs with BGP evidence"
+    ],
+    commentary,
+    hashtags: ["#NetworkEngineering", "#BGP", "#CloudNetworking", "#DNS"],
+    url: trackedUrl
+  });
+  assert.match(formatted, /DNS cold starts and BGP route-origin mistakes/);
+  assert.match(formatted, /Practical Next Steps\n1\. Confirm the DNS resolver path/);
+  assert.equal(formatted.match(/\?/g)?.length, 2, "one prose question plus the tracked URL query should remain");
+  assert.equal(formatted.match(new RegExp(trackedUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"))?.length, 1);
+  assert.match(formatted, /#NetworkEngineering #BGP #CloudNetworking #DNS$/);
+  assert.deepEqual(editorialLinkedInQualityIssues(formatted, trackedUrl, article("DNS cold start and BGP route-origin validation")), []);
 });
 
 test("evidence-led Fortinet advisory passes exact-fact and presentation gates", () => {

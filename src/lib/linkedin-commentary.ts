@@ -290,6 +290,92 @@ function comparable(value: string) {
     .trim();
 }
 
+function wrapPresentationLine(value: string, limit: number) {
+  const line = value.trim();
+  if (!line || line.length <= limit || /https?:\/\//i.test(line)) return [line];
+  const parts: string[] = [];
+  let remaining = line;
+  while (remaining.length > limit) {
+    const window = remaining.slice(0, limit + 1);
+    const sentenceBreak = Math.max(window.lastIndexOf(". "), window.lastIndexOf("; "), window.lastIndexOf(": "));
+    const wordBreak = window.lastIndexOf(" ");
+    const splitAt = sentenceBreak >= Math.floor(limit * 0.45) ? sentenceBreak + 1 : wordBreak;
+    if (splitAt < Math.floor(limit * 0.45)) break;
+    parts.push(remaining.slice(0, splitAt).trim());
+    remaining = remaining.slice(splitAt).trim();
+  }
+  if (remaining) parts.push(remaining);
+  return parts;
+}
+
+function collapseBlankLines(lines: string[]) {
+  const collapsed: string[] = [];
+  for (const line of lines) {
+    if (!line && !collapsed.at(-1)) continue;
+    collapsed.push(line);
+  }
+  while (!collapsed.at(-1)) collapsed.pop();
+  return collapsed;
+}
+
+function questionCount(commentary: string) {
+  const prose = commentary.replace(/https?:\/\/\S+/g, "");
+  return (prose.match(/\?/g) || []).length;
+}
+
+function keepOnlyFinalQuestion(lines: string[]) {
+  let kept = false;
+  return [...lines]
+    .reverse()
+    .map((line) => {
+      if (/https?:\/\//i.test(line)) return line;
+      const characters = [...line].reverse();
+      const normalized = characters
+        .map((character) => {
+          if (character !== "?") return character;
+          if (!kept) {
+            kept = true;
+            return character;
+          }
+          return ".";
+        })
+        .reverse()
+        .join("");
+      return normalized;
+    })
+    .reverse();
+}
+
+export function formatAgentLinkedInCommentary(input: {
+  actions: string[];
+  commentary: string;
+  hashtags: string[];
+  url: string;
+}) {
+  const actions = input.actions
+    .map((action) => normalize(action).replace(/^[1-4][.)]\s*/, "").replace(/[.\s]+$/, ""))
+    .filter(Boolean)
+    .slice(0, 4);
+  const actionKeys = new Set(actions.map(comparable));
+  const hashtags = [...new Set(input.hashtags.filter((tag) => /^#[A-Za-z0-9]+$/.test(tag)))].slice(0, 5);
+  const body = input.commentary
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/#[A-Za-z0-9]+/g, "").trim())
+    .filter((line) => !line.includes(input.url))
+    .filter((line) => !/^(?:defender actions|practical next steps|recommended actions|actions|next steps|decision checks?)\s*:$/i.test(line))
+    .filter((line) => {
+      const withoutMarker = line.replace(/^(?:[1-4][.)]|[-*\u2022])\s+/, "").replace(/[.\s]+$/, "");
+      return !actionKeys.has(comparable(withoutMarker));
+    });
+
+  const wrapped = body.flatMap((line, index) => wrapPresentationLine(line, index === 0 ? 160 : 320));
+  const lines = collapseBlankLines(keepOnlyFinalQuestion(wrapped));
+  lines.push("", "Practical Next Steps", ...actions.map((action, index) => `${index + 1}. ${action}.`));
+  lines.push("", `Read the QCS technical brief: ${input.url}`, "", hashtags.join(" "));
+  return collapseBlankLines(lines).join("\n").trim();
+}
+
 function containsFact(commentary: string, fact: string) {
   const expected = comparable(fact);
   return !expected || comparable(commentary).includes(expected);
@@ -342,7 +428,7 @@ export function editorialLinkedInQualityIssues(commentary: string, url: string, 
   const issues = presentationIssues(commentary, url, 650, 2_200);
   const actions = actionLines(commentary);
   if (actions.length < 3) issues.push("Include three concrete actions or decision checks on separate lines.");
-  if ((commentary.match(/\?/g) || []).length > 1) issues.push("Use no more than one purposeful audience question.");
+  if (questionCount(commentary) > 1) issues.push("Use no more than one purposeful audience question.");
   if (post) {
     const distinctiveTerms = comparable(`${post.title} ${post.content.primaryKeyword || ""}`)
       .split(" ")
