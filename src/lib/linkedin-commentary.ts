@@ -14,10 +14,13 @@ export type LinkedInEditorialPost = {
   title: string;
   content: {
     answer?: string;
+    audience?: string;
     category?: string;
+    checklist?: string[];
     excerpt?: string;
     keywords?: string[];
     primaryKeyword?: string;
+    readerOutcome?: string;
     sections?: EditorialSection[];
     sources?: EditorialSource[];
     takeaways?: string[];
@@ -40,6 +43,7 @@ export type LinkedInAdvisoryPost = {
   title: string;
   vendor: string;
   workaround?: string;
+  sourceUrl?: string;
 };
 
 type EditorialPlan = {
@@ -238,87 +242,197 @@ export function composeEditorialLinkedInPost(post: LinkedInEditorialPost, url: s
   return lines.join("\n").slice(0, 2900);
 }
 
+function advisoryHashtags(advisory: LinkedInAdvisoryPost) {
+  const text = `${advisory.vendor} ${advisory.title} ${advisory.products.join(" ")}`.toLowerCase();
+  const vendorTag = /amazon web services|\baws\b/.test(text)
+    ? "#AWSSecurity"
+    : /google cloud|\bgcp\b/.test(text)
+      ? "#GoogleCloud"
+      : /microsoft|azure/.test(text)
+        ? "#MicrosoftSecurity"
+        : /cisco/.test(text)
+          ? "#CiscoSecurity"
+          : /fortinet|fortigate|fortios/.test(text)
+            ? "#Fortinet"
+            : /palo alto|pan-os/.test(text)
+              ? "#PaloAltoNetworks"
+              : /juniper|junos/.test(text)
+                ? "#JuniperNetworks"
+                : "#CyberSecurity";
+  const technologyTag = /azure/.test(text)
+    ? "#AzureSecurity"
+    : /amazon web services|\baws\b|google cloud|\bgcp\b|cloud/.test(text)
+      ? "#CloudSecurity"
+      : /firewall|vpn|router|switch|network/.test(text)
+        ? "#NetworkSecurity"
+        : "#InfoSec";
+  return [...new Set([vendorTag, technologyTag, ...(advisory.cves.length ? ["#CVE"] : []), "#VulnerabilityManagement", "#CyberSecurity"])].slice(0, 5);
+}
+
+function advisoryActions(advisory: LinkedInAdvisoryPost) {
+  const products = clip(advisory.products.slice(0, 5).join(", ") || advisory.vendor, 150);
+  const evidence = (advisory.evidenceChecklist || []).map((item) => clip(item, 190)).filter(Boolean);
+  const actions = [
+    `Inventory ${products}; record deployed releases, service roles, owners, and exposure.`,
+    evidence[0] || "Confirm applicability against the vendor's affected conditions before changing production controls.",
+    clip(advisory.remediation, 210),
+    evidence.at(-1) || "Retain before-and-after version, exposure, log, and service-validation evidence.",
+    "Verify the running fix, relevant security logs, service health, and residual exposure before closure."
+  ];
+  return [...new Set(actions.map((item) => normalize(item).replace(/[.\s]+$/, "")))].slice(0, 4);
+}
+
+function comparable(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function containsFact(commentary: string, fact: string) {
+  const expected = comparable(fact);
+  return !expected || comparable(commentary).includes(expected);
+}
+
+function repeatedSentences(commentary: string) {
+  const seen = new Set<string>();
+  const repeated: string[] = [];
+  for (const sentence of commentary.split(/(?<=[.!?])\s+/)) {
+    const normalized = comparable(sentence);
+    if (normalized.length < 45) continue;
+    if (seen.has(normalized)) repeated.push(sentence.trim());
+    seen.add(normalized);
+  }
+  return repeated;
+}
+
+function presentationIssues(commentary: string, url: string, minimumLength: number, maximumLength: number) {
+  const hashtags = commentary.match(/#[A-Za-z0-9]+/g) || [];
+  const lines = commentary.split("\n");
+  const visibleLines = lines.map((line) => line.trim()).filter(Boolean);
+  const finalLine = visibleLines.at(-1) || "";
+  const issues: string[] = [];
+  if (commentary.length < minimumLength) issues.push(`The post needs at least ${minimumLength} characters of decision-useful content.`);
+  if (commentary.length > maximumLength) issues.push(`The post exceeds the ${maximumLength}-character editorial limit.`);
+  if (!commentary.includes(url)) issues.push("The canonical technical brief is missing.");
+  if (hashtags.length < 3 || hashtags.length > 5) issues.push("Use three to five focused hashtags.");
+  if (hashtags.length && !hashtags.every((tag) => finalLine.includes(tag))) issues.push("Keep all hashtags together on the final line.");
+  if ((visibleLines[0] || "").length > 210) issues.push("The opening line is too dense for a mobile feed.");
+  if (lines.some((line) => line.trim().length > 420 && !line.includes("http"))) issues.push("Break dense lines into shorter paragraphs.");
+  if (/(?:\.\.\.|…)/.test(commentary)) issues.push("Do not publish clipped sentences or ellipses.");
+  if (/\b(?:in today['’]s (?:digital )?(?:world|landscape)|ever[- ]evolving|game[- ]changer|a useful (?:network )?signal|qcs translated the signal|could another engineer reproduce|what evidence would your team need)\b/i.test(commentary)) {
+    issues.push("Replace stock or reusable LinkedIn phrasing with a topic-specific insight.");
+  }
+  const capitalLabels = visibleLines.filter((line) => /^[A-Z0-9 &/+-]{5,50}$/.test(line));
+  if (capitalLabels.length > 3) issues.push("Use no more than three restrained section labels; the post currently reads like a form.");
+  if (repeatedSentences(commentary).length) issues.push("Remove repeated sentences or duplicated ideas.");
+  if (/\p{Extended_Pictographic}/u.test(commentary)) issues.push("Remove decorative emoji from the professional editorial post.");
+  return issues;
+}
+
+function actionLines(commentary: string) {
+  return commentary
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^(?:[1-4]\.\s+|-\s+)/.test(line));
+}
+
+export function editorialLinkedInQualityIssues(commentary: string, url: string, post?: LinkedInEditorialPost) {
+  const issues = presentationIssues(commentary, url, 650, 2_200);
+  const actions = actionLines(commentary);
+  if (actions.length < 3) issues.push("Include three concrete actions or decision checks on separate lines.");
+  if ((commentary.match(/\?/g) || []).length > 1) issues.push("Use no more than one purposeful audience question.");
+  if (post) {
+    const distinctiveTerms = comparable(`${post.title} ${post.content.primaryKeyword || ""}`)
+      .split(" ")
+      .filter((term) => term.length >= 6 && !["security", "network", "service", "software", "article"].includes(term));
+    if (distinctiveTerms.length && !distinctiveTerms.some((term) => comparable(commentary).includes(term))) {
+      issues.push("The post does not retain a distinctive fact or technology from the article.");
+    }
+  }
+  return [...new Set(issues)];
+}
+
+export function advisoryLinkedInQualityIssues(commentary: string, url: string, advisory?: LinkedInAdvisoryPost) {
+  const issues = presentationIssues(commentary, url, 850, 2_700);
+  const actions = actionLines(commentary).filter((line) => /^[1-4]\.\s+/.test(line));
+  if (actions.length !== 4) issues.push("Include exactly four numbered defender actions.");
+  if (new Set(actions.map(comparable)).size !== actions.length) issues.push("Every defender action must be materially distinct.");
+  if (!/exploitation status/i.test(commentary)) issues.push("State exploitation status explicitly.");
+  if (!/(?:vendor|severity|rating).{0,40}(?:critical|high|medium|moderate|low|unrated)/i.test(commentary)) {
+    issues.push("State the vendor severity separately from CVSS.");
+  }
+  if (!/(?:validate|validation|verify).{0,180}(?:version|release|fix|log|service|exposure|control)/i.test(commentary)) {
+    issues.push("Add a concrete post-remediation validation step.");
+  }
+  if (advisory) {
+    const identifier = advisory.cves[0];
+    if (identifier && !containsFact(commentary, identifier)) issues.push(`Preserve advisory identifier ${identifier}.`);
+    if (advisory.cvssScore !== null && advisory.cvssScore !== undefined && !new RegExp(`CVSS\\s*${advisory.cvssScore.toFixed(1).replace(".", "\\.")}`, "i").test(commentary)) {
+      issues.push(`Preserve the exact CVSS ${advisory.cvssScore.toFixed(1)} score.`);
+    }
+    const firstProduct = advisory.products[0];
+    if (firstProduct && !containsFact(commentary, firstProduct)) issues.push(`Name the affected product ${firstProduct}.`);
+    for (const fixedVersion of advisory.fixedVersions || []) {
+      if (!containsFact(commentary, fixedVersion)) issues.push(`Preserve the complete fixed-release path: ${fixedVersion}.`);
+    }
+    const noWorkaround = /no (?:available )?workarounds?|no workaround (?:is|was) available/i.test(advisory.workaround || advisory.remediation);
+    if (noWorkaround && !/no workaround/i.test(commentary)) issues.push("State explicitly that no workaround is available.");
+    if (advisory.sourceUrl && !commentary.includes(advisory.sourceUrl)) issues.push("Include the canonical vendor source URL.");
+  }
+  return [...new Set(issues)];
+}
+
 export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url: string) {
   const title = cleanHeadline(advisory.title);
-  const combined = `${title} ${advisory.vendor} ${advisory.summary} ${advisory.technicalExplanation || ""} ${advisory.businessImpact || ""}`.toLowerCase();
-  const exploitation = normalize(advisory.exploitationStatus || "The vendor did not state an exploitation status.");
-  const activelyExploited =
-    /active exploitation|actively exploited|exploited in the wild/i.test(exploitation) &&
-    !/not specify|no evidence|not known|no active/i.test(exploitation);
-  const staticCredential = /static credential|embedded credential|preset username/.test(combined);
-  const fmcAdvisory = /firewall management center|\bfmc\b/i.test(advisory.products.join(" "));
-  const fortinetCapwapAdvisory =
-    /\bfortinet\b/i.test(advisory.vendor) &&
-    /\bcapwap\b/i.test(combined) &&
-    /\bfortigate\b|\bfortios\b/i.test(`${title} ${advisory.products.join(" ")}`);
+  const identifier = advisory.cves[0] || "Vendor advisory";
+  const exploitation = normalize(advisory.exploitationStatus || "The source does not state an exploitation status.");
+  const severity = advisory.severity.toLowerCase() === "unrated" ? "Vendor not rated" : `Vendor ${advisory.severity.toUpperCase()}`;
+  const score = advisory.cvssScore === null || advisory.cvssScore === undefined ? "CVSS not supplied" : `CVSS ${advisory.cvssScore.toFixed(1)}`;
+  const affected = clip(advisory.products.slice(0, 8).join(", ") || "See the vendor advisory", 260);
+  const affectedVersions = clip((advisory.affectedVersions || []).slice(0, 8).join("; ") || "Confirm against the vendor's affected-release table", 320);
+  const fixedVersions = clip((advisory.fixedVersions || []).slice(0, 8).join("; ") || "No fixed release was extracted; follow the current vendor remediation", 330);
   const noWorkaround = /no (?:available )?workarounds?|no workaround (?:is|was) available/i.test(advisory.workaround || advisory.remediation);
-  const scoreFromText = `${advisory.technicalExplanation || ""} ${advisory.summary}`.match(
-    /CVSS(?: base)? score(?: is)?\s+(10(?:\.0)?|[0-9](?:\.[0-9])?)/i
-  );
-  const cvssScore = advisory.cvssScore ?? (scoreFromText ? Number(scoreFromText[1]) : null);
-  const fixedTrains = [
-    ...new Set(
-      (advisory.fixedVersions || [])
-        .map((entry) => entry.match(fortinetCapwapAdvisory ? /\b\d{1,2}(?:\.\d+){2}\b/ : /\b\d{1,2}\.\d+\b/)?.[0] || "")
-        .filter(Boolean)
-    )
-  ].slice(0, 6);
-  const leadIdentifier = advisory.cves[0] || title;
-  const severity = advisory.severity.toLowerCase() === "unrated" ? "NOT RATED" : advisory.severity.toUpperCase();
-  const severityLabel = severity === "NOT RATED" ? "Not rated" : `${severity[0]}${severity.slice(1).toLowerCase()}`;
-  const text = `${title} ${advisory.vendor} ${advisory.products.join(" ")} ${advisory.cves.join(" ")}`.toLowerCase();
-  const ciscoAdvisory = /\bcisco\b/.test(text);
-  const privilegeChain = /(?:combine|used with|in conjunction with)[^.]{0,120}(?:elevate|increase)[^.]{0,60}privilege/i.test(combined);
-  const visibleHashtag = ciscoAdvisory ? "#CiscoSecurity" : "#NetworkSecurity";
-  const shortCode = leadIdentifier.match(/^CVE-\d{4}-(\d+)$/i)?.[1];
-  const briefUrl = (() => {
-    const parsed = new URL(url);
-    const conciseOrigin = parsed.origin.replace("://www.", "://");
-    return shortCode ? `${conciseOrigin}/a/${shortCode}` : `${conciseOrigin}/security-advisories`;
-  })();
-  const vendorLabel = clip(advisory.vendor, 18);
-  const statusLabel = activelyExploited ? "ACTIVELY EXPLOITED" : fortinetCapwapAdvisory ? "PATCH PRIORITY" : "SECURITY ADVISORY";
-  const scoreLabel = cvssScore === null ? severityLabel : `${severityLabel}; CVSS ${cvssScore.toFixed(1)}`;
-  const riskCore = staticCredential && fmcAdvisory && privilegeChain
-    ? "Low-priv FMC access can escalate privileges."
-    : fortinetCapwapAdvisory
-      ? "Compromised FortiAP/Extender/Switch may reach FortiGate execution."
-    : normalize(advisory.businessImpact || advisory.summary);
-  const actions = staticCredential
-    ? ["Inventory", "Restrict UI", "Patch FMC", "Check logs"]
-    : fortinetCapwapAdvisory
-      ? ["Map devices", "Isolate suspects", "Patch FortiOS", "Review logs"]
-    : ["Inventory", "Contain", "Apply fix", "Verify state"];
-  const fixedLine = fixedTrains.length ? fixedTrains.join("/") : "Vendor-supported release/hotfix";
-  const hashtags = ciscoAdvisory && fmcAdvisory
-    ? ["#CiscoSecurity", "#CiscoFMC", "#CVE", "#NetworkSecurity", "#InfoSec"]
-    : fortinetCapwapAdvisory
-      ? ["#Fortinet", "#FortiGate", "#FortiOS", "#CVE", "#NetworkSecurity"]
-    : [visibleHashtag, "#CVE", "#CyberSecurity", "#InfoSec", "#VulnerabilityManagement"];
-  const riskDetail = `${clip(riskCore, staticCredential && fmcAdvisory && privilegeChain ? 80 : noWorkaround ? 58 : 74)}${noWorkaround ? " No workaround." : ""}`;
-  const actionSummary = actions
-    .map((action, index) => index === 0 ? action : `${action[0].toLowerCase()}${action.slice(1)}`)
-    .join("; ");
+  const mitigation = noWorkaround
+    ? "No workaround is available. Prioritize the vendor-supported fix and temporary exposure reduction."
+    : clip(advisory.workaround || "No vendor workaround was extracted. Do not invent an unsupported mitigation.", 300);
+  const actions = advisoryActions(advisory);
+  const hashtags = advisoryHashtags(advisory);
   const lines = [
-    `${hashtags[0]} ${leadIdentifier}: ${statusLabel}`,
+    `${advisory.vendor.toUpperCase()} SECURITY ADVISORY | ${identifier}`,
     "",
-    `RISK: ${fortinetCapwapAdvisory ? scoreLabel : `${vendorLabel} ${scoreLabel}`}`,
-    riskDetail,
+    title,
     "",
-    `ACT: ${actionSummary}.`,
+    "EXPLOITATION STATUS",
+    exploitation,
     "",
-    `FIX: ${fixedLine}`,
+    "RISK AND SCOPE",
+    `• Rating: ${severity}; ${score}`,
+    `• Products: ${affected}`,
+    `• Affected releases: ${affectedVersions}`,
     "",
-    `READ: ${briefUrl}`,
+    "WHAT IT MEANS",
+    clip(advisory.technicalExplanation || advisory.summary, 430),
     "",
-    hashtags.slice(1).join(" ")
+    "POTENTIAL BUSINESS IMPACT",
+    clip(advisory.businessImpact || advisory.summary, 300),
+    "",
+    "DEFENDER ACTIONS",
+    ...actions.map((action, index) => `${index + 1}. ${action}.`),
+    "",
+    "FIX AND WORKAROUND",
+    `• Fixed path: ${fixedVersions}`,
+    `• Temporary control: ${mitigation}`,
+    "",
+    "VALIDATE BEFORE CLOSURE",
+    clip((advisory.evidenceChecklist || []).at(-1) || "Verify the running release, exposure path, relevant logs, service health, and retained change evidence.", 260),
+    "",
+    `QCS technical brief: ${url}`,
+    "",
+    hashtags.join(" ")
   ];
   const commentary = lines.join("\n");
-  if (commentary.length <= 300) return commentary;
-
-  const overflow = commentary.length - 300;
-  const riskIndex = lines.indexOf(riskDetail);
-  const workaroundSuffix = noWorkaround ? " No workaround." : "";
-  lines[riskIndex] = `${clip(riskCore, Math.max(18, lines[riskIndex].length - overflow - workaroundSuffix.length))}${workaroundSuffix}`;
-  return lines.join("\n").slice(0, 300);
+  if (commentary.length > 2900) throw new Error("The evidence-led LinkedIn advisory exceeds the safe commentary limit.");
+  return commentary;
 }

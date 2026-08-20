@@ -10824,3 +10824,97 @@ body:has(.portal-access-page, .portal-page, .portal-report-page, .admin-page, .a
 @media print {
   .portal-report-page .verifygrid-report-toolbar { display: none; }
 }
+
+.admin-action-center {
+  position: fixed;
+  z-index: 1200;
+  top: 18px;
+  right: 18px;
+  display: grid;
+  width: min(420px, calc(100vw - 28px));
+  gap: 10px;
+  pointer-events: none;
+}
+
+.admin-action-toast {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 32px;
+  align-items: start;
+  min-height: 78px;
+  padding: 14px;
+  border: 1px solid rgba(78, 104, 151, 0.24);
+  border-left: 4px solid #4269ca;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 18px 48px rgba(14, 28, 52, 0.2);
+  color: #142036;
+  pointer-events: auto;
+  animation: admin-action-enter 180ms ease-out both;
+}
+
+.admin-action-toast.is-success { border-left-color: #14875a; }
+.admin-action-toast.is-warning { border-left-color: #d27518; }
+.admin-action-toast.is-error { border-left-color: #c4364f; }
+
+.admin-action-toast-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(66, 105, 202, 0.09);
+  color: #4269ca;
+}
+
+.admin-action-toast.is-success .admin-action-toast-icon { background: rgba(20, 135, 90, 0.1); color: #14875a; }
+.admin-action-toast.is-warning .admin-action-toast-icon { background: rgba(210, 117, 24, 0.1); color: #b65d0d; }
+.admin-action-toast.is-error .admin-action-toast-icon { background: rgba(196, 54, 79, 0.1); color: #c4364f; }
+.admin-action-toast-icon svg { width: 19px; height: 19px; }
+
+.admin-action-toast strong {
+  display: block;
+  margin: 1px 0 4px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 0.92rem;
+  line-height: 1.25;
+}
+
+.admin-action-toast p {
+  margin: 0;
+  color: #58667d;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.admin-action-toast > button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #68758b;
+  cursor: pointer;
+  place-items: center;
+}
+
+.admin-action-toast > button:hover { background: rgba(20, 32, 54, 0.07); color: #142036; }
+.admin-action-spinner { animation: admin-action-spin 850ms linear infinite; }
+
+@keyframes admin-action-enter {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes admin-action-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .admin-action-center { top: 10px; right: 10px; width: calc(100vw - 20px); }
+  .admin-action-toast { min-height: 72px; padding: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-action-toast { animation: none; }
+  .admin-action-spinner { animation-duration: 1600ms; }
+}

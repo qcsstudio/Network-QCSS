@@ -3,7 +3,8 @@ import type { Prisma, SecurityAdvisory } from "@prisma/client";
 import type { ContentPostRecord } from "@/lib/content-posts";
 import { siteConfig } from "@/lib/content";
 import { ensureEditorialImageForPublication } from "@/lib/editorial-image-generation";
-import { composeAdvisoryLinkedInPost, composeEditorialLinkedInPost } from "@/lib/linkedin-commentary";
+import { createAdvisoryLinkedInPost, createEditorialLinkedInPost } from "@/lib/linkedin-content-agents";
+import { advisoryLinkedInQualityIssues, type LinkedInAdvisoryPost } from "@/lib/linkedin-commentary";
 import { deleteLinkedInPost, publishLinkedInPost, updateLinkedInPostCommentary } from "@/lib/linkedin";
 import { getPrismaClient } from "@/lib/prisma";
 import { editorialImageWaitMessage, socialPublicationFailurePolicy } from "@/lib/social-publication-state";
@@ -21,35 +22,37 @@ type EditorialPostRecord = Pick<ContentPostRecord, "content" | "slug" | "title">
 
 export function buildEditorialLinkedInCommentary(post: EditorialPostRecord) {
   const url = trackedUrl(`/resources/${post.slug}`, "weekly-intelligence", post.slug);
-  return composeEditorialLinkedInPost(post, url);
+  return createEditorialLinkedInPost(post, url);
 }
 
 function jsonStrings(value: Prisma.JsonValue) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
+function advisoryPost(advisory: SecurityAdvisory): LinkedInAdvisoryPost {
+  return {
+    affectedVersions: jsonStrings(advisory.affectedVersions),
+    businessImpact: advisory.businessImpact,
+    cves: jsonStrings(advisory.cves),
+    cvssScore: advisory.cvssScore,
+    evidenceChecklist: jsonStrings(advisory.evidenceChecklist),
+    exploitationStatus: advisory.exploitationStatus,
+    fixedVersions: jsonStrings(advisory.fixedVersions),
+    products: jsonStrings(advisory.products),
+    remediation: advisory.remediation,
+    severity: advisory.severity,
+    sourceUrl: advisory.sourceUrl,
+    summary: advisory.summary,
+    technicalExplanation: advisory.technicalExplanation,
+    title: advisory.title,
+    vendor: advisory.vendor,
+    workaround: advisory.workaround || ""
+  };
+}
+
 export function buildAdvisoryLinkedInCommentary(advisory: SecurityAdvisory) {
   const url = trackedUrl(`/security-advisories/${advisory.slug}`, "security-advisory-desk", advisory.slug);
-  return composeAdvisoryLinkedInPost(
-    {
-      affectedVersions: jsonStrings(advisory.affectedVersions),
-      businessImpact: advisory.businessImpact,
-      cves: jsonStrings(advisory.cves),
-      cvssScore: advisory.cvssScore,
-      evidenceChecklist: jsonStrings(advisory.evidenceChecklist),
-      exploitationStatus: advisory.exploitationStatus,
-      fixedVersions: jsonStrings(advisory.fixedVersions),
-      products: jsonStrings(advisory.products),
-      remediation: advisory.remediation,
-      severity: advisory.severity,
-      summary: advisory.summary,
-      technicalExplanation: advisory.technicalExplanation,
-      title: advisory.title,
-      vendor: advisory.vendor,
-      workaround: advisory.workaround || ""
-    },
-    url
-  );
+  return createAdvisoryLinkedInPost(advisoryPost(advisory), url);
 }
 
 async function enqueue(input: {
@@ -58,6 +61,8 @@ async function enqueue(input: {
   contentRevision: string;
   sourceUrl: string;
   commentary: string;
+  commentaryQualityScore: number;
+  commentaryTrace: Prisma.InputJsonValue;
   imageUrl: string;
   imageAlt: string;
 }) {
@@ -78,7 +83,12 @@ async function enqueue(input: {
       data: {
         commentary: input.commentary,
         imageUrl: input.imageUrl,
-        metadata: { imageAlt: input.imageAlt },
+        metadata: {
+          commentaryPolicyVersion: 3,
+          commentaryQualityScore: input.commentaryQualityScore,
+          commentaryTrace: input.commentaryTrace,
+          imageAlt: input.imageAlt
+        },
         sourceUrl: input.sourceUrl
       }
     });
@@ -92,19 +102,27 @@ async function enqueue(input: {
       sourceUrl: input.sourceUrl,
       commentary: input.commentary,
       imageUrl: input.imageUrl,
-      metadata: { imageAlt: input.imageAlt }
+      metadata: {
+        commentaryPolicyVersion: 3,
+        commentaryQualityScore: input.commentaryQualityScore,
+        commentaryTrace: input.commentaryTrace,
+        imageAlt: input.imageAlt
+      }
     }
   });
 }
 
 export async function queueLinkedInForContentPost(post: ContentPostRecord) {
   const revision = String(post.revisions[0]?.version || post.updatedAt);
+  const generated = await buildEditorialLinkedInCommentary(post);
   return enqueue({
     contentType: "content_post",
     contentId: post.id,
     contentRevision: revision,
     sourceUrl: `${siteConfig.url}/resources/${post.slug}`,
-    commentary: buildEditorialLinkedInCommentary(post),
+    commentary: generated.commentary,
+    commentaryQualityScore: generated.qualityScore,
+    commentaryTrace: generated.trace as Prisma.InputJsonValue,
     imageUrl: `${siteConfig.url}/resources/${post.slug}/opengraph-image?v=${encodeURIComponent(revision)}`,
     imageAlt: post.content.imageAlt
   });
@@ -112,12 +130,23 @@ export async function queueLinkedInForContentPost(post: ContentPostRecord) {
 
 export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revision: number | string) {
   const revisionKey = String(revision);
+  const generated = await buildAdvisoryLinkedInCommentary(advisory);
+  const commentary = generated.commentary;
+  const canonicalUrl = `${siteConfig.url}/security-advisories/${advisory.slug}`;
+  const qualityIssues = advisoryLinkedInQualityIssues(
+    commentary,
+    trackedUrl(`/security-advisories/${advisory.slug}`, "security-advisory-desk", advisory.slug),
+    advisoryPost(advisory)
+  );
+  if (qualityIssues.length) throw new Error(`LinkedIn advisory held by publication gate: ${qualityIssues.join(" ")}`);
   return enqueue({
     contentType: "security_advisory",
     contentId: advisory.id,
     contentRevision: revisionKey,
-    sourceUrl: `${siteConfig.url}/security-advisories/${advisory.slug}`,
-    commentary: buildAdvisoryLinkedInCommentary(advisory),
+    sourceUrl: canonicalUrl,
+    commentary,
+    commentaryQualityScore: generated.qualityScore,
+    commentaryTrace: generated.trace as Prisma.InputJsonValue,
     imageUrl: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image?v=${encodeURIComponent(revisionKey)}`,
     imageAlt: `${advisory.severity} ${advisory.vendor} network security advisory: ${advisory.title}`
   });
@@ -166,8 +195,11 @@ export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
     if (currentPublications.some((publication) => publication.contentRevision === revision)) continue;
     const pendingPublication = currentPublications.find((publication) => publication.status !== "published");
     if (pendingPublication) {
+      const generated = await buildAdvisoryLinkedInCommentary(advisory);
       const material = {
-        commentary: buildAdvisoryLinkedInCommentary(advisory),
+        commentary: generated.commentary,
+        commentaryQualityScore: generated.qualityScore,
+        commentaryTrace: generated.trace as Prisma.InputJsonValue,
         imageAlt: `${advisory.severity} ${advisory.vendor} network security advisory: ${advisory.title}`,
         imageUrl: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image?v=${encodeURIComponent(revision)}`,
         sourceUrl: `${siteConfig.url}/security-advisories/${advisory.slug}`
@@ -180,7 +212,12 @@ export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
           contentRevision: revision,
           imageUrl: material.imageUrl,
           lastError: null,
-          metadata: { imageAlt: material.imageAlt },
+          metadata: {
+            commentaryPolicyVersion: 3,
+            commentaryQualityScore: material.commentaryQualityScore,
+            commentaryTrace: material.commentaryTrace,
+            imageAlt: material.imageAlt
+          },
           nextAttemptAt: new Date(),
           sourceUrl: material.sourceUrl,
           status: "queued"
@@ -237,6 +274,30 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
     if (!claimed.count) continue;
 
     try {
+      let commentary = job.commentary;
+      let publicationMetadata = metadataObject(job.metadata);
+      const policyVersion = Number(publicationMetadata.commentaryPolicyVersion || 0);
+      const commentaryQualityScore = Number(publicationMetadata.commentaryQualityScore || 0);
+      if (policyVersion < 3 || commentaryQualityScore < 88) {
+        const material = await currentPublicationMaterial(job);
+        commentary = material.commentary;
+        publicationMetadata = {
+          ...publicationMetadata,
+          commentaryPolicyVersion: 3,
+          commentaryQualityScore: material.commentaryQualityScore,
+          commentaryTrace: material.commentaryTrace as unknown as Prisma.JsonValue,
+          imageAlt: material.imageAlt
+        };
+        await prisma.socialPublication.update({
+          where: { id: job.id },
+          data: {
+            commentary,
+            imageUrl: material.imageUrl,
+            metadata: publicationMetadata as Prisma.InputJsonValue,
+            sourceUrl: material.sourceUrl
+          }
+        });
+      }
       const generatedImage = await ensureEditorialImageForPublication(job);
       if (!generatedImage?.generatedAt) {
         throw new Error(editorialImageWaitMessage);
@@ -247,11 +308,10 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
         url.searchParams.set("asset", generatedImage.generatedAt.toISOString());
         return url.toString();
       })();
-      const metadata = job.metadata && typeof job.metadata === "object" && !Array.isArray(job.metadata) ? job.metadata : {};
       const result = await publishLinkedInPost({
-        commentary: job.commentary,
+        commentary,
         imageUrl: imageUrl || undefined,
-        imageAlt: typeof metadata.imageAlt === "string" ? metadata.imageAlt : undefined
+        imageAlt: typeof publicationMetadata.imageAlt === "string" ? publicationMetadata.imageAlt : undefined
       });
       await prisma.socialPublication.update({
         where: { id: job.id },
@@ -261,7 +321,7 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
           imageUrl,
           publishedAt: new Date(),
           lastError: null,
-          metadata: { ...metadata, deliveryReceipt: result.receipt, permalink: result.permalink } as Prisma.InputJsonValue
+          metadata: { ...publicationMetadata, deliveryReceipt: result.receipt, permalink: result.permalink } as Prisma.InputJsonValue
         }
       });
       outcomes.push({ id: job.id, status: "published", externalId: result.externalId });
@@ -299,8 +359,11 @@ async function currentPublicationMaterial(job: {
     if (!source) throw new Error("The source article no longer exists.");
     const content = source.content as unknown as ContentPostRecord["content"];
     const post = { content, slug: source.slug, title: source.title };
+    const generated = await buildEditorialLinkedInCommentary(post);
     return {
-      commentary: buildEditorialLinkedInCommentary(post),
+      commentary: generated.commentary,
+      commentaryQualityScore: generated.qualityScore,
+      commentaryTrace: generated.trace as Prisma.InputJsonValue,
       imageAlt: content.imageAlt,
       imageUrl: `${siteConfig.url}/resources/${source.slug}/opengraph-image?v=${encodeURIComponent(job.contentRevision)}`,
       sourceUrl: `${siteConfig.url}/resources/${source.slug}`
@@ -309,8 +372,11 @@ async function currentPublicationMaterial(job: {
   if (job.contentType === "security_advisory") {
     const advisory = await prisma.securityAdvisory.findUnique({ where: { id: job.contentId } });
     if (!advisory) throw new Error("The source security advisory no longer exists.");
+    const generated = await buildAdvisoryLinkedInCommentary(advisory);
     return {
-      commentary: buildAdvisoryLinkedInCommentary(advisory),
+      commentary: generated.commentary,
+      commentaryQualityScore: generated.qualityScore,
+      commentaryTrace: generated.trace as Prisma.InputJsonValue,
       imageAlt: `${advisory.severity} ${advisory.vendor} network security advisory: ${advisory.title}`,
       imageUrl: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image?v=${encodeURIComponent(job.contentRevision)}`,
       sourceUrl: `${siteConfig.url}/security-advisories/${advisory.slug}`
@@ -340,6 +406,9 @@ export async function refreshLinkedInPublication(publicationId: string, replaceM
         lastError: null,
         metadata: {
           ...metadata,
+          commentaryPolicyVersion: 3,
+          commentaryQualityScore: material.commentaryQualityScore,
+          commentaryTrace: material.commentaryTrace,
           commentaryRefreshedAt: new Date().toISOString(),
           deliveryReceipt: {
             ...previousReceipt,
@@ -387,6 +456,9 @@ export async function refreshLinkedInPublication(publicationId: string, replaceM
       sourceUrl: material.sourceUrl,
       metadata: {
         ...metadata,
+        commentaryPolicyVersion: 3,
+        commentaryQualityScore: material.commentaryQualityScore,
+        commentaryTrace: material.commentaryTrace,
         imageAlt: material.imageAlt,
         mediaReplacedAt: new Date().toISOString(),
         permalink: replacement.permalink,
@@ -402,7 +474,6 @@ export async function rebuildLinkedInPublication(publicationId: string) {
   const publication = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
   if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
 
-  const material = await currentPublicationMaterial(publication);
   if (publication.contentType === "security_advisory") {
     await ensureEditorialImageForPublication(publication, true);
   } else {
@@ -420,6 +491,7 @@ export async function rebuildLinkedInPublication(publicationId: string) {
     };
   }
 
+  const material = await currentPublicationMaterial(publication);
   const metadata = metadataObject(publication.metadata);
   await prisma.socialPublication.update({
     where: { id: publication.id },
@@ -428,7 +500,14 @@ export async function rebuildLinkedInPublication(publicationId: string) {
       commentary: material.commentary,
       imageUrl: material.imageUrl,
       lastError: null,
-      metadata: { ...metadata, imageAlt: material.imageAlt, rebuiltAt: new Date().toISOString() } as Prisma.InputJsonValue,
+      metadata: {
+        ...metadata,
+        commentaryPolicyVersion: 3,
+        commentaryQualityScore: material.commentaryQualityScore,
+        commentaryTrace: material.commentaryTrace,
+        imageAlt: material.imageAlt,
+        rebuiltAt: new Date().toISOString()
+      } as Prisma.InputJsonValue,
       nextAttemptAt: new Date(),
       sourceUrl: material.sourceUrl,
       status: "queued"
@@ -466,14 +545,13 @@ export async function rebuildLinkedInPublicationsSince(since: Date, apply = fals
   }> = [];
 
   for (const publication of publications) {
-    const material = await currentPublicationMaterial(publication);
     if (!apply) {
       outcomes.push({
         id: publication.id,
         status: "preview",
         contentType: publication.contentType,
-        commentaryLength: material.commentary.length,
-        commentary: material.commentary,
+        commentaryLength: publication.commentary.length,
+        commentary: publication.commentary,
         externalId: publication.externalId || undefined
       });
       continue;
@@ -499,21 +577,23 @@ export async function getSocialPublicationSummary() {
   const titles = new Map([...contentTitles, ...advisoryTitles].map((entry) => [entry.id, entry.title]));
   return {
     counts: Object.fromEntries(counts.map((entry) => [entry.status, entry._count._all])),
-    latest: latest.map((entry) => ({
-      id: entry.id,
-      contentType: entry.contentType,
-      title: titles.get(entry.contentId) || entry.contentType.replaceAll("_", " "),
-      status: entry.status,
-      sourceUrl: entry.sourceUrl,
-      externalId: entry.externalId || "",
-      permalink:
-        entry.metadata && typeof entry.metadata === "object" && !Array.isArray(entry.metadata) && typeof entry.metadata.permalink === "string"
-          ? entry.metadata.permalink
-          : "",
-      attempts: entry.attempts,
-      lastError: entry.lastError || "",
-      publishedAt: entry.publishedAt?.toISOString() || "",
-      updatedAt: entry.updatedAt.toISOString()
-    }))
+    latest: latest.map((entry) => {
+      const metadata = metadataObject(entry.metadata);
+      return {
+        id: entry.id,
+        contentType: entry.contentType,
+        title: titles.get(entry.contentId) || entry.contentType.replaceAll("_", " "),
+        status: entry.status,
+        sourceUrl: entry.sourceUrl,
+        externalId: entry.externalId || "",
+        permalink: typeof metadata.permalink === "string" ? metadata.permalink : "",
+        commentaryPolicyVersion: Number(metadata.commentaryPolicyVersion || 0),
+        commentaryQualityScore: Number(metadata.commentaryQualityScore || 0),
+        attempts: entry.attempts,
+        lastError: entry.lastError || "",
+        publishedAt: entry.publishedAt?.toISOString() || "",
+        updatedAt: entry.updatedAt.toISOString()
+      };
+    })
   };
 }

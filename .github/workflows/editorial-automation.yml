@@ -28,6 +28,8 @@ jobs:
             "https://www.qcsstudio.com/api/cron/advisory-discovery"
 
   publish-social:
+    needs: scan-advisories
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 6
     concurrency:

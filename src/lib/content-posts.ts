@@ -200,19 +200,36 @@ export function publicationIssues(post: BlogPost) {
   if (post.sections.length < 3) issues.push("Add at least three substantive sections.");
   if (post.sources.length < 1) issues.push("Add at least one authoritative source.");
   if (!post.sources.some((source) => isTrustedEditorialUrl(source.url))) issues.push("Add at least one approved authoritative source.");
+  if (post.sources.some((source) => !isTrustedEditorialUrl(source.url))) issues.push("Remove research sources outside the approved authority list.");
   const headings = post.sections.map((section) => section.heading.trim().toLowerCase());
   if (new Set(headings).size !== headings.length) issues.push("Use a unique, decision-focused heading for every section.");
   if (post.contentVersion === 2) {
+    const articleWords = allText.split(/\s+/).filter(Boolean).length;
+    const minimumWords = post.contentType === "resource" ? 700 : 900;
+    if (articleWords < minimumWords) issues.push(`Add original technical analysis; this format requires at least ${minimumWords} useful words.`);
     if (post.sections.length < 5) issues.push("Add at least five substantive sections covering the decision from answer to validation.");
+    if (post.answer.length < 100) issues.push("Make the answer-first block specific enough to stand alone in search and AI results.");
     if (!post.readerOutcome) issues.push("State the practical reader outcome.");
     if (!post.reviewedBy) issues.push("Name the technical review team.");
     if (!post.editorialMethod) issues.push("Disclose the editorial research and review method.");
     if (!post.definitions || post.definitions.length < 2) issues.push("Define at least two important entities or technical terms.");
     if (!post.visualBrief) issues.push("Add a factual, topic-specific visual brief.");
+    if ((post.visualBrief?.factualAnchors.length || 0) < 3) issues.push("Anchor the contextual image to at least three verified facts.");
+    if (post.takeaways.length < 3) issues.push("Add at least three decision-useful takeaways.");
+    if (post.checklist.length < 6) issues.push("Add at least six actionable checklist steps.");
+    if (post.questions.length < 4) issues.push("Answer at least four practical follow-up questions.");
     const sourceSet = new Set(post.sources.map((source) => source.url));
     const citations = [...post.sections, ...post.questions].flatMap((item) => item.sourceUrls || []);
     if (new Set(citations).size < 1) issues.push("Attach primary-source citations to the claims they support.");
     if (citations.some((url) => !sourceSet.has(url))) issues.push("Use only listed research sources for claim-level citations.");
+  }
+  return issues;
+}
+
+function recordPublicationIssues(post: ContentPostRecord) {
+  const issues = publicationIssues(post.content);
+  if (post.qualityScore !== null && post.qualityScore < 84) {
+    issues.push("Regenerate or manually review this article because its editorial quality score is below 84.");
   }
   return issues;
 }
@@ -590,7 +607,7 @@ export async function approveContentPost(id: string, actor: string) {
   const existing = await getContentPost(id);
   if (!existing) return null;
   assertContentPostAction(existing.status, "approve");
-  const issues = publicationIssues(existing.content);
+  const issues = recordPublicationIssues(existing);
   if (issues.length) throw new Error(issues.join(" "));
   await prisma.contentPost.update({
     where: { id },
@@ -605,7 +622,7 @@ export async function publishContentPost(id: string, actor: string) {
   const existing = await getContentPost(id);
   if (!existing) return null;
   assertContentPostAction(existing.status, "publish");
-  const issues = publicationIssues(existing.content);
+  const issues = recordPublicationIssues(existing);
   if (issues.length) throw new Error(issues.join(" "));
   const today = new Date().toISOString().slice(0, 10);
   const content = { ...existing.content, publishedAt: existing.content.publishedAt || today, updatedAt: today };

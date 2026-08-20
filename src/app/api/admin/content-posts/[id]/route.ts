@@ -81,15 +81,17 @@ export async function PATCH(request: Request, { params }: RouteContext) {
       revalidatePath(`/resources/${post.slug}`);
       revalidatePath("/sitemap.xml");
     }
+    let linkedinWarning = "";
     if (action === "publish") {
       try {
         await queueLinkedInForContentPost(post);
         await processLinkedInQueue(1);
       } catch (error) {
         console.error("The article was published, but LinkedIn queueing failed.", error);
+        linkedinWarning = error instanceof Error ? error.message : "LinkedIn editorial QA or delivery failed.";
       }
     }
-    return NextResponse.json({ ok: true, post }, { headers: noStoreHeaders });
+    return NextResponse.json({ ok: true, post, linkedinWarning }, { headers: noStoreHeaders });
   } catch (error) {
     console.error("Unable to update content post.", error);
     return jsonError(error instanceof Error ? error.message : "Unable to update content post.", 400);

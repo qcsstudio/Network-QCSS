@@ -191,7 +191,10 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
               <div className="linkedin-publication-copy">
                 <span className={`status-pill ${job.status === "published" ? "ready" : job.status === "failed" ? "missing" : ""}`}>{job.status}</span>
                 <strong>{job.title}</strong>
-                <small>{job.publishedAt ? new Date(job.publishedAt).toLocaleString("en-IN") : new Date(job.updatedAt).toLocaleString("en-IN")}</small>
+                <small>
+                  {job.publishedAt ? new Date(job.publishedAt).toLocaleString("en-IN") : new Date(job.updatedAt).toLocaleString("en-IN")}
+                  {job.commentaryQualityScore ? ` | LinkedIn QA ${job.commentaryQualityScore}/100` : " | Awaiting LinkedIn QA"}
+                </small>
               </div>
               <div className="content-action-row">
                 {job.status === "published" ? (

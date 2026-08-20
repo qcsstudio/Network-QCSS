@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import type { Prisma, SecurityAdvisory } from "@prisma/client";
+import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
 import { enrichSecurityAdvisory } from "@/lib/editorial-content-agents";
 import { getPrismaClient } from "@/lib/prisma";
@@ -9,9 +10,10 @@ export type AdvisorySourceDefinition = {
   slug: string;
   name: string;
   vendor: string;
-  format: "rss" | "cisa-kev" | "cert-in";
+  format: "rss" | "atom" | "cisa-kev" | "cert-in" | "msrc";
   url: string;
   officialHost: string;
+  acceptedHosts?: string[];
   priority: number;
 };
 
@@ -138,6 +140,35 @@ export const advisorySourceDefinitions: AdvisorySourceDefinition[] = [
     priority: 96
   },
   {
+    slug: "aws-security-bulletins",
+    name: "AWS Security Bulletins",
+    vendor: "Amazon Web Services",
+    format: "rss",
+    url: "https://aws.amazon.com/security/security-bulletins/rss/feed/",
+    officialHost: "aws.amazon.com",
+    priority: 97
+  },
+  {
+    slug: "google-cloud-security-bulletins",
+    name: "Google Cloud Security Bulletins",
+    vendor: "Google Cloud",
+    format: "atom",
+    url: "https://cloud.google.com/feeds/google-cloud-security-bulletins.xml",
+    officialHost: "docs.cloud.google.com",
+    acceptedHosts: ["cloud.google.com", "docs.cloud.google.com"],
+    priority: 97
+  },
+  {
+    slug: "microsoft-msrc",
+    name: "Microsoft Security Response Center",
+    vendor: "Microsoft",
+    format: "msrc",
+    url: "https://api.msrc.microsoft.com/cvrf/v3.0/updates",
+    officialHost: "api.msrc.microsoft.com",
+    acceptedHosts: ["api.msrc.microsoft.com", "msrc.microsoft.com"],
+    priority: 97
+  },
+  {
     slug: "cisa-kev",
     name: "CISA Known Exploited Vulnerabilities",
     vendor: "CISA",
@@ -176,7 +207,16 @@ export const advisorySourceDefinitions: AdvisorySourceDefinition[] = [
 ];
 
 const networkPattern =
-  /\b(network|router|routing|switch|firewall|vpn|gateway|wireless|wi-?fi|sd-wan|sase|ztna|dns|dhcp|bgp|load balancer|proxy|edge|forti|pan-os|globalprotect|junos|cisco|aruba|arista|sonicwall|watchguard|netscaler|citrix adc|f5|ivanti connect|pulse secure|zscaler|cloudflare|vpc|vnet)\b/i;
+  /\b(network|router|routing|switch|firewall|vpn|gateway|wireless|wi-?fi|sd-wan|sase|ztna|dns|dhcp|bgp|load balancer|proxy|edge|forti|pan-os|globalprotect|junos|cisco|aruba|arista|sonicwall|watchguard|netscaler|citrix adc|f5|ivanti connect|pulse secure|zscaler|cloudflare|vpc|vnet|aws|amazon web services|azure|google cloud|gcp|cloud armor|cloud interconnect|direct connect|expressroute|kubernetes|gke|aks|eks|remote desktop|hyper-v|network policy server|internet information services)\b/i;
+
+const feedXmlParser = new XMLParser({
+  attributeNamePrefix: "@",
+  ignoreAttributes: false,
+  parseTagValue: false,
+  processEntities: true,
+  removeNSPrefix: true,
+  trimValues: true
+});
 
 function inputJson(value: unknown) {
   return value as Prisma.InputJsonValue;
@@ -205,8 +245,40 @@ function cleanText(value: string) {
     .trim();
 }
 
-function xmlTag(block: string, name: string) {
-  return cleanText(block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, "i"))?.[1] || "");
+function asArray<T>(value: T | T[] | null | undefined): T[] {
+  if (value === null || value === undefined) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function textValue(value: unknown): string {
+  if (typeof value === "string" || typeof value === "number") return cleanText(String(value));
+  const record = objectValue(value);
+  return textValue(record["#text"] ?? record.Value ?? record.value ?? "");
+}
+
+function allowedSourceUrl(value: string, source: AdvisorySourceDefinition) {
+  try {
+    const url = new URL(value);
+    const hosts = source.acceptedHosts || [source.officialHost];
+    return url.protocol === "https:" && hosts.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
+  } catch {
+    return false;
+  }
+}
+
+function feedLink(value: unknown) {
+  for (const item of asArray(value)) {
+    if (typeof item === "string") return cleanText(item);
+    const record = objectValue(item);
+    const relation = textValue(record["@rel"]);
+    const href = textValue(record["@href"]);
+    if (href && (!relation || relation === "alternate")) return href;
+  }
+  return "";
 }
 
 function slugify(value: string) {
@@ -262,6 +334,21 @@ function productNames(vendor: string, title: string, summary: string) {
     "Prisma Access",
     "Junos OS",
     "Juniper Mist",
+    "Amazon VPC",
+    "AWS WAF",
+    "AWS Network Firewall",
+    "AWS Direct Connect",
+    "Amazon EKS",
+    "Google Cloud VPC",
+    "Cloud Armor",
+    "Cloud Interconnect",
+    "Google Kubernetes Engine",
+    "Microsoft Azure",
+    "Azure Firewall",
+    "Azure VPN Gateway",
+    "Azure Application Gateway",
+    "Azure Kubernetes Service",
+    "Windows Server",
     "Ubuntu"
   ].filter((product) => value.toLowerCase().includes(product.toLowerCase()));
   return unique(known.length ? known : [vendor]);
@@ -321,16 +408,21 @@ function candidate(source: AdvisorySourceDefinition, value: Omit<AdvisoryCandida
   return { ...next, contentHash: contentHash(next) };
 }
 
-function parseRss(body: string, source: AdvisorySourceDefinition): AdvisoryCandidate[] {
-  return (body.match(/<item[\s\S]*?<\/item>/gi) || []).flatMap((block) => {
-    const title = xmlTag(block, "title");
-    const link = xmlTag(block, "link") || xmlTag(block, "guid");
-    const summary = xmlTag(block, "description") || title;
+export function parseAdvisoryFeed(body: string, source: AdvisorySourceDefinition): AdvisoryCandidate[] {
+  const document = objectValue(feedXmlParser.parse(body));
+  const rss = objectValue(document.rss);
+  const channel = objectValue(rss.channel);
+  const feed = objectValue(document.feed);
+  const entries = source.format === "atom" ? asArray(feed.entry) : asArray(channel.item);
+  return entries.flatMap((rawEntry) => {
+    const entry = objectValue(rawEntry);
+    const title = textValue(entry.title);
+    const link = feedLink(entry.link) || textValue(entry.guid) || textValue(entry.id);
+    const summary = textValue(entry.description ?? entry.summary ?? entry.content) || title;
     if (!title || !link) return [];
     if (!networkPattern.test(`${title} ${summary} ${source.vendor}`)) return [];
-    const parsedUrl = new URL(link);
-    if (parsedUrl.hostname !== source.officialHost) return [];
-    const publishedAt = validDate(xmlTag(block, "pubDate") || xmlTag(block, "published") || xmlTag(block, "updated"));
+    if (!allowedSourceUrl(link, source)) return [];
+    const publishedAt = validDate(textValue(entry.pubDate ?? entry.published ?? entry.updated));
     const cvssScore = cvssFrom(`${title} ${summary}`);
     const severity = severityFrom(`${title} ${summary}`, cvssScore);
     const externalId = externalIdFrom(link, title);
@@ -355,7 +447,7 @@ function parseRss(body: string, source: AdvisorySourceDefinition): AdvisoryCandi
         exploitationStatus,
         sourceUrl: link,
         vendorPublishedAt: publishedAt,
-        vendorUpdatedAt: validDate(xmlTag(block, "updated"), publishedAt),
+        vendorUpdatedAt: validDate(textValue(entry.updated), publishedAt),
         payload: inputJson({ title, link, summary, publishedAt: publishedAt.toISOString() })
       })
     ];
@@ -444,6 +536,148 @@ function parseCisaKev(body: string, source: AdvisorySourceDefinition): AdvisoryC
   });
 }
 
+type MsrcEnvelope = {
+  documents?: Array<{
+    currentReleaseDate?: string;
+    document?: unknown;
+    id?: string;
+    initialReleaseDate?: string;
+  }>;
+};
+
+function msrcProducts(document: Record<string, unknown>) {
+  const productTree = objectValue(document.ProductTree);
+  return new Map(
+    asArray(productTree.FullProductName).flatMap((item) => {
+      const product = objectValue(item);
+      const id = textValue(product.ProductID);
+      const name = textValue(product.Value ?? product["#text"]);
+      return id && name ? [[id, name] as const] : [];
+    })
+  );
+}
+
+function latestRevisionDate(vulnerability: Record<string, unknown>, fallback: Date) {
+  return asArray<unknown>(vulnerability.RevisionHistory).reduce<Date>((latest, item) => {
+    const date = validDate(textValue(objectValue(item).Date), latest);
+    return date > latest ? date : latest;
+  }, fallback);
+}
+
+export function parseMsrcAdvisories(body: string, source: AdvisorySourceDefinition): AdvisoryCandidate[] {
+  const envelope = JSON.parse(body) as MsrcEnvelope;
+  return (envelope.documents || []).flatMap((wrapper) => {
+    const document = objectValue(wrapper.document);
+    const productsById = msrcProducts(document);
+    const documentPublishedAt = validDate(
+      wrapper.initialReleaseDate || textValue(objectValue(document.DocumentTracking).InitialReleaseDate)
+    );
+    const documentUpdatedAt = validDate(
+      wrapper.currentReleaseDate || textValue(objectValue(document.DocumentTracking).CurrentReleaseDate),
+      documentPublishedAt
+    );
+
+    return asArray(document.Vulnerability).flatMap((rawVulnerability) => {
+      const vulnerability = objectValue(rawVulnerability);
+      const cve = textValue(vulnerability.CVE).toUpperCase();
+      const title = textValue(vulnerability.Title);
+      if (!cve || !title) return [];
+      const notes = asArray(vulnerability.Notes).map((item) => textValue(objectValue(item).Value)).filter(Boolean);
+      const productIds = unique(
+        asArray(vulnerability.ProductStatuses).flatMap((status) =>
+          asArray(objectValue(status).ProductID).map((id) => textValue(id))
+        )
+      );
+      const products = unique(productIds.map((id) => productsById.get(id) || "").filter(Boolean));
+      const relevanceText = `${title} ${notes.join(" ")}`;
+      if (!networkPattern.test(relevanceText)) return [];
+
+      const threats = asArray(vulnerability.Threats).map((item) => objectValue(item));
+      const severityText = threats
+        .filter((item) => Number(item.Type) === 3)
+        .map((item) => textValue(item.Description))
+        .find(Boolean) || "";
+      const exploitationText = threats
+        .filter((item) => Number(item.Type) === 1)
+        .map((item) => textValue(item.Description))
+        .find(Boolean) || "";
+      const scores = asArray(vulnerability.CVSSScoreSets)
+        .map((item) => Number(objectValue(item).BaseScore))
+        .filter((score) => Number.isFinite(score) && score >= 0 && score <= 10);
+      const cvssScore = scores.length ? Math.max(...scores) : null;
+      const severity = severityFrom(`Severity: ${severityText}`, cvssScore);
+      const remediations = asArray(vulnerability.Remediations).map((item) => objectValue(item));
+      const fixedVersions = unique(
+        remediations.flatMap((item) => [textValue(item.FixedBuild), textValue(objectValue(item.Description).Value)]).filter(Boolean)
+      ).slice(0, 30);
+      const updateLinks = unique(remediations.map((item) => textValue(item.URL)).filter((url) => allowedSourceUrl(url, {
+        ...source,
+        acceptedHosts: ["microsoft.com", "catalog.update.microsoft.com", "support.microsoft.com"]
+      }))).slice(0, 6);
+      const sourceUrl = `https://msrc.microsoft.com/update-guide/en-US/advisory/${encodeURIComponent(cve)}`;
+      const vendorUpdatedAt = latestRevisionDate(vulnerability, documentPublishedAt);
+      const exploited = /Exploited\s*:\s*Yes|active exploitation|exploited in the wild/i.test(exploitationText);
+      const publiclyDisclosed = /Publicly Disclosed\s*:\s*Yes/i.test(exploitationText);
+      const exploitationStatus = exploited
+        ? "Microsoft reports active exploitation"
+        : publiclyDisclosed
+          ? "Microsoft reports public disclosure but no active exploitation"
+          : "Microsoft does not report active exploitation in this update";
+      const summary = notes.find((note) => note.length >= 40) || `${title}. Review the Microsoft Security Update Guide for applicability and remediation.`;
+
+      return [
+        candidate(source, {
+          externalId: cve,
+          slug: slugify(`microsoft-${cve}`),
+          title: `${cve}: ${title}`,
+          vendor: source.vendor,
+          summary,
+          severity,
+          cvssScore,
+          cves: [cve],
+          products: products.length ? products.slice(0, 40) : [source.vendor],
+          affectedVersions: products.slice(0, 40),
+          fixedVersions,
+          remediation: updateLinks.length
+            ? `Apply the Microsoft security update or fixed build listed in the official guidance: ${updateLinks.join(" ")}`
+            : "Follow the remediation and fixed-build guidance in the Microsoft Security Update Guide, then validate the running version and service state.",
+          workaround: "Use only mitigations explicitly documented in the Microsoft Security Update Guide for this CVE.",
+          exploitationStatus,
+          sourceUrl,
+          vendorPublishedAt: documentPublishedAt,
+          vendorUpdatedAt,
+          payload: inputJson({
+            cve,
+            documentId: wrapper.id,
+            documentUpdatedAt: documentUpdatedAt.toISOString(),
+            title,
+            notes: notes.slice(0, 12),
+            products: products.slice(0, 40),
+            severity: severityText,
+            exploitation: exploitationText,
+            cvssScore,
+            fixedVersions,
+            updateLinks
+          })
+        })
+      ];
+    });
+  });
+}
+
+function advisoryPublicationIssues(source: AdvisorySourceDefinition, item: AdvisoryCandidate) {
+  const issues: string[] = [];
+  if (!allowedSourceUrl(item.sourceUrl, source)) issues.push("The canonical source is outside the approved vendor host.");
+  if ((item.qualityScore || 0) < 84) issues.push("The editorial quality score is below 84.");
+  if ((item.evidenceChecklist || []).length < 4) issues.push("At least four evidence checks are required.");
+  if (item.summary.length < 80) issues.push("The plain-language summary is incomplete.");
+  if ((item.technicalExplanation || "").length < 100) issues.push("The technical explanation is incomplete.");
+  if ((item.businessImpact || "").length < 60) issues.push("The business impact is incomplete.");
+  if (!item.products.length) issues.push("At least one affected product is required.");
+  if (item.remediation.length < 40) issues.push("The remediation path is incomplete.");
+  return issues;
+}
+
 async function enrichCandidate(source: AdvisorySourceDefinition, item: AdvisoryCandidate) {
   const enriched = await enrichSecurityAdvisory({
     title: item.title,
@@ -472,7 +706,10 @@ async function enrichCandidate(source: AdvisorySourceDefinition, item: AdvisoryC
     editorialTrace: inputJson({ ...enriched.trace, sourceFingerprint: item.contentHash }),
     qualityScore: enriched.qualityScore
   };
-  return { ...next, contentHash: contentHash(next) };
+  const completed = { ...next, contentHash: contentHash(next) };
+  const issues = advisoryPublicationIssues(source, completed);
+  if (issues.length) throw new Error(`Advisory held by publication gate: ${issues.join(" ")}`);
+  return completed;
 }
 
 async function previouslyProcessedCandidate(sourceId: string, item: AdvisoryCandidate) {
@@ -672,6 +909,65 @@ async function ensureSources() {
   }
 }
 
+async function fetchWithRetry(url: string, init: RequestInit, attempts = 3) {
+  let response: Response | null = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    response = await fetch(url, init);
+    if (response.ok || response.status < 500) return response;
+    if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, attempt * 450));
+  }
+  return response as Response;
+}
+
+async function fetchMsrcPayload(definition: AdvisorySourceDefinition, headers: Record<string, string>) {
+  const response = await fetchWithRetry(definition.url, {
+    headers: { ...headers, accept: "application/json" },
+    cache: "no-store",
+    signal: AbortSignal.timeout(25_000)
+  });
+  if (!response.ok || !allowedSourceUrl(response.url, definition)) throw new Error(`MSRC update index returned HTTP ${response.status}.`);
+  const raw = (await response.json()) as unknown;
+  const root = objectValue(raw);
+  const updates = asArray((Array.isArray(raw) ? raw : root.value) as unknown).map((item) => objectValue(item));
+  const now = new Date();
+  const currentId = `${now.getUTCFullYear()}-${now.toLocaleString("en-US", { month: "short", timeZone: "UTC" })}`;
+  const sortedUpdates = [...updates].sort(
+    (left, right) => validDate(textValue(right.CurrentReleaseDate), new Date(0)).getTime() - validDate(textValue(left.CurrentReleaseDate), new Date(0)).getTime()
+  );
+  const selected = [updates.find((item) => textValue(item.ID) === currentId), sortedUpdates[0]]
+    .filter((item): item is Record<string, unknown> => Boolean(item))
+    .filter((item, index, items) => items.findIndex((candidate) => textValue(candidate.ID) === textValue(item.ID)) === index);
+  if (!selected.length) throw new Error("MSRC returned no update documents.");
+
+  const documents = await Promise.all(
+    selected.map(async (update) => {
+      const id = textValue(update.ID);
+      const cvrfUrl = textValue(update.CvrfUrl) || `https://api.msrc.microsoft.com/cvrf/v3.0/cvrf/${encodeURIComponent(id)}`;
+      if (!id || !allowedSourceUrl(cvrfUrl, definition)) throw new Error("MSRC returned an unapproved CVRF URL.");
+      const documentResponse = await fetchWithRetry(cvrfUrl, {
+        headers: { accept: "application/json", "user-agent": headers["user-agent"] },
+        cache: "no-store",
+        signal: AbortSignal.timeout(35_000)
+      });
+      if (!documentResponse.ok || !allowedSourceUrl(documentResponse.url, definition)) {
+        throw new Error(`MSRC CVRF ${id} returned HTTP ${documentResponse.status}.`);
+      }
+      return {
+        id,
+        initialReleaseDate: textValue(update.InitialReleaseDate),
+        currentReleaseDate: textValue(update.CurrentReleaseDate),
+        document: await documentResponse.json()
+      };
+    })
+  );
+  return {
+    body: JSON.stringify({ documents }),
+    etag: response.headers.get("etag"),
+    lastModified: response.headers.get("last-modified"),
+    status: response.status
+  };
+}
+
 export async function scanAdvisorySources(options: { backfillOnly?: boolean } = {}) {
   await ensureSources();
   const prisma = getPrismaClient();
@@ -687,21 +983,42 @@ export async function scanAdvisorySources(options: { backfillOnly?: boolean } = 
     if (!definition) continue;
     const headers: Record<string, string> = {
       "user-agent": "QCS-Security-Advisory-Desk/2.0",
-      accept: definition.format === "cisa-kev" ? "application/json" : definition.format === "cert-in" ? "text/html" : "application/rss+xml, application/xml"
+      accept:
+        definition.format === "cisa-kev" || definition.format === "msrc"
+          ? "application/json"
+          : definition.format === "cert-in"
+            ? "text/html"
+            : "application/rss+xml, application/atom+xml, application/xml"
     };
-    if (source.etag) headers["if-none-match"] = source.etag;
-    if (source.lastModified) headers["if-modified-since"] = source.lastModified;
+    if (definition.format !== "msrc" && source.etag) headers["if-none-match"] = source.etag;
+    if (definition.format !== "msrc" && source.lastModified) headers["if-modified-since"] = source.lastModified;
 
     try {
-      const response = await fetch(definition.url, { headers, cache: "no-store", signal: AbortSignal.timeout(20_000) });
-      if (response.status === 304) {
+      const sourceResponse = definition.format === "msrc"
+        ? await fetchMsrcPayload(definition, headers)
+        : await (async () => {
+            const response = await fetch(definition.url, { headers, cache: "no-store", signal: AbortSignal.timeout(20_000) });
+            if (response.status !== 304 && !allowedSourceUrl(response.url, definition)) throw new Error("Source redirected outside the approved vendor host.");
+            return {
+              body: response.status === 304 ? "" : await response.text(),
+              etag: response.headers.get("etag"),
+              lastModified: response.headers.get("last-modified"),
+              status: response.status
+            };
+          })();
+      if (sourceResponse.status === 304) {
         await prisma.advisorySource.update({ where: { id: source.id }, data: { lastCheckedAt: new Date(), lastSuccessAt: new Date(), consecutiveFailures: 0, lastError: null } });
         results.push({ source: source.name, status: 304, candidates: 0, published: 0, unchanged: 0, queued: 0 });
         continue;
       }
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const body = await response.text();
-      const parsed = definition.format === "cisa-kev" ? parseCisaKev(body, definition) : definition.format === "cert-in" ? parseCertIn(body, definition) : parseRss(body, definition);
+      if (sourceResponse.status < 200 || sourceResponse.status >= 300) throw new Error(`HTTP ${sourceResponse.status}`);
+      const parsed = definition.format === "cisa-kev"
+        ? parseCisaKev(sourceResponse.body, definition)
+        : definition.format === "cert-in"
+          ? parseCertIn(sourceResponse.body, definition)
+          : definition.format === "msrc"
+            ? parseMsrcAdvisories(sourceResponse.body, definition)
+            : parseAdvisoryFeed(sourceResponse.body, definition);
       const since = new Date((source.lastSuccessAt?.getTime() || Date.now() - 72 * 60 * 60_000) - 15 * 60_000);
       const candidates = parsed
         .filter((item) => item.vendorUpdatedAt >= since || item.vendorPublishedAt >= since)
@@ -743,8 +1060,8 @@ export async function scanAdvisorySources(options: { backfillOnly?: boolean } = 
         data: queued
           ? { lastCheckedAt: new Date(), consecutiveFailures: 0, lastError: null }
           : {
-              etag: response.headers.get("etag"),
-              lastModified: response.headers.get("last-modified"),
+              etag: sourceResponse.etag,
+              lastModified: sourceResponse.lastModified,
               lastCheckedAt: new Date(),
               lastSuccessAt: new Date(),
               consecutiveFailures: 0,
@@ -753,7 +1070,7 @@ export async function scanAdvisorySources(options: { backfillOnly?: boolean } = 
       });
       results.push({
         source: source.name,
-        status: response.status,
+        status: sourceResponse.status,
         candidates: candidates.length,
         published,
         unchanged,

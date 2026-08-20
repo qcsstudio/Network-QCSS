@@ -1,5 +1,6 @@
 const trustedEditorialHosts = [
   "apnic.net",
+  "api.msrc.microsoft.com",
   "aws.amazon.com",
   "azure.microsoft.com",
   "cert-in.org.in",
@@ -8,6 +9,7 @@ const trustedEditorialHosts = [
   "cisa.gov",
   "cloud.google.com",
   "docs.cloud.google.com",
+  "docs.aws.amazon.com",
   "cloudapps.cisco.com",
   "cloudflare.com",
   "f5.com",
@@ -17,6 +19,7 @@ const trustedEditorialHosts = [
   "ietf.org",
   "juniper.net",
   "microsoft.com",
+  "msrc.microsoft.com",
   "mist.com",
   "ncsc.gov.uk",
   "nist.gov",

@@ -33,12 +33,14 @@ function revalidateAdvisory(slug: string) {
 
 async function queuePublishedAdvisory(id: string, revision: number) {
   const advisory = await getSecurityAdvisoryForDistribution(id);
-  if (!advisory || advisory.status !== "published") return;
+  if (!advisory || advisory.status !== "published") return "";
   try {
     await queueLinkedInForAdvisory(advisory, revision);
     await processLinkedInQueue(1);
+    return "";
   } catch (error) {
     console.error("The advisory was saved, but LinkedIn queueing failed.", error);
+    return error instanceof Error ? error.message : "LinkedIn editorial QA or delivery failed.";
   }
 }
 
@@ -76,8 +78,8 @@ export async function PATCH(request: Request, { params }: RouteContext) {
     );
     revalidateAdvisory(before.slug);
     if (before.slug !== advisory.slug) revalidateAdvisory(advisory.slug);
-    await queuePublishedAdvisory(advisory.id, advisory.revision);
-    return NextResponse.json({ ok: true, advisory }, { headers: noStoreHeaders });
+    const linkedinWarning = await queuePublishedAdvisory(advisory.id, advisory.revision);
+    return NextResponse.json({ ok: true, advisory, linkedinWarning }, { headers: noStoreHeaders });
   } catch (error) {
     console.error("Unable to update admin advisory.", error);
     return jsonError(error instanceof Error ? error.message : "Unable to update the advisory.", 400);
