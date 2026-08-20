@@ -187,6 +187,34 @@ test("agent presentation pass repairs mobile structure without losing the draft 
   assert.deepEqual(editorialLinkedInQualityIssues(formatted, trackedUrl, article("DNS cold start and BGP route-origin validation")), []);
 });
 
+test("agent presentation pass budgets long analysis around verified actions and footer", () => {
+  const url = "https://www.qcsstudio.com/resources/dns-bgp";
+  const formatted = formatAgentLinkedInCommentary({
+    actions: [
+      "Measure recursive and authoritative DNS timing from the affected region before changing resolver policy",
+      "Validate RPKI origin authorization and current BGP path evidence for every affected public prefix",
+      "Correlate cloud flow logs, resolver telemetry, and route changes under one incident owner"
+    ],
+    commentary: [
+      "DNS cold starts can resemble cloud route failures when the first dependency lookup and the external path change within the same incident window.",
+      "The investigation becomes slower when DNS telemetry, RPKI state, BGP observations, and cloud flow logs sit with different owners.",
+      "Network teams need a time-aligned view of resolver latency, authoritative responses, route-origin authorization, observed AS paths, and regional cloud reachability before deciding whether to change DNS or routing policy.",
+      "This distinction matters because a resolver change cannot repair an invalid route origin, while a route change can add risk when the delay came from an empty cache or an unhealthy authoritative dependency.",
+      "A controlled response starts with an explicit hypothesis and a shared incident timestamp. The evidence should show which dependency changed first and whether the user path recovered after the selected action.",
+      "The operating question is whether one engineer can reconstruct the incident from retained DNS, RPKI, BGP, and cloud evidence.",
+      "Additional repeated analysis that should be removed by the presentation budget. ".repeat(12)
+    ].join("\n\n"),
+    hashtags: ["#NetworkEngineering", "#DNS", "#BGP", "#CloudNetworking"],
+    maxLength: 2_200,
+    url
+  });
+  assert.ok(formatted.length <= 2_200);
+  assert.match(formatted, /DNS cold starts can resemble cloud route failures/);
+  assert.match(formatted, /Practical Next Steps\n1\. Measure recursive and authoritative DNS timing/);
+  assert.match(formatted, /#NetworkEngineering #DNS #BGP #CloudNetworking$/);
+  assert.ok((formatted.match(/Additional repeated analysis/g) || []).length < 12);
+});
+
 test("evidence-led Fortinet advisory passes exact-fact and presentation gates", () => {
   const qcsUrl = "https://www.qcsstudio.com/security-advisories/fortinet-capwap?utm_source=linkedin";
   const vendorUrl = "https://www.fortiguard.com/psirt/FG-IR-25-999";

@@ -350,8 +350,10 @@ export function formatAgentLinkedInCommentary(input: {
   actions: string[];
   commentary: string;
   hashtags: string[];
+  maxLength?: number;
   url: string;
 }) {
+  const maxLength = input.maxLength || 2_700;
   const actions = input.actions
     .map((action) => normalize(action).replace(/^[1-4][.)]\s*/, "").replace(/[.\s]+$/, ""))
     .filter(Boolean)
@@ -364,16 +366,30 @@ export function formatAgentLinkedInCommentary(input: {
     .map((line) => line.replace(/#[A-Za-z0-9]+/g, "").trim())
     .filter((line) => !line.includes(input.url))
     .filter((line) => !/^(?:defender actions|practical next steps|recommended actions|actions|next steps|decision checks?)\s*:$/i.test(line))
+    .filter((line) => !/^[1-4][.)]\s+/.test(line))
     .filter((line) => {
       const withoutMarker = line.replace(/^(?:[1-4][.)]|[-*\u2022])\s+/, "").replace(/[.\s]+$/, "");
       return !actionKeys.has(comparable(withoutMarker));
     });
 
   const wrapped = body.flatMap((line, index) => wrapPresentationLine(line, index === 0 ? 160 : 320));
-  const lines = collapseBlankLines(keepOnlyFinalQuestion(wrapped));
-  lines.push("", "Practical Next Steps", ...actions.map((action, index) => `${index + 1}. ${action}.`));
-  lines.push("", `Read the QCS technical brief: ${input.url}`, "", hashtags.join(" "));
-  return collapseBlankLines(lines).join("\n").trim();
+  const footer = [
+    "Practical Next Steps",
+    ...actions.map((action, index) => `${index + 1}. ${action}.`),
+    "",
+    `Read the QCS technical brief: ${input.url}`,
+    "",
+    hashtags.join(" ")
+  ];
+  const bodyBudget = Math.max(420, maxLength - footer.join("\n").length - 2);
+  const lines: string[] = [];
+  for (const line of collapseBlankLines(keepOnlyFinalQuestion(wrapped))) {
+    const candidate = collapseBlankLines([...lines, line]);
+    if (candidate.join("\n").length > bodyBudget) break;
+    lines.push(line);
+  }
+  while (lines.at(-1) && /^[A-Za-z][A-Za-z &/+-]{2,50}$/.test(lines.at(-1) || "")) lines.pop();
+  return collapseBlankLines([...lines, "", ...footer]).join("\n").trim();
 }
 
 function containsFact(commentary: string, fact: string) {

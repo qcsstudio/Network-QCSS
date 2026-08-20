@@ -336,6 +336,7 @@ async function createLinkedInPost(input: LinkedInAgentInput): Promise<LinkedInRe
         actions: latestDraft.actions,
         commentary: latestDraft.commentary,
         hashtags: latestDraft.hashtags,
+        maxLength: input.kind === "advisory" ? 2_700 : 2_200,
         url: input.url
       })
     };
