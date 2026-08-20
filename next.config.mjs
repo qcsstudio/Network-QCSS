@@ -67,6 +67,12 @@ const contentSecurityPolicy = [
 const nextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ["@resvg/resvg-js"],
+  outputFileTracingIncludes: {
+    "/*": [
+      "./node_modules/@img/sharp-linux-x64/**/*",
+      "./node_modules/@img/sharp-libvips-linux-x64/**/*"
+    ]
+  },
   images: {
     qualities: [65, 75]
   },
