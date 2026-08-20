@@ -163,6 +163,7 @@ test("agent presentation pass repairs mobile structure without losing the draft 
     "DNS cold starts and BGP route-origin mistakes often appear as separate incidents, but both expose the same operational weakness: teams cannot prove which dependency or route decision changed first when cloud connectivity fails across regions and providers.",
     "Which telemetry should the team inspect first? Which owner can validate the external route?",
     "Validate recursive DNS timing against route-origin and cloud path evidence before changing production policy.",
+    "Use one response path: 1) inspect DNS timing; 2) validate route origin; 3) correlate cloud flow evidence.",
     "Confirm the DNS resolver path and its cold-cache timing",
     "Validate route-origin authorization for the affected prefixes",
     "Assign one owner to correlate cloud flow logs with BGP evidence",
@@ -181,6 +182,7 @@ test("agent presentation pass repairs mobile structure without losing the draft 
   });
   assert.match(formatted, /DNS cold starts and BGP route-origin mistakes/);
   assert.match(formatted, /Practical Next Steps\n1\. Confirm the DNS resolver path/);
+  assert.doesNotMatch(formatted, /Use one response path/);
   assert.equal(formatted.match(/\?/g)?.length, 2, "one prose question plus the tracked URL query should remain");
   assert.equal(formatted.match(new RegExp(trackedUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"))?.length, 1);
   assert.match(formatted, /#NetworkEngineering #BGP #CloudNetworking #DNS$/);

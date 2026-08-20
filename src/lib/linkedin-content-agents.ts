@@ -330,10 +330,12 @@ async function createLinkedInPost(input: LinkedInAgentInput): Promise<LinkedInRe
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     latestDraft = await writePost(input, correction);
+    const presentationActions = latestDraft.actions.slice(0, input.kind === "advisory" ? 4 : 3);
     latestDraft = {
       ...latestDraft,
+      actions: presentationActions,
       commentary: formatAgentLinkedInCommentary({
-        actions: latestDraft.actions,
+        actions: presentationActions,
         commentary: latestDraft.commentary,
         hashtags: latestDraft.hashtags,
         maxLength: input.kind === "advisory" ? 2_700 : 2_200,

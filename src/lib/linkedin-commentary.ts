@@ -365,6 +365,7 @@ export function formatAgentLinkedInCommentary(input: {
     .split("\n")
     .map((line) => line.replace(/#[A-Za-z0-9]+/g, "").trim())
     .filter((line) => !line.includes(input.url))
+    .filter((line) => (line.match(/\b[1-4][.)]\s+/g) || []).length < 2)
     .filter((line) => !/^(?:defender actions|practical next steps|recommended actions|actions|next steps|decision checks?)\s*:$/i.test(line))
     .filter((line) => !/^[1-4][.)]\s+/.test(line))
     .filter((line) => {
