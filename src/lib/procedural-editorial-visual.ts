@@ -332,10 +332,12 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
     .slice(0, 3)
     .join(" / ");
   const fixedSummary = firstFixedVersion.replace(/\s+or later$/i, "+");
-  const productLines = [
-    ...wrap(productSummary || products, 32, 1),
-    ...(fixedSummary ? wrap(`Fixed: ${fixedSummary}`, 32, 1) : [])
-  ].slice(0, 2);
+  const productLines = profile.nodes
+    ? ["3 Cisco product workstreams"]
+    : [
+        ...wrap(productSummary || products, 32, 1),
+        ...(fixedSummary ? wrap(`Fixed: ${fixedSummary}`, 32, 1) : [])
+      ].slice(0, 2);
   const signalLines = wrap(profile.signal, 28, 2);
   const accentText = readableAccent(profile.accent);
   const diagramNodes = proceduralVisualLayout.diagramNodes.map((node, index) => ({
