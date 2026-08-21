@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Archive, BookOpen, ChevronLeft, ChevronRight, Clipboard, ExternalLink, Eye, FilePenLine, FilePlus2, FileText, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Sparkles, Trash2, Upload } from "lucide-react";
+import { Activity, Archive, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Clock3, ExternalLink, Eye, FilePenLine, FilePlus2, FileText, Globe2, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Sparkles, Trash2, Upload } from "lucide-react";
 import type { BlogPost } from "@/lib/blog";
 import { contentPostStatuses, type ContentPostStatus } from "@/lib/content-admin-domain";
 
@@ -500,6 +500,13 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
       </div>
 
       <p aria-live="polite" className="form-note">{status}</p>
+
+      <div className="editorial-control-strip" aria-label="Content workflow summary">
+        <article><Clock3 aria-hidden="true" /><span>Draft review</span><strong>{statusCounts.draft}</strong></article>
+        <article><CheckCircle2 aria-hidden="true" /><span>Approved</span><strong>{statusCounts.approved}</strong></article>
+        <article><Globe2 aria-hidden="true" /><span>Published</span><strong>{statusCounts.published}</strong></article>
+        <article><Activity aria-hidden="true" /><span>Radar status</span><strong>{radar ? "Ready" : "Idle"}</strong></article>
+      </div>
 
       <div className="content-queue-header">
         <div>

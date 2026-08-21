@@ -1104,7 +1104,7 @@ export async function scanAdvisorySources(options: { backfillOnly?: boolean } = 
 }
 
 export async function listSecurityAdvisories(limit = 100) {
-  if (process.env.STORE_DRIVER !== "postgres" || !process.env.DATABASE_URL) return [];
+  if (!process.env.DATABASE_URL) return [];
   return getPrismaClient().securityAdvisory.findMany({
     where: { status: { in: ["published", "withdrawn"] } },
     orderBy: [{ priorityScore: "desc" }, { vendorPublishedAt: "desc" }],
@@ -1114,7 +1114,7 @@ export async function listSecurityAdvisories(limit = 100) {
 }
 
 export async function getSecurityAdvisory(slug: string) {
-  if (process.env.STORE_DRIVER !== "postgres" || !process.env.DATABASE_URL) return null;
+  if (!process.env.DATABASE_URL) return null;
   return getPrismaClient().securityAdvisory.findFirst({
     where: { slug, status: { in: ["published", "withdrawn"] } },
     include: { source: { select: { name: true, officialHost: true, lastSuccessAt: true } }, revisions: { orderBy: { version: "desc" }, take: 20 } }

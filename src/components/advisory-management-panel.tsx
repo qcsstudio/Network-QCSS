@@ -1,8 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, FilePlus2, RefreshCw, RotateCcw, Save, ShieldAlert, Trash2, Upload, XCircle } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Activity,
+  ArrowDownAZ,
+  Bot,
+  ChevronLeft,
+  ChevronRight,
+  CircleAlert,
+  Eye,
+  FilePenLine,
+  FilePlus2,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  Search,
+  ShieldAlert,
+  SlidersHorizontal,
+  Trash2,
+  Upload,
+  X,
+  XCircle
+} from "lucide-react";
 import type { AdminAdvisoryRecord } from "@/lib/advisories";
+
+type AdvisoryOriginFilter = "all" | "source" | "manual" | "deleted";
+type AdvisoryStatusFilter = "all" | "draft" | "published" | "withdrawn" | "deleted";
+type AdvisorySeverityFilter = "all" | "critical" | "high" | "medium" | "low" | "unrated";
+type AdvisorySort = "priority-desc" | "updated-desc" | "vendor-asc";
+
+const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, unrated: 4 };
+const adminAdvisoryPageSize = 12;
+
+function includesSearch(advisory: AdminAdvisoryRecord, query: string) {
+  if (!query) return true;
+  return [
+    advisory.title,
+    advisory.vendor,
+    advisory.sourceName,
+    advisory.slug,
+    advisory.exploitationStatus,
+    ...advisory.cves,
+    ...advisory.products
+  ].join(" ").toLowerCase().includes(query);
+}
 
 function lines(value: string) {
   return value.split("\n").map((item) => item.trim()).filter(Boolean);
@@ -89,7 +130,13 @@ export function AdvisoryManagementPanel({ initialAdvisories }: { initialAdvisori
   const [advisories, setAdvisories] = useState(initialAdvisories);
   const [selected, setSelected] = useState<AdminAdvisoryRecord | null>(null);
   const [draft, setDraft] = useState<AdminAdvisoryRecord | null>(null);
-  const [filter, setFilter] = useState<"all" | "source" | "manual" | "deleted">("all");
+  const [originFilter, setOriginFilter] = useState<AdvisoryOriginFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<AdvisoryStatusFilter>("all");
+  const [severityFilter, setSeverityFilter] = useState<AdvisorySeverityFilter>("all");
+  const [vendorFilter, setVendorFilter] = useState("all");
+  const [sort, setSort] = useState<AdvisorySort>("priority-desc");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("Advisory management is ready. Source-fed records remain automatic until an editor saves an override.");
 
@@ -113,6 +160,12 @@ export function AdvisoryManagementPanel({ initialAdvisories }: { initialAdvisori
     setDraft(next);
     setMessage("Complete the manual advisory, save it as a draft, then publish after checking the authoritative source.");
     window.setTimeout(() => document.querySelector("#advisory-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }
+
+  function closeEditor() {
+    setSelected(null);
+    setDraft(null);
+    setMessage("Advisory queue ready.");
   }
 
   function patch<K extends keyof AdminAdvisoryRecord>(key: K, value: AdminAdvisoryRecord[K]) {
@@ -141,19 +194,21 @@ export function AdvisoryManagementPanel({ initialAdvisories }: { initialAdvisori
     }
   }
 
-  async function changeState(action: "publish" | "withdraw" | "restore" | "resume_sync") {
-    if (!selected) return;
+  async function changeState(action: "publish" | "withdraw" | "restore" | "resume_sync", target = selected) {
+    if (!target) return;
     setBusy(action);
     try {
-      const response = await fetch(`/api/admin/security-advisories/${selected.id}`, {
+      const response = await fetch(`/api/admin/security-advisories/${target.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ action })
       });
       const result = (await response.json()) as { advisory?: AdminAdvisoryRecord; error?: string };
       if (!response.ok || !result.advisory) throw new Error(result.error || `Unable to ${action.replace("_", " ")} the advisory.`);
-      setSelected(result.advisory);
-      setDraft(structuredClone(result.advisory));
+      if (selected?.id === target.id) {
+        setSelected(result.advisory);
+        setDraft(structuredClone(result.advisory));
+      }
       await load();
       setMessage(`${result.advisory.title} is now ${result.advisory.status}.`);
     } catch (error) {
@@ -183,53 +238,121 @@ export function AdvisoryManagementPanel({ initialAdvisories }: { initialAdvisori
     }
   }
 
-  const visible = advisories.filter((advisory) => {
-    if (filter === "source") return advisory.sourceSlug !== "qcs-editorial" && advisory.status !== "deleted";
-    if (filter === "manual") return advisory.sourceSlug === "qcs-editorial" && advisory.status !== "deleted";
-    if (filter === "deleted") return advisory.status === "deleted";
-    return true;
-  });
+  const vendors = useMemo(
+    () => [...new Set(advisories.filter((item) => item.status !== "deleted").map((item) => item.vendor))].sort((left, right) => left.localeCompare(right)),
+    [advisories]
+  );
+  const metrics = useMemo(() => ({
+    urgent: advisories.filter((item) => item.status === "published" && (item.severity === "critical" || item.severity === "high")).length,
+    draft: advisories.filter((item) => item.status === "draft").length,
+    live: advisories.filter((item) => item.status === "published").length,
+    overrides: advisories.filter((item) => item.editorialOverride && item.status !== "deleted").length
+  }), [advisories]);
+  const visible = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    return advisories
+      .filter((advisory) => {
+        if (originFilter === "source" && (advisory.sourceSlug === "qcs-editorial" || advisory.status === "deleted")) return false;
+        if (originFilter === "manual" && (advisory.sourceSlug !== "qcs-editorial" || advisory.status === "deleted")) return false;
+        if (originFilter === "deleted" && advisory.status !== "deleted") return false;
+        if (originFilter !== "deleted" && advisory.status === "deleted") return false;
+        if (statusFilter !== "all" && advisory.status !== statusFilter) return false;
+        if (severityFilter !== "all" && advisory.severity !== severityFilter) return false;
+        if (vendorFilter !== "all" && advisory.vendor !== vendorFilter) return false;
+        return includesSearch(advisory, normalizedQuery);
+      })
+      .sort((left, right) => {
+        if (sort === "updated-desc") return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+        if (sort === "vendor-asc") return left.vendor.localeCompare(right.vendor) || severityOrder[left.severity] - severityOrder[right.severity];
+        return right.priorityScore - left.priorityScore || severityOrder[left.severity] - severityOrder[right.severity];
+      });
+  }, [advisories, originFilter, query, severityFilter, sort, statusFilter, vendorFilter]);
+
+  function resetFilters() {
+    setOriginFilter("all");
+    setStatusFilter("all");
+    setSeverityFilter("all");
+    setVendorFilter("all");
+    setSort("priority-desc");
+    setQuery("");
+    setPage(1);
+  }
+  const totalPages = Math.max(1, Math.ceil(visible.length / adminAdvisoryPageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * adminAdvisoryPageSize;
+  const pageItems = visible.slice(pageStart, pageStart + adminAdvisoryPageSize);
 
   return (
     <section className="admin-panel advisory-management-panel" id="advisory-management">
       <div className="panel-heading">
-        <div><p className="eyebrow">Advisory management</p><h2>Create, correct, publish, withdraw, and delete.</h2><p>Source synchronization is preserved until an administrator intentionally overrides a record.</p></div>
+        <div><p className="eyebrow">Advisory operations</p><h2>One queue for source intelligence and editorial control.</h2><p>Prioritize urgent items, protect verified source data, and move each advisory through a visible publishing state.</p></div>
         <div className="content-action-row">
           <button className="button secondary" disabled={Boolean(busy)} onClick={() => load().catch((error) => setMessage(String(error)))} type="button"><RefreshCw aria-hidden="true" size={17} /> Refresh</button>
           <button className="button primary" disabled={Boolean(busy)} onClick={createNew} type="button"><FilePlus2 aria-hidden="true" size={17} /> New advisory</button>
         </div>
       </div>
-      <p aria-live="polite" className="form-note">{message}</p>
+      <div aria-live="polite" className="admin-operation-status" role="status"><Activity aria-hidden="true" size={17} /><span>{message}</span></div>
+
+      <div className="editorial-control-strip" aria-label="Advisory operations summary">
+        <article><CircleAlert aria-hidden="true" /><span>Urgent and live</span><strong>{metrics.urgent}</strong></article>
+        <article><FilePenLine aria-hidden="true" /><span>Draft review</span><strong>{metrics.draft}</strong></article>
+        <article><ShieldAlert aria-hidden="true" /><span>Published</span><strong>{metrics.live}</strong></article>
+        <article><Bot aria-hidden="true" /><span>Editorial overrides</span><strong>{metrics.overrides}</strong></article>
+      </div>
 
       <div className="content-queue-header">
-        <div><h3>Advisory library</h3><p>{advisories.length} retained record(s), including source and manual advisories.</p></div>
+        <div><h3>Advisory queue</h3><p>{visible.length ? `Showing ${pageStart + 1}-${Math.min(pageStart + adminAdvisoryPageSize, visible.length)} of ${visible.length} matching records.` : "No matching records."}</p></div>
         <div className="content-filter-tabs" aria-label="Filter advisories">
-          {(["all", "source", "manual", "deleted"] as const).map((item) => <button aria-pressed={filter === item} key={item} onClick={() => setFilter(item)} type="button">{item}</button>)}
+          {(["all", "source", "manual", "deleted"] as const).map((item) => <button aria-pressed={originFilter === item} key={item} onClick={() => { setOriginFilter(item); if (item === "deleted") setStatusFilter("all"); setPage(1); }} type="button">{item}</button>)}
         </div>
       </div>
 
+      <div className="advisory-admin-toolbar">
+        <label className="advisory-admin-search"><span>Search</span><div><Search aria-hidden="true" size={17} /><input onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="CVE, title, vendor, product" type="search" value={query} /></div></label>
+        <label><span>Status</span><select onChange={(event) => { setStatusFilter(event.target.value as AdvisoryStatusFilter); setPage(1); }} value={statusFilter}><option value="all">All statuses</option><option value="draft">Draft</option><option value="published">Published</option><option value="withdrawn">Withdrawn</option></select></label>
+        <label><span>Severity</span><select onChange={(event) => { setSeverityFilter(event.target.value as AdvisorySeverityFilter); setPage(1); }} value={severityFilter}><option value="all">All severities</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option><option value="unrated">Unrated</option></select></label>
+        <label><span>Vendor</span><select onChange={(event) => { setVendorFilter(event.target.value); setPage(1); }} value={vendorFilter}><option value="all">All vendors</option>{vendors.map((vendor) => <option key={vendor} value={vendor}>{vendor}</option>)}</select></label>
+        <label><span>Order</span><select onChange={(event) => { setSort(event.target.value as AdvisorySort); setPage(1); }} value={sort}><option value="priority-desc">Highest priority</option><option value="updated-desc">Recently updated</option><option value="vendor-asc">Vendor A-Z</option></select></label>
+        <button className="icon-button" onClick={resetFilters} title="Reset advisory filters" type="button"><SlidersHorizontal aria-hidden="true" size={18} /></button>
+      </div>
+
       <div className="content-queue advisory-admin-queue">
-        {visible.length ? visible.map((advisory) => (
-          <article className="content-queue-card" key={advisory.id}>
-            <div>
+        {visible.length ? pageItems.map((advisory) => (
+          <article className={`content-queue-card${selected?.id === advisory.id ? " is-selected" : ""}`} key={advisory.id}>
+            <div className="content-queue-card-main">
               <div className="content-card-statuses"><span className={`severity-pill severity-${advisory.severity}`}>{advisory.severity}</span><span className={`status-pill content-status-${advisory.status}`}>{advisory.status}</span>{advisory.qualityScore !== null ? <span className="status-pill content-kind-pill">QA {advisory.qualityScore}</span> : null}{advisory.editorialOverride ? <span className="status-pill content-kind-pill">editorial control</span> : null}</div>
               <h4>{advisory.title}</h4>
-              <p>{advisory.vendor} | {advisory.sourceName} | Revision {advisory.revision}</p>
+              <p>{advisory.summary}</p>
+              <dl className="content-queue-facts">
+                <div><dt>Vendor</dt><dd>{advisory.vendor}</dd></div>
+                <div><dt>Priority</dt><dd>{advisory.priorityScore}/100</dd></div>
+                <div><dt>Source</dt><dd>{advisory.sourceName}</dd></div>
+                <div><dt>Updated</dt><dd>{new Date(advisory.updatedAt).toLocaleDateString("en-IN")}</dd></div>
+              </dl>
             </div>
-            <div className="content-action-row">
-              {advisory.status === "deleted" ? <button className="button secondary compact-button" onClick={() => { edit(advisory); }} type="button"><RotateCcw aria-hidden="true" size={16} /> Review</button> : <button className="button secondary compact-button" onClick={() => edit(advisory)} type="button"><Save aria-hidden="true" size={16} /> Edit</button>}
+            <div className="content-queue-actions">
+              {advisory.status === "deleted" ? <button className="button secondary compact-button" onClick={() => edit(advisory)} type="button"><RotateCcw aria-hidden="true" size={16} /> Review</button> : <button className="button secondary compact-button" onClick={() => edit(advisory)} type="button"><FilePenLine aria-hidden="true" size={16} /> Edit</button>}
+              {advisory.status === "draft" ? <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => changeState("publish", advisory)} type="button"><Upload aria-hidden="true" size={16} /> Publish</button> : null}
+              {advisory.status === "published" ? <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => changeState("withdraw", advisory)} type="button"><XCircle aria-hidden="true" size={16} /> Withdraw</button> : null}
               {advisory.status === "published" || advisory.status === "withdrawn" ? <a className="icon-button" href={`/security-advisories/${advisory.slug}`} rel="noreferrer" target="_blank" title="Open advisory"><Eye aria-hidden="true" size={18} /></a> : null}
               {advisory.status !== "deleted" ? <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => remove(advisory)} title="Delete advisory" type="button"><Trash2 aria-hidden="true" size={18} /></button> : null}
             </div>
           </article>
-        )) : <div className="content-empty-state">No advisories match this filter.</div>}
+        )) : <div className="content-empty-state"><ArrowDownAZ aria-hidden="true" size={28} /><strong>No advisories match this view.</strong><span>Reset the filters or broaden the search.</span><button className="button secondary compact-button" onClick={resetFilters} type="button">Reset filters</button></div>}
       </div>
+      {visible.length > adminAdvisoryPageSize ? (
+        <nav aria-label="Admin advisory pages" className="advisory-pagination">
+          <button disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} type="button"><ChevronLeft aria-hidden="true" size={17} /> Previous</button>
+          <span>Page {currentPage} of {totalPages}</span>
+          <button disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} type="button">Next <ChevronRight aria-hidden="true" size={17} /></button>
+        </nav>
+      ) : null}
 
       {draft ? (
         <form className="content-editor" id="advisory-editor" onSubmit={(event) => { event.preventDefault(); save(); }}>
           <div className="content-editor-heading">
             <div><p className="eyebrow">Structured advisory editor</p><h3>{draft.title}</h3><p>{draft.sourceSlug === "qcs-editorial" ? "Manual QCS advisory" : `${draft.sourceName}; saving enables editorial control`}</p></div>
-            <div className="content-card-statuses"><span className={`status-pill content-status-${draft.status}`}>{draft.status}</span>{draft.editorialOverride ? <span className="status-pill content-kind-pill">source sync paused</span> : <span className="status-pill content-status-published">source sync active</span>}</div>
+            <div className="content-editor-controls"><div className="content-card-statuses"><span className={`status-pill content-status-${draft.status}`}>{draft.status}</span>{draft.editorialOverride ? <span className="status-pill content-kind-pill">source sync paused</span> : <span className="status-pill content-status-published">source sync active</span>}</div><button aria-label="Close advisory editor" className="icon-button" onClick={closeEditor} title="Close editor" type="button"><X aria-hidden="true" size={18} /></button></div>
           </div>
 
           <fieldset className="content-editor-section">

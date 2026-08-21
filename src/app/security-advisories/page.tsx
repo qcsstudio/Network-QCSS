@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { ShieldAlert } from "lucide-react";
+import { Radio, ShieldAlert } from "lucide-react";
+import { AdvisoryDeskExplorer, type PublicAdvisoryRecord } from "@/components/advisory-desk-explorer";
 import { StructuredData } from "@/components/structured-data";
 import { SignalJourney } from "@/components/signal-journey";
 import { listSecurityAdvisories } from "@/lib/advisories";
@@ -17,13 +17,26 @@ export const metadata: Metadata = createPageMetadata({
   keywords: ["network security advisories", "firewall vulnerabilities", "vendor security patches", "CISA KEV", "Cisco PSIRT", "Fortinet PSIRT"]
 });
 
-function strings(value: unknown) {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-}
-
 export default async function SecurityAdvisoryDeskPage() {
   const advisories = await listSecurityAdvisories(100);
   const latestVerification = advisories.map((item) => item.lastVerifiedAt).sort((a, b) => b.getTime() - a.getTime())[0];
+  const publicAdvisories: PublicAdvisoryRecord[] = advisories.map((advisory) => ({
+    id: advisory.id,
+    slug: advisory.slug,
+    title: advisory.title,
+    vendor: advisory.vendor,
+    summary: advisory.summary,
+    severity: advisory.severity,
+    status: advisory.status,
+    priorityScore: advisory.priorityScore,
+    cvssScore: advisory.cvssScore,
+    cves: Array.isArray(advisory.cves) ? advisory.cves.filter((item): item is string => typeof item === "string") : [],
+    products: Array.isArray(advisory.products) ? advisory.products.filter((item): item is string => typeof item === "string") : [],
+    exploitationStatus: advisory.exploitationStatus,
+    vendorPublishedAt: advisory.vendorPublishedAt.toISOString(),
+    vendorUpdatedAt: advisory.vendorUpdatedAt.toISOString(),
+    lastVerifiedAt: advisory.lastVerifiedAt.toISOString()
+  }));
 
   return (
     <main className="purpose-intelligence">
@@ -65,10 +78,11 @@ export default async function SecurityAdvisoryDeskPage() {
           </div>
         </div>
         <aside className="advisory-live-panel" aria-label="Advisory desk status">
+          <div className="advisory-live-signal"><Radio aria-hidden="true" size={17} /><span>Source monitor active</span></div>
           <ShieldAlert aria-hidden="true" size={36} />
           <strong>{advisories.length}</strong>
-          <span>source-verified advisories</span>
-          <small>{latestVerification ? `Last verified ${latestVerification.toLocaleString("en-IN")}` : "The live source scan is ready."}</small>
+          <span>source-verified records</span>
+          <small>{latestVerification ? `Latest verification: ${latestVerification.toLocaleString("en-IN")}` : "The live source scan is ready."}</small>
         </aside>
       </section>
 
@@ -82,43 +96,7 @@ export default async function SecurityAdvisoryDeskPage() {
         </div>
 
         {advisories.length ? (
-          <div className="advisory-grid">
-            {advisories.map((advisory, index) => {
-              const products = strings(advisory.products);
-              const cves = strings(advisory.cves);
-              return (
-                <article className="advisory-card" key={advisory.id}>
-                  <Link className="advisory-card-media" href={`/security-advisories/${advisory.slug}`}>
-                    <Image
-                      alt={`${advisory.vendor} ${advisory.severity} security advisory`}
-                      fill
-                      priority={index < 2}
-                      sizes="(max-width: 760px) 100vw, (max-width: 1180px) 50vw, 33vw"
-                      src={`/security-advisories/${advisory.slug}/visual`}
-                      unoptimized
-                    />
-                  </Link>
-                  <div className="advisory-card-body">
-                    <div className="advisory-card-meta">
-                      <span className={`severity-pill severity-${advisory.severity}`}>{advisory.severity}</span>
-                      <span>Priority {advisory.priorityScore}/100</span>
-                    </div>
-                    <p className="eyebrow">{advisory.vendor}</p>
-                    <h2><Link href={`/security-advisories/${advisory.slug}`}>{advisory.title}</Link></h2>
-                    <p>{advisory.summary}</p>
-                    <div className="advisory-tags">
-                      {[...cves, ...products].slice(0, 4).map((value) => <span key={value}>{value}</span>)}
-                    </div>
-                    <div className="blog-meta">
-                      <span>{advisory.vendorPublishedAt.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
-                      <span>{advisory.exploitationStatus}</span>
-                    </div>
-                    <Link className="text-link" href={`/security-advisories/${advisory.slug}`}>Open advisory</Link>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+          <AdvisoryDeskExplorer advisories={publicAdvisories} asOf={new Date().toISOString()} />
         ) : (
           <div className="content-empty-state">The official-source scanner is connected. New qualifying advisories will appear here automatically.</div>
         )}

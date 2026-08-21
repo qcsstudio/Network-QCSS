@@ -17,8 +17,8 @@ type AdminDashboardTabsProps = {
 
 const tabDefinitions: Array<{ id: AdminTabId; label: string; icon: LucideIcon }> = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "content", label: "Content", icon: FileText },
-  { id: "advisories", label: "Advisories", icon: ShieldAlert },
+  { id: "content", label: "Content Desk", icon: FileText },
+  { id: "advisories", label: "Advisory Desk", icon: ShieldAlert },
   { id: "distribution", label: "Distribution", icon: Share2 },
   { id: "verifygrid", label: "VerifyGrid", icon: ScanSearch }
 ];

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { BookOpen, FileCheck2, Library, Tags } from "lucide-react";
 import { ResourceDownloads } from "@/components/resource-downloads";
 import { DomainHeroVisual } from "@/components/domain-hero-visual";
 import { SignalJourney } from "@/components/signal-journey";
@@ -69,6 +70,8 @@ export default async function ResourcesPage({ searchParams }: ResourcesPageProps
   const params = await searchParams;
   const query = { format: params.format, page: params.page, query: params.q, topic: params.topic };
   const archive = blogArchivePage(posts, query);
+  const resourceCount = posts.filter((post) => post.contentType === "resource").length;
+  const articleCount = posts.length - resourceCount;
   return (
     <main className="purpose-resource">
       <StructuredData
@@ -137,40 +140,53 @@ export default async function ResourcesPage({ searchParams }: ResourcesPageProps
             Each post starts with a clear answer, then adds a checklist, relevant tools, and a next action.
           </p>
         </div>
-        <form action="/resources" className="blog-archive-controls" method="get">
-          <label>
-            <span>Search</span>
-            <input defaultValue={params.q || ""} name="q" placeholder="Topic, vendor, product, or task" type="search" />
-          </label>
-          <label>
-            <span>Topic</span>
-            <select defaultValue={params.topic || ""} name="topic">
-              <option value="">All topics</option>
-              {archive.topics.map((topic) => (
-                <option key={topic} value={topic}>
-                  {topic}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Format</span>
-            <select defaultValue={params.format || ""} name="format">
-              <option value="">All formats</option>
-              <option value="blog">Articles</option>
-              <option value="resource">Resources</option>
-            </select>
-          </label>
-          <button className="button primary" type="submit">
-            Filter
-          </button>
-          <Link className="button secondary" href="/resources#blog-posts">
-            Reset
-          </Link>
-        </form>
-        <div className="blog-archive-status" aria-live="polite">
-          <strong>{archive.total}</strong> {archive.total === 1 ? "result" : "results"}
-          {archive.totalPages > 1 ? ` | Page ${archive.page} of ${archive.totalPages}` : ""}
+        <div className="content-library-metrics" aria-label="Content library summary">
+          <article><Library aria-hidden="true" /><span>Published</span><strong>{posts.length}</strong></article>
+          <article><BookOpen aria-hidden="true" /><span>Articles</span><strong>{articleCount}</strong></article>
+          <article><FileCheck2 aria-hidden="true" /><span>Resources</span><strong>{resourceCount}</strong></article>
+          <article><Tags aria-hidden="true" /><span>Topics</span><strong>{archive.topics.length}</strong></article>
+        </div>
+        <div className="content-library-console">
+          <nav aria-label="Content format" className="content-library-tabs">
+            <Link aria-current={!params.format ? "page" : undefined} href="/resources#blog-posts">All</Link>
+            <Link aria-current={params.format === "blog" ? "page" : undefined} href="/resources?format=blog#blog-posts">Articles</Link>
+            <Link aria-current={params.format === "resource" ? "page" : undefined} href="/resources?format=resource#blog-posts">Resources</Link>
+          </nav>
+          <form action="/resources" className="blog-archive-controls" method="get">
+            <label>
+              <span>Search</span>
+              <input defaultValue={params.q || ""} name="q" placeholder="Topic, vendor, product, or task" type="search" />
+            </label>
+            <label>
+              <span>Topic</span>
+              <select defaultValue={params.topic || ""} name="topic">
+                <option value="">All topics</option>
+                {archive.topics.map((topic) => (
+                  <option key={topic} value={topic}>
+                    {topic}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Format</span>
+              <select defaultValue={params.format || ""} name="format">
+                <option value="">All formats</option>
+                <option value="blog">Articles</option>
+                <option value="resource">Resources</option>
+              </select>
+            </label>
+            <button className="button primary" type="submit">
+              Filter
+            </button>
+            <Link className="button secondary" href="/resources#blog-posts">
+              Reset
+            </Link>
+          </form>
+          <div className="blog-archive-status" aria-live="polite">
+            <strong>{archive.total}</strong> {archive.total === 1 ? "result" : "results"}
+            {archive.totalPages > 1 ? ` | Page ${archive.page} of ${archive.totalPages}` : ""}
+          </div>
         </div>
         <div className="blog-grid">
           {archive.featured ? <BlogCard featured post={archive.featured} priority /> : null}
