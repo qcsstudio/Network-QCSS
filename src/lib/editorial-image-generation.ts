@@ -41,6 +41,10 @@ type PublicationIdentity = {
 
 export type EditorialImageVariant = "hero" | "social";
 
+type EditorialImageGenerationOptions = {
+  premiumAllowed?: boolean;
+};
+
 function normalize(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -203,7 +207,11 @@ function aggregateQaScore(trace: EditorialAgentTrace) {
   return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
 }
 
-export async function ensureEditorialImage(input: EditorialImageInput, force = false) {
+export async function ensureEditorialImage(
+  input: EditorialImageInput,
+  force = false,
+  options: EditorialImageGenerationOptions = {}
+) {
   const prisma = getPrismaClient();
   const prompt = buildEditorialImagePrompt(input);
   const promptHash = crypto.createHash("sha256").update(prompt).digest("hex");
@@ -266,12 +274,13 @@ export async function ensureEditorialImage(input: EditorialImageInput, force = f
       take: 8,
       select: { agentTrace: true, contentId: true }
     });
+    const premiumAllowed = options.premiumAllowed ?? (await premiumImageBudgetAvailable());
     const generated = await createContextualImages(
       input,
       prompt,
       recentVisualConcepts(recentAssets),
       restoreEditorialAgentTrace(asset.agentTrace),
-      await premiumImageBudgetAvailable()
+      premiumAllowed
     );
     return await prisma.editorialImage.update({
       where: { id: asset.id },
@@ -332,8 +341,12 @@ export async function editorialImageInputForPublication(publication: Publication
   throw new Error(`Unsupported editorial image content type: ${publication.contentType}`);
 }
 
-export async function ensureEditorialImageForPublication(publication: PublicationIdentity, force = false) {
-  return ensureEditorialImage(await editorialImageInputForPublication(publication), force);
+export async function ensureEditorialImageForPublication(
+  publication: PublicationIdentity,
+  force = false,
+  options: EditorialImageGenerationOptions = {}
+) {
+  return ensureEditorialImage(await editorialImageInputForPublication(publication), force, options);
 }
 
 export async function getContextualEditorialImage(

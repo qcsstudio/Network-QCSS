@@ -41,7 +41,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!isAdminRequest(request)) return jsonError("Unauthorized", 401);
   const parsed = await readJsonBody(request);
   if (!parsed.ok) return parsed.response;
-  const body = parsed.data as { action?: unknown };
+  const body = parsed.data as { action?: unknown; commentary?: unknown; imageMode?: unknown };
   if (body.action !== "refresh_commentary" && body.action !== "replace_media" && body.action !== "rebuild") {
     return jsonError("Action must be refresh_commentary, replace_media, or rebuild.", 400);
   }
@@ -49,15 +49,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     const action = body.action;
+    const commentary = typeof body.commentary === "string" && body.commentary.trim() ? body.commentary.trim() : undefined;
+    const forceProceduralImage = body.imageMode === "procedural";
     const publication =
-      action === "rebuild" ? await rebuildLinkedInPublication(id) : await refreshLinkedInPublication(id, action === "replace_media");
+      action === "rebuild"
+        ? await rebuildLinkedInPublication(id)
+        : await refreshLinkedInPublication(id, action === "replace_media", commentary, forceProceduralImage);
     const session = await getAdminSession();
     await createAuditLog(
       {
         action: `integration.linkedin_${action}`,
         actor: session?.email || "admin-api",
         target: publication.externalId || id,
-        metadata: { publicationId: id }
+        metadata: { publicationId: id, reviewedCommentary: Boolean(commentary), imageMode: forceProceduralImage ? "procedural" : "automatic" }
       },
       await requestContext()
     );

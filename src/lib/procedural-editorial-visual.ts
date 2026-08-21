@@ -22,6 +22,7 @@ type VisualProfile = {
   accent2: string;
   category: string;
   focus: string;
+  nodes?: [string, string, string];
   signal: string;
   steps: [string, string, string];
 };
@@ -120,7 +121,22 @@ function readableAccent(accent: string) {
 }
 
 function visualProfile(input: ProceduralEditorialInput): VisualProfile {
-  const text = `${input.title} ${input.context}`.toLowerCase();
+  const classificationContext = input.context
+    .split("\n")
+    .filter((line) => !/^Topic-specific visual exclusions:/i.test(line.trim()))
+    .join(" ");
+  const text = `${input.title} ${classificationContext}`.toLowerCase();
+  if (/cisco/.test(text) && /crosswork/.test(text) && /secure workload/.test(text) && /broadworks/.test(text)) {
+    return {
+      accent: "#4f72d8",
+      accent2: "#ef3d78",
+      category: "CISCO ADVISORY TRIAGE",
+      focus: "THREE REMEDIATION PATHS",
+      nodes: ["CROSSWORK", "SECURE WORKLOAD", "BROADWORKS"],
+      signal: "SEPARATE SCOPE, FIX + EVIDENCE",
+      steps: ["SCOPE", "REMEDIATE", "VERIFY"]
+    };
+  }
   if (/static credential|preset username|embedded credential|default credential/.test(text)) {
     return {
       accent: "#ef3d78",
@@ -324,7 +340,7 @@ export async function createProceduralEditorialVisual(input: ProceduralEditorial
   const accentText = readableAccent(profile.accent);
   const diagramNodes = proceduralVisualLayout.diagramNodes.map((node, index) => ({
     ...node,
-    label: index === 1 ? profile.focus : profile.steps[index === 0 ? 0 : 2],
+    label: profile.nodes?.[index] || (index === 1 ? profile.focus : profile.steps[index === 0 ? 0 : 2]),
     color: index === 0 ? profile.accent : index === 1 ? profile.accent2 : "#28c99a"
   }));
   validateProceduralLayout(signalLines, diagramNodes);

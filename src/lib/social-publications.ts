@@ -4,7 +4,11 @@ import type { ContentPostRecord } from "@/lib/content-posts";
 import { siteConfig } from "@/lib/content";
 import { ensureEditorialImageForPublication } from "@/lib/editorial-image-generation";
 import { createAdvisoryLinkedInPost, createEditorialLinkedInPost } from "@/lib/linkedin-content-agents";
-import { advisoryLinkedInQualityIssues, type LinkedInAdvisoryPost } from "@/lib/linkedin-commentary";
+import {
+  advisoryLinkedInQualityIssues,
+  editorialLinkedInQualityIssues,
+  type LinkedInAdvisoryPost
+} from "@/lib/linkedin-commentary";
 import { deleteLinkedInPost, publishLinkedInPost, updateLinkedInPostCommentary } from "@/lib/linkedin";
 import { getPrismaClient } from "@/lib/prisma";
 import { editorialImageWaitMessage, socialPublicationFailurePolicy } from "@/lib/social-publication-state";
@@ -352,14 +356,25 @@ async function currentPublicationMaterial(job: {
   contentId: string;
   contentRevision: string;
   contentType: string;
-}) {
+}, commentaryOverride?: string) {
   const prisma = getPrismaClient();
   if (job.contentType === "content_post") {
     const source = await prisma.contentPost.findUnique({ where: { id: job.contentId } });
     if (!source) throw new Error("The source article no longer exists.");
     const content = source.content as unknown as ContentPostRecord["content"];
     const post = { content, slug: source.slug, title: source.title };
-    const generated = await buildEditorialLinkedInCommentary(post);
+    const trackedArticleUrl = trackedUrl(`/resources/${source.slug}`, "weekly-intelligence", source.slug);
+    const generated = commentaryOverride
+      ? {
+          commentary: commentaryOverride.trim(),
+          qualityScore: 100,
+          trace: { provider: "admin-reviewed", policyVersion: 3, generatedAt: new Date().toISOString() }
+        }
+      : await buildEditorialLinkedInCommentary(post);
+    if (commentaryOverride) {
+      const issues = editorialLinkedInQualityIssues(generated.commentary, trackedArticleUrl, post);
+      if (issues.length) throw new Error(`LinkedIn editorial override held by publication gate: ${issues.join(" ")}`);
+    }
     return {
       commentary: generated.commentary,
       commentaryQualityScore: generated.qualityScore,
@@ -372,7 +387,18 @@ async function currentPublicationMaterial(job: {
   if (job.contentType === "security_advisory") {
     const advisory = await prisma.securityAdvisory.findUnique({ where: { id: job.contentId } });
     if (!advisory) throw new Error("The source security advisory no longer exists.");
-    const generated = await buildAdvisoryLinkedInCommentary(advisory);
+    const trackedAdvisoryUrl = trackedUrl(`/security-advisories/${advisory.slug}`, "security-advisory-desk", advisory.slug);
+    const generated = commentaryOverride
+      ? {
+          commentary: commentaryOverride.trim(),
+          qualityScore: 100,
+          trace: { provider: "admin-reviewed", policyVersion: 3, generatedAt: new Date().toISOString() }
+        }
+      : await buildAdvisoryLinkedInCommentary(advisory);
+    if (commentaryOverride) {
+      const issues = advisoryLinkedInQualityIssues(generated.commentary, trackedAdvisoryUrl, advisoryPost(advisory));
+      if (issues.length) throw new Error(`LinkedIn advisory override held by publication gate: ${issues.join(" ")}`);
+    }
     return {
       commentary: generated.commentary,
       commentaryQualityScore: generated.qualityScore,
@@ -385,7 +411,12 @@ async function currentPublicationMaterial(job: {
   throw new Error(`Unsupported LinkedIn content type: ${job.contentType}`);
 }
 
-export async function refreshLinkedInPublication(publicationId: string, replaceMedia: boolean) {
+export async function refreshLinkedInPublication(
+  publicationId: string,
+  replaceMedia: boolean,
+  commentaryOverride?: string,
+  forceProceduralImage = false
+) {
   const prisma = getPrismaClient();
   const publication = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
   if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
@@ -393,7 +424,7 @@ export async function refreshLinkedInPublication(publicationId: string, replaceM
     throw new Error("Only a published LinkedIn post can be refreshed.");
   }
 
-  const material = await currentPublicationMaterial(publication);
+  const material = await currentPublicationMaterial(publication, commentaryOverride);
   const metadata = metadataObject(publication.metadata);
   if (!replaceMedia) {
     const commentary = material.commentary.slice(0, 2900);
@@ -422,7 +453,9 @@ export async function refreshLinkedInPublication(publicationId: string, replaceM
     });
   }
 
-  const generatedImage = await ensureEditorialImageForPublication(publication, false);
+  const generatedImage = await ensureEditorialImageForPublication(publication, true, {
+    premiumAllowed: forceProceduralImage ? false : undefined
+  });
   if (!generatedImage?.generatedAt) {
     throw new Error("The current contextual image is not ready, so the existing LinkedIn post was left unchanged.");
   }

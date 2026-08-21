@@ -97,6 +97,26 @@ test("FortiGate CAPWAP advisories render a managed-device trust boundary instead
   assert.equal(generated.trace.imageModel, "qcs-editorial-resvg-v9");
 });
 
+test("article exclusions cannot misclassify Cisco product triage as a BGP visual", async () => {
+  const generated = await createProceduralEditorialVisual({
+    altText: "QCS triage map for three Cisco security advisory workstreams",
+    contentId: "cisco-august-advisory-triage",
+    contentRevision: "5",
+    contentType: "content_post",
+    context: [
+      "Primary topic: Cisco August 2026 security advisory triage.",
+      "Preferred factual scene: Branch one Cisco bulletin into Crosswork, Secure Workload, and BroadWorks remediation lanes.",
+      "Facts the visual may communicate: Crosswork; Secure Workload; BroadWorks.",
+      "Topic-specific visual exclusions: Do not show BGP, RPKI, route origin, or routing imagery."
+    ].join("\n"),
+    title: "How to Triage Cisco's August 19, 2026 Security Advisories"
+  });
+  assert.equal(generated.trace.direction.focalSubject, "THREE REMEDIATION PATHS");
+  assert.deepEqual(generated.trace.direction.supportingElements, ["SCOPE", "REMEDIATE", "VERIFY"]);
+  assert.match(generated.trace.direction.mechanismStatement, /separate scope, fix \+ evidence/i);
+  assert.doesNotMatch(generated.trace.direction.sceneConcept, /route origin/i);
+});
+
 test("editorial quality policy enforces Retina output, readable type, and WCAG contrast", () => {
   assert.doesNotThrow(() =>
     assertRetinaVariantDimensions(

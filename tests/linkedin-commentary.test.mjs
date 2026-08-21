@@ -182,6 +182,7 @@ test("agent presentation pass repairs mobile structure without losing the draft 
   });
   assert.match(formatted, /DNS cold starts and BGP route-origin mistakes/);
   assert.match(formatted, /Practical Next Steps\n1\. Confirm the DNS resolver path/);
+  assert.match(formatted, /Original QCS analysis: https:\/\/www\.qcsstudio\.com\/resources\/dns-bgp/);
   assert.doesNotMatch(formatted, /Use one response path/);
   assert.equal(formatted.match(/\?/g)?.length, 2, "one prose question plus the tracked URL query should remain");
   assert.equal(formatted.match(new RegExp(trackedUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"))?.length, 1);
@@ -213,6 +214,7 @@ test("agent presentation pass budgets long analysis around verified actions and 
   assert.ok(formatted.length <= 2_200);
   assert.match(formatted, /DNS cold starts can resemble cloud route failures/);
   assert.match(formatted, /Practical Next Steps\n1\. Measure recursive and authoritative DNS timing/);
+  assert.match(formatted, /Original QCS analysis: https:\/\/www\.qcsstudio\.com\/resources\/dns-bgp/);
   assert.match(formatted, /#NetworkEngineering #DNS #BGP #CloudNetworking$/);
   assert.ok((formatted.match(/Additional repeated analysis/g) || []).length < 12);
 });

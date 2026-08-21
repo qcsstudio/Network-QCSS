@@ -350,6 +350,7 @@ export function formatAgentLinkedInCommentary(input: {
   actions: string[];
   commentary: string;
   hashtags: string[];
+  linkLabel?: string;
   maxLength?: number;
   url: string;
 }) {
@@ -378,7 +379,7 @@ export function formatAgentLinkedInCommentary(input: {
     "Practical Next Steps",
     ...actions.map((action, index) => `${index + 1}. ${action}.`),
     "",
-    `Read the QCS technical brief: ${input.url}`,
+    `${input.linkLabel || "Original QCS analysis"}: ${input.url}`,
     "",
     hashtags.join(" ")
   ];
@@ -444,6 +445,9 @@ function actionLines(commentary: string) {
 export function editorialLinkedInQualityIssues(commentary: string, url: string, post?: LinkedInEditorialPost) {
   const issues = presentationIssues(commentary, url, 650, 2_200);
   const actions = actionLines(commentary);
+  if (!commentary.includes(`Original QCS analysis: ${url}`)) {
+    issues.push("Label the canonical article link as the original QCS analysis.");
+  }
   if (actions.length < 3) issues.push("Include three concrete actions or decision checks on separate lines.");
   if (questionCount(commentary) > 1) issues.push("Use no more than one purposeful audience question.");
   if (post) {
