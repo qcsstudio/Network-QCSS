@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { z } from "zod";
 import { editorialReadingQualityInstruction } from "./editorial-quality-policy.ts";
 import type { BlogPost } from "@/lib/blog";
+import { evaluateEditorialReadiness } from "@/lib/editorial-publication-policy";
 import { collectEditorialEvidence, type EditorialEvidenceSource } from "@/lib/editorial-source-policy";
 import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts";
 
@@ -396,6 +397,7 @@ async function inspectContent(kind: "advisory" | "blog", evidence: string, conte
     instructions: [
       "You are the QCS Editorial QA Critic, a senior network-security editor and fact checker.",
       "Compare every factual claim with the supplied primary-source evidence. Reject unsupported versions, exploit claims, mitigations, commands, dates, or product behavior.",
+      "Reject a draft when its headline, central thesis, or operational recommendations force a relationship that the supplied evidence does not establish. Adjacent vendor advisories are not evidence of a shared cause, attack path, or control failure.",
       "For blogs, verify that sourceUrls point only to supplied evidence and are attached to the sections or answers whose claims they support. A source list alone is not traceability.",
       "Reject generic filler, repetitive template language, unexplained jargon, sensational phrasing, copied source wording, weak search intent, and content that would not help a real operator make a decision.",
       "For blogs, require a direct answer, a clear reader outcome, defined entities, useful headings, evidence-led reasoning, implementation and validation guidance, realistic limitations, and FAQs that resolve genuine follow-up questions.",
@@ -499,10 +501,11 @@ async function writeBlog(input: BlogEditorialInput, evidence: string, correction
     instructions: [
       "You are the QCS Research Editor, a senior network engineer, cybersecurity writer, SEO strategist, and educator.",
       "Create an original, authoritative article from the supplied primary-source evidence. Search demand may shape the question, but never treat a trend or headline as technical evidence.",
+      "Treat the evidence as the boundary of the article. If the editorial topic or business angle is not supported by that evidence, reframe the title and article around what the sources actually establish instead of forcing a connection. Never imply that separate advisories share a technical cause or affect routing, cloud, or security controls unless a supplied source says so.",
       "Answer the reader's real question immediately, explain terminology in plain English, then provide technically precise reasoning, examples, evidence, decisions, safeguards, and practical next steps.",
       "Build the article for human readers and answer engines: state a self-contained direct answer first; define important entities; organize the body around the reader's decision; distinguish evidence, interpretation, and recommendation; include implementation, validation, limitations, and escalation guidance where relevant.",
-      "Use sourceUrls on each section and FAQ answer to cite only the supplied URL or URLs that support its factual claims. Use an empty array only for clearly labeled QCS analysis or practical advice that does not depend on an external fact.",
-      "Keep the finished article between roughly 1,400 and 1,900 words. Use five to seven focused sections, four to six genuine FAQs, and concise bullets only where they improve scanning.",
+      "Copy source URLs exactly from the supplied evidence. Use sourceUrls on every section and FAQ answer with evidence-dependent claims; use an empty array only for clearly labeled QCS analysis or practical advice that does not depend on an external fact. At least one section must carry a primary-source citation.",
+      "The description, excerpt, direct answer, section headings, section bodies, and section bullets must contain at least 1,100 useful words by themselves. Checklists, definitions, takeaways, and FAQs do not count toward that minimum. Keep the complete article near 1,400 to 1,900 words, with five to seven focused sections and four to six genuine FAQs.",
       "Create a topic-specific visualBrief from the article's concrete systems, evidence, and cause-and-effect relationship. Its factualAnchors must be supported by the article, and its avoid list must prevent likely visual misinterpretations or generic cyber imagery.",
       "Do not produce a vendor-news rewrite, generic checklist template, sales pitch, or repetitive QCS boilerplate. Do not invent versions, statistics, commands, exploit claims, outcomes, or quotations.",
       editorialReadingQualityInstruction,
@@ -515,7 +518,7 @@ async function writeBlog(input: BlogEditorialInput, evidence: string, correction
     ]
       .filter(Boolean)
       .join("\n\n"),
-    max_output_tokens: 4_000,
+    max_output_tokens: 5_200,
     text: {
       ...(usesReasoningControls(config.writerModel) ? { verbosity: "medium" as const } : {}),
       format: { type: "json_schema", name: "qcs_researched_blog_content", strict: true, schema: blogContentJsonSchema }
@@ -606,10 +609,21 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
   const brief = evidenceBrief(usable);
   let correction = "";
   let latestQa: ContentQa | null = null;
+  let latestReadinessIssues: string[] = [];
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     const written = await writeBlog(input, brief, correction);
     const content = buildBlogPost(input, written, usable);
+    latestReadinessIssues = evaluateEditorialReadiness(content).issues;
+    if (latestReadinessIssues.length) {
+      console.info("QCS deterministic editorial checks rejected the draft.", { attempt, issues: latestReadinessIssues });
+      correction = [
+        "The previous draft failed mandatory publication checks. Resolve every item:",
+        ...latestReadinessIssues.map((issue) => `- ${issue}`),
+        "Use exact URLs copied from PRIMARY-SOURCE EVIDENCE for claim-level sourceUrls. The core useful-word total excludes checklists, definitions, takeaways, and FAQs."
+      ].join("\n");
+      continue;
+    }
     latestQa = await inspectContent("blog", brief, content);
     console.info("QCS editorial QA result.", { kind: "blog", attempt, qa: latestQa });
     if (contentQaPasses(latestQa)) {
@@ -631,6 +645,8 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
     correction = latestQa.correctionPrompt || contentQaDeficits(latestQa).join("; ");
   }
   throw new Error(
-    `Blog editorial QA rejected the content: ${latestQa?.rationale || "unknown reason"}. Deficits: ${latestQa ? contentQaDeficits(latestQa).join(" ") : "unknown"}`
+    latestReadinessIssues.length
+      ? `Blog generation did not satisfy the publication policy: ${latestReadinessIssues.join(" ")}`
+      : `Blog editorial QA rejected the content: ${latestQa?.rationale || "unknown reason"}. Deficits: ${latestQa ? contentQaDeficits(latestQa).join(" ") : "unknown"}`
   );
 }

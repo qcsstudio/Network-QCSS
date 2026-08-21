@@ -53,6 +53,10 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   try {
     const payload = body.data as { action?: string; content?: unknown; sourceUrl?: string };
     const action = String(payload.action || "save");
+    if ((action === "approve" || action === "regenerate") && payload.content !== undefined) {
+      const saved = await updateContentPost(id, payload.content, String(payload.sourceUrl || ""), actor);
+      if (!saved) return jsonError("Post not found.", 404);
+    }
     const post =
       action === "approve"
         ? await approveContentPost(id, actor)

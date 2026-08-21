@@ -5884,6 +5884,50 @@ td span {
   padding: 12px;
 }
 
+.content-citation-picker {
+  display: grid;
+  gap: 7px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.content-citation-picker > span {
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.content-citation-picker > small,
+.content-readiness-summary small {
+  color: var(--muted);
+}
+
+.content-citation-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.content-citation-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+  padding: 7px 9px;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.content-citation-options input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
 .content-pair-row {
   display: grid;
   grid-template-columns: minmax(110px, 0.7fr) minmax(0, 1.3fr) 40px;
@@ -5906,6 +5950,27 @@ td span {
 .content-publish-bar > div:first-child {
   display: grid;
   gap: 4px;
+}
+
+.content-readiness-summary {
+  max-width: 720px;
+}
+
+.content-readiness-summary > strong {
+  color: var(--ink);
+}
+
+.content-readiness-summary.needs-work > strong {
+  color: #a13a26;
+}
+
+.content-readiness-summary ul {
+  display: grid;
+  gap: 3px;
+  margin: 3px 0 0;
+  padding-left: 18px;
+  color: #7f3325;
+  font-size: 0.8rem;
 }
 
 .content-publish-bar small {

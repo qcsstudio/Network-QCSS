@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import { Activity, Archive, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Clock3, ExternalLink, Eye, FilePenLine, FilePlus2, FileText, Globe2, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Sparkles, Trash2, Upload } from "lucide-react";
 import type { BlogPost } from "@/lib/blog";
 import { contentPostStatuses, type ContentPostStatus } from "@/lib/content-admin-domain";
+import { evaluateEditorialReadiness } from "@/lib/editorial-publication-policy";
 
 type RadarDraft = {
   slot: string;
@@ -179,6 +180,41 @@ function LinkListEditor({
   );
 }
 
+function CitationPicker({
+  label,
+  sources,
+  value,
+  onChange
+}: {
+  label: string;
+  sources: SourceItem[];
+  value: string[];
+  onChange: (value: string[]) => void;
+}) {
+  return (
+    <div className="content-citation-picker">
+      <span>{label}</span>
+      {sources.length ? (
+        <div className="content-citation-options">
+          {sources.map((source, index) => (
+            <label key={`${source.url}-${index}`}>
+              <input
+                checked={value.includes(source.url)}
+                onChange={(event) => onChange(event.target.checked ? [...new Set([...value, source.url])] : value.filter((url) => url !== source.url))}
+                type="checkbox"
+              />
+              <span>{source.label || `Source ${index + 1}`}</span>
+            </label>
+          ))}
+        </div>
+      ) : (
+        <small>Add an authoritative source before mapping claims.</small>
+      )}
+      <small>Select only the primary sources that support factual claims in this block.</small>
+    </div>
+  );
+}
+
 export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: ContentPostRecord[] }) {
   const [radar, setRadar] = useState<ContentRadarResponse | null>(null);
   const [posts, setPosts] = useState<ContentPostRecord[]>(initialPosts);
@@ -313,10 +349,11 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     }
     setBusy(action);
     try {
+      const persistDraft = action === "save" || ((action === "approve" || action === "regenerate") && hasUnsavedChanges);
       const response = await fetch(`/api/admin/content-posts/${selected.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(action === "save" ? { action, content: draft, sourceUrl } : { action })
+        body: JSON.stringify(persistDraft ? { action, content: draft, sourceUrl } : { action })
       });
       const result = (await response.json()) as { post?: ContentPostRecord; error?: string };
       if (!response.ok || !result.post) throw new Error(result.error || `Unable to ${action} the article.`);
@@ -451,7 +488,19 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
   const allStatusCount = useMemo(() => contentPostStatuses.reduce((sum, item) => sum + statusCounts[item], 0), [statusCounts]);
   const rangeStart = total ? (page - 1) * pageSize + 1 : 0;
   const rangeEnd = total ? Math.min(page * pageSize, total) : 0;
-  const needsRegeneration = Boolean(draft && /draft required|replace this|todo|placeholder/i.test(JSON.stringify(draft)));
+  const hasUnsavedChanges = Boolean(
+    draft && selected && (JSON.stringify(draft) !== JSON.stringify(selected.content) || sourceUrl !== selected.sourceUrl)
+  );
+  const approvalReadiness = useMemo(() => {
+    if (!draft) return null;
+    const readiness = evaluateEditorialReadiness(draft);
+    const issues = [...readiness.issues];
+    if (!hasUnsavedChanges && selected?.qualityScore !== null && selected?.qualityScore !== undefined && selected.qualityScore < 84) {
+      issues.push("Regenerate or manually review this article because its editorial quality score is below 84.");
+    }
+    return { ...readiness, issues };
+  }, [draft, hasUnsavedChanges, selected]);
+  const needsRegeneration = Boolean(approvalReadiness?.issues.length);
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -566,8 +615,11 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
 
       <div aria-busy={listLoading} className="content-queue">
         {posts.length ? (
-          posts.map((post) => (
-            <article className="content-queue-card" key={post.id}>
+          posts.map((post) => {
+            const queueReadiness = evaluateEditorialReadiness(post.content);
+            const approvalBlocked = queueReadiness.issues.length > 0 || (post.qualityScore !== null && post.qualityScore < 84);
+            return (
+              <article className="content-queue-card" key={post.id}>
               <div className="content-queue-card-main">
                 <div className="content-card-statuses">
                   <span className={`status-pill content-status-${post.status}`}>{post.status}</span>
@@ -587,7 +639,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
                 {post.status === "draft" ? (
                   <>
                     <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => editPost(post)} type="button"><FilePenLine aria-hidden="true" size={16} /> Edit draft</button>
-                    <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => transitionPost(post, "approve")} type="button"><ShieldCheck aria-hidden="true" size={16} /> Approve</button>
+                    <button className="button primary compact-button" disabled={Boolean(busy) || approvalBlocked} onClick={() => transitionPost(post, "approve")} title={approvalBlocked ? "Open the editor to resolve publication checks" : "Approve the reviewed revision"} type="button"><ShieldCheck aria-hidden="true" size={16} /> {approvalBlocked ? "Checks required" : "Approve"}</button>
                   </>
                 ) : null}
                 {post.status === "approved" ? (
@@ -615,8 +667,9 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
                   <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => deletePost(post)} title={`Delete ${post.content.contentType || "blog"}`} type="button"><Trash2 aria-hidden="true" size={18} /></button>
                 ) : null}
               </div>
-            </article>
-          ))
+              </article>
+            );
+          })
         ) : (
           <div className="content-empty-state">No content matches these filters. Reset the queue or create a new article.</div>
         )}
@@ -770,6 +823,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
                   <input aria-label={`Section ${index + 1} heading`} value={section.heading} onChange={(event) => { const next = [...draft.sections]; next[index] = { ...section, heading: event.target.value }; patchContent("sections", next); }} />
                   <textarea aria-label={`Section ${index + 1} body`} rows={6} value={section.body} onChange={(event) => { const next = [...draft.sections]; next[index] = { ...section, body: event.target.value }; patchContent("sections", next); }} />
                   <textarea aria-label={`Section ${index + 1} bullets`} placeholder="Optional bullets, one per line" rows={3} value={(section.bullets || []).join("\n")} onChange={(event) => { const next = [...draft.sections]; const bullets = lines(event.target.value); next[index] = { ...section, bullets: bullets.length ? bullets : undefined }; patchContent("sections", next); }} />
+                  <CitationPicker label="Claim-level sources" sources={draft.sources} value={section.sourceUrls || []} onChange={(sourceUrls) => { const next = [...draft.sections]; next[index] = { ...section, sourceUrls }; patchContent("sections", next); }} />
                 </article>
               ))}
             </div>
@@ -784,6 +838,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
                   <div className="content-row-heading"><strong>Question {index + 1}</strong><button className="icon-button" onClick={() => patchContent("questions", draft.questions.filter((_, faqIndex) => faqIndex !== index))} title="Remove question" type="button"><Archive aria-hidden="true" size={17} /></button></div>
                   <input aria-label={`Question ${index + 1}`} value={faq.question} onChange={(event) => { const next = [...draft.questions]; next[index] = { ...faq, question: event.target.value }; patchContent("questions", next); }} />
                   <textarea aria-label={`Answer ${index + 1}`} rows={4} value={faq.answer} onChange={(event) => { const next = [...draft.questions]; next[index] = { ...faq, answer: event.target.value }; patchContent("questions", next); }} />
+                  <CitationPicker label="Answer sources" sources={draft.sources} value={faq.sourceUrls || []} onChange={(sourceUrls) => { const next = [...draft.questions]; next[index] = { ...faq, sourceUrls }; patchContent("questions", next); }} />
                 </article>
               ))}
             </div>
@@ -797,16 +852,18 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
           </div>
 
           <div className="content-publish-bar">
-            <div>
+            <div className={`content-readiness-summary ${needsRegeneration ? "needs-work" : "is-ready"}`}>
               <span className={`status-pill content-status-${selected.status}`}>{selected.status}</span>
-              <small>Drafts are editable. Approval locks the reviewed revision; publishing updates the public blog, sitemap, and LinkedIn delivery queue.</small>
+              <strong>{needsRegeneration ? `${approvalReadiness?.issues.length || 0} approval check(s) need attention` : "Ready for editorial approval"}</strong>
+              <small>{approvalReadiness ? `${approvalReadiness.usefulWords}/${approvalReadiness.minimumUsefulWords} useful words | ${approvalReadiness.citationCount} mapped primary source(s)` : "Checking article readiness..."}</small>
+              {needsRegeneration ? <ul>{approvalReadiness?.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul> : <small>Approval locks the reviewed revision; publishing updates the public blog, sitemap, and LinkedIn delivery queue.</small>}
             </div>
             <div className="content-action-row">
               {selected.status === "draft" ? (
                 <>
                   <button className="button secondary" disabled={Boolean(busy)} type="submit"><Save aria-hidden="true" size={17} /> {busy === "save" ? "Saving..." : "Save draft"}</button>
                   {needsRegeneration ? <button className="button secondary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={() => mutate("regenerate")} type="button"><Sparkles aria-hidden="true" size={17} /> {busy === "regenerate" ? "Completing..." : "Complete draft"}</button> : null}
-                  <button className="button primary" disabled={Boolean(busy)} onClick={() => mutate("approve")} type="button"><ShieldCheck aria-hidden="true" size={17} /> Approve</button>
+                  <button className="button primary" disabled={Boolean(busy) || needsRegeneration} onClick={() => mutate("approve")} title={needsRegeneration ? "Resolve the listed readiness checks before approval" : "Approve the reviewed revision"} type="button"><ShieldCheck aria-hidden="true" size={17} /> Approve</button>
                   <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => mutate("archive")} title="Archive article" type="button"><Archive aria-hidden="true" size={18} /></button>
                   <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => deletePost(selected)} title={`Delete ${draft.contentType || "blog"}`} type="button"><Trash2 aria-hidden="true" size={18} /></button>
                 </>

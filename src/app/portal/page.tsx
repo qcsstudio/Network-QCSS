@@ -23,9 +23,14 @@ function rolePurpose(role: string) {
   return "Read-only assurance access to approved scope, findings, and final reports.";
 }
 
+async function loadPortalSnapshot(workspaceId: string) {
+  const workspace = await getVerifyGridPortalWorkspace(workspaceId);
+  return { evaluatedAt: Date.now(), workspace };
+}
+
 export default async function VerifyGridPortalPage() {
   const session = await requireVerifyGridPortalSession();
-  const workspace = await getVerifyGridPortalWorkspace(session.workspaceId);
+  const { evaluatedAt, workspace } = await loadPortalSnapshot(session.workspaceId);
   return (
     <main className="portal-page">
       <header className="portal-header">
@@ -50,8 +55,7 @@ export default async function VerifyGridPortalPage() {
       <section className="portal-engagements">
         {workspace.engagements.map((engagement) => {
           const authorization = engagement.authorizations[0] || null;
-          const now = Date.now();
-          const authorityCurrent = Boolean(authorization?.authorityConfirmed && authorization.validFrom.getTime() <= now && authorization.validUntil.getTime() >= now);
+          const authorityCurrent = Boolean(authorization?.authorityConfirmed && authorization.validFrom.getTime() <= evaluatedAt && authorization.validUntil.getTime() >= evaluatedAt);
           const lifecycle = buildVerifyGridLifecycle({
             ...engagement,
             gate: {
