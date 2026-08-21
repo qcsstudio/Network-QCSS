@@ -16,6 +16,7 @@ import { VerifyGridControlPanel } from "@/components/verifygrid-control-panel";
 import { VerifyGridOnboardingQueue } from "@/components/verifygrid-onboarding-queue";
 import { getEmptyVerifyGridPortfolio, getVerifyGridPortfolio, type VerifyGridPortfolio } from "@/lib/verifygrid";
 import { VerifyGridAccessGate } from "@/components/verifygrid-access-gate";
+import { VerifyGridSecurityBar } from "@/components/verifygrid-security-bar";
 import { getVerifyGridAccessState } from "@/lib/verifygrid-operator-auth";
 
 export const metadata: Metadata = {
@@ -109,8 +110,9 @@ export default async function AdminPage() {
           overview={<OperatorDashboard snapshot={snapshot} />}
           verifygrid={verifyGridAccess.state === "unlocked" ? (
             <>
+              <VerifyGridSecurityBar access={verifyGridAccess} />
               <VerifyGridOnboardingQueue />
-              <VerifyGridControlPanel initialPortfolio={verifyGridPortfolio} />
+              <VerifyGridControlPanel access={verifyGridAccess.operator} initialPortfolio={verifyGridPortfolio} />
             </>
           ) : (
             <VerifyGridAccessGate access={verifyGridAccess} email={session.email} />

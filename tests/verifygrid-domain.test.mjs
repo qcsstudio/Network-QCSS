@@ -39,6 +39,12 @@ import {
   signReportChain,
   verifyReportChainSignature
 } from "../src/lib/verifygrid-assurance-domain.ts";
+import {
+  buildVerifyGridLifecycle,
+  verifyGridLifecycleProgress,
+  verifyGridPermissionsForRole,
+  verifyGridRequiresFreshAuthentication
+} from "../src/lib/verifygrid-operating-model.ts";
 import crypto from "node:crypto";
 
 const firstTarget = {
@@ -60,6 +66,33 @@ const exclusion = {
   inScope: false,
   ownershipConfirmed: false
 };
+
+test("VerifyGrid roles separate delivery from independent report release", () => {
+  assert.equal(verifyGridPermissionsForRole("lead").includes("dispatch_execution"), true);
+  assert.equal(verifyGridPermissionsForRole("lead").includes("release_report"), false);
+  assert.equal(verifyGridPermissionsForRole("reviewer").includes("release_report"), true);
+  assert.equal(verifyGridPermissionsForRole("reviewer").includes("dispatch_execution"), false);
+  assert.equal(verifyGridPermissionsForRole("analyst").includes("stop_execution"), true);
+  assert.equal(verifyGridRequiresFreshAuthentication("release_report"), true);
+  assert.equal(verifyGridRequiresFreshAuthentication("stop_execution"), false);
+});
+
+test("VerifyGrid lifecycle keeps execution blocked before client authority", () => {
+  const lifecycle = buildVerifyGridLifecycle({
+    status: "authorization_pending",
+    scopeTargets: [{ inScope: true, ownershipConfirmed: true }],
+    gate: { executable: false, blockers: ["Record written authorization for the current scope."], authorization: null },
+    testCases: [{ status: "planned" }],
+    executionJobs: [],
+    observations: [],
+    findings: [],
+    reports: []
+  });
+  assert.equal(lifecycle.find((step) => step.key === "scope")?.state, "complete");
+  assert.equal(lifecycle.find((step) => step.key === "authority")?.state, "active");
+  assert.equal(lifecycle.find((step) => step.key === "execute")?.state, "blocked");
+  assert.equal(verifyGridLifecycleProgress(lifecycle), 22);
+});
 
 test("scope hash is deterministic and order independent", () => {
   assert.equal(scopeHash([firstTarget, exclusion]), scopeHash([exclusion, firstTarget]));

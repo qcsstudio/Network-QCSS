@@ -67,7 +67,9 @@ Use a dedicated read-only account restricted to the required asset and vulnerabi
 
 ## Operator passkeys
 
-VerifyGrid requires the normal administrator session plus a phishing-resistant WebAuthn passkey step-up. Production must pin `VERIFYGRID_WEBAUTHN_RP_ID=www.qcsstudio.com` and `VERIFYGRID_WEBAUTHN_ORIGIN=https://www.qcsstudio.com`. The first configured administrator enrolls as the owner. Passkey challenges are single-use and expire after five minutes; operator sessions are opaque, revocable, database-backed, and expire after two hours.
+VerifyGrid requires the normal administrator session plus a phishing-resistant WebAuthn passkey step-up. Production must pin `VERIFYGRID_WEBAUTHN_RP_ID=www.qcsstudio.com` and `VERIFYGRID_WEBAUTHN_ORIGIN=https://www.qcsstudio.com`. The first configured administrator enrolls as the owner. Passkey challenges are single-use and expire after five minutes; operator sessions are opaque, revocable, database-backed, and expire after 15 minutes of inactivity or two hours overall, whichever occurs first.
+
+Logging in proves operator identity but does not authorize testing. Client authority, current scope, target permissions, and the execution window remain separate server-side gates. Scope, approval, dispatch, access, review, and release actions require a passkey ceremony no more than ten minutes old; the emergency stop remains available throughout a valid session. Engagement leads manage scope, approve and dispatch execution, and stop work; independent reviewers own report review and release. The platform owner is the continuity exception.
 
 Use **Lock VerifyGrid operator session** whenever high-assurance work is complete. Signing out of the main dashboard also revokes the VerifyGrid session. Do not delete the last owner passkey without a tested recovery process.
 

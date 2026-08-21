@@ -1,15 +1,11 @@
 "use client";
 
 import { browserSupportsWebAuthn, startAuthentication, startRegistration } from "@simplewebauthn/browser";
-import { Fingerprint, KeyRound, ShieldCheck } from "lucide-react";
+import { FileCheck2, Fingerprint, KeyRound, ShieldCheck, TimerReset, UserRoundCog } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-type AccessState = {
-  state: "enrollment_required" | "authentication_required" | "not_provisioned";
-  passkeyCount: number;
-  operator: { email: string; displayName: string; role: string } | null;
-};
+import type { VerifyGridAccessState } from "@/lib/verifygrid-operator-auth";
+import { VERIFYGRID_CRITICAL_REAUTH_MINUTES, VERIFYGRID_SESSION_IDLE_MINUTES, VERIFYGRID_SESSION_MAX_MINUTES, verifyGridRoleLabel } from "@/lib/verifygrid-operating-model";
 
 async function ceremony(action: string, response?: unknown) {
   const result = await fetch("/api/admin/verifygrid/security", {
@@ -23,16 +19,18 @@ async function ceremony(action: string, response?: unknown) {
   return body;
 }
 
-export function VerifyGridAccessGate({ access, email }: { access: AccessState; email: string }) {
+export function VerifyGridAccessGate({ access, email }: { access: VerifyGridAccessState; email: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(
     access.state === "enrollment_required"
       ? "Register a passkey to bind high-risk operations to your verified identity."
       : access.state === "authentication_required"
-        ? "Use your registered passkey to open a two-hour operator session."
-        : "This administrator has not been provisioned as a VerifyGrid operator."
+        ? "Verify your identity before viewing client scope, evidence, execution, or reports."
+        : "A VerifyGrid owner must provision this administrator and assign a least-privilege role."
   );
+
+  if (access.state === "unlocked") return null;
 
   async function unlock() {
     if (!browserSupportsWebAuthn()) {
@@ -61,22 +59,29 @@ export function VerifyGridAccessGate({ access, email }: { access: AccessState; e
 
   return (
     <section className="admin-panel verifygrid-access-gate">
-      <div className="verifygrid-access-mark"><Fingerprint aria-hidden="true" size={30} /></div>
-      <div className="verifygrid-access-copy">
-        <p className="eyebrow">Phishing-resistant operator access</p>
-        <h2>Unlock VerifyGrid security operations</h2>
-        <p>{message}</p>
-        <div className="verifygrid-access-facts">
-          <span><ShieldCheck aria-hidden="true" size={16} /> Role-bound actions</span>
-          <span><KeyRound aria-hidden="true" size={16} /> Revocable two-hour session</span>
-          <span><Fingerprint aria-hidden="true" size={16} /> {access.passkeyCount || "No"} registered passkey{access.passkeyCount === 1 ? "" : "s"}</span>
+      <div className="verifygrid-access-intro">
+        <div className="verifygrid-access-mark"><Fingerprint aria-hidden="true" size={30} /></div>
+        <div className="verifygrid-access-copy">
+          <p className="eyebrow">Phishing-resistant operator access</p>
+          <h2>Enter the VerifyGrid control plane</h2>
+          <p>{message}</p>
+          <small>{access.operator?.email || email} {access.operator?.role ? `| ${verifyGridRoleLabel(access.operator.role)}` : "| bootstrap owner"}</small>
         </div>
-        <small>{access.operator?.email || email} {access.operator?.role ? `| ${access.operator.role}` : "| bootstrap owner"}</small>
+      </div>
+      <ol className="verifygrid-access-contract" aria-label="VerifyGrid access and authority boundaries">
+        <li><Fingerprint aria-hidden="true" size={18} /><div><strong>Identity</strong><span>A user-verified WebAuthn passkey proves who is operating.</span></div></li>
+        <li><UserRoundCog aria-hidden="true" size={18} /><div><strong>Least privilege</strong><span>The assigned role decides which records and actions are available.</span></div></li>
+        <li><TimerReset aria-hidden="true" size={18} /><div><strong>Bounded session</strong><span>{VERIFYGRID_SESSION_IDLE_MINUTES}-minute inactivity, {VERIFYGRID_SESSION_MAX_MINUTES}-minute overall, and {VERIFYGRID_CRITICAL_REAUTH_MINUTES}-minute critical-action limits apply.</span></div></li>
+        <li><FileCheck2 aria-hidden="true" size={18} /><div><strong>Separate authority</strong><span>Access never replaces client authorization, exact scope, or execution approval.</span></div></li>
+      </ol>
+      <div className="verifygrid-access-assurance">
+        <span><ShieldCheck aria-hidden="true" size={16} /> AAL2-aligned phishing resistance</span>
+        <span><KeyRound aria-hidden="true" size={16} /> {access.passkeyCount || "No"} registered passkey{access.passkeyCount === 1 ? "" : "s"}</span>
       </div>
       {access.state !== "not_provisioned" ? (
         <button className="button primary" disabled={busy} onClick={unlock} type="button">
           <Fingerprint aria-hidden="true" size={18} />
-          {busy ? "Waiting for passkey" : access.state === "enrollment_required" ? "Register passkey" : "Verify identity"}
+          {busy ? "Waiting for passkey" : access.state === "enrollment_required" ? "Register operator passkey" : "Verify operator identity"}
         </button>
       ) : null}
     </section>

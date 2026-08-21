@@ -208,9 +208,17 @@ export async function getVerifyGridPortalWorkspace(workspaceId: string) {
           serviceType: true,
           status: true,
           scopeSummary: true,
+          plannedStartAt: true,
+          plannedEndAt: true,
+          emergencyContactName: true,
+          emergencyContactEmail: true,
           updatedAt: true,
-          scopeTargets: { select: { id: true, targetType: true, value: true, environment: true, criticality: true, inScope: true } },
-          findings: { where: { status: { notIn: ["false_positive", "duplicate"] } }, orderBy: [{ knownExploited: "desc" }, { updatedAt: "desc" }], select: { id: true, title: true, severity: true, status: true, knownExploited: true, businessImpact: true, remediation: true, ownerName: true, dueAt: true, updatedAt: true } },
+          scopeTargets: { select: { id: true, targetType: true, value: true, environment: true, criticality: true, permission: true, inScope: true, ownershipConfirmed: true } },
+          authorizations: { where: { status: "active" }, orderBy: { authorizedAt: "desc" }, take: 1, select: { id: true, status: true, scopeHash: true, approvedByName: true, approvedByTitle: true, validFrom: true, validUntil: true, authorityConfirmed: true } },
+          testCases: { select: { status: true } },
+          observations: { select: { id: true }, take: 1 },
+          executionJobs: { orderBy: { createdAt: "desc" }, take: 20, select: { id: true, capability: true, status: true, requestedStartAt: true, completedAt: true } },
+          findings: { where: { status: { notIn: ["false_positive", "duplicate"] } }, orderBy: [{ knownExploited: "desc" }, { updatedAt: "desc" }], select: { id: true, title: true, severity: true, status: true, knownExploited: true, businessImpact: true, remediation: true, ownerName: true, dueAt: true, updatedAt: true, retests: { orderBy: { requestedAt: "desc" }, take: 1, select: { status: true } } } },
           reports: { where: { status: "final" }, orderBy: { generatedAt: "desc" }, select: { id: true, title: true, reportType: true, version: true, generatedAt: true } }
         }
       }

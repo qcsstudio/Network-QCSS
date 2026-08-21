@@ -34,6 +34,8 @@ import {
 } from "lucide-react";
 import { capabilityCatalog, connectorCatalog, type VerifyGridConnector } from "@/lib/verifygrid-catalog";
 import type { VerifyGridEngagementRecord, VerifyGridPortfolio } from "@/lib/verifygrid";
+import type { VerifyGridOperatorContext } from "@/lib/verifygrid-operator-auth";
+import { buildVerifyGridLifecycle, verifyGridLifecycleProgress, type VerifyGridPermission } from "@/lib/verifygrid-operating-model";
 
 type View = "command" | "scope" | "methodology" | "evidence" | "findings" | "execution" | "automation" | "reports" | "activity";
 
@@ -230,7 +232,7 @@ async function automationJson(response: Response) {
   }>;
 }
 
-export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio: VerifyGridPortfolio | null }) {
+export function VerifyGridControlPanel({ access, initialPortfolio }: { access: VerifyGridOperatorContext; initialPortfolio: VerifyGridPortfolio | null }) {
   const [portfolio, setPortfolio] = useState(initialPortfolio);
   const [selectedId, setSelectedId] = useState(initialPortfolio?.engagements[0]?.id || "");
   const [view, setView] = useState<View>("command");
@@ -255,6 +257,7 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
   const [message, setMessage] = useState(initialPortfolio ? "VerifyGrid operations are current." : "Apply the VerifyGrid database migration to activate this workspace.");
 
   const selected = portfolio?.engagements.find((engagement) => engagement.id === selectedId) || portfolio?.engagements[0] || null;
+  const can = (permission: VerifyGridPermission) => access.permissions.includes(permission);
 
   async function load(preferredId = selectedId) {
     const response = await fetch("/api/admin/verifygrid/engagements", { cache: "no-store" });
@@ -774,19 +777,6 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
     setMessage(`${oneTimeValue.title} copied.`);
   }
 
-  async function lockVerifyGrid() {
-    if (!window.confirm("Lock VerifyGrid and revoke this high-assurance operator session?")) return;
-    setBusy("operator-lock");
-    try {
-      const response = await fetch("/api/admin/verifygrid/security", { method: "DELETE" });
-      if (!response.ok) throw new Error("Unable to revoke the VerifyGrid operator session.");
-      window.location.reload();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to lock VerifyGrid.");
-      setBusy("");
-    }
-  }
-
   const lifecycleActions = selected ? {
     authorized: ["schedule", "start", "cancel"],
     scheduled: ["start", "pause", "cancel"],
@@ -797,19 +787,21 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
 
   const methodologyCategories = selected ? groupTestCases(selected.testCases) : [];
   const methodologyComplete = selected?.testCases.filter((testCase) => ["passed", "finding", "not_applicable"].includes(testCase.status)).length || 0;
+  const lifecycle = selected ? buildVerifyGridLifecycle(selected) : [];
+  const lifecycleProgress = verifyGridLifecycleProgress(lifecycle);
+  const viewLabels: Record<View, string> = { command: "Control", scope: "Authority", methodology: "Test plan", evidence: "Evidence", findings: "Remediation", execution: "Execution", automation: "Systems", reports: "Reports", activity: "Audit" };
 
   return (
     <section className="admin-panel verifygrid-panel" id="verifygrid">
       <div className="panel-heading verifygrid-heading">
         <div>
           <p className="eyebrow">VerifyGrid security assurance</p>
-          <h2>Authorization, exposure, remediation, and retest control.</h2>
-          <p>Network-first PTaaS operations with a scope-bound execution gate.</p>
+          <h2>One governed record from client authority to verified closure.</h2>
+          <p>Identity does not grant testing authority. Every action remains role, scope, time, and evidence bound.</p>
         </div>
         <div className="content-action-row">
-          <button className="icon-button" disabled={Boolean(busy)} onClick={lockVerifyGrid} title="Lock VerifyGrid operator session" type="button"><LockKeyhole aria-hidden="true" size={18} /></button>
           <button className="icon-button" disabled={Boolean(busy)} onClick={() => load().catch((error) => setMessage(String(error)))} title="Refresh VerifyGrid" type="button"><RefreshCw aria-hidden="true" size={18} /></button>
-          <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => setCreating((value) => !value)} type="button"><FilePlus2 aria-hidden="true" size={17} /> New engagement</button>
+          {can("manage_scope") ? <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => setCreating((value) => !value)} type="button"><FilePlus2 aria-hidden="true" size={17} /> New engagement</button> : null}
         </div>
       </div>
       <p aria-live="polite" className="form-note verifygrid-message">{message}</p>
@@ -884,13 +876,19 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
               </header>
 
               <div className="content-filter-tabs verifygrid-tabs" aria-label="Engagement views">
-                {(["command", "scope", "methodology", "evidence", "findings", "execution", "automation", "reports", "activity"] as const).map((item) => <button aria-pressed={view === item} key={item} onClick={() => { setView(item); if (["execution", "automation"].includes(item) && automationWorkspaceId !== selected.workspace.id) loadAutomation(selected.workspace.id).catch((error) => setMessage(error instanceof Error ? error.message : "Unable to load automation controls.")); }} type="button">{item}</button>)}
+                {(["command", "scope", "methodology", "evidence", "findings", "execution", "automation", "reports", "activity"] as const).map((item) => <button aria-pressed={view === item} key={item} onClick={() => { setView(item); if (["execution", "automation"].includes(item) && automationWorkspaceId !== selected.workspace.id) loadAutomation(selected.workspace.id).catch((error) => setMessage(error instanceof Error ? error.message : "Unable to load automation controls.")); }} type="button">{viewLabels[item]}</button>)}
               </div>
 
               {view === "command" ? (
-                <div className="verifygrid-command-grid">
-                  <section><div className="verifygrid-section-heading"><ShieldCheck aria-hidden="true" size={20} /><div><h4>Execution gate</h4><p>{selected.gate.scopeHash.slice(0, 16)}...</p></div></div>{selected.gate.blockers.length ? <ul className="verifygrid-blockers">{selected.gate.blockers.map((blocker) => <li key={blocker}><AlertTriangle aria-hidden="true" size={16} />{blocker}</li>)}</ul> : <p className="verifygrid-success"><CheckCircle2 aria-hidden="true" size={18} /> Scope, authority, and time window are current.</p>}</section>
-                  <section><div className="verifygrid-section-heading"><Clock3 aria-hidden="true" size={20} /><div><h4>Operating window</h4><p>{selected.plannedStartAt ? formatDate(selected.plannedStartAt) : "Not scheduled"}</p></div></div><dl className="verifygrid-facts"><div><dt>Status</dt><dd>{label(selected.status)}</dd></div><div><dt>Emergency owner</dt><dd>{selected.emergencyContactName}</dd></div><div><dt>Targets</dt><dd>{selected.scopeTargets.filter((target) => target.inScope).length} in / {selected.scopeTargets.filter((target) => !target.inScope).length} out</dd></div><div><dt>Findings</dt><dd>{selected.findings.length}</dd></div></dl></section>
+                <div className="verifygrid-control-view">
+                  <section className="verifygrid-lifecycle" aria-label={`Engagement lifecycle ${lifecycleProgress}% complete`}>
+                    <header><div><p className="eyebrow">Operating lifecycle</p><h4>Authority before action. Evidence before closure.</h4></div><strong>{lifecycleProgress}%</strong></header>
+                    <div className="verifygrid-lifecycle-track">{lifecycle.map((step) => <article className={`state-${step.state}`} key={step.key}><div><span>{step.number}</span><em>{step.owner}</em></div><strong>{step.label}</strong><p>{step.summary}</p><small>{step.proof}</small></article>)}</div>
+                  </section>
+                  <div className="verifygrid-command-grid">
+                    <section><div className="verifygrid-section-heading"><ShieldCheck aria-hidden="true" size={20} /><div><h4>Execution gate</h4><p>Scope {selected.gate.scopeHash.slice(0, 16)}...</p></div></div>{selected.gate.blockers.length ? <ul className="verifygrid-blockers">{selected.gate.blockers.map((blocker) => <li key={blocker}><AlertTriangle aria-hidden="true" size={16} />{blocker}</li>)}</ul> : <p className="verifygrid-success"><CheckCircle2 aria-hidden="true" size={18} /> Scope, authority, and time window are current.</p>}</section>
+                    <section><div className="verifygrid-section-heading"><Clock3 aria-hidden="true" size={20} /><div><h4>Accountability window</h4><p>{selected.plannedStartAt ? formatDate(selected.plannedStartAt) : "Not scheduled"}</p></div></div><dl className="verifygrid-facts"><div><dt>Status</dt><dd>{label(selected.status)}</dd></div><div><dt>Emergency owner</dt><dd>{selected.emergencyContactName}</dd></div><div><dt>Targets</dt><dd>{selected.scopeTargets.filter((target) => target.inScope).length} in / {selected.scopeTargets.filter((target) => !target.inScope).length} out</dd></div><div><dt>Operator role</dt><dd>{label(access.role)}</dd></div></dl></section>
+                  </div>
                 </div>
               ) : null}
 
@@ -898,7 +896,7 @@ export function VerifyGridControlPanel({ initialPortfolio }: { initialPortfolio:
                 <div className="verifygrid-scope-view">
                   <div className="verifygrid-scope-list">
                     <div className="verifygrid-section-heading"><Target aria-hidden="true" size={20} /><div><h4>Current scope</h4><p>{selected.scopeTargets.length} recorded target(s)</p></div></div>
-                    {selected.scopeTargets.length ? selected.scopeTargets.map((target) => <div className="verifygrid-target" key={target.id}><span className={`verifygrid-target-mark ${target.inScope ? "in" : "out"}`}>{target.inScope ? "IN" : "OUT"}</span><div><strong>{target.value}</strong><span>{label(target.targetType)} | {label(target.permission)} | {target.environment}</span></div><button className="icon-button danger" disabled={Boolean(busy)} onClick={() => removeScope(target.id)} title="Remove scope target" type="button"><Trash2 aria-hidden="true" size={17} /></button></div>) : <p className="content-empty-state">No scope targets recorded.</p>}
+                    {selected.scopeTargets.length ? selected.scopeTargets.map((target) => <div className="verifygrid-target" key={target.id}><span className={`verifygrid-target-mark ${target.inScope ? "in" : "out"}`}>{target.inScope ? "IN" : "OUT"}</span><div><strong>{target.value}</strong><span>{label(target.targetType)} | {label(target.permission)} | {target.environment}</span></div>{can("manage_scope") ? <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => removeScope(target.id)} title="Remove scope target" type="button"><Trash2 aria-hidden="true" size={17} /></button> : null}</div>) : <p className="content-empty-state">No scope targets recorded.</p>}
                   </div>
                   <form className="content-editor verifygrid-compact-form" onSubmit={addScope}><fieldset className="content-editor-section"><legend>Add target or exclusion</legend><div className="content-field-grid"><label className="content-field"><span>Type</span><select value={scopeDraft.targetType} onChange={(event) => setScopeDraft({ ...scopeDraft, targetType: event.target.value })}><option value="domain">Domain</option><option value="hostname">Hostname</option><option value="ip">IP address</option><option value="cidr">CIDR</option><option value="url">URL</option><option value="cloud_account">Cloud account</option><option value="site">Site</option><option value="wireless_ssid">Wireless SSID</option><option value="application">Application</option></select></label><label className="content-field"><span>Target</span><input required value={scopeDraft.value} onChange={(event) => setScopeDraft({ ...scopeDraft, value: event.target.value })} /></label><label className="content-field"><span>Permission</span><select value={scopeDraft.permission} onChange={(event) => setScopeDraft({ ...scopeDraft, permission: event.target.value })}><option value="observe">Observe only</option><option value="safe_checks">Safe checks</option><option value="controlled_validation">Controlled validation</option><option value="manual_only">Manual only</option></select></label><label className="content-field"><span>Criticality</span><select value={scopeDraft.criticality} onChange={(event) => setScopeDraft({ ...scopeDraft, criticality: event.target.value })}><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label><label className="verifygrid-check"><input checked={scopeDraft.inScope} onChange={(event) => setScopeDraft({ ...scopeDraft, inScope: event.target.checked, ownershipConfirmed: event.target.checked ? scopeDraft.ownershipConfirmed : false })} type="checkbox" /><span>In scope</span></label><label className="verifygrid-check"><input checked={scopeDraft.ownershipConfirmed} disabled={!scopeDraft.inScope} onChange={(event) => setScopeDraft({ ...scopeDraft, ownershipConfirmed: event.target.checked })} type="checkbox" /><span>Ownership confirmed</span></label></div><button className="button primary compact-button" disabled={busy === "scope"} type="submit"><Plus aria-hidden="true" size={16} /> Save scope</button></fieldset></form>
                   <form className="content-editor verifygrid-compact-form" onSubmit={authorize}><fieldset className="content-editor-section"><legend>Record authorization</legend><div className="content-field-grid"><label className="content-field"><span>Approver</span><input required value={authorizationDraft.approvedByName} onChange={(event) => setAuthorizationDraft({ ...authorizationDraft, approvedByName: event.target.value })} /></label><label className="content-field"><span>Approver email</span><input required type="email" value={authorizationDraft.approvedByEmail} onChange={(event) => setAuthorizationDraft({ ...authorizationDraft, approvedByEmail: event.target.value })} /></label><label className="content-field"><span>Valid from</span><input required type="datetime-local" value={authorizationDraft.validFrom} onChange={(event) => setAuthorizationDraft({ ...authorizationDraft, validFrom: event.target.value })} /></label><label className="content-field"><span>Valid until</span><input required type="datetime-local" value={authorizationDraft.validUntil} onChange={(event) => setAuthorizationDraft({ ...authorizationDraft, validUntil: event.target.value })} /></label><label className="content-field content-field-wide"><span>Authorization artifact URL</span><input type="url" value={authorizationDraft.artifactUrl} onChange={(event) => setAuthorizationDraft({ ...authorizationDraft, artifactUrl: event.target.value })} /></label><label className="verifygrid-check content-field-wide"><input checked={authorizationDraft.authorityConfirmed} onChange={(event) => setAuthorizationDraft({ ...authorizationDraft, authorityConfirmed: event.target.checked })} type="checkbox" /><span>I verified that this approver can legally authorize testing of the recorded targets.</span></label></div><button className="button primary compact-button" disabled={busy === "authorize" || !authorizationDraft.authorityConfirmed} type="submit"><LockKeyhole aria-hidden="true" size={16} /> Bind authorization</button></fieldset></form>

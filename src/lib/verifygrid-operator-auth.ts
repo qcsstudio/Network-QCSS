@@ -11,17 +11,18 @@ import {
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPrismaClient } from "@/lib/prisma";
+import {
+  VERIFYGRID_CRITICAL_REAUTH_MINUTES,
+  VERIFYGRID_SESSION_IDLE_MINUTES,
+  VERIFYGRID_SESSION_MAX_MINUTES,
+  type VerifyGridPermission,
+  verifyGridPermissionsForRole,
+  verifyGridRequiresFreshAuthentication
+} from "@/lib/verifygrid-operating-model";
+
+export type { VerifyGridPermission } from "@/lib/verifygrid-operating-model";
 
 export const verifyGridOperatorCookieName = "network_qcss_verifygrid_operator";
-
-export type VerifyGridPermission =
-  | "view"
-  | "operate"
-  | "manage_scope"
-  | "approve_execution"
-  | "review_report"
-  | "release_report"
-  | "manage_access";
 
 export type VerifyGridOperatorContext = {
   id: string;
@@ -29,14 +30,20 @@ export type VerifyGridOperatorContext = {
   displayName: string;
   role: string;
   sessionId: string;
-};
-
-const rolePermissions: Record<string, VerifyGridPermission[]> = {
-  owner: ["view", "operate", "manage_scope", "approve_execution", "review_report", "release_report", "manage_access"],
-  lead: ["view", "operate", "manage_scope", "approve_execution", "review_report", "release_report", "manage_access"],
-  analyst: ["view", "operate"],
-  reviewer: ["view", "review_report", "release_report"],
-  observer: ["view"]
+  permissions: VerifyGridPermission[];
+  session: {
+    authenticatedAt: string;
+    expiresAt: string;
+    idleExpiresAt: string;
+  };
+  passkeys: Array<{
+    id: string;
+    label: string;
+    deviceType: string;
+    backedUp: boolean;
+    createdAt: string;
+    lastUsedAt: string;
+  }>;
 };
 
 function sha256(value: string) {
@@ -82,7 +89,7 @@ export function verifyGridOperatorCookieOptions() {
     sameSite: "strict" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 2
+    maxAge: 60 * VERIFYGRID_SESSION_MAX_MINUTES
   };
 }
 
@@ -92,8 +99,9 @@ export function permissionForVerifyGridRequest(request: Request): VerifyGridPerm
   if (request.method === "GET") return "view";
   if (path.includes("/reports/") && path.endsWith("/review")) return "review_report";
   if (path.includes("/reports/") && path.endsWith("/release")) return "release_report";
-  if (path.includes("/execution-jobs/") && (path.endsWith("/approve") || path.endsWith("/queue"))) return "approve_execution";
-  if (path.endsWith("/kill-switch")) return "approve_execution";
+  if (path.includes("/execution-jobs/") && path.endsWith("/approve")) return "approve_execution";
+  if (path.includes("/execution-jobs/") && path.endsWith("/queue")) return "dispatch_execution";
+  if (path.endsWith("/kill-switch")) return "stop_execution";
   if (path.includes("/sensors") || path.includes("/connectors") || path.includes("/memberships") || path.includes("/onboarding")) {
     return "manage_access";
   }
@@ -104,7 +112,7 @@ export function permissionForVerifyGridRequest(request: Request): VerifyGridPerm
 }
 
 export function operatorHasPermission(role: string, permission: VerifyGridPermission) {
-  return Boolean(rolePermissions[role]?.includes(permission));
+  return verifyGridPermissionsForRole(role).includes(permission);
 }
 
 async function sessionFromToken(token: string, expectedUserAgentHash?: string) {
@@ -112,25 +120,48 @@ async function sessionFromToken(token: string, expectedUserAgentHash?: string) {
   const prisma = getPrismaClient();
   const session = await prisma.verifyGridOperatorSession.findUnique({
     where: { tokenHash: sha256(token) },
-    include: { operator: true }
+    include: { operator: { include: { passkeys: { orderBy: { createdAt: "asc" } } } } }
   });
-  if (!session || session.revokedAt || session.expiresAt <= new Date() || session.operator.status !== "active") return null;
+  const now = new Date();
+  if (!session || session.revokedAt || session.expiresAt <= now || session.operator.status !== "active") return null;
   if (expectedUserAgentHash && session.userAgentHash && session.userAgentHash !== expectedUserAgentHash) return null;
-  if (Date.now() - session.lastSeenAt.getTime() > 5 * 60_000) {
-    await prisma.verifyGridOperatorSession.update({ where: { id: session.id }, data: { lastSeenAt: new Date() } });
+  const idleExpiresAt = new Date(session.lastSeenAt.getTime() + VERIFYGRID_SESSION_IDLE_MINUTES * 60_000);
+  if (idleExpiresAt <= now) {
+    await prisma.verifyGridOperatorSession.updateMany({ where: { id: session.id, revokedAt: null }, data: { revokedAt: now } });
+    return null;
   }
+  const refreshedActivity = now.getTime() - session.lastSeenAt.getTime() > 60_000;
+  if (refreshedActivity) {
+    await prisma.verifyGridOperatorSession.update({ where: { id: session.id }, data: { lastSeenAt: now } });
+  }
+  const effectiveLastSeenAt = refreshedActivity ? now : session.lastSeenAt;
   return {
     id: session.operator.id,
     email: session.operator.email,
     displayName: session.operator.displayName,
     role: session.operator.role,
-    sessionId: session.id
+    sessionId: session.id,
+    permissions: verifyGridPermissionsForRole(session.operator.role),
+    session: {
+      authenticatedAt: session.createdAt.toISOString(),
+      expiresAt: session.expiresAt.toISOString(),
+      idleExpiresAt: new Date(effectiveLastSeenAt.getTime() + VERIFYGRID_SESSION_IDLE_MINUTES * 60_000).toISOString()
+    },
+    passkeys: session.operator.passkeys.map((passkey) => ({
+      id: passkey.id,
+      label: passkey.label || "Passkey",
+      deviceType: passkey.deviceType,
+      backedUp: passkey.backedUp,
+      createdAt: passkey.createdAt.toISOString(),
+      lastUsedAt: passkey.lastUsedAt?.toISOString() || ""
+    }))
   } satisfies VerifyGridOperatorContext;
 }
 
 export async function getVerifyGridOperatorFromRequest(request: Request, permission: VerifyGridPermission = "view") {
   const operator = await sessionFromToken(cookieFromRequest(request), headerFingerprint(request.headers).userAgentHash);
   if (!operator || !operatorHasPermission(operator.role, permission)) return null;
+  if (verifyGridRequiresFreshAuthentication(permission) && Date.now() - new Date(operator.session.authenticatedAt).getTime() > VERIFYGRID_CRITICAL_REAUTH_MINUTES * 60_000) return null;
   return operator;
 }
 
@@ -139,6 +170,7 @@ export async function getVerifyGridOperatorFromCookies(permission: VerifyGridPer
   const headerList = await headers();
   const operator = await sessionFromToken(cookieStore.get(verifyGridOperatorCookieName)?.value || "", headerFingerprint(headerList).userAgentHash);
   if (!operator || !operatorHasPermission(operator.role, permission)) return null;
+  if (verifyGridRequiresFreshAuthentication(permission) && Date.now() - new Date(operator.session.authenticatedAt).getTime() > VERIFYGRID_CRITICAL_REAUTH_MINUTES * 60_000) return null;
   return operator;
 }
 
@@ -152,7 +184,18 @@ export async function getVerifyGridAccessState(email: string) {
   const normalizedEmail = email.trim().toLowerCase();
   const current = await getVerifyGridOperatorFromCookies();
   if (current?.email === normalizedEmail) {
-    return { state: "unlocked" as const, operator: current, passkeyCount: 1 };
+    return {
+      state: "unlocked" as const,
+      operator: current,
+      passkeyCount: current.passkeys.length,
+      assurance: {
+        profile: "WebAuthn user-verified passkey",
+        alignment: "NIST AAL2-aligned phishing-resistant step-up",
+        idleMinutes: VERIFYGRID_SESSION_IDLE_MINUTES,
+        overallMinutes: VERIFYGRID_SESSION_MAX_MINUTES,
+        criticalActionMinutes: VERIFYGRID_CRITICAL_REAUTH_MINUTES
+      }
+    };
   }
   const prisma = getPrismaClient();
   const operator = await prisma.verifyGridOperator.findUnique({
@@ -166,9 +209,18 @@ export async function getVerifyGridAccessState(email: string) {
   return {
     state: operator.passkeys.length ? "authentication_required" as const : "enrollment_required" as const,
     operator: { id: operator.id, email: operator.email, displayName: operator.displayName, role: operator.role },
-    passkeyCount: operator.passkeys.length
+    passkeyCount: operator.passkeys.length,
+    assurance: {
+      profile: "WebAuthn user-verified passkey",
+      alignment: "NIST AAL2-aligned phishing-resistant step-up",
+      idleMinutes: VERIFYGRID_SESSION_IDLE_MINUTES,
+      overallMinutes: VERIFYGRID_SESSION_MAX_MINUTES,
+      criticalActionMinutes: VERIFYGRID_CRITICAL_REAUTH_MINUTES
+    }
   };
 }
+
+export type VerifyGridAccessState = Awaited<ReturnType<typeof getVerifyGridAccessState>>;
 
 async function bootstrapOperator(email: string) {
   const normalizedEmail = email.trim().toLowerCase();
@@ -207,13 +259,17 @@ async function activeChallenge(operatorId: string, kind: "registration" | "authe
 async function issueOperatorSession(operatorId: string, request: Request) {
   const token = crypto.randomBytes(32).toString("base64url");
   const fingerprint = headerFingerprint(request.headers);
+  const currentToken = cookieFromRequest(request);
   const prisma = getPrismaClient();
-  await prisma.$transaction([
-    prisma.verifyGridOperatorSession.create({
-      data: { operatorId, tokenHash: sha256(token), expiresAt: new Date(Date.now() + 2 * 60 * 60_000), ...fingerprint }
-    }),
-    prisma.verifyGridOperator.update({ where: { id: operatorId }, data: { lastAuthenticatedAt: new Date() } })
-  ]);
+  await prisma.$transaction(async (tx) => {
+    if (currentToken) {
+      await tx.verifyGridOperatorSession.updateMany({ where: { tokenHash: sha256(currentToken), revokedAt: null }, data: { revokedAt: new Date() } });
+    }
+    await tx.verifyGridOperatorSession.create({
+      data: { operatorId, tokenHash: sha256(token), expiresAt: new Date(Date.now() + VERIFYGRID_SESSION_MAX_MINUTES * 60_000), ...fingerprint }
+    });
+    await tx.verifyGridOperator.update({ where: { id: operatorId }, data: { lastAuthenticatedAt: new Date() } });
+  });
   return token;
 }
 
