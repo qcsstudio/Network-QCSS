@@ -433,7 +433,8 @@ export async function createResearchedContentPostFromRadar(draft: RadarDraftInpu
     keywordCluster: draft.keywordCluster || [draft.title],
     internalLinks: draft.internalLinks,
     servicePath: draft.servicePath,
-    sources
+    sources,
+    mode: "draft"
   });
   return createContentPost(researched.content, sources[0].url, actor, {
     qualityScore: researched.qualityScore,
@@ -493,7 +494,8 @@ export async function regenerateRadarContentPost(
     keywordCluster: briefOverride.keywordCluster || existing.content.keywords,
     internalLinks,
     servicePath: existing.content.relatedServices[0]?.href,
-    sources
+    sources,
+    mode: "draft"
   });
   const content = researched.content;
   const prisma = getPrismaClient();

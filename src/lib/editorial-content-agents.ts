@@ -133,6 +133,7 @@ export type BlogEditorialInput = {
   internalLinks: string[];
   servicePath?: string;
   sources: EditorialEvidenceSource[];
+  mode?: "strict" | "draft";
 };
 
 function env(name: string) {
@@ -618,7 +619,11 @@ function buildBlogPost(input: BlogEditorialInput, draft: z.infer<typeof blogCont
     .split(/\s+/)
     .filter(Boolean).length;
   const allowedSourceUrls = new Set(evidence.map((source) => source.url));
-  const sourceUrls = (values: string[]) => [...new Set(values.filter((url) => allowedSourceUrls.has(url)))];
+  const singleSourceFallback = evidence.length === 1 ? [evidence[0].url] : [];
+  const sourceUrls = (values: string[]) => {
+    const verified = [...new Set(values.filter((url) => allowedSourceUrls.has(url)))];
+    return verified.length ? verified : singleSourceFallback;
+  };
 
   return {
     contentVersion: 3,
@@ -666,11 +671,13 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
   const brief = evidenceBrief(usable);
   let correction = "";
   let latestQa: ContentQa | null = null;
+  let latestContent: BlogPost | null = null;
   let latestReadinessIssues: string[] = [];
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     const written = await writeBlog(input, brief, correction);
     const content = buildBlogPost(input, written, usable);
+    latestContent = content;
     latestReadinessIssues = evaluateEditorialReadiness(content).issues;
     if (latestReadinessIssues.length) {
       console.info("QCS deterministic editorial checks rejected the draft.", { attempt, issues: latestReadinessIssues });
@@ -701,6 +708,36 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
       };
     }
     correction = latestQa.correctionPrompt || contentQaDeficits(latestQa).join("; ");
+  }
+  if (input.mode === "draft" && latestContent) {
+    const heldQa: ContentQa = latestQa || {
+      approved: false,
+      factualGroundingScore: 0,
+      evidenceTraceabilityScore: 0,
+      authorityScore: 0,
+      clarityScore: 0,
+      structureScore: 0,
+      usefulnessScore: 0,
+      searchAnswerScore: 0,
+      violations: latestReadinessIssues.slice(0, 12),
+      rationale: "The researched article was saved as a draft because mandatory editorial checks still require review.",
+      correctionPrompt: latestReadinessIssues.join(" ").slice(0, 1_600)
+    };
+    return {
+      content: latestContent,
+      qualityScore: Math.min(83, qualityScore(heldQa)),
+      trace: {
+        provider: "openai-direct",
+        contentPolicyVersion: 3,
+        writerModel: editorialContentAgentConfiguration().writerModel,
+        criticModel: editorialContentAgentConfiguration().criticModel,
+        attempts: 2,
+        generatedAt: new Date().toISOString(),
+        evidence: usable.map((item) => ({ label: item.label, url: item.url, fetched: item.fetched, characters: item.text.length })),
+        qa: heldQa,
+        storySpine: latestContent.storySpine!
+      } satisfies EditorialAgentTrace
+    };
   }
   throw new Error(
     latestReadinessIssues.length

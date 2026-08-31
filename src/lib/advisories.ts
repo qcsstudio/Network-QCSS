@@ -914,10 +914,19 @@ export async function backfillLegacyAdvisoryEditorialContent() {
 async function ensureSources() {
   const prisma = getPrismaClient();
   for (const source of advisorySourceDefinitions) {
+    const persistedSource = {
+      slug: source.slug,
+      name: source.name,
+      vendor: source.vendor,
+      format: source.format,
+      url: source.url,
+      officialHost: source.officialHost,
+      priority: source.priority
+    };
     await prisma.advisorySource.upsert({
       where: { slug: source.slug },
-      update: { name: source.name, vendor: source.vendor, format: source.format, url: source.url, officialHost: source.officialHost, priority: source.priority },
-      create: source
+      update: persistedSource,
+      create: persistedSource
     });
   }
 }

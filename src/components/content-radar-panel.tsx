@@ -301,7 +301,11 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
       setSelected(result.post);
       setDraft(structuredClone(result.post.content));
       setSourceUrl(result.post.sourceUrl);
-      setStatus(`Publication-ready draft created for ${result.post.title}. Verify the source and article before approval.`);
+      setStatus(
+        (result.post.qualityScore || 0) >= 84
+          ? `QA-ready draft created for ${result.post.title}. Verify the source and article before approval.`
+          : `Research draft saved for ${result.post.title}. Review the flagged quality requirements or regenerate it before approval.`
+      );
       window.setTimeout(() => document.querySelector("#content-editor")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Unable to create the draft.");
