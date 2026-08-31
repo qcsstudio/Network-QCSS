@@ -17,7 +17,7 @@
     "smoke": "node scripts/smoke.mjs",
     "site:qa": "node scripts/site-qa.mjs",
     "frontend:qa": "playwright test tests/frontend-qa.spec.ts",
-    "test:content": "tsx --test tests/advisory-source-parsers.test.mjs && node --experimental-strip-types --test tests/automation-auth.test.mjs tests/blog-presentation.test.mjs tests/content-admin-domain.test.mjs tests/content-radar-domain.test.mjs tests/editorial-automation.test.mjs tests/editorial-image-agents.test.mjs tests/editorial-image-prompt.test.mjs tests/editorial-image-state.test.mjs tests/editorial-source-policy.test.mjs tests/editorial-visuals.test.mjs tests/linkedin-commentary.test.mjs tests/openai-config.test.mjs tests/procedural-editorial-visual.test.mjs tests/social-publication-state.test.mjs",
+    "test:content": "tsx --test tests/advisory-source-parsers.test.mjs && node --experimental-strip-types --test tests/automation-auth.test.mjs tests/blog-presentation.test.mjs tests/content-admin-domain.test.mjs tests/content-radar-domain.test.mjs tests/editorial-automation.test.mjs tests/editorial-image-agents.test.mjs tests/editorial-image-prompt.test.mjs tests/editorial-image-state.test.mjs tests/editorial-source-policy.test.mjs tests/editorial-story-lineage.test.mjs tests/editorial-visuals.test.mjs tests/linkedin-commentary.test.mjs tests/openai-config.test.mjs tests/procedural-editorial-visual.test.mjs tests/social-publication-state.test.mjs",
     "test:verifygrid": "node --experimental-strip-types --test tests/verifygrid-domain.test.mjs",
     "test:email": "node --experimental-strip-types --test tests/email-config.test.mjs",
     "content:seed": "node scripts/seed-content-studio.mjs",

@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { Resvg } from "@resvg/resvg-js";
 import type { EditorialAgentTrace, VisualDirection } from "@/lib/editorial-image-agents";
+import type { EditorialLineage, EditorialStorySpine } from "@/lib/editorial-story-lineage";
 import {
   contrastRatio,
   editorialVisualQualityPolicy,
@@ -14,6 +15,8 @@ export type ProceduralEditorialInput = {
   contentRevision: string;
   contentType: "content_post" | "security_advisory";
   context: string;
+  lineage?: EditorialLineage;
+  storySpine?: EditorialStorySpine;
   title: string;
 };
 
@@ -121,10 +124,12 @@ function readableAccent(accent: string) {
 }
 
 function visualProfile(input: ProceduralEditorialInput): VisualProfile {
-  const classificationContext = input.context
-    .split("\n")
-    .filter((line) => !/^Topic-specific visual exclusions:/i.test(line.trim()))
-    .join(" ");
+  const classificationContext = input.storySpine
+    ? [input.storySpine.primarySubject, input.storySpine.trigger, input.storySpine.mechanism, input.storySpine.consequence].join(" ")
+    : input.context
+        .split("\n")
+        .filter((line) => !/^Topic-specific visual exclusions:/i.test(line.trim()))
+        .join(" ");
   const text = `${input.title} ${classificationContext}`.toLowerCase();
   if (/cisco/.test(text) && /crosswork/.test(text) && /secure workload/.test(text) && /broadworks/.test(text)) {
     return {
@@ -199,6 +204,34 @@ function visualProfile(input: ProceduralEditorialInput): VisualProfile {
 
 function directionFor(input: ProceduralEditorialInput, profile: VisualProfile): VisualDirection {
   const credentialBoundary = profile.focus === "STATIC CREDENTIAL";
+  if (input.storySpine) {
+    return {
+      storyThesis: `${input.storySpine.primarySubject}: ${input.storySpine.mechanism}`.slice(0, 500),
+      mechanismStatement: input.storySpine.mechanism,
+      factualAnchors: [input.storySpine.trigger, input.storySpine.consequence, input.storySpine.verification].map((item) => item.slice(0, 320)),
+      prohibitedInferences: [
+        "Do not promote secondary context into the focal story",
+        "Do not invent compromise or exploitation",
+        "Do not imply a causal relationship absent from the approved revision"
+      ],
+      confidenceBoundary: "The visual follows only the locked approved story spine and its source-supported chronology.",
+      sceneConcept: input.storySpine.visualSequence.join(" Then "),
+      focalSubject: input.storySpine.primarySubject,
+      supportingElements: input.storySpine.visualSequence.map((item) => item.slice(0, 240)),
+      environment: `Operational environment for ${input.storySpine.primarySubject}`,
+      viewpoint: "Wide establish-explain-resolve editorial composition",
+      lighting: "High-contrast technical illumination",
+      palette: [profile.accent, profile.accent2, "#0c172a", "#f7f9fc"],
+      avoid: [
+        ...input.storySpine.secondaryContext.map((item) => `Focal treatment of ${item}`.slice(0, 240)),
+        "Generic stock imagery",
+        "Invented vendor hardware",
+        "Decorative cyber symbolism"
+      ].slice(0, 12),
+      diversitySignature: crypto.createHash("sha256").update(`${input.title}:${input.storySpine.visualSequence.join(":")}`).digest("hex").slice(0, 18),
+      altText: input.altText
+    };
+  }
   return {
     storyThesis: credentialBoundary
       ? `${input.title} is presented as a management-interface authentication boundary with an explicit defensive response.`

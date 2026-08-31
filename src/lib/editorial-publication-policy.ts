@@ -1,4 +1,5 @@
 import type { BlogPost } from "./blog.ts";
+import { storySpineQualityIssues } from "./editorial-story-lineage.ts";
 
 const placeholderPattern = /draft required|replace this|todo|placeholder/i;
 
@@ -61,6 +62,26 @@ export function evaluateEditorialReadiness(post: BlogPost) {
     if (post.questions.length < 4) issues.push("Answer at least four practical follow-up questions.");
     if (uniqueCitations.length < 1) issues.push("Attach primary-source citations to the claims they support.");
     if (citations.some((url) => !sourceSet.has(url))) issues.push("Use only listed research sources for claim-level citations.");
+  }
+
+  if (post.contentVersion === 3) {
+    if (usefulWords < minimumUsefulWords) {
+      issues.push(`Add original technical analysis; this format requires at least ${minimumUsefulWords} useful words.`);
+    }
+    if (post.sections.length < 5) issues.push("Add at least five substantive sections covering the decision from answer to validation.");
+    if (post.answer.length < 100) issues.push("Make the answer-first block specific enough to stand alone in search and AI results.");
+    if (!post.readerOutcome) issues.push("State the practical reader outcome.");
+    if (!post.reviewedBy) issues.push("Name the technical review team.");
+    if (!post.editorialMethod) issues.push("Disclose the editorial research and review method.");
+    if (!post.definitions || post.definitions.length < 2) issues.push("Define at least two important entities or technical terms.");
+    if (!post.visualBrief) issues.push("Add a factual, topic-specific visual brief.");
+    if ((post.visualBrief?.factualAnchors.length || 0) < 3) issues.push("Anchor the contextual image to at least three verified facts.");
+    if (post.takeaways.length < 3) issues.push("Add at least three decision-useful takeaways.");
+    if (post.checklist.length < 6) issues.push("Add at least six actionable checklist steps.");
+    if (post.questions.length < 4) issues.push("Answer at least four practical follow-up questions.");
+    if (uniqueCitations.length < 1) issues.push("Attach primary-source citations to the claims they support.");
+    if (citations.some((url) => !sourceSet.has(url))) issues.push("Use only listed research sources for claim-level citations.");
+    issues.push(...storySpineQualityIssues(post));
   }
 
   return {

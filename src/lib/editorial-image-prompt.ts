@@ -1,4 +1,5 @@
 import { editorialVisualQualityInstructions } from "./editorial-quality-policy.ts";
+import { buildStorySpineContext, type EditorialStorySpine } from "./editorial-story-lineage.ts";
 
 type ArticleImageBrief = {
   answer: string;
@@ -18,6 +19,7 @@ type ArticleImageBrief = {
     factualAnchors: string[];
     avoid: string[];
   };
+  storySpine?: EditorialStorySpine;
 };
 
 type AdvisoryImageBrief = {
@@ -37,6 +39,7 @@ type AdvisoryImageBrief = {
   title: string;
   vendor: string;
   workaround: string | null;
+  storySpine?: EditorialStorySpine;
 };
 
 export type EditorialImagePromptInput = {
@@ -73,6 +76,23 @@ export function buildArticleImageContext(content: ArticleImageBrief) {
     const bullets = section.bullets?.join("; ") || "";
     return `${section.heading}: ${clip(section.body, 560)}${bullets ? ` Key details: ${clip(bullets, 460)}` : ""}`;
   });
+  if (content.storySpine) {
+    return [
+      buildStorySpineContext(content.storySpine),
+      `Content category: ${content.category}.`,
+      `Audience: ${content.audience}.`,
+      ...(content.visualBrief
+        ? [
+            `Editorial visual thesis: ${content.visualBrief.storyThesis}.`,
+            `Preferred factual scene: ${content.visualBrief.sceneConcept}.`,
+            `Facts the visual may communicate: ${content.visualBrief.factualAnchors.join("; ")}.`,
+            `Topic-specific visual exclusions: ${content.visualBrief.avoid.join("; ")}.`
+          ]
+        : []),
+      `Supporting section order, for evidence only: ${content.sections.map((section) => section.heading).join(" -> ")}.`,
+      `Source context: ${content.sources.map((source) => source.label).join(", ")}.`
+    ].join("\n");
+  }
   return [
     `Content category: ${content.category}.`,
     `Primary topic: ${content.primaryKeyword}.`,
@@ -100,6 +120,7 @@ export function buildAdvisoryImageContext(advisory: AdvisoryImageBrief) {
     ? `${cves.length} listed; representative identifiers: ${cves.slice(0, 3).join(", ")}${cves.length > 3 ? ". Do not attempt to visualize the remaining identifiers" : ""}`
     : "Not assigned";
   return [
+    ...(advisory.storySpine ? [buildStorySpineContext(advisory.storySpine)] : []),
     `Vendor: ${advisory.vendor}.`,
     `Severity: ${advisory.severity}${advisory.cvssScore === null ? "" : `, CVSS ${advisory.cvssScore}`}.`,
     `Exploitation status: ${advisory.exploitationStatus}.`,
@@ -132,6 +153,7 @@ export function buildEditorialImagePrompt(input: EditorialImagePromptInput) {
   return [
     "Create one original, context-specific editorial illustration for a professional network engineering and cybersecurity publication.",
     "Read the complete editorial brief below before designing anything. Infer the actual systems, actors, traffic paths, control boundaries, cause-and-effect relationship, operational evidence, and decision being discussed. Invent this article's visual concept from those facts. Do not select or reuse a standard cybersecurity theme.",
+    "Follow the locked single-story chronology when it is present. Frame 1 establishes the affected subject and trigger, frame 2 explains only the supported mechanism and consequence, and frame 3 resolves with the operator decision and verification evidence. Never promote secondary context into the focal story.",
     "",
     `ARTICLE TITLE: ${input.title}`,
     input.context,

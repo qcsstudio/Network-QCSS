@@ -12,6 +12,14 @@ import {
 import { deleteLinkedInPost, publishLinkedInPost, updateLinkedInPostCommentary } from "@/lib/linkedin";
 import { getPrismaClient } from "@/lib/prisma";
 import { editorialImageWaitMessage, socialPublicationFailurePolicy } from "@/lib/social-publication-state";
+import { resolveContentPostRevision, resolveSecurityAdvisoryRevision } from "@/lib/editorial-revision-snapshots";
+import {
+  createEditorialLineage,
+  lineageFromMetadata,
+  storySpineForAdvisory,
+  storySpineForArticle,
+  type EditorialLineage
+} from "@/lib/editorial-story-lineage";
 
 function trackedUrl(path: string, campaign: string, content: string) {
   const url = new URL(path, siteConfig.url);
@@ -69,6 +77,7 @@ async function enqueue(input: {
   commentaryTrace: Prisma.InputJsonValue;
   imageUrl: string;
   imageAlt: string;
+  lineage: EditorialLineage;
 }) {
   const prisma = getPrismaClient();
   const key = {
@@ -91,7 +100,8 @@ async function enqueue(input: {
           commentaryPolicyVersion: 3,
           commentaryQualityScore: input.commentaryQualityScore,
           commentaryTrace: input.commentaryTrace,
-          imageAlt: input.imageAlt
+          imageAlt: input.imageAlt,
+          lineage: input.lineage
         },
         sourceUrl: input.sourceUrl
       }
@@ -110,7 +120,8 @@ async function enqueue(input: {
         commentaryPolicyVersion: 3,
         commentaryQualityScore: input.commentaryQualityScore,
         commentaryTrace: input.commentaryTrace,
-        imageAlt: input.imageAlt
+        imageAlt: input.imageAlt,
+        lineage: input.lineage
       }
     }
   });
@@ -119,6 +130,7 @@ async function enqueue(input: {
 export async function queueLinkedInForContentPost(post: ContentPostRecord) {
   const revision = String(post.revisions[0]?.version || post.updatedAt);
   const generated = await buildEditorialLinkedInCommentary(post);
+  const storySpine = storySpineForArticle(post.content);
   return enqueue({
     contentType: "content_post",
     contentId: post.id,
@@ -128,7 +140,8 @@ export async function queueLinkedInForContentPost(post: ContentPostRecord) {
     commentaryQualityScore: generated.qualityScore,
     commentaryTrace: generated.trace as Prisma.InputJsonValue,
     imageUrl: `${siteConfig.url}/resources/${post.slug}/opengraph-image?v=${encodeURIComponent(revision)}`,
-    imageAlt: post.content.imageAlt
+    imageAlt: post.content.imageAlt,
+    lineage: createEditorialLineage({ contentType: "content_post", contentId: post.id, contentRevision: revision, storySpine })
   });
 }
 
@@ -137,6 +150,7 @@ export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revis
   const generated = await buildAdvisoryLinkedInCommentary(advisory);
   const commentary = generated.commentary;
   const canonicalUrl = `${siteConfig.url}/security-advisories/${advisory.slug}`;
+  const storySpine = storySpineForAdvisory(advisory);
   const qualityIssues = advisoryLinkedInQualityIssues(
     commentary,
     trackedUrl(`/security-advisories/${advisory.slug}`, "security-advisory-desk", advisory.slug),
@@ -152,7 +166,13 @@ export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revis
     commentaryQualityScore: generated.qualityScore,
     commentaryTrace: generated.trace as Prisma.InputJsonValue,
     imageUrl: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image?v=${encodeURIComponent(revisionKey)}`,
-    imageAlt: `${advisory.severity} ${advisory.vendor} network security advisory: ${advisory.title}`
+    imageAlt: `${advisory.severity} ${advisory.vendor} network security advisory: ${advisory.title}`,
+    lineage: createEditorialLineage({
+      contentType: "security_advisory",
+      contentId: advisory.id,
+      contentRevision: revisionKey,
+      storySpine
+    })
   });
 }
 
@@ -200,12 +220,19 @@ export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
     const pendingPublication = currentPublications.find((publication) => publication.status !== "published");
     if (pendingPublication) {
       const generated = await buildAdvisoryLinkedInCommentary(advisory);
+      const storySpine = storySpineForAdvisory(advisory);
       const material = {
         commentary: generated.commentary,
         commentaryQualityScore: generated.qualityScore,
         commentaryTrace: generated.trace as Prisma.InputJsonValue,
         imageAlt: `${advisory.severity} ${advisory.vendor} network security advisory: ${advisory.title}`,
         imageUrl: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image?v=${encodeURIComponent(revision)}`,
+        lineage: createEditorialLineage({
+          contentType: "security_advisory" as const,
+          contentId: advisory.id,
+          contentRevision: revision,
+          storySpine
+        }),
         sourceUrl: `${siteConfig.url}/security-advisories/${advisory.slug}`
       };
       await prisma.socialPublication.update({
@@ -220,7 +247,8 @@ export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
             commentaryPolicyVersion: 3,
             commentaryQualityScore: material.commentaryQualityScore,
             commentaryTrace: material.commentaryTrace,
-            imageAlt: material.imageAlt
+            imageAlt: material.imageAlt,
+            lineage: material.lineage
           },
           nextAttemptAt: new Date(),
           sourceUrl: material.sourceUrl,
@@ -279,18 +307,21 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
 
     try {
       let commentary = job.commentary;
+      let publicationImageUrl = job.imageUrl;
       let publicationMetadata = metadataObject(job.metadata);
       const policyVersion = Number(publicationMetadata.commentaryPolicyVersion || 0);
       const commentaryQualityScore = Number(publicationMetadata.commentaryQualityScore || 0);
-      if (policyVersion < 3 || commentaryQualityScore < 88) {
+      if (policyVersion < 3 || commentaryQualityScore < 88 || !lineageFromMetadata(publicationMetadata)) {
         const material = await currentPublicationMaterial(job);
         commentary = material.commentary;
+        publicationImageUrl = material.imageUrl;
         publicationMetadata = {
           ...publicationMetadata,
           commentaryPolicyVersion: 3,
           commentaryQualityScore: material.commentaryQualityScore,
           commentaryTrace: material.commentaryTrace as unknown as Prisma.JsonValue,
-          imageAlt: material.imageAlt
+          imageAlt: material.imageAlt,
+          lineage: material.lineage as unknown as Prisma.JsonValue
         };
         await prisma.socialPublication.update({
           where: { id: job.id },
@@ -306,9 +337,14 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
       if (!generatedImage?.generatedAt) {
         throw new Error(editorialImageWaitMessage);
       }
-      if (!job.imageUrl) throw new Error("LinkedIn delivery is missing its canonical article image URL.");
+      const publicationLineage = lineageFromMetadata(publicationMetadata);
+      const imageLineage = lineageFromMetadata(generatedImage.agentTrace);
+      if (!publicationLineage || !imageLineage || publicationLineage.hash !== imageLineage.hash) {
+        throw new Error("LinkedIn delivery was held because the article revision and contextual image do not share the same editorial lineage.");
+      }
+      if (!publicationImageUrl) throw new Error("LinkedIn delivery is missing its canonical article image URL.");
       const imageUrl = (() => {
-        const url = new URL(job.imageUrl);
+        const url = new URL(publicationImageUrl);
         url.searchParams.set("asset", generatedImage.generatedAt.toISOString());
         return url.toString();
       })();
@@ -357,13 +393,12 @@ async function currentPublicationMaterial(job: {
   contentRevision: string;
   contentType: string;
 }, commentaryOverride?: string) {
-  const prisma = getPrismaClient();
   if (job.contentType === "content_post") {
-    const source = await prisma.contentPost.findUnique({ where: { id: job.contentId } });
-    if (!source) throw new Error("The source article no longer exists.");
-    const content = source.content as unknown as ContentPostRecord["content"];
-    const post = { content, slug: source.slug, title: source.title };
-    const trackedArticleUrl = trackedUrl(`/resources/${source.slug}`, "weekly-intelligence", source.slug);
+    const resolved = await resolveContentPostRevision(job.contentId, job.contentRevision);
+    const content = resolved.content as ContentPostRecord["content"];
+    const post = { content, slug: resolved.source.slug, title: resolved.title };
+    const trackedArticleUrl = trackedUrl(`/resources/${resolved.source.slug}`, "weekly-intelligence", resolved.source.slug);
+    const storySpine = storySpineForArticle(content);
     const generated = commentaryOverride
       ? {
           commentary: commentaryOverride.trim(),
@@ -380,14 +415,21 @@ async function currentPublicationMaterial(job: {
       commentaryQualityScore: generated.qualityScore,
       commentaryTrace: generated.trace as Prisma.InputJsonValue,
       imageAlt: content.imageAlt,
-      imageUrl: `${siteConfig.url}/resources/${source.slug}/opengraph-image?v=${encodeURIComponent(job.contentRevision)}`,
-      sourceUrl: `${siteConfig.url}/resources/${source.slug}`
+      imageUrl: `${siteConfig.url}/resources/${resolved.source.slug}/opengraph-image?v=${encodeURIComponent(job.contentRevision)}`,
+      lineage: createEditorialLineage({
+        contentType: "content_post",
+        contentId: job.contentId,
+        contentRevision: job.contentRevision,
+        storySpine
+      }),
+      sourceUrl: `${siteConfig.url}/resources/${resolved.source.slug}`
     };
   }
   if (job.contentType === "security_advisory") {
-    const advisory = await prisma.securityAdvisory.findUnique({ where: { id: job.contentId } });
-    if (!advisory) throw new Error("The source security advisory no longer exists.");
-    const trackedAdvisoryUrl = trackedUrl(`/security-advisories/${advisory.slug}`, "security-advisory-desk", advisory.slug);
+    const resolved = await resolveSecurityAdvisoryRevision(job.contentId, job.contentRevision);
+    const advisory = resolved.advisory;
+    const storySpine = storySpineForAdvisory(advisory);
+    const trackedAdvisoryUrl = trackedUrl(`/security-advisories/${resolved.source.slug}`, "security-advisory-desk", resolved.source.slug);
     const generated = commentaryOverride
       ? {
           commentary: commentaryOverride.trim(),
@@ -404,8 +446,14 @@ async function currentPublicationMaterial(job: {
       commentaryQualityScore: generated.qualityScore,
       commentaryTrace: generated.trace as Prisma.InputJsonValue,
       imageAlt: `${advisory.severity} ${advisory.vendor} network security advisory: ${advisory.title}`,
-      imageUrl: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image?v=${encodeURIComponent(job.contentRevision)}`,
-      sourceUrl: `${siteConfig.url}/security-advisories/${advisory.slug}`
+      imageUrl: `${siteConfig.url}/security-advisories/${resolved.source.slug}/opengraph-image?v=${encodeURIComponent(job.contentRevision)}`,
+      lineage: createEditorialLineage({
+        contentType: "security_advisory",
+        contentId: job.contentId,
+        contentRevision: job.contentRevision,
+        storySpine
+      }),
+      sourceUrl: `${siteConfig.url}/security-advisories/${resolved.source.slug}`
     };
   }
   throw new Error(`Unsupported LinkedIn content type: ${job.contentType}`);
@@ -440,6 +488,7 @@ export async function refreshLinkedInPublication(
           commentaryPolicyVersion: 3,
           commentaryQualityScore: material.commentaryQualityScore,
           commentaryTrace: material.commentaryTrace,
+          lineage: material.lineage,
           commentaryRefreshedAt: new Date().toISOString(),
           deliveryReceipt: {
             ...previousReceipt,
@@ -458,6 +507,10 @@ export async function refreshLinkedInPublication(
   });
   if (!generatedImage?.generatedAt) {
     throw new Error("The current contextual image is not ready, so the existing LinkedIn post was left unchanged.");
+  }
+  const refreshedImageLineage = lineageFromMetadata(generatedImage.agentTrace);
+  if (!refreshedImageLineage || refreshedImageLineage.hash !== material.lineage.hash) {
+    throw new Error("The replacement image does not match the approved article revision, so the existing LinkedIn post was left unchanged.");
   }
   const generatedImageUrl = new URL(material.imageUrl);
   generatedImageUrl.searchParams.set("asset", generatedImage.generatedAt.toISOString());
@@ -493,6 +546,7 @@ export async function refreshLinkedInPublication(
         commentaryQualityScore: material.commentaryQualityScore,
         commentaryTrace: material.commentaryTrace,
         imageAlt: material.imageAlt,
+        lineage: material.lineage,
         mediaReplacedAt: new Date().toISOString(),
         permalink: replacement.permalink,
         deliveryReceipt: replacement.receipt,
@@ -539,6 +593,7 @@ export async function rebuildLinkedInPublication(publicationId: string) {
         commentaryQualityScore: material.commentaryQualityScore,
         commentaryTrace: material.commentaryTrace,
         imageAlt: material.imageAlt,
+        lineage: material.lineage,
         rebuiltAt: new Date().toISOString()
       } as Prisma.InputJsonValue,
       nextAttemptAt: new Date(),

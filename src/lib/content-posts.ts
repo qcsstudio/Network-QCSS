@@ -29,7 +29,7 @@ const sourceLinkSchema = z.object({
 });
 
 export const blogPostSchema = z.object({
-  contentVersion: z.literal(2).optional(),
+  contentVersion: z.union([z.literal(2), z.literal(3)]).optional(),
   contentType: z.enum(["blog", "resource"]).default("blog"),
   slug: z.string().trim().min(3).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   title: z.string().trim().min(10).max(180),
@@ -64,6 +64,22 @@ export const blogPostSchema = z.object({
       sceneConcept: z.string().trim().min(50).max(1000),
       factualAnchors: z.array(z.string().trim().min(15).max(320)).min(2).max(6),
       avoid: z.array(z.string().trim().min(10).max(240)).min(3).max(8)
+    })
+    .optional(),
+  storySpine: z
+    .object({
+      primarySubject: z.string().trim().min(20).max(240),
+      trigger: z.string().trim().min(20).max(500),
+      mechanism: z.string().trim().min(20).max(700),
+      consequence: z.string().trim().min(20).max(500),
+      operatorDecision: z.string().trim().min(20).max(500),
+      verification: z.string().trim().min(20).max(500),
+      secondaryContext: z.array(z.string().trim().min(10).max(240)).max(4),
+      visualSequence: z.tuple([
+        z.string().trim().min(12).max(300),
+        z.string().trim().min(12).max(300),
+        z.string().trim().min(12).max(300)
+      ])
     })
     .optional(),
   relatedTools: z.array(internalLinkSchema).min(1).max(8),

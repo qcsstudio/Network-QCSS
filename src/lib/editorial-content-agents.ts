@@ -9,6 +9,21 @@ import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts"
 const defaultContentWriterModel = "gpt-4.1-mini";
 const defaultContentCriticModel = "gpt-4.1-mini";
 
+const storySpineSchema = z.object({
+  primarySubject: z.string().min(20).max(240),
+  trigger: z.string().min(20).max(500),
+  mechanism: z.string().min(20).max(700),
+  consequence: z.string().min(20).max(500),
+  operatorDecision: z.string().min(20).max(500),
+  verification: z.string().min(20).max(500),
+  secondaryContext: z.array(z.string().min(10).max(240)).max(4),
+  visualSequence: z.tuple([
+    z.string().min(12).max(300),
+    z.string().min(12).max(300),
+    z.string().min(12).max(300)
+  ])
+});
+
 const advisoryContentSchema = z.object({
   plainLanguageSummary: z.string().min(80).max(1_200),
   technicalExplanation: z.string().min(160).max(2_400),
@@ -20,7 +35,8 @@ const advisoryContentSchema = z.object({
   remediation: z.string().min(60).max(2_400),
   workaround: z.string().max(2_000),
   exploitationStatus: z.string().min(20).max(600),
-  evidenceChecklist: z.array(z.string().min(20).max(500)).min(4).max(10)
+  evidenceChecklist: z.array(z.string().min(20).max(500)).min(4).max(10),
+  storySpine: storySpineSchema
 });
 
 const sectionSchema = z.object({
@@ -52,6 +68,7 @@ const blogContentSchema = z.object({
     factualAnchors: z.array(z.string().min(15).max(320)).min(2).max(6),
     avoid: z.array(z.string().min(10).max(240)).min(3).max(8)
   }),
+  storySpine: storySpineSchema,
   sections: z.array(sectionSchema).min(5).max(7),
   checklist: z.array(z.string().min(15).max(400)).min(6).max(12),
   questions: z
@@ -86,13 +103,14 @@ export type AdvisoryEditorialContent = z.infer<typeof advisoryContentSchema>;
 
 type EditorialAgentTrace = {
   provider: "openai-direct";
-  contentPolicyVersion: 2;
+  contentPolicyVersion: 3;
   writerModel: string;
   criticModel: string;
   attempts: number;
   generatedAt: string;
   evidence: Array<{ label: string; url: string; fetched: boolean; characters: number }>;
   qa: ContentQa;
+  storySpine: z.infer<typeof storySpineSchema>;
 };
 
 export type AdvisoryEditorialInput = {
@@ -157,6 +175,36 @@ function parseStructured<T>(value: string, schema: z.ZodType<T>, name: string) {
   }
 }
 
+const storySpineJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "primarySubject",
+    "trigger",
+    "mechanism",
+    "consequence",
+    "operatorDecision",
+    "verification",
+    "secondaryContext",
+    "visualSequence"
+  ],
+  properties: {
+    primarySubject: { type: "string", minLength: 20, maxLength: 240 },
+    trigger: { type: "string", minLength: 20, maxLength: 500 },
+    mechanism: { type: "string", minLength: 20, maxLength: 700 },
+    consequence: { type: "string", minLength: 20, maxLength: 500 },
+    operatorDecision: { type: "string", minLength: 20, maxLength: 500 },
+    verification: { type: "string", minLength: 20, maxLength: 500 },
+    secondaryContext: { type: "array", maxItems: 4, items: { type: "string", minLength: 10, maxLength: 240 } },
+    visualSequence: {
+      type: "array",
+      minItems: 3,
+      maxItems: 3,
+      items: { type: "string", minLength: 12, maxLength: 300 }
+    }
+  }
+};
+
 const advisoryContentJsonSchema = {
   type: "object",
   additionalProperties: false,
@@ -171,7 +219,8 @@ const advisoryContentJsonSchema = {
     "remediation",
     "workaround",
     "exploitationStatus",
-    "evidenceChecklist"
+    "evidenceChecklist",
+    "storySpine"
   ],
   properties: {
     plainLanguageSummary: { type: "string", minLength: 80, maxLength: 1_200 },
@@ -184,7 +233,8 @@ const advisoryContentJsonSchema = {
     remediation: { type: "string", minLength: 60, maxLength: 2_400 },
     workaround: { type: "string", maxLength: 2_000 },
     exploitationStatus: { type: "string", minLength: 20, maxLength: 600 },
-    evidenceChecklist: { type: "array", minItems: 4, maxItems: 10, items: { type: "string", minLength: 20, maxLength: 500 } }
+    evidenceChecklist: { type: "array", minItems: 4, maxItems: 10, items: { type: "string", minLength: 20, maxLength: 500 } },
+    storySpine: storySpineJsonSchema
   }
 };
 
@@ -221,6 +271,7 @@ const blogContentJsonSchema = {
     "takeaways",
     "definitions",
     "visualBrief",
+    "storySpine",
     "sections",
     "checklist",
     "questions",
@@ -273,6 +324,7 @@ const blogContentJsonSchema = {
         }
       }
     },
+    storySpine: storySpineJsonSchema,
     sections: { type: "array", minItems: 5, maxItems: 7, items: sectionJsonSchema },
     checklist: { type: "array", minItems: 6, maxItems: 12, items: { type: "string", minLength: 15, maxLength: 400 } },
     questions: {
@@ -398,6 +450,7 @@ async function inspectContent(kind: "advisory" | "blog", evidence: string, conte
       "You are the QCS Editorial QA Critic, a senior network-security editor and fact checker.",
       "Compare every factual claim with the supplied primary-source evidence. Reject unsupported versions, exploit claims, mitigations, commands, dates, or product behavior.",
       "Reject a draft when its headline, central thesis, or operational recommendations force a relationship that the supplied evidence does not establish. Adjacent vendor advisories are not evidence of a shared cause, attack path, or control failure.",
+      "Require one locked story chronology: primary subject, source-confirmed trigger, supported mechanism, operational consequence, operator decision, and closure evidence. Reject a draft or visual brief that promotes secondary context into a competing headline story.",
       "For blogs, verify that sourceUrls point only to supplied evidence and are attached to the sections or answers whose claims they support. A source list alone is not traceability.",
       "Reject generic filler, repetitive template language, unexplained jargon, sensational phrasing, copied source wording, weak search intent, and content that would not help a real operator make a decision.",
       "For blogs, require a direct answer, a clear reader outcome, defined entities, useful headings, evidence-led reasoning, implementation and validation guidance, realistic limitations, and FAQs that resolve genuine follow-up questions.",
@@ -434,6 +487,7 @@ async function writeAdvisory(input: AdvisoryEditorialInput, evidence: string, co
       "Use only the supplied primary-source evidence. Never infer affected or fixed versions, exploitation, workaround, severity, or product behavior that the evidence does not state.",
       "When a detail is absent, leave its array empty or state that the official source does not specify it. Do not call a mitigation a fix.",
       "Explain the issue first for a non-specialist, then accurately for network and security engineers. Paraphrase the source; do not reproduce long source passages.",
+      "Build one advisory storySpine in this exact order: affected product or trust boundary; disclosure or exploitation trigger; source-confirmed technical mechanism; operational consequence; required remediation decision; evidence that proves closure. Put unrelated context only in secondaryContext and never turn it into the visual subject.",
       editorialReadingQualityInstruction,
       "Return the required JSON only."
     ].join(" "),
@@ -475,13 +529,14 @@ export async function enrichSecurityAdvisory(input: AdvisoryEditorialInput) {
         qualityScore: qualityScore(latestQa),
         trace: {
           provider: "openai-direct",
-          contentPolicyVersion: 2,
+          contentPolicyVersion: 3,
           writerModel: editorialContentAgentConfiguration().writerModel,
           criticModel: editorialContentAgentConfiguration().criticModel,
           attempts: attempt,
           generatedAt: new Date().toISOString(),
           evidence: evidence.map((item) => ({ label: item.label, url: item.url, fetched: item.fetched, characters: item.text.length })),
-          qa: latestQa
+          qa: latestQa,
+          storySpine: latestContent.storySpine
         } satisfies EditorialAgentTrace
       };
     }
@@ -504,9 +559,10 @@ async function writeBlog(input: BlogEditorialInput, evidence: string, correction
       "Treat the evidence as the boundary of the article. If the editorial topic or business angle is not supported by that evidence, reframe the title and article around what the sources actually establish instead of forcing a connection. Never imply that separate advisories share a technical cause or affect routing, cloud, or security controls unless a supplied source says so.",
       "Answer the reader's real question immediately, explain terminology in plain English, then provide technically precise reasoning, examples, evidence, decisions, safeguards, and practical next steps.",
       "Build the article for human readers and answer engines: state a self-contained direct answer first; define important entities; organize the body around the reader's decision; distinguish evidence, interpretation, and recommendation; include implementation, validation, limitations, and escalation guidance where relevant.",
+      "Before writing sections, lock one storySpine in this order: primary subject; source-supported trigger; technical mechanism; operational consequence; operator decision; verification evidence. Every headline, section, visual anchor, and recommendation must serve that same story. Place adjacent but non-causal topics only in secondaryContext and keep them out of the title and focal visual.",
       "Copy source URLs exactly from the supplied evidence. Use sourceUrls on every section and FAQ answer with evidence-dependent claims; use an empty array only for clearly labeled QCS analysis or practical advice that does not depend on an external fact. At least one section must carry a primary-source citation.",
       "The description, excerpt, direct answer, section headings, section bodies, and section bullets must contain at least 1,100 useful words by themselves. Checklists, definitions, takeaways, and FAQs do not count toward that minimum. Keep the complete article near 1,400 to 1,900 words, with five to seven focused sections and four to six genuine FAQs.",
-      "Create a topic-specific visualBrief from the article's concrete systems, evidence, and cause-and-effect relationship. Its factualAnchors must be supported by the article, and its avoid list must prevent likely visual misinterpretations or generic cyber imagery.",
+      "Create a topic-specific visualBrief from the locked storySpine. Its factualAnchors must be supported by the article; its scene must follow the three visualSequence frames establish, explain, and resolve; and its avoid list must block secondary topics, likely visual misinterpretations, and generic cyber imagery.",
       "Do not produce a vendor-news rewrite, generic checklist template, sales pitch, or repetitive QCS boilerplate. Do not invent versions, statistics, commands, exploit claims, outcomes, or quotations.",
       editorialReadingQualityInstruction,
       "Use short paragraphs, meaningful headings, active voice, and natural language suitable for informed readers worldwide and in India. Paraphrase sources and return JSON only."
@@ -565,7 +621,7 @@ function buildBlogPost(input: BlogEditorialInput, draft: z.infer<typeof blogCont
   const sourceUrls = (values: string[]) => [...new Set(values.filter((url) => allowedSourceUrls.has(url)))];
 
   return {
-    contentVersion: 2,
+    contentVersion: 3,
     contentType: "blog",
     slug: input.slug,
     title: compact(draft.title, 180),
@@ -590,6 +646,7 @@ function buildBlogPost(input: BlogEditorialInput, draft: z.infer<typeof blogCont
     editorialMethod: `Researched from the listed primary and official sources, written for operational decision-making, and reviewed through QCS editorial QA. Sources checked ${today}.`,
     definitions: draft.definitions,
     visualBrief: draft.visualBrief,
+    storySpine: draft.storySpine,
     relatedTools: (tools.length ? tools : ["/network-tools"]).slice(0, 4).map((href) => ({ label: labelFromPath(href), href })),
     relatedServices: (services.length ? services : ["/services/managed-network-services"])
       .slice(0, 4)
@@ -632,13 +689,14 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
         qualityScore: qualityScore(latestQa),
         trace: {
           provider: "openai-direct",
-          contentPolicyVersion: 2,
+          contentPolicyVersion: 3,
           writerModel: editorialContentAgentConfiguration().writerModel,
           criticModel: editorialContentAgentConfiguration().criticModel,
           attempts: attempt,
           generatedAt: new Date().toISOString(),
           evidence: usable.map((item) => ({ label: item.label, url: item.url, fetched: item.fetched, characters: item.text.length })),
-          qa: latestQa
+          qa: latestQa,
+          storySpine: content.storySpine!
         } satisfies EditorialAgentTrace
       };
     }

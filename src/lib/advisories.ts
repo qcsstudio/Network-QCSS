@@ -3,6 +3,7 @@ import type { Prisma, SecurityAdvisory } from "@prisma/client";
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
 import { enrichSecurityAdvisory } from "@/lib/editorial-content-agents";
+import { advisoryRevisionPayload } from "@/lib/editorial-revision-snapshots";
 import { getPrismaClient } from "@/lib/prisma";
 import { queueLinkedInForAdvisory } from "@/lib/social-publications";
 
@@ -794,7 +795,13 @@ async function storeCandidate(sourceId: string, item: AdvisoryCandidate) {
   if (!existing) {
     const created = await prisma.securityAdvisory.create({ data: { sourceId, ...data } });
     await prisma.securityAdvisoryRevision.create({
-      data: { advisoryId: created.id, version: 1, contentHash: item.contentHash, changes: inputJson(["created"]), payload: item.payload }
+      data: {
+        advisoryId: created.id,
+        version: 1,
+        contentHash: item.contentHash,
+        changes: inputJson(["created"]),
+        payload: advisoryRevisionPayload(item.payload, data)
+      }
     });
     return { advisory: created, revision: 1, changed: true };
   }
@@ -803,7 +810,13 @@ async function storeCandidate(sourceId: string, item: AdvisoryCandidate) {
   const changedFields = changesBetween(existing, item);
   const updated = await prisma.securityAdvisory.update({ where: { id: existing.id }, data });
   await prisma.securityAdvisoryRevision.create({
-    data: { advisoryId: existing.id, version: revision, contentHash: item.contentHash, changes: inputJson(changedFields), payload: item.payload }
+    data: {
+      advisoryId: existing.id,
+      version: revision,
+      contentHash: item.contentHash,
+      changes: inputJson(changedFields),
+      payload: advisoryRevisionPayload(item.payload, data)
+    }
   });
   return { advisory: updated, revision, changed: true };
 }
@@ -885,7 +898,7 @@ export async function backfillLegacyAdvisoryEditorialContent() {
           version,
           contentHash: hash,
           changes: inputJson(["editorial_backfill"]),
-          payload: next.payload
+          payload: advisoryRevisionPayload(next.payload, next)
         }
       }
     }
@@ -1321,7 +1334,7 @@ export async function setAdminAdvisoryState(id: string, action: "publish" | "wit
           version,
           contentHash: existing.contentHash,
           changes: inputJson([action]),
-          payload: inputJson({ origin: "admin", actor, action })
+          payload: advisoryRevisionPayload({ origin: "admin", actor, action }, existing)
         }
       }
     },

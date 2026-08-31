@@ -8,6 +8,8 @@ import {
   type LinkedInEditorialPost
 } from "@/lib/linkedin-commentary";
 import { openAIApiKeyStatus, openAICredentialMessage } from "@/lib/openai-config";
+import { storySpineForAdvisory, storySpineForArticle } from "@/lib/editorial-story-lineage";
+import type { BlogPost } from "@/lib/blog";
 
 const defaultWriterModel = "gpt-4.1-mini";
 const defaultCriticModel = "gpt-4.1-mini";
@@ -166,7 +168,8 @@ function editorialEvidence(post: LinkedInEditorialPost) {
       body: compact(section.body, 700),
       bullets: (section.bullets || []).slice(0, 5).map((item) => compact(item, 300))
     })),
-    sources: (post.content.sources || []).slice(0, 6)
+    sources: (post.content.sources || []).slice(0, 6),
+    storySpine: storySpineForArticle(post.content as BlogPost)
   };
 }
 
@@ -187,7 +190,8 @@ function advisoryEvidence(advisory: LinkedInAdvisoryPost) {
     remediation: advisory.remediation,
     workaround: advisory.workaround || "",
     evidenceChecklist: advisory.evidenceChecklist || [],
-    vendorSourceUrl: advisory.sourceUrl || ""
+    vendorSourceUrl: advisory.sourceUrl || "",
+    storySpine: storySpineForAdvisory(advisory)
   };
 }
 
@@ -200,6 +204,7 @@ function writerInstructions(kind: LinkedInAgentInput["kind"]) {
     "You are the QCS LinkedIn Editor, a senior network and cybersecurity practitioner writing to peers and technology decision makers.",
     "Write a useful native LinkedIn post, not a synopsis, press release, SEO excerpt, incident ticket, or generic AI template.",
     "Choose one defensible point of view from the supplied evidence. Open with the operational consequence or decision tension in two short lines; do not merely repeat the title.",
+    "Follow the supplied storySpine in order: operational consequence as the hook, source-confirmed trigger and mechanism, operator decision, concrete actions, closure verification, then the original QCS link. Secondary context may be mentioned only as explicitly separate context and must never replace the primary subject.",
     "Use only supplied facts. Preserve exact CVEs, product names, severity, CVSS, versions, exploitation status, fixes, workarounds, and source qualifications. Never upgrade possibility into confirmed exploitation.",
     "Explain why the evidence matters to a named audience and make every action concrete enough for a network or security team to perform and validate.",
     "Use natural professional language, active voice, short paragraphs, deliberate blank lines, and no paragraph longer than three sentences.",
@@ -301,6 +306,7 @@ async function inspectPost(input: LinkedInAgentInput, draft: LinkedInDraft) {
       "Compare every claim with the approved source material. Reject invented causality, affected scope, exploitation, impact, commands, versions, fixes, workarounds, statistics, or urgency.",
       "Reject a post that merely fills headings, repeats the article title, paraphrases a summary without insight, uses generic actions, sounds promotional, or could be reused for a different vendor or topic by swapping nouns.",
       "Require a precise audience, a defensible practitioner point of view, concrete source-supported details, distinct actions, an honest qualification where evidence is incomplete, and a natural mobile-readable presentation.",
+      "Require the post to preserve the supplied storySpine: one primary subject, no blended adjacent topic, and a visible progression from consequence to mechanism to action to verification.",
       "For advisories, verify exact CVEs, severity and CVSS separation, exploitation status, affected scope, all supplied fixed versions, workaround status, four actions, and closure validation.",
       "For articles, require an original interpretation that helps the reader understand a business challenge or opportunity and offers concrete guidance rather than a link teaser.",
       "Treat dense paragraphs, excessive labels, all-caps presentation, clipped sentences, fake styling, hashtag stuffing, or a weak opening as publication-blocking defects.",

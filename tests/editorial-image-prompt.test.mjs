@@ -59,6 +59,33 @@ test("different article facts produce materially different visual briefs", () =>
   assert.match(packetCapture, /both sides of the policy boundary/i);
 });
 
+test("version-three article images follow the locked establish-explain-resolve chronology", () => {
+  const context = buildArticleImageContext(
+    article({
+      storySpine: {
+        primarySubject: "BGP route-origin authorization during an ISP cutover",
+        trigger: "The planned cutover changes the ASN that originates the production prefix.",
+        mechanism: "RPKI validators compare the observed BGP origin with the published ROA authorization.",
+        consequence: "A missing ROA update can make the intended route RPKI Invalid and reduce reachability.",
+        operatorDecision: "Publish the authorized origin change before moving the BGP announcement.",
+        verification: "Confirm validator propagation, observed origin state, and regional reachability after cutover.",
+        secondaryContext: ["Cisco software patching is a separate workstream."],
+        visualSequence: [
+          "Establish the planned origin-ASN change.",
+          "Explain the BGP announcement crossing the RPKI authorization check.",
+          "Resolve with a Valid route and retained reachability evidence."
+        ]
+      },
+      sections: [{ heading: "Unrelated long section", body: "This body must not become the visual subject." }]
+    })
+  );
+  assert.match(context, /LOCKED SINGLE-STORY CHRONOLOGY/);
+  assert.match(context, /Visual frame 1 - establish/);
+  assert.match(context, /Visual frame 3 - resolve/);
+  assert.match(context, /must remain visually subordinate/);
+  assert.doesNotMatch(context, /This body must not become the visual subject/);
+});
+
 test("security advisory context preserves product, exploit, fix, and action evidence", () => {
   const context = buildAdvisoryImageContext({
     affectedVersions: ["FortiOS 7.2.0 through 7.2.7"],

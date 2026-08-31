@@ -1,5 +1,7 @@
+import type { EditorialStorySpine } from "./editorial-story-lineage.ts";
+
 export type BlogPost = {
-  contentVersion?: 2;
+  contentVersion?: 2 | 3;
   contentType?: "blog" | "resource";
   slug: string;
   title: string;
@@ -29,6 +31,7 @@ export type BlogPost = {
     factualAnchors: string[];
     avoid: string[];
   };
+  storySpine?: EditorialStorySpine;
   relatedTools: { label: string; href: string }[];
   relatedServices: { label: string; href: string }[];
   takeaways: string[];

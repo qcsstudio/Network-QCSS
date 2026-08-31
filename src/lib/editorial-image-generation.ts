@@ -23,6 +23,14 @@ import { shouldDeferEditorialImageGeneration } from "@/lib/editorial-image-state
 import { assertRetinaVariantDimensions, editorialVisualQualityPolicy } from "@/lib/editorial-quality-policy";
 import { getPrismaClient } from "@/lib/prisma";
 import { createProceduralEditorialVisual } from "@/lib/procedural-editorial-visual";
+import { resolveContentPostRevision, resolveSecurityAdvisoryRevision } from "@/lib/editorial-revision-snapshots";
+import {
+  createEditorialLineage,
+  storySpineForAdvisory,
+  storySpineForArticle,
+  type EditorialLineage,
+  type EditorialStorySpine
+} from "@/lib/editorial-story-lineage";
 
 export type EditorialImageInput = {
   altText: string;
@@ -30,6 +38,8 @@ export type EditorialImageInput = {
   contentRevision: string;
   contentType: "content_post" | "security_advisory";
   context: string;
+  lineage: EditorialLineage;
+  storySpine: EditorialStorySpine;
   title: string;
 };
 
@@ -61,23 +71,34 @@ function imageInputForArticle(
   contentRevision: string,
   content: BlogPost
 ): EditorialImageInput {
+  const storySpine = storySpineForArticle(content);
   return {
     altText: `QCS contextual editorial illustration for ${clip(content.title, 135)}`,
     contentId,
     contentRevision,
     contentType: "content_post",
-    context: buildArticleImageContext(content),
+    context: buildArticleImageContext({ ...content, storySpine }),
+    lineage: createEditorialLineage({ contentType: "content_post", contentId, contentRevision, storySpine }),
+    storySpine,
     title: content.title
   };
 }
 
 function imageInputForAdvisory(advisory: SecurityAdvisory, contentRevision: string): EditorialImageInput {
+  const storySpine = storySpineForAdvisory(advisory);
   return {
     altText: `QCS contextual ${advisory.severity} ${advisory.vendor} advisory illustration for ${clip(advisory.title, 110)}`,
     contentId: advisory.id,
     contentRevision,
     contentType: "security_advisory",
-    context: buildAdvisoryImageContext(advisory),
+    context: buildAdvisoryImageContext({ ...advisory, storySpine }),
+    lineage: createEditorialLineage({
+      contentType: "security_advisory",
+      contentId: advisory.id,
+      contentRevision,
+      storySpine
+    }),
+    storySpine,
     title: advisory.title
   };
 }
@@ -282,18 +303,19 @@ export async function ensureEditorialImage(
       restoreEditorialAgentTrace(asset.agentTrace),
       premiumAllowed
     );
+    const trace = { ...generated.trace, lineage: input.lineage };
     return await prisma.editorialImage.update({
       where: { id: asset.id },
       data: {
-        agentTrace: generated.trace as unknown as Prisma.InputJsonValue,
-        altText: generated.trace.direction.altText,
+        agentTrace: trace as unknown as Prisma.InputJsonValue,
+        altText: trace.direction.altText,
         generatedAt: new Date(),
         heroImage: generated.heroImage,
         lastError: null,
         mimeType: "image/jpeg",
-        model: generated.trace.imageModel,
-        provider: generated.trace.provider,
-        qaScore: aggregateQaScore(generated.trace),
+        model: trace.imageModel,
+        provider: trace.provider,
+        qaScore: aggregateQaScore(trace),
         socialImage: generated.socialImage,
         status: "ready"
       }
@@ -327,16 +349,13 @@ export async function ensureEditorialImage(
 }
 
 export async function editorialImageInputForPublication(publication: PublicationIdentity) {
-  const prisma = getPrismaClient();
   if (publication.contentType === "content_post") {
-    const post = await prisma.contentPost.findUnique({ where: { id: publication.contentId } });
-    if (!post) throw new Error("The source article no longer exists.");
-    return imageInputForArticle(post.id, publication.contentRevision, post.content as unknown as BlogPost);
+    const post = await resolveContentPostRevision(publication.contentId, publication.contentRevision);
+    return imageInputForArticle(post.source.id, publication.contentRevision, post.content);
   }
   if (publication.contentType === "security_advisory") {
-    const advisory = await prisma.securityAdvisory.findUnique({ where: { id: publication.contentId } });
-    if (!advisory) throw new Error("The source advisory no longer exists.");
-    return imageInputForAdvisory(advisory, publication.contentRevision);
+    const advisory = await resolveSecurityAdvisoryRevision(publication.contentId, publication.contentRevision);
+    return imageInputForAdvisory(advisory.advisory, publication.contentRevision);
   }
   throw new Error(`Unsupported editorial image content type: ${publication.contentType}`);
 }
