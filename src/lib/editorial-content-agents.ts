@@ -141,7 +141,7 @@ const contentQaSchema = z.object({
   usefulnessScore: z.number().int().min(0).max(100),
   searchAnswerScore: z.number().int().min(0).max(100),
   violations: z.array(z.string().min(2).max(320)).max(12),
-  rationale: z.string().min(10).max(1_000),
+  rationale: z.string().min(10).max(1_600),
   correctionPrompt: z.string().max(1_600)
 });
 
@@ -429,7 +429,7 @@ const contentQaJsonSchema = {
     usefulnessScore: { type: "integer", minimum: 0, maximum: 100 },
     searchAnswerScore: { type: "integer", minimum: 0, maximum: 100 },
     violations: { type: "array", maxItems: 12, items: { type: "string", minLength: 2, maxLength: 320 } },
-    rationale: { type: "string", minLength: 10, maxLength: 1_000 },
+    rationale: { type: "string", minLength: 10, maxLength: 1_600 },
     correctionPrompt: { type: "string", maxLength: 1_600 }
   }
 };
@@ -488,10 +488,12 @@ const researchDossierJsonSchema = {
 function webSearchActivity(response: { output: unknown[] }) {
   const urls = new Set<string>();
   const queries = new Set<string>();
+  let searchCalls = 0;
   for (const item of response.output) {
     if (!item || typeof item !== "object" || !("type" in item) || item.type !== "web_search_call") continue;
     if (!("action" in item) || !item.action || typeof item.action !== "object") continue;
-    const action = item.action as { query?: unknown; queries?: unknown[]; url?: unknown; sources?: Array<{ url?: unknown }> };
+    const action = item.action as { type?: unknown; query?: unknown; queries?: unknown[]; url?: unknown; sources?: Array<{ url?: unknown }> };
+    if (action.type === "search") searchCalls += 1;
     if (typeof action.query === "string") queries.add(action.query);
     for (const query of action.queries || []) {
       if (typeof query === "string") queries.add(query);
@@ -501,7 +503,7 @@ function webSearchActivity(response: { output: unknown[] }) {
       if (typeof source.url === "string") urls.add(source.url);
     }
   }
-  return { queries: [...queries], urls: [...urls].filter(isTrustedEditorialUrl) };
+  return { queries: [...queries], urls: [...urls].filter(isTrustedEditorialUrl), searchCalls };
 }
 
 function isExternalEditorialUrl(url: string) {
@@ -536,29 +538,96 @@ function restrictDossierSources(dossier: EditorialResearchDossier, allowedUrls: 
   };
 }
 
+function researchScoutAngles(input: BlogEditorialInput) {
+  const topic = input.topic.replace(/\s+/g, " ").trim();
+  return [
+    {
+      label: "current scope and authoritative context",
+      query: `${topic} official advisory current scope affected products`
+    },
+    {
+      label: "technical mechanism and evidence",
+      query: `${topic} technical mechanism detection evidence official documentation`
+    },
+    {
+      label: "implementation, validation, and recovery",
+      query: `${topic} remediation implementation validation rollback official guidance`
+    }
+  ];
+}
+
+async function runResearchScout(
+  client: OpenAI,
+  input: BlogEditorialInput,
+  angle: { label: string; query: string },
+  model: string,
+  suppliedUrls: string[]
+) {
+  const response = await client.responses.create({
+    model,
+    store: false,
+    include: ["web_search_call.action.sources"],
+    tools: [
+      {
+        type: "web_search",
+        search_context_size: "medium",
+        filters: { allowed_domains: [...trustedEditorialHosts] }
+      }
+    ],
+    tool_choice: "required",
+    reasoning: usesReasoningControls(model) ? { effort: "low" } : undefined,
+    instructions: [
+      "You are a QCS technical research scout. Complete one focused live-web research pass for the assigned angle.",
+      "Use official vendor, government, cloud-provider, standards-body, or operator-authority evidence only.",
+      "Return a concise research memo that separates source facts, operational interpretation, unknowns, and safe validation guidance.",
+      "Do not invent commands, versions, exploit status, metrics, or product behavior."
+    ].join(" "),
+    input: [
+      `ARTICLE TOPIC: ${input.topic}`,
+      `ASSIGNED RESEARCH ANGLE: ${angle.label}`,
+      `SEARCH QUERY: ${angle.query}`,
+      `STARTING PRIMARY SOURCES:\n${suppliedUrls.join("\n")}`
+    ].join("\n\n"),
+    max_output_tokens: 1_200
+  });
+  if (response.status === "incomplete") {
+    throw new Error(`Research scout ${angle.label} was incomplete: ${response.incomplete_details?.reason || "unknown reason"}.`);
+  }
+  const activity = webSearchActivity(response);
+  if (activity.searchCalls < 1) throw new Error(`Research scout ${angle.label} did not execute a live web search.`);
+  return {
+    angle: angle.label,
+    note: response.output_text.trim(),
+    queries: [...new Set([angle.query, ...activity.queries])],
+    urls: activity.urls
+  };
+}
+
 export async function researchBlogTopic(input: BlogEditorialInput) {
   const config = editorialContentAgentConfiguration();
   const suppliedUrls = input.sources.map((source) => source.url).filter(isTrustedEditorialUrl);
   const startedAt = Date.now();
   console.info("QCS editorial agent started.", { stage: "blog-research", model: config.researchModel });
   try {
-    const response = await openAIClient().responses.create({
+    const client = openAIClient();
+    const scouts = await Promise.all(
+      researchScoutAngles(input).map((angle) => runResearchScout(client, input, angle, config.researchModel, suppliedUrls))
+    );
+    const searchQueries = [...new Set(scouts.flatMap((scout) => scout.queries))];
+    const discoveredUrls = [...new Set(scouts.flatMap((scout) => scout.urls))];
+    if (searchQueries.length < 3) throw new Error("The live research scouts did not complete three distinct research queries.");
+    const allowedUrls = new Set([...suppliedUrls, ...discoveredUrls]);
+    if ([...allowedUrls].filter(isExternalEditorialUrl).length < 3) {
+      throw new Error("The live research scouts did not find three approved evidence sources.");
+    }
+
+    const response = await client.responses.create({
       model: config.researchModel,
       store: false,
-      include: ["web_search_call.action.sources"],
-      tools: [
-        {
-          type: "web_search",
-          search_context_size: "high"
-        }
-      ],
-      tool_choice: "required",
       reasoning: usesReasoningControls(config.researchModel) ? { effort: "low" } : undefined,
       instructions: [
-        "You are the QCS Technical Research Analyst. Investigate the full operational question before an article is written.",
-        "Run at least three distinct web searches that cover current context, technical mechanism, and implementation or validation guidance before producing the dossier.",
-        "Search across relevant official vendor documentation, standards bodies, government guidance, cloud-provider documentation, and respected operator research within the allowed domains.",
-        `Community and news discussions may reveal questions and current operator concerns, but they cannot support a factual finding or technical-guide step. Every such claim must cite one of these approved evidence domains: ${trustedEditorialHosts.join(", ")}.`,
+        "You are the QCS Technical Research Analyst. Synthesize the three completed live-web scout reports into one evidence-led operational dossier.",
+        "Use only the exact approved source URLs supplied with the reports. Do not add, alter, shorten, or infer a URL.",
         "Do not summarize headlines. Establish the current trigger, technical mechanism, affected operational decision, implementation options, validation evidence, rollback or recovery path, limitations, disagreements, and escalation conditions.",
         "Use multiple independent research angles and prefer the most direct primary source for each claim. If sources conflict or do not answer a question, record that explicitly instead of guessing.",
         "Every factual finding and evidence-dependent guide step must contain the exact supporting source URLs. Practical recommendations must be safe, reversible, scoped, and distinguish vendor guidance from QCS analysis.",
@@ -570,8 +639,9 @@ export async function researchBlogTopic(input: BlogEditorialInput) {
         `TOPIC: ${input.topic}`,
         `BUSINESS AND OPERATIONAL ANGLE: ${input.businessAngle}`,
         `SEARCH INTENT: ${input.keywordCluster.join(", ")}`,
-        `STARTING PRIMARY SOURCES:\n${suppliedUrls.join("\n")}`,
-        "Research at least these angles: what changed or triggered the topic; how the technology or failure mechanism works; who and what is affected; evidence to collect; practical solution choices; implementation sequence; validation; rollback; limitations; and when to escalate."
+        `COMPLETED SEARCH QUERIES:\n${searchQueries.join("\n")}`,
+        `APPROVED SOURCE URLS:\n${[...allowedUrls].join("\n")}`,
+        `SCOUT REPORTS:\n${scouts.map((scout, index) => `REPORT ${index + 1} - ${scout.angle}\nSOURCE URLS:\n${scout.urls.join("\n")}\nMEMO:\n${scout.note}`).join("\n\n")}`
       ].join("\n\n"),
       max_output_tokens: 6_000,
       text: {
@@ -583,13 +653,6 @@ export async function researchBlogTopic(input: BlogEditorialInput) {
       throw new Error(`The live research response was incomplete: ${response.incomplete_details?.reason || "unknown reason"}.`);
     }
     const dossier = parseStructured(response.output_text, researchDossierSchema, "QCS Technical Research Analyst");
-    const searchActivity = webSearchActivity(response);
-    const discoveredUrls = searchActivity.urls;
-    if (searchActivity.queries.length < 3) throw new Error("The live research pass did not complete three distinct web searches.");
-    const allowedUrls = new Set([...suppliedUrls, ...discoveredUrls]);
-    if ([...allowedUrls].filter(isExternalEditorialUrl).length < 3) {
-      throw new Error("The live research pass did not find three approved independent evidence sources.");
-    }
     const restricted = researchDossierSchema.parse(restrictDossierSources(dossier, allowedUrls));
     if (restricted.findings.length < 4) throw new Error("The live research pass did not return four source-backed findings.");
     console.info("QCS editorial agent completed.", {
@@ -605,7 +668,7 @@ export async function researchBlogTopic(input: BlogEditorialInput) {
         .filter((url) => !suppliedUrls.includes(url))
         .slice(0, 8)
         .map((url) => ({ label: new URL(url).hostname.replace(/^www\./, ""), url })),
-      webQueries: searchActivity.queries.length,
+      webQueries: searchQueries.length,
       liveWebResearch: true
     };
   } catch (error) {

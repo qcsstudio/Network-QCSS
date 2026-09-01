@@ -25,6 +25,8 @@ test("production cadence separates ingestion, drafting, and social delivery", as
 test("live research reserves enough structured-output capacity and rejects truncation", async () => {
   const agents = await readFile(new URL("../src/lib/editorial-content-agents.ts", import.meta.url), "utf8");
 
+  assert.match(agents, /researchScoutAngles\(input\)\.map/);
+  assert.match(agents, /did not execute a live web search/);
   assert.match(agents, /Keep the dossier concise and decision-focused/);
   assert.match(agents, /max_output_tokens: 6_000/);
   assert.match(agents, /response\.status === "incomplete"/);

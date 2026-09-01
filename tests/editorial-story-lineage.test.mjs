@@ -96,3 +96,27 @@ test("story quality gate rejects a visual brief that switches to an adjacent top
   assert.deepEqual(valid, []);
   assert.ok(invalid.some((issue) => /Align the visual brief/i.test(issue)));
 });
+
+test("generic supporting context does not falsely become a competing headline", () => {
+  const issues = storySpineQualityIssues(
+    article({
+      storySpine: {
+        ...spine,
+        secondaryContext: ["Network security monitoring best practices"]
+      }
+    })
+  );
+
+  assert.equal(issues.some((issue) => /Move secondary context/i.test(issue)), false);
+});
+
+test("a named adjacent technology promoted into the title remains blocked", () => {
+  const issues = storySpineQualityIssues(
+    article({
+      title: "Cisco advisory triage with BGP and RPKI change control",
+      primaryKeyword: "Cisco BGP advisory triage"
+    })
+  );
+
+  assert.ok(issues.some((issue) => /Move secondary context/i.test(issue)));
+});

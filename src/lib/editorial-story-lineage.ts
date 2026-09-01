@@ -154,6 +154,20 @@ function meaningfulTokens(value: string) {
   return new Set((value.toLowerCase().match(/[a-z0-9][a-z0-9.+-]{2,}/g) || []).filter((token) => !stop.has(token)));
 }
 
+const genericEditorialTokens = new Set([
+  "best",
+  "controls",
+  "management",
+  "monitoring",
+  "network",
+  "operational",
+  "practices",
+  "security",
+  "technical",
+  "vulnerability",
+  "vulnerabilities"
+]);
+
 function overlap(left: string, right: string) {
   const a = meaningfulTokens(left);
   const b = meaningfulTokens(right);
@@ -185,8 +199,13 @@ export function storySpineQualityIssues(post: BlogPost) {
   ] as const) {
     if (overlap(value, articleText) < 0.25) issues.push(`Align the story spine ${label} with the article body.`);
   }
+  const titleTokens = meaningfulTokens(`${post.title} ${post.primaryKeyword}`);
+  const primaryTokens = meaningfulTokens(spine.primarySubject);
   for (const secondary of spine.secondaryContext) {
-    if (overlap(secondary, `${post.title} ${post.primaryKeyword}`) >= 0.5) {
+    const promotedTokens = [...meaningfulTokens(secondary)].filter(
+      (token) => !genericEditorialTokens.has(token) && titleTokens.has(token) && !primaryTokens.has(token)
+    );
+    if (promotedTokens.length) {
       issues.push("Move secondary context out of the article title and primary search intent.");
       break;
     }
