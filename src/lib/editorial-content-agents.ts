@@ -4,6 +4,7 @@ import { editorialReadingQualityInstruction } from "./editorial-quality-policy.t
 import type { BlogPost } from "@/lib/blog";
 import { evaluateEditorialReadiness } from "@/lib/editorial-publication-policy";
 import { collectEditorialEvidence, type EditorialEvidenceSource } from "@/lib/editorial-source-policy";
+import { mapClaimSourceUrls } from "@/lib/editorial-citations";
 import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts";
 
 const defaultContentWriterModel = "gpt-4.1-mini";
@@ -618,12 +619,7 @@ function buildBlogPost(input: BlogEditorialInput, draft: z.infer<typeof blogCont
     .join(" ")
     .split(/\s+/)
     .filter(Boolean).length;
-  const allowedSourceUrls = new Set(evidence.map((source) => source.url));
-  const singleSourceFallback = evidence.length === 1 ? [evidence[0].url] : [];
-  const sourceUrls = (values: string[]) => {
-    const verified = [...new Set(values.filter((url) => allowedSourceUrls.has(url)))];
-    return verified.length ? verified : singleSourceFallback;
-  };
+  const sourceUrls = (values: string[], claim: string) => mapClaimSourceUrls(values, claim, evidence);
 
   return {
     contentVersion: 3,
@@ -657,9 +653,15 @@ function buildBlogPost(input: BlogEditorialInput, draft: z.infer<typeof blogCont
       .slice(0, 4)
       .map((href) => ({ label: labelFromPath(href), href })),
     takeaways: draft.takeaways,
-    sections: draft.sections.map((section) => ({ ...section, sourceUrls: sourceUrls(section.sourceUrls) })),
+    sections: draft.sections.map((section) => ({
+      ...section,
+      sourceUrls: sourceUrls(section.sourceUrls, [section.heading, section.body, ...(section.bullets || [])].join(" "))
+    })),
     checklist: draft.checklist,
-    questions: draft.questions.map((question) => ({ ...question, sourceUrls: sourceUrls(question.sourceUrls) })),
+    questions: draft.questions.map((question) => ({
+      ...question,
+      sourceUrls: sourceUrls(question.sourceUrls, `${question.question} ${question.answer}`)
+    })),
     sources: evidence.map((source) => ({ label: source.label, url: source.url }))
   } satisfies BlogPost;
 }
