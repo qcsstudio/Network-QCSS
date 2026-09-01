@@ -283,8 +283,7 @@ function advisoryActions(advisory: LinkedInAdvisoryPost) {
     `Inventory ${products}; record deployed releases, service roles, owners, and exposure.`,
     evidence[0] || "Confirm applicability against the vendor's affected conditions before changing production controls.",
     normalize(advisory.remediation),
-    evidence.at(-1) || "Retain before-and-after version, exposure, log, and service-validation evidence.",
-    "Verify the running fix, relevant security logs, service health, and residual exposure before closure."
+    `Verify the running fix, relevant security logs, service health, and residual exposure before closure${evidence.at(-1) ? `; retain ${evidence.at(-1)}` : ""}.`
   ];
   return [...new Set(actions.map((item) => normalize(item).replace(/[.\s]+$/, "")))].slice(0, 4);
 }

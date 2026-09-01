@@ -6,6 +6,8 @@ import { ensureEditorialImageForPublication } from "@/lib/editorial-image-genera
 import { createAdvisoryLinkedInPost, createEditorialLinkedInPost } from "@/lib/linkedin-content-agents";
 import {
   advisoryLinkedInQualityIssues,
+  composeAdvisoryLinkedInPost,
+  composeEditorialLinkedInPost,
   editorialLinkedInQualityIssues,
   linkedInCommentaryPolicyVersion,
   type LinkedInAdvisoryPost
@@ -35,7 +37,21 @@ type EditorialPostRecord = Pick<ContentPostRecord, "content" | "slug" | "title">
 
 export function buildEditorialLinkedInCommentary(post: EditorialPostRecord) {
   const url = trackedUrl(`/resources/${post.slug}`, "weekly-intelligence", post.slug);
-  return createEditorialLinkedInPost(post, url);
+  return createEditorialLinkedInPost(post, url).catch((agentError) => {
+    const commentary = composeEditorialLinkedInPost(post, url);
+    const issues = editorialLinkedInQualityIssues(commentary, url, post);
+    if (issues.length) throw agentError;
+    return {
+      commentary,
+      qualityScore: 88,
+      trace: {
+        provider: "deterministic-protocol",
+        policyVersion: linkedInCommentaryPolicyVersion,
+        generatedAt: new Date().toISOString(),
+        fallbackReason: agentError instanceof Error ? agentError.message.slice(0, 1_000) : "LinkedIn content agent failed"
+      }
+    };
+  });
 }
 
 function jsonStrings(value: Prisma.JsonValue) {
@@ -65,7 +81,22 @@ function advisoryPost(advisory: SecurityAdvisory): LinkedInAdvisoryPost {
 
 export function buildAdvisoryLinkedInCommentary(advisory: SecurityAdvisory) {
   const url = trackedUrl(`/security-advisories/${advisory.slug}`, "security-advisory-desk", advisory.slug);
-  return createAdvisoryLinkedInPost(advisoryPost(advisory), url);
+  const source = advisoryPost(advisory);
+  return createAdvisoryLinkedInPost(source, url).catch((agentError) => {
+    const commentary = composeAdvisoryLinkedInPost(source, url);
+    const issues = advisoryLinkedInQualityIssues(commentary, url, source);
+    if (issues.length) throw agentError;
+    return {
+      commentary,
+      qualityScore: 88,
+      trace: {
+        provider: "deterministic-protocol",
+        policyVersion: linkedInCommentaryPolicyVersion,
+        generatedAt: new Date().toISOString(),
+        fallbackReason: agentError instanceof Error ? agentError.message.slice(0, 1_000) : "LinkedIn content agent failed"
+      }
+    };
+  });
 }
 
 async function enqueue(input: {

@@ -18,9 +18,9 @@ const defaultCriticModel = "gpt-4.1-mini";
 
 const linkedInDraftSchema = z.object({
   hook: z.string().min(80).max(220),
-  evidence: z.string().min(160).max(460),
-  interpretation: z.string().min(120).max(360),
-  verification: z.string().min(100).max(240),
+  evidence: z.string().min(160).max(650),
+  interpretation: z.string().min(120).max(500),
+  verification: z.string().min(100).max(320),
   question: z.string().max(280),
   audience: z.string().min(15).max(180),
   pointOfView: z.string().min(30).max(400),
@@ -75,9 +75,9 @@ const draftJsonSchema = {
   required: ["hook", "evidence", "interpretation", "verification", "question", "audience", "pointOfView", "factsUsed", "actions", "hashtags"],
   properties: {
     hook: { type: "string", minLength: 80, maxLength: 220 },
-    evidence: { type: "string", minLength: 160, maxLength: 460 },
-    interpretation: { type: "string", minLength: 120, maxLength: 360 },
-    verification: { type: "string", minLength: 100, maxLength: 240 },
+    evidence: { type: "string", minLength: 160, maxLength: 650 },
+    interpretation: { type: "string", minLength: 120, maxLength: 500 },
+    verification: { type: "string", minLength: 100, maxLength: 320 },
     question: { type: "string", maxLength: 280 },
     audience: { type: "string", minLength: 15, maxLength: 180 },
     pointOfView: { type: "string", minLength: 30, maxLength: 400 },
@@ -220,6 +220,7 @@ function writerInstructions(kind: LinkedInAgentInput["kind"]) {
     "Return separate hook, evidence, interpretation, verification, and optional question fields. The application will assemble them into the fixed QCS presentation protocol; do not place section labels, actions, links, or hashtags inside those prose fields.",
     "Use natural professional language and active voice. Do not use emoji, fake Unicode bold or italics, excessive capitals, clickbait, promotional claims, or rhetorical filler.",
     "Do not truncate a sentence with ellipses. Avoid stock phrases such as in today's landscape, game changer, ever-evolving, a useful signal, QCS translated the signal, or could another engineer reproduce.",
+    "Every field must end at a complete sentence boundary. Never leave a clause, heading, label, URL, product name, version, or exploitation statement unfinished.",
     "Choose three to five precise hashtags. The application will place the supplied QCS URL and hashtags in the required footer; do not repeat either inside the prose fields.",
     "Return the required JSON only. Use an empty question string when a question would add no practitioner value."
   ];
@@ -346,7 +347,7 @@ async function createLinkedInPost(input: LinkedInAgentInput): Promise<LinkedInRe
   let latestDraft: LinkedInDraft | null = null;
   const config = linkedInContentAgentConfiguration();
 
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
     latestDraft = await writePost(input, correction);
     const presentationActions = latestDraft.actions.slice(0, input.kind === "advisory" ? 4 : 3);
     latestDraft = { ...latestDraft, actions: presentationActions };
