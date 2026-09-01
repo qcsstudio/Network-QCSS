@@ -77,7 +77,7 @@ function buildGroups(): ReadinessGroup[] {
         item("admin-api-token", "Admin API token", isConfigured("ADMIN_API_TOKEN"), "Protects server-to-server dashboard and export access.", {
           required: true
         }),
-        item("cron-secret", "Automation cron secret", isConfigured("CRON_SECRET"), "Protects advisory scans, weekly editorial drafting, and social delivery workers.", {
+        item("cron-secret", "Automation cron secret", isConfigured("CRON_SECRET"), "Protects advisory scans, weekly drafting, automatic editorial completion, and social delivery workers.", {
           required: true
         })
       ]
@@ -197,6 +197,13 @@ function buildGroups(): ReadinessGroup[] {
       key: "content-distribution",
       label: "Content Distribution",
       items: [
+        item(
+          "editorial-completion",
+          "Automated editorial completion",
+          isConfigured("OPENAI_API_KEY") && isConfigured("CRON_SECRET"),
+          "Researches queued drafts, repairs evidence and technical guidance, and stops at human approval.",
+          { warning: true }
+        ),
         item(
           "linkedin-publishing",
           "LinkedIn profile publishing",

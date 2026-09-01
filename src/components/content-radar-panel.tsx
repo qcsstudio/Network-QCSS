@@ -5,6 +5,7 @@ import { Activity, Archive, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, C
 import type { BlogPost } from "@/lib/blog";
 import type { EditorialResearchCoverage } from "@/lib/editorial-content-agents";
 import { contentPostStatuses, type ContentPostStatus } from "@/lib/content-admin-domain";
+import type { EditorialAutomationState } from "@/lib/editorial-completion-domain";
 import { evaluateEditorialReadiness } from "@/lib/editorial-publication-policy";
 
 type RadarDraft = {
@@ -62,6 +63,7 @@ export type ContentPostRecord = {
   publishedAt: string;
   qualityScore: number | null;
   researchCoverage: EditorialResearchCoverage | null;
+  editorialAutomation: EditorialAutomationState;
   updatedAt: string;
   revisions: { id: string; version: number; action: string; actor: string; createdAt: string }[];
 };
@@ -88,6 +90,17 @@ const statusLabels: Record<ContentPostStatus, string> = {
   draft: "Draft",
   published: "Published"
 };
+
+function editorialAutomationMessage(state: EditorialAutomationState) {
+  if (state.status === "ready") return `Automatic completion passed after ${state.attempts} attempt(s). Human approval is required.`;
+  if (state.status === "running") return "Automatic research, citation mapping, technical guidance, and QA are running now.";
+  if (state.status === "retry_scheduled") {
+    const nextAttempt = state.nextAttemptAt ? new Date(state.nextAttemptAt).toLocaleString() : "the next worker cycle";
+    return `Automatic retry scheduled for ${nextAttempt}. Attempt ${state.attempts + 1} of 3 will run without manual action.`;
+  }
+  if (state.status === "needs_review") return `Automatic completion stopped after ${state.attempts} attempts. Review the last error or use Complete draft to retry.`;
+  return "Automatic completion is queued. The background worker will research and repair this draft without approving or publishing it.";
+}
 
 function initialStatusCounts(posts: ContentPostRecord[]) {
   const counts = Object.fromEntries(contentPostStatuses.map((item) => [item, 0])) as Record<ContentPostStatus, number>;
@@ -520,6 +533,7 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     return { ...readiness, issues: [...new Set(issues)] };
   }, [draft, hasUnsavedChanges, selected]);
   const needsRegeneration = Boolean(approvalReadiness?.issues.length);
+  const automationRunning = selected?.editorialAutomation.status === "running";
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -876,13 +890,15 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
               <strong>{needsRegeneration ? `${approvalReadiness?.issues.length || 0} approval check(s) need attention` : "Ready for editorial approval"}</strong>
               <small>{approvalReadiness ? `${approvalReadiness.usefulWords}/${approvalReadiness.minimumUsefulWords} useful words | ${approvalReadiness.citedSections}/${draft.sections.length} cited sections | ${selected.researchCoverage?.evidenceSources || draft.sources.length} evidence source(s)` : "Checking article readiness..."}</small>
               {selected.researchCoverage ? <small>{`${selected.researchCoverage.webQueries} web search(es) | ${selected.researchCoverage.researchQuestions} research question(s) | ${selected.researchCoverage.technicalSteps} technical step(s) | live web ${selected.researchCoverage.liveWebResearch ? "verified" : "not verified"}`}</small> : null}
+              <small>{editorialAutomationMessage(selected.editorialAutomation)}</small>
+              {selected.editorialAutomation.lastError ? <small>{`Last automation result: ${selected.editorialAutomation.lastError}`}</small> : null}
               {needsRegeneration ? <ul>{approvalReadiness?.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul> : <small>Approval locks the reviewed revision; publishing updates the public blog, sitemap, and LinkedIn delivery queue.</small>}
             </div>
             <div className="content-action-row">
               {selected.status === "draft" ? (
                 <>
                   <button className="button secondary" disabled={Boolean(busy)} type="submit"><Save aria-hidden="true" size={17} /> {busy === "save" ? "Saving..." : "Save draft"}</button>
-                  {needsRegeneration ? <button className="button secondary" disabled={Boolean(busy) || selected.status !== "draft"} onClick={() => mutate("regenerate")} type="button"><Sparkles aria-hidden="true" size={17} /> {busy === "regenerate" ? "Completing..." : "Complete draft"}</button> : null}
+                  {needsRegeneration ? <button className="button secondary" disabled={Boolean(busy) || selected.status !== "draft" || automationRunning} onClick={() => mutate("regenerate")} type="button"><Sparkles aria-hidden="true" size={17} /> {busy === "regenerate" || automationRunning ? "Completing..." : selected.editorialAutomation.status === "retry_scheduled" || selected.editorialAutomation.status === "needs_review" ? "Retry now" : "Complete draft"}</button> : null}
                   <button className="button primary" disabled={Boolean(busy) || needsRegeneration} onClick={() => mutate("approve")} title={needsRegeneration ? "Resolve the listed readiness checks before approval" : "Approve the reviewed revision"} type="button"><ShieldCheck aria-hidden="true" size={17} /> Approve</button>
                   <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => mutate("archive")} title="Archive article" type="button"><Archive aria-hidden="true" size={18} /></button>
                   <button className="icon-button danger" disabled={Boolean(busy)} onClick={() => deletePost(selected)} title={`Delete ${draft.contentType || "blog"}`} type="button"><Trash2 aria-hidden="true" size={18} /></button>

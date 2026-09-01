@@ -15,7 +15,9 @@ test("production cadence separates ingestion, drafting, and social delivery", as
   assert.match(workflow, /id-token: write/);
   assert.match(workflow, /scan-advisories:/);
   assert.match(workflow, /publish-social:/);
+  assert.match(workflow, /complete-content:/);
   assert.match(workflow, /api\/cron\/advisory-discovery/);
+  assert.match(workflow, /api\/cron\/content-editorial/);
   assert.match(workflow, /api\/cron\/social-publisher/);
 });
 

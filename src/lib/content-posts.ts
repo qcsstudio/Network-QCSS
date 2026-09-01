@@ -10,6 +10,14 @@ import {
 } from "@/lib/content-admin-domain";
 import { buildRadarPublicationPost, normalizeRadarSlug, type RadarDraftInput } from "@/lib/content-radar-domain";
 import {
+  editorialAutomationFromTrace,
+  editorialAutomationIsDue,
+  editorialTraceWithAutomation,
+  finishEditorialAutomation,
+  startEditorialAutomation,
+  type EditorialAutomationState
+} from "@/lib/editorial-completion-domain";
+import {
   createResearchedBlog,
   type BlogEditorialInput,
   type EditorialResearchCoverage
@@ -127,6 +135,7 @@ export type ContentPostRecord = {
   publishedAt: string;
   qualityScore: number | null;
   researchCoverage: EditorialResearchCoverage | null;
+  editorialAutomation: EditorialAutomationState;
   createdAt: string;
   updatedAt: string;
   revisions: {
@@ -195,19 +204,24 @@ function mapContentPost(record: {
   updatedAt: Date;
   revisions?: { id: string; version: number; action: string; actor: string | null; createdAt: Date }[];
 }): ContentPostRecord {
+  const content = parsePost(record.content);
+  const qualityScore = record.qualityScore ?? null;
+  const researchCoverage = parseResearchCoverage(record.researchTrace);
+  const completionIssues = editorialCompletionIssues(content, qualityScore, record.researchTrace);
   return {
     id: record.id,
     slug: record.slug,
     title: record.title,
     status: parseStatus(record.status),
-    content: parsePost(record.content),
+    content,
     sourceUrl: record.sourceUrl || "",
     createdBy: record.createdBy || "",
     approvedBy: record.approvedBy || "",
     approvedAt: record.approvedAt?.toISOString() || "",
     publishedAt: record.publishedAt?.toISOString() || "",
-    qualityScore: record.qualityScore ?? null,
-    researchCoverage: parseResearchCoverage(record.researchTrace),
+    qualityScore,
+    researchCoverage,
+    editorialAutomation: editorialAutomationFromTrace(record.researchTrace, completionIssues.length === 0),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     revisions: (record.revisions || []).map((revision) => ({
@@ -241,21 +255,28 @@ export function publicationIssues(post: BlogPost) {
   return issues;
 }
 
-function recordPublicationIssues(post: ContentPostRecord) {
-  const issues = publicationIssues(post.content);
-  if (post.content.contentVersion === 3 && post.qualityScore === null) {
+function editorialCompletionIssues(content: BlogPost, qualityScore: number | null, researchTrace: unknown) {
+  const issues = publicationIssues(content);
+  const researchCoverage = parseResearchCoverage(researchTrace);
+  if (content.contentVersion === 3 && qualityScore === null) {
     issues.push("Run Complete draft after editing so the research and editorial QA can be verified.");
-  } else if (post.qualityScore !== null && post.qualityScore < 84) {
+  } else if (qualityScore !== null && qualityScore < 84) {
     issues.push("Regenerate or manually review this article because its editorial quality score is below 84.");
   }
-  if (post.content.contentVersion === 3) {
-    if (!post.researchCoverage?.liveWebResearch) issues.push("Complete a live-web research pass before approval.");
-    if ((post.researchCoverage?.webQueries || 0) < 3) issues.push("Complete at least three distinct web research queries before approval.");
-    if ((post.researchCoverage?.researchQuestions || 0) < 4) issues.push("Resolve at least four source-backed research questions before approval.");
-    if ((post.researchCoverage?.evidenceSources || 0) < 3) issues.push("Verify at least three authoritative evidence sources before approval.");
-    if ((post.researchCoverage?.technicalSteps || 0) < 5) issues.push("Build a researched technical guide with at least five validated steps.");
+  if (content.contentVersion === 3) {
+    if (!researchCoverage?.liveWebResearch) issues.push("Complete a live-web research pass before approval.");
+    if ((researchCoverage?.webQueries || 0) < 3) issues.push("Complete at least three distinct web research queries before approval.");
+    if ((researchCoverage?.researchQuestions || 0) < 4) issues.push("Resolve at least four source-backed research questions before approval.");
+    if ((researchCoverage?.evidenceSources || 0) < 3) issues.push("Verify at least three authoritative evidence sources before approval.");
+    if ((researchCoverage?.technicalSteps || 0) < 5) issues.push("Build a researched technical guide with at least five validated steps.");
   }
-  return issues;
+  return [...new Set(issues)];
+}
+
+function recordPublicationIssues(post: ContentPostRecord) {
+  return editorialCompletionIssues(post.content, post.qualityScore, {
+    research: post.researchCoverage ? { coverage: post.researchCoverage } : undefined
+  });
 }
 
 export function starterPostFromRadar(draft: RadarDraftInput): BlogPost {
@@ -429,6 +450,9 @@ export async function createContentPost(
 ) {
   const content = parsePost(contentValue);
   const prisma = getPrismaClient();
+  const researchTrace = editorial
+    ? completedResearchTrace(content, editorial.qualityScore, editorial.researchTrace, editorialAutomationFromTrace(null))
+    : undefined;
   const record = await prisma.contentPost.create({
     data: {
       slug: content.slug,
@@ -437,11 +461,25 @@ export async function createContentPost(
       sourceUrl,
       createdBy: actor,
       qualityScore: editorial?.qualityScore,
-      researchTrace: editorial ? inputJson(editorial.researchTrace) : undefined
+      researchTrace: researchTrace ? inputJson(researchTrace) : undefined
     }
   });
   await addRevision(record.id, content, "created", actor);
   return getContentPost(record.id);
+}
+
+function completedResearchTrace(
+  content: BlogPost,
+  qualityScore: number,
+  researchTrace: unknown,
+  currentAutomation: EditorialAutomationState
+) {
+  const issues = editorialCompletionIssues(content, qualityScore, researchTrace);
+  const automation = finishEditorialAutomation(currentAutomation, {
+    ready: issues.length === 0,
+    error: issues.join(" ")
+  });
+  return editorialTraceWithAutomation(researchTrace, automation);
 }
 
 function researchSourcesForDraft(draft: RadarDraftInput) {
@@ -535,6 +573,7 @@ export async function regenerateRadarContentPost(
     mode: "draft"
   });
   const content = researched.content;
+  const researchTrace = completedResearchTrace(content, researched.qualityScore, researched.trace, existing.editorialAutomation);
   const prisma = getPrismaClient();
   await prisma.contentPost.update({
     where: { id },
@@ -548,7 +587,7 @@ export async function regenerateRadarContentPost(
       approvedBy: null,
       publishedAt: null,
       qualityScore: researched.qualityScore,
-      researchTrace: inputJson(researched.trace)
+      researchTrace: inputJson(researchTrace)
     }
   });
   await addRevision(id, content, "radar_content_regenerated", actor);
@@ -634,6 +673,103 @@ export async function createAutomatedRadarDraft(draft: RadarDraftInput, actor = 
   const created = await createResearchedContentPostFromRadar(normalizedDraft, actor);
   if (!created) throw new Error("The researched article draft could not be created.");
   return { post: created, created: true, reason: "drafted" };
+}
+
+export type EditorialCompletionOutcome = {
+  postId: string;
+  slug: string;
+  status: EditorialAutomationState["status"] | "skipped";
+  attempts: number;
+  ready: boolean;
+  message: string;
+};
+
+function hasIndependentEditorialSource(content: BlogPost) {
+  return content.sources.some((source) => {
+    if (!isTrustedEditorialUrl(source.url)) return false;
+    try {
+      const host = new URL(source.url).hostname.toLowerCase().replace(/^www\./, "");
+      return host !== "qcsstudio.com" && !host.endsWith(".qcsstudio.com");
+    } catch {
+      return false;
+    }
+  });
+}
+
+export async function processEditorialCompletionQueue(limit = 1): Promise<EditorialCompletionOutcome[]> {
+  const prisma = getPrismaClient();
+  const now = new Date();
+  const records = await prisma.contentPost.findMany({
+    where: { status: "draft" },
+    orderBy: { updatedAt: "asc" },
+    take: 30,
+    select: {
+      id: true,
+      slug: true,
+      content: true,
+      qualityScore: true,
+      researchTrace: true,
+      updatedAt: true
+    }
+  });
+  const outcomes: EditorialCompletionOutcome[] = [];
+
+  for (const record of records) {
+    if (outcomes.length >= Math.max(1, Math.min(2, limit))) break;
+    const parsed = blogPostSchema.safeParse(record.content);
+    if (!parsed.success || parsed.data.contentVersion !== 3 || !hasIndependentEditorialSource(parsed.data as BlogPost)) continue;
+    const content = parsed.data as BlogPost;
+    const issues = editorialCompletionIssues(content, record.qualityScore, record.researchTrace);
+    if (!issues.length) continue;
+
+    const storedState = editorialAutomationFromTrace(record.researchTrace);
+    const state = storedState.status === "ready" ? { ...storedState, status: "pending" as const } : storedState;
+    if (!editorialAutomationIsDue(state, now)) continue;
+
+    const running = startEditorialAutomation(state, now);
+    const claimed = await prisma.contentPost.updateMany({
+      where: { id: record.id, status: "draft", updatedAt: record.updatedAt },
+      data: { researchTrace: inputJson(editorialTraceWithAutomation(record.researchTrace, running)) }
+    });
+    if (!claimed.count) continue;
+
+    try {
+      const post = await regenerateRadarContentPost(record.id, "content-editorial-automation");
+      if (!post) throw new Error("The queued draft no longer exists.");
+      outcomes.push({
+        postId: post.id,
+        slug: post.slug,
+        status: post.editorialAutomation.status,
+        attempts: post.editorialAutomation.attempts,
+        ready: post.editorialAutomation.status === "ready",
+        message:
+          post.editorialAutomation.status === "ready"
+            ? "Research, citations, technical guidance, and editorial QA are complete. Human approval is still required."
+            : post.editorialAutomation.lastError || "The draft remains in the automatic completion queue."
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Automatic editorial completion failed.";
+      const current = await prisma.contentPost.findUnique({
+        where: { id: record.id },
+        select: { researchTrace: true }
+      });
+      const failedState = finishEditorialAutomation(editorialAutomationFromTrace(current?.researchTrace), { ready: false, error: message });
+      await prisma.contentPost.update({
+        where: { id: record.id },
+        data: { researchTrace: inputJson(editorialTraceWithAutomation(current?.researchTrace, failedState)) }
+      });
+      outcomes.push({
+        postId: record.id,
+        slug: record.slug,
+        status: failedState.status,
+        attempts: failedState.attempts,
+        ready: false,
+        message: failedState.lastError
+      });
+    }
+  }
+
+  return outcomes;
 }
 
 export async function approveContentPost(id: string, actor: string) {
