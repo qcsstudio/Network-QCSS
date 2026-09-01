@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  alignEditorialVisualStory,
   buildStorySpineContext,
   createEditorialLineage,
   storySpineQualityIssues
@@ -79,6 +80,16 @@ test("locked story context keeps secondary topics subordinate", () => {
   assert.match(context, /1\. Trigger or change/);
   assert.match(context, /5\. Closure evidence/);
   assert.match(context, /must remain visually subordinate/);
+});
+
+test("visual chronology is deterministically aligned to the locked story spine", () => {
+  const aligned = alignEditorialVisualStory(spine, article().visualBrief);
+  const issues = storySpineQualityIssues(article(aligned));
+
+  assert.match(aligned.storySpine.visualSequence[0], /Establish the trigger/i);
+  assert.match(aligned.storySpine.visualSequence[1], /Explain the mechanism/i);
+  assert.match(aligned.storySpine.visualSequence[2], /Resolve with the operator decision/i);
+  assert.deepEqual(issues, []);
 });
 
 test("story quality gate rejects a visual brief that switches to an adjacent topic", () => {

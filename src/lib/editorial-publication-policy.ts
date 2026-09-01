@@ -91,7 +91,7 @@ export function evaluateEditorialReadiness(post: BlogPost) {
     const requiredSectionIntents: Array<[RegExp, string]> = [
       [/problem|scope|why .*matter|what .*mean/i, "Define the practical problem and its scope in a dedicated section."],
       [/mechanism|how .*work|technical|evidence|root cause/i, "Explain the technical mechanism and supporting evidence in a dedicated section."],
-      [/solution|response|decision|option|recommend/i, "Compare the practical solution or response choices in a dedicated section."],
+      [/solution|response|decision|option|recommend|remediat|choice|trade-off|alternative/i, "Compare the practical solution or response choices in a dedicated section."],
       [/implement|deployment|procedure|runbook|step-by-step|change sequence/i, "Provide a dedicated implementation or step-by-step technical guide section."],
       [/validat|verify|test|proof|success criteria/i, "Provide a dedicated validation section with observable success criteria."],
       [/limit|unknown|rollback|backout|recover|escalat/i, "Document limitations, rollback or recovery, and escalation conditions in a dedicated section."]

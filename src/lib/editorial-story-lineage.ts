@@ -12,6 +12,13 @@ export type EditorialStorySpine = {
   visualSequence: [string, string, string];
 };
 
+export type EditorialVisualBrief = {
+  storyThesis: string;
+  sceneConcept: string;
+  factualAnchors: string[];
+  avoid: string[];
+};
+
 export type EditorialLineage = {
   policyVersion: 1;
   hash: string;
@@ -79,6 +86,30 @@ export function normalizeStorySpine(value: EditorialStorySpine): EditorialStoryS
     verification: clip(value.verification),
     secondaryContext: [...new Set(value.secondaryContext.map((item) => clip(item, 240)).filter(Boolean))].slice(0, 4),
     visualSequence: value.visualSequence.map((item) => clip(item, 280)) as [string, string, string]
+  };
+}
+
+export function alignEditorialVisualStory(value: EditorialStorySpine, visualBrief: EditorialVisualBrief) {
+  const spine = normalizeStorySpine(value);
+  const storySpine: EditorialStorySpine = {
+    ...spine,
+    visualSequence: [
+      clip(`Establish the trigger: ${spine.trigger}`, 300),
+      clip(`Explain the mechanism: ${spine.mechanism}`, 300),
+      clip(`Resolve with the operator decision: ${spine.operatorDecision} Verify closure: ${spine.verification}`, 300)
+    ]
+  };
+  return {
+    storySpine,
+    visualBrief: {
+      ...visualBrief,
+      storyThesis: clip(`${spine.primarySubject}: ${spine.consequence}`, 500),
+      sceneConcept: clip(
+        `Establish ${spine.trigger} Explain ${spine.mechanism} Show the consequence: ${spine.consequence} Resolve with ${spine.operatorDecision} Close with ${spine.verification}`,
+        1_000
+      ),
+      factualAnchors: [spine.trigger, spine.mechanism, spine.consequence, spine.operatorDecision, spine.verification].map((item) => clip(item, 320))
+    }
   };
 }
 

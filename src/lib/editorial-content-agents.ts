@@ -6,10 +6,10 @@ import { evaluateEditorialReadiness } from "@/lib/editorial-publication-policy";
 import {
   collectEditorialEvidence,
   isTrustedEditorialUrl,
-  trustedEditorialHosts,
   type EditorialEvidenceSource
 } from "@/lib/editorial-source-policy";
 import { mapClaimSourceUrls } from "@/lib/editorial-citations";
+import { alignEditorialVisualStory } from "@/lib/editorial-story-lineage";
 import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts";
 
 const defaultContentWriterModel = "gpt-4.1-mini";
@@ -917,6 +917,7 @@ function buildBlogPost(input: BlogEditorialInput, draft: z.infer<typeof blogCont
     .split(/\s+/)
     .filter(Boolean).length;
   const sourceUrls = (values: string[], claim: string) => mapClaimSourceUrls(values, claim, evidence);
+  const alignedVisualStory = alignEditorialVisualStory(draft.storySpine, draft.visualBrief);
 
   return {
     contentVersion: 3,
@@ -943,8 +944,8 @@ function buildBlogPost(input: BlogEditorialInput, draft: z.infer<typeof blogCont
     },
     editorialMethod: `Researched from the listed primary and official sources, written for operational decision-making, and reviewed through QCS editorial QA. Sources checked ${today}.`,
     definitions: draft.definitions,
-    visualBrief: draft.visualBrief,
-    storySpine: draft.storySpine,
+    visualBrief: alignedVisualStory.visualBrief,
+    storySpine: alignedVisualStory.storySpine,
     relatedTools: (tools.length ? tools : ["/network-tools"]).slice(0, 4).map((href) => ({ label: labelFromPath(href), href })),
     relatedServices: (services.length ? services : ["/services/managed-network-services"])
       .slice(0, 4)

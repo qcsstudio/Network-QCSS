@@ -106,6 +106,16 @@ test("version 3 approval checks require broad evidence and decision-complete gui
   assert.equal(readiness.minimumCitedSections, 5);
 });
 
+test("remediation choices are recognized as a dedicated response section", () => {
+  const post = article();
+  const sections = post.sections.map((section, index) =>
+    index === 2 ? { ...section, heading: "Remediation choices and patching priorities" } : section
+  );
+  const issues = evaluateEditorialReadiness({ ...post, sections }).issues;
+
+  assert.equal(issues.some((issue) => /Compare the practical solution/i.test(issue)), false);
+});
+
 test("version 3 approval checks reject thin sourcing and missing operational stages", () => {
   const weak = article({
     sources: [{ label: "Only source", url: urls[0] }],
