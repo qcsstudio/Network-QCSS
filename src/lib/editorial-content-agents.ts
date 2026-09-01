@@ -570,8 +570,7 @@ async function runResearchScout(
     tools: [
       {
         type: "web_search",
-        search_context_size: "medium",
-        filters: { allowed_domains: [...trustedEditorialHosts] }
+        search_context_size: "medium"
       }
     ],
     tool_choice: "required",
