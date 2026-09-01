@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/advisory-discovery",
       "schedule": "17 3 * * *"
+    },
+    {
+      "path": "/api/cron/content-editorial",
+      "schedule": "47 3 * * *"
     }
   ]
 }
