@@ -8,7 +8,7 @@ import {
   type ContentPostListQuery,
   type ContentPostStatus
 } from "@/lib/content-admin-domain";
-import { buildRadarPublicationPost, type RadarDraftInput } from "@/lib/content-radar-domain";
+import { buildRadarPublicationPost, normalizeRadarSlug, type RadarDraftInput } from "@/lib/content-radar-domain";
 import { createResearchedBlog, type BlogEditorialInput } from "@/lib/editorial-content-agents";
 import { evaluateEditorialReadiness } from "@/lib/editorial-publication-policy";
 import { isTrustedEditorialUrl } from "@/lib/editorial-source-policy";
@@ -424,10 +424,11 @@ function researchSourcesForDraft(draft: RadarDraftInput) {
 }
 
 export async function createResearchedContentPostFromRadar(draft: RadarDraftInput, actor: string) {
+  const slug = normalizeRadarSlug(draft.slug || draft.title);
   const sources = researchSourcesForDraft(draft);
   if (!sources.length) throw new Error("This trend needs an approved primary source before it can become an article draft.");
   const researched = await createResearchedBlog({
-    slug: draft.slug,
+    slug,
     topic: draft.title,
     businessAngle: draft.businessAngle || draft.answerBlock,
     keywordCluster: draft.keywordCluster || [draft.title],
@@ -488,7 +489,7 @@ export async function regenerateRadarContentPost(
     sources.push({ label: sourceName(primarySourceUrl, source?.label), url: primarySourceUrl });
   }
   const researched = await createResearchedBlog({
-    slug: briefOverride.slug || existing.content.slug,
+    slug: normalizeRadarSlug(briefOverride.slug || existing.content.slug),
     topic: briefOverride.topic || existing.content.title,
     businessAngle: briefOverride.businessAngle || existing.content.answer,
     keywordCluster: briefOverride.keywordCluster || existing.content.keywords,
@@ -588,12 +589,13 @@ export async function getAutomatedPostForUtcDate(date: string, actor = "content-
 
 export async function createAutomatedRadarDraft(draft: RadarDraftInput, actor = "content-radar-cron") {
   const prisma = getPrismaClient();
-  const existing = await prisma.contentPost.findUnique({ where: { slug: draft.slug }, select: { id: true, status: true } });
+  const normalizedDraft = { ...draft, slug: normalizeRadarSlug(draft.slug || draft.title) };
+  const existing = await prisma.contentPost.findUnique({ where: { slug: normalizedDraft.slug }, select: { id: true, status: true } });
   if (existing) {
     return { post: await getContentPost(existing.id), created: false, reason: `slug_${existing.status}` };
   }
 
-  const created = await createResearchedContentPostFromRadar(draft, actor);
+  const created = await createResearchedContentPostFromRadar(normalizedDraft, actor);
   if (!created) throw new Error("The researched article draft could not be created.");
   return { post: created, created: true, reason: "drafted" };
 }

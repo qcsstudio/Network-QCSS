@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildRadarPublicationPost } from "../src/lib/content-radar-domain.ts";
+import { buildRadarPublicationPost, normalizeRadarSlug } from "../src/lib/content-radar-domain.ts";
 
 const radarDraft = {
   slot: "Thursday",
@@ -47,4 +47,16 @@ test("radar publication content is complete and passes editorial limits", () => 
 test("internal fallback sources are normalized to public URLs", () => {
   const post = buildRadarPublicationPost({ ...radarDraft, sourceUrl: "/services/managed-network-services" });
   assert.equal(post.sources[0].url, "https://www.qcsstudio.com/services/managed-network-services");
+});
+
+test("radar slugs remain valid when a long feed title is truncated on a separator", () => {
+  const slug = normalizeRadarSlug("Cisco Advance Notification for Publication of September 2, 2026, Security Advisories", 72);
+  assert.match(slug, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+  assert.ok(slug.length <= 72);
+  assert.equal(slug.endsWith("-"), false);
+});
+
+test("radar slugs normalize punctuation and unicode before database creation", () => {
+  const slug = normalizeRadarSlug("Who’s Running All Those Tiny RPKI Servers?");
+  assert.equal(slug, "who-s-running-all-those-tiny-rpki-servers");
 });

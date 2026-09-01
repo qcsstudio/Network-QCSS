@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { getAdminSession, isAdminRequest } from "@/lib/admin-auth";
 import { jsonError, noStoreHeaders, readJsonBody } from "@/lib/api";
 import {
@@ -75,6 +76,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, post }, { status: 201, headers: noStoreHeaders });
   } catch (error) {
     console.error("Unable to create content post.", error);
+    if (error instanceof z.ZodError) {
+      const message = error.issues.map((issue) => `${issue.path.join(".") || "Article"}: ${issue.message}`).join(" ");
+      return jsonError(message, 400);
+    }
     return jsonError(error instanceof Error ? error.message : "Unable to create content post.", 400);
   }
 }

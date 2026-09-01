@@ -3,6 +3,7 @@ import { isAdminRequest } from "@/lib/admin-auth";
 import { jsonError, noStoreHeaders } from "@/lib/api";
 import { contentAutomationSources, trendTopicSeeds, weeklyBlogCadence, type TrendSource } from "@/lib/blog";
 import { createAutomatedRadarDraft, getAutomatedPostForUtcDate } from "@/lib/content-posts";
+import { normalizeRadarSlug } from "@/lib/content-radar-domain";
 import { requestContext } from "@/lib/security";
 import { createAuditLog } from "@/lib/store";
 
@@ -283,11 +284,7 @@ function isNetworkRelevant(item: FeedItem) {
 }
 
 function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 72);
+  return normalizeRadarSlug(value, 72);
 }
 
 function normalizedTitle(value: string) {

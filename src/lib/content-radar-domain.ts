@@ -26,6 +26,17 @@ export type RadarDraftInput = {
   imageRecommendation: string;
 };
 
+export function normalizeRadarSlug(value: string, maxLength = 180) {
+  const normalized = value
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+/, "")
+    .slice(0, Math.max(3, maxLength))
+    .replace(/-+$/, "");
+  return normalized.length >= 3 ? normalized : "network-intelligence-brief";
+}
+
 type OperatingGuidance = {
   category: string;
   evidence: string[];
@@ -156,7 +167,7 @@ function operatingGuidance(context: string): OperatingGuidance {
 export function buildRadarPublicationPost(draft: RadarDraftInput): BlogPost {
   const today = new Date().toISOString().slice(0, 10);
   const title = compact(draft.title, 180);
-  const slug = compact(draft.slug.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), 180);
+  const slug = normalizeRadarSlug(draft.slug || title);
   const sourceName = compact(draft.sourceName || "Primary technical source", 180);
   const sourceUrl = absoluteSourceUrl(draft.sourceUrl);
   const sourcePublished = sourceDate(draft.sourcePublishedAt);
