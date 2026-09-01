@@ -563,6 +563,7 @@ export async function researchBlogTopic(input: BlogEditorialInput) {
         "Use multiple independent research angles and prefer the most direct primary source for each claim. If sources conflict or do not answer a question, record that explicitly instead of guessing.",
         "Every factual finding and evidence-dependent guide step must contain the exact supporting source URLs. Practical recommendations must be safe, reversible, scoped, and distinguish vendor guidance from QCS analysis.",
         "The technical guide must be useful to a working network or security operator: define prerequisites, action, rationale, validation, and rollback for each step. Never invent commands, versions, metrics, or product behavior.",
+        "Keep the dossier concise and decision-focused: return four to six findings and five to seven technical-guide steps, using compact paragraphs instead of exhausting field limits.",
         "Return the required JSON only."
       ].join(" "),
       input: [
@@ -572,12 +573,15 @@ export async function researchBlogTopic(input: BlogEditorialInput) {
         `STARTING PRIMARY SOURCES:\n${suppliedUrls.join("\n")}`,
         "Research at least these angles: what changed or triggered the topic; how the technology or failure mechanism works; who and what is affected; evidence to collect; practical solution choices; implementation sequence; validation; rollback; limitations; and when to escalate."
       ].join("\n\n"),
-      max_output_tokens: 4_200,
+      max_output_tokens: 6_000,
       text: {
         ...(usesReasoningControls(config.researchModel) ? { verbosity: "medium" as const } : {}),
         format: { type: "json_schema", name: "qcs_editorial_research_dossier", strict: true, schema: researchDossierJsonSchema }
       }
     });
+    if (response.status === "incomplete") {
+      throw new Error(`The live research response was incomplete: ${response.incomplete_details?.reason || "unknown reason"}.`);
+    }
     const dossier = parseStructured(response.output_text, researchDossierSchema, "QCS Technical Research Analyst");
     const searchActivity = webSearchActivity(response);
     const discoveredUrls = searchActivity.urls;

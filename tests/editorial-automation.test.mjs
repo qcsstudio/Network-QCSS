@@ -21,6 +21,14 @@ test("production cadence separates ingestion, drafting, and social delivery", as
   assert.match(workflow, /api\/cron\/social-publisher/);
 });
 
+test("live research reserves enough structured-output capacity and rejects truncation", async () => {
+  const agents = await readFile(new URL("../src/lib/editorial-content-agents.ts", import.meta.url), "utf8");
+
+  assert.match(agents, /Keep the dossier concise and decision-focused/);
+  assert.match(agents, /max_output_tokens: 6_000/);
+  assert.match(agents, /response\.status === "incomplete"/);
+});
+
 function publicationReadyPost(sectionWords = 190, includeCitation = true) {
   const sourceUrl = "https://www.cisa.gov/news-events/cybersecurity-advisories";
   const body = Array.from({ length: sectionWords }, (_, index) => `evidence${index}`).join(" ");
