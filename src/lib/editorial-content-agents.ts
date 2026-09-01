@@ -3,12 +3,58 @@ import { z } from "zod";
 import { editorialReadingQualityInstruction } from "./editorial-quality-policy.ts";
 import type { BlogPost } from "@/lib/blog";
 import { evaluateEditorialReadiness } from "@/lib/editorial-publication-policy";
-import { collectEditorialEvidence, type EditorialEvidenceSource } from "@/lib/editorial-source-policy";
+import {
+  collectEditorialEvidence,
+  isTrustedEditorialUrl,
+  trustedEditorialHosts,
+  type EditorialEvidenceSource
+} from "@/lib/editorial-source-policy";
 import { mapClaimSourceUrls } from "@/lib/editorial-citations";
 import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts";
 
 const defaultContentWriterModel = "gpt-4.1-mini";
 const defaultContentCriticModel = "gpt-4.1-mini";
+const defaultResearchModel = "gpt-4.1-mini";
+
+const researchFindingSchema = z.object({
+  question: z.string().min(20).max(320),
+  finding: z.string().min(60).max(1_200),
+  sourceUrls: z.array(z.string().url().max(1_000)).min(1).max(5),
+  confidence: z.enum(["high", "medium", "low"])
+});
+
+const technicalGuideStepSchema = z.object({
+  step: z.string().min(10).max(180),
+  action: z.string().min(40).max(800),
+  rationale: z.string().min(40).max(700),
+  validation: z.string().min(30).max(600),
+  rollback: z.string().min(20).max(600),
+  sourceUrls: z.array(z.string().url().max(1_000)).min(1).max(4)
+});
+
+const researchDossierSchema = z.object({
+  problemDefinition: z.string().min(80).max(1_200),
+  audienceDecision: z.string().min(60).max(800),
+  searchQueries: z.array(z.string().min(8).max(240)).min(3).max(8),
+  findings: z.array(researchFindingSchema).min(4).max(8),
+  practicalSolution: z.string().min(100).max(1_600),
+  technicalGuide: z.array(technicalGuideStepSchema).min(5).max(10),
+  disagreementsAndUnknowns: z.array(z.string().min(20).max(500)).max(8),
+  escalationCriteria: z.array(z.string().min(20).max(500)).min(2).max(8)
+});
+
+export type EditorialResearchDossier = z.infer<typeof researchDossierSchema>;
+
+export type EditorialResearchCoverage = {
+  liveWebResearch: boolean;
+  webQueries: number;
+  researchQuestions: number;
+  evidenceSources: number;
+  citedSections: number;
+  sectionCount: number;
+  technicalSteps: number;
+  unknownsRecorded: number;
+};
 
 const storySpineSchema = z.object({
   primarySubject: z.string().min(20).max(240),
@@ -70,8 +116,8 @@ const blogContentSchema = z.object({
     avoid: z.array(z.string().min(10).max(240)).min(3).max(8)
   }),
   storySpine: storySpineSchema,
-  sections: z.array(sectionSchema).min(5).max(7),
-  checklist: z.array(z.string().min(15).max(400)).min(6).max(12),
+  sections: z.array(sectionSchema).min(6).max(8),
+  checklist: z.array(z.string().min(15).max(400)).min(8).max(14),
   questions: z
     .array(
       z.object({
@@ -112,6 +158,10 @@ type EditorialAgentTrace = {
   evidence: Array<{ label: string; url: string; fetched: boolean; characters: number }>;
   qa: ContentQa;
   storySpine: z.infer<typeof storySpineSchema>;
+  research?: {
+    dossier: EditorialResearchDossier;
+    coverage: EditorialResearchCoverage;
+  };
 };
 
 export type AdvisoryEditorialInput = {
@@ -152,7 +202,8 @@ export function editorialContentAgentConfiguration() {
     credentialIssue: credential.credentialIssue,
     provider: "OpenAI direct API",
     writerModel: env("EDITORIAL_CONTENT_WRITER_MODEL") || defaultContentWriterModel,
-    criticModel: env("EDITORIAL_CONTENT_CRITIC_MODEL") || defaultContentCriticModel
+    criticModel: env("EDITORIAL_CONTENT_CRITIC_MODEL") || defaultContentCriticModel,
+    researchModel: env("EDITORIAL_RESEARCH_MODEL") || defaultResearchModel
   };
 }
 
@@ -327,8 +378,8 @@ const blogContentJsonSchema = {
       }
     },
     storySpine: storySpineJsonSchema,
-    sections: { type: "array", minItems: 5, maxItems: 7, items: sectionJsonSchema },
-    checklist: { type: "array", minItems: 6, maxItems: 12, items: { type: "string", minLength: 15, maxLength: 400 } },
+    sections: { type: "array", minItems: 6, maxItems: 8, items: sectionJsonSchema },
+    checklist: { type: "array", minItems: 8, maxItems: 14, items: { type: "string", minLength: 15, maxLength: 400 } },
     questions: {
       type: "array",
       minItems: 4,
@@ -382,6 +433,182 @@ const contentQaJsonSchema = {
     correctionPrompt: { type: "string", maxLength: 1_600 }
   }
 };
+
+const researchFindingJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["question", "finding", "sourceUrls", "confidence"],
+  properties: {
+    question: { type: "string", minLength: 20, maxLength: 320 },
+    finding: { type: "string", minLength: 60, maxLength: 1_200 },
+    sourceUrls: { type: "array", minItems: 1, maxItems: 5, items: { type: "string", maxLength: 1_000 } },
+    confidence: { type: "string", enum: ["high", "medium", "low"] }
+  }
+};
+
+const technicalGuideStepJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["step", "action", "rationale", "validation", "rollback", "sourceUrls"],
+  properties: {
+    step: { type: "string", minLength: 10, maxLength: 180 },
+    action: { type: "string", minLength: 40, maxLength: 800 },
+    rationale: { type: "string", minLength: 40, maxLength: 700 },
+    validation: { type: "string", minLength: 30, maxLength: 600 },
+    rollback: { type: "string", minLength: 20, maxLength: 600 },
+    sourceUrls: { type: "array", minItems: 1, maxItems: 4, items: { type: "string", maxLength: 1_000 } }
+  }
+};
+
+const researchDossierJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "problemDefinition",
+    "audienceDecision",
+    "searchQueries",
+    "findings",
+    "practicalSolution",
+    "technicalGuide",
+    "disagreementsAndUnknowns",
+    "escalationCriteria"
+  ],
+  properties: {
+    problemDefinition: { type: "string", minLength: 80, maxLength: 1_200 },
+    audienceDecision: { type: "string", minLength: 60, maxLength: 800 },
+    searchQueries: { type: "array", minItems: 3, maxItems: 8, items: { type: "string", minLength: 8, maxLength: 240 } },
+    findings: { type: "array", minItems: 4, maxItems: 8, items: researchFindingJsonSchema },
+    practicalSolution: { type: "string", minLength: 100, maxLength: 1_600 },
+    technicalGuide: { type: "array", minItems: 5, maxItems: 10, items: technicalGuideStepJsonSchema },
+    disagreementsAndUnknowns: { type: "array", maxItems: 8, items: { type: "string", minLength: 20, maxLength: 500 } },
+    escalationCriteria: { type: "array", minItems: 2, maxItems: 8, items: { type: "string", minLength: 20, maxLength: 500 } }
+  }
+};
+
+function webSearchActivity(response: { output: unknown[] }) {
+  const urls = new Set<string>();
+  const queries = new Set<string>();
+  for (const item of response.output) {
+    if (!item || typeof item !== "object" || !("type" in item) || item.type !== "web_search_call") continue;
+    if (!("action" in item) || !item.action || typeof item.action !== "object") continue;
+    const action = item.action as { query?: unknown; queries?: unknown[]; url?: unknown; sources?: Array<{ url?: unknown }> };
+    if (typeof action.query === "string") queries.add(action.query);
+    for (const query of action.queries || []) {
+      if (typeof query === "string") queries.add(query);
+    }
+    if (typeof action.url === "string") urls.add(action.url);
+    for (const source of action.sources || []) {
+      if (typeof source.url === "string") urls.add(source.url);
+    }
+  }
+  return { queries: [...queries], urls: [...urls].filter(isTrustedEditorialUrl) };
+}
+
+function isExternalEditorialUrl(url: string) {
+  try {
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    return host !== "qcsstudio.com" && !host.endsWith(".qcsstudio.com");
+  } catch {
+    return false;
+  }
+}
+
+function restrictDossierSources(dossier: EditorialResearchDossier, allowedUrls: Set<string>) {
+  const canonical = (value: string) => {
+    try {
+      const url = new URL(value);
+      url.hash = "";
+      url.pathname = url.pathname.replace(/\/$/, "") || "/";
+      return url.toString();
+    } catch {
+      return "";
+    }
+  };
+  const exactUrl = new Map([...allowedUrls].map((url) => [canonical(url), url]));
+  const approvedUrls = (urls: string[]) =>
+    [...new Set(urls.map((url) => exactUrl.get(canonical(url))).filter((url): url is string => Boolean(url)))].slice(0, 4);
+  return {
+    ...dossier,
+    findings: dossier.findings
+      .map((finding) => ({ ...finding, sourceUrls: approvedUrls(finding.sourceUrls) }))
+      .filter((finding) => finding.sourceUrls.length),
+    technicalGuide: dossier.technicalGuide.map((step) => ({ ...step, sourceUrls: approvedUrls(step.sourceUrls) }))
+  };
+}
+
+export async function researchBlogTopic(input: BlogEditorialInput) {
+  const config = editorialContentAgentConfiguration();
+  const suppliedUrls = input.sources.map((source) => source.url).filter(isTrustedEditorialUrl);
+  const startedAt = Date.now();
+  console.info("QCS editorial agent started.", { stage: "blog-research", model: config.researchModel });
+  try {
+    const response = await openAIClient().responses.create({
+      model: config.researchModel,
+      store: false,
+      include: ["web_search_call.action.sources"],
+      tools: [
+        {
+          type: "web_search",
+          search_context_size: "high"
+        }
+      ],
+      tool_choice: "required",
+      reasoning: usesReasoningControls(config.researchModel) ? { effort: "low" } : undefined,
+      instructions: [
+        "You are the QCS Technical Research Analyst. Investigate the full operational question before an article is written.",
+        "Run at least three distinct web searches that cover current context, technical mechanism, and implementation or validation guidance before producing the dossier.",
+        "Search across relevant official vendor documentation, standards bodies, government guidance, cloud-provider documentation, and respected operator research within the allowed domains.",
+        `Community and news discussions may reveal questions and current operator concerns, but they cannot support a factual finding or technical-guide step. Every such claim must cite one of these approved evidence domains: ${trustedEditorialHosts.join(", ")}.`,
+        "Do not summarize headlines. Establish the current trigger, technical mechanism, affected operational decision, implementation options, validation evidence, rollback or recovery path, limitations, disagreements, and escalation conditions.",
+        "Use multiple independent research angles and prefer the most direct primary source for each claim. If sources conflict or do not answer a question, record that explicitly instead of guessing.",
+        "Every factual finding and evidence-dependent guide step must contain the exact supporting source URLs. Practical recommendations must be safe, reversible, scoped, and distinguish vendor guidance from QCS analysis.",
+        "The technical guide must be useful to a working network or security operator: define prerequisites, action, rationale, validation, and rollback for each step. Never invent commands, versions, metrics, or product behavior.",
+        "Return the required JSON only."
+      ].join(" "),
+      input: [
+        `TOPIC: ${input.topic}`,
+        `BUSINESS AND OPERATIONAL ANGLE: ${input.businessAngle}`,
+        `SEARCH INTENT: ${input.keywordCluster.join(", ")}`,
+        `STARTING PRIMARY SOURCES:\n${suppliedUrls.join("\n")}`,
+        "Research at least these angles: what changed or triggered the topic; how the technology or failure mechanism works; who and what is affected; evidence to collect; practical solution choices; implementation sequence; validation; rollback; limitations; and when to escalate."
+      ].join("\n\n"),
+      max_output_tokens: 4_200,
+      text: {
+        ...(usesReasoningControls(config.researchModel) ? { verbosity: "medium" as const } : {}),
+        format: { type: "json_schema", name: "qcs_editorial_research_dossier", strict: true, schema: researchDossierJsonSchema }
+      }
+    });
+    const dossier = parseStructured(response.output_text, researchDossierSchema, "QCS Technical Research Analyst");
+    const searchActivity = webSearchActivity(response);
+    const discoveredUrls = searchActivity.urls;
+    if (searchActivity.queries.length < 3) throw new Error("The live research pass did not complete three distinct web searches.");
+    const allowedUrls = new Set([...suppliedUrls, ...discoveredUrls]);
+    if ([...allowedUrls].filter(isExternalEditorialUrl).length < 3) {
+      throw new Error("The live research pass did not find three approved independent evidence sources.");
+    }
+    const restricted = researchDossierSchema.parse(restrictDossierSources(dossier, allowedUrls));
+    if (restricted.findings.length < 4) throw new Error("The live research pass did not return four source-backed findings.");
+    console.info("QCS editorial agent completed.", {
+      stage: "blog-research",
+      model: config.researchModel,
+      durationMs: Date.now() - startedAt,
+      findings: restricted.findings.length,
+      sources: allowedUrls.size
+    });
+    return {
+      dossier: restricted,
+      discoveredSources: discoveredUrls
+        .filter((url) => !suppliedUrls.includes(url))
+        .slice(0, 8)
+        .map((url) => ({ label: new URL(url).hostname.replace(/^www\./, ""), url })),
+      webQueries: searchActivity.queries.length,
+      liveWebResearch: true
+    };
+  } catch (error) {
+    console.error("QCS live editorial research failed.", error);
+    return { dossier: null, discoveredSources: [] as EditorialEvidenceSource[], webQueries: 0, liveWebResearch: false };
+  }
+}
 
 function evidenceBrief(evidence: Awaited<ReturnType<typeof collectEditorialEvidence>>) {
   return evidence
@@ -547,7 +774,7 @@ export async function enrichSecurityAdvisory(input: AdvisoryEditorialInput) {
   throw new Error(`Advisory editorial QA rejected the content: ${latestQa?.rationale || "unknown reason"}`);
 }
 
-async function writeBlog(input: BlogEditorialInput, evidence: string, correction = "") {
+async function writeBlog(input: BlogEditorialInput, evidence: string, dossier: EditorialResearchDossier | null, correction = "") {
   const config = editorialContentAgentConfiguration();
   const startedAt = Date.now();
   console.info("QCS editorial agent started.", { stage: "blog-writer", model: config.writerModel });
@@ -557,13 +784,16 @@ async function writeBlog(input: BlogEditorialInput, evidence: string, correction
     reasoning: usesReasoningControls(config.writerModel) ? { effort: "low" } : undefined,
     instructions: [
       "You are the QCS Research Editor, a senior network engineer, cybersecurity writer, SEO strategist, and educator.",
-      "Create an original, authoritative article from the supplied primary-source evidence. Search demand may shape the question, but never treat a trend or headline as technical evidence.",
+      "Create an original, authoritative article from the supplied research dossier and primary-source evidence. Search demand may shape the question, but never treat a trend or headline as technical evidence.",
       "Treat the evidence as the boundary of the article. If the editorial topic or business angle is not supported by that evidence, reframe the title and article around what the sources actually establish instead of forcing a connection. Never imply that separate advisories share a technical cause or affect routing, cloud, or security controls unless a supplied source says so.",
       "Answer the reader's real question immediately, explain terminology in plain English, then provide technically precise reasoning, examples, evidence, decisions, safeguards, and practical next steps.",
       "Build the article for human readers and answer engines: state a self-contained direct answer first; define important entities; organize the body around the reader's decision; distinguish evidence, interpretation, and recommendation; include implementation, validation, limitations, and escalation guidance where relevant.",
+      "Make the article solve the researched problem. It must explain the problem and mechanism, show the evidence, compare viable response choices, provide a safe implementation sequence, state validation and rollback steps, identify limitations and unknowns, and end with a technical takeaway an operator can apply.",
+      "Use six to eight decision-focused sections. Their headings must make these purposes immediately visible: problem and scope; technical mechanism and evidence; solution choices; implementation or step-by-step guide; validation and success criteria; and limitations, rollback or recovery, and escalation.",
       "Before writing sections, lock one storySpine in this order: primary subject; source-supported trigger; technical mechanism; operational consequence; operator decision; verification evidence. Every headline, section, visual anchor, and recommendation must serve that same story. Place adjacent but non-causal topics only in secondaryContext and keep them out of the title and focal visual.",
       "Copy source URLs exactly from the supplied evidence. Use sourceUrls on every section and FAQ answer with evidence-dependent claims; use an empty array only for clearly labeled QCS analysis or practical advice that does not depend on an external fact. At least one section must carry a primary-source citation.",
-      "The description, excerpt, direct answer, section headings, section bodies, and section bullets must contain at least 1,100 useful words by themselves. Checklists, definitions, takeaways, and FAQs do not count toward that minimum. Keep the complete article near 1,400 to 1,900 words, with five to seven focused sections and four to six genuine FAQs.",
+      "The description, excerpt, direct answer, section headings, section bodies, and section bullets must contain at least 1,100 useful words by themselves. Checklists, definitions, takeaways, and FAQs do not count toward that minimum. Keep the complete article near 1,500 to 2,100 words, with six to eight focused sections and four to six genuine FAQs.",
+      "The checklist is the compact technical takeaway. Include prerequisites and scope, evidence capture, the controlled action sequence, explicit validation, exception handling, explicit rollback or recovery, ownership, and the next review point.",
       "Create a topic-specific visualBrief from the locked storySpine. Its factualAnchors must be supported by the article; its scene must follow the three visualSequence frames establish, explain, and resolve; and its avoid list must block secondary topics, likely visual misinterpretations, and generic cyber imagery.",
       "Do not produce a vendor-news rewrite, generic checklist template, sales pitch, or repetitive QCS boilerplate. Do not invent versions, statistics, commands, exploit claims, outcomes, or quotations.",
       editorialReadingQualityInstruction,
@@ -571,6 +801,7 @@ async function writeBlog(input: BlogEditorialInput, evidence: string, correction
     ].join(" "),
     input: [
       `EDITORIAL BRIEF:\n${JSON.stringify({ topic: input.topic, businessAngle: input.businessAngle, keywordCluster: input.keywordCluster })}`,
+      dossier ? `RESEARCH DOSSIER:\n${JSON.stringify(dossier)}` : "RESEARCH DOSSIER: Live-web research was unavailable. Do not fill gaps by inference; keep unsupported points explicit and limited.",
       `PRIMARY-SOURCE EVIDENCE:\n${evidence}`,
       correction ? `MANDATORY EDITORIAL CORRECTION:\n${correction}` : ""
     ]
@@ -667,7 +898,9 @@ function buildBlogPost(input: BlogEditorialInput, draft: z.infer<typeof blogCont
 }
 
 export async function createResearchedBlog(input: BlogEditorialInput) {
-  const evidence = await collectEditorialEvidence(input.sources, 4);
+  const research = await researchBlogTopic(input);
+  const evidenceSources = [...input.sources, ...research.discoveredSources];
+  const evidence = await collectEditorialEvidence(evidenceSources, 8);
   const usable = evidence.filter((source) => source.text.length >= 120);
   if (!usable.length) throw new Error("No usable primary-source evidence was available for this article.");
   const brief = evidenceBrief(usable);
@@ -677,7 +910,7 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
   let latestReadinessIssues: string[] = [];
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
-    const written = await writeBlog(input, brief, correction);
+    const written = await writeBlog(input, brief, research.dossier, correction);
     const content = buildBlogPost(input, written, usable);
     latestContent = content;
     latestReadinessIssues = evaluateEditorialReadiness(content).issues;
@@ -693,6 +926,16 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
     latestQa = await inspectContent("blog", brief, content);
     console.info("QCS editorial QA result.", { kind: "blog", attempt, qa: latestQa });
     if (contentQaPasses(latestQa)) {
+      const coverage: EditorialResearchCoverage = {
+        liveWebResearch: research.liveWebResearch,
+        webQueries: research.webQueries,
+        researchQuestions: research.dossier?.findings.length || 0,
+        evidenceSources: usable.filter((source) => isExternalEditorialUrl(source.url)).length,
+        citedSections: content.sections.filter((section) => section.sourceUrls?.length).length,
+        sectionCount: content.sections.length,
+        technicalSteps: research.dossier?.technicalGuide.length || 0,
+        unknownsRecorded: research.dossier?.disagreementsAndUnknowns.length || 0
+      };
       return {
         content,
         qualityScore: qualityScore(latestQa),
@@ -705,7 +948,8 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
           generatedAt: new Date().toISOString(),
           evidence: usable.map((item) => ({ label: item.label, url: item.url, fetched: item.fetched, characters: item.text.length })),
           qa: latestQa,
-          storySpine: content.storySpine!
+          storySpine: content.storySpine!,
+          research: research.dossier ? { dossier: research.dossier, coverage } : undefined
         } satisfies EditorialAgentTrace
       };
     }
@@ -725,6 +969,16 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
       rationale: "The researched article was saved as a draft because mandatory editorial checks still require review.",
       correctionPrompt: latestReadinessIssues.join(" ").slice(0, 1_600)
     };
+    const coverage: EditorialResearchCoverage = {
+      liveWebResearch: research.liveWebResearch,
+      webQueries: research.webQueries,
+      researchQuestions: research.dossier?.findings.length || 0,
+      evidenceSources: usable.filter((source) => isExternalEditorialUrl(source.url)).length,
+      citedSections: latestContent.sections.filter((section) => section.sourceUrls?.length).length,
+      sectionCount: latestContent.sections.length,
+      technicalSteps: research.dossier?.technicalGuide.length || 0,
+      unknownsRecorded: research.dossier?.disagreementsAndUnknowns.length || 0
+    };
     return {
       content: latestContent,
       qualityScore: Math.min(83, qualityScore(heldQa)),
@@ -737,7 +991,8 @@ export async function createResearchedBlog(input: BlogEditorialInput) {
         generatedAt: new Date().toISOString(),
         evidence: usable.map((item) => ({ label: item.label, url: item.url, fetched: item.fetched, characters: item.text.length })),
         qa: heldQa,
-        storySpine: latestContent.storySpine!
+        storySpine: latestContent.storySpine!,
+        research: research.dossier ? { dossier: research.dossier, coverage } : undefined
       } satisfies EditorialAgentTrace
     };
   }

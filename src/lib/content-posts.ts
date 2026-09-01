@@ -9,7 +9,11 @@ import {
   type ContentPostStatus
 } from "@/lib/content-admin-domain";
 import { buildRadarPublicationPost, normalizeRadarSlug, type RadarDraftInput } from "@/lib/content-radar-domain";
-import { createResearchedBlog, type BlogEditorialInput } from "@/lib/editorial-content-agents";
+import {
+  createResearchedBlog,
+  type BlogEditorialInput,
+  type EditorialResearchCoverage
+} from "@/lib/editorial-content-agents";
 import { evaluateEditorialReadiness } from "@/lib/editorial-publication-policy";
 import { isTrustedEditorialUrl } from "@/lib/editorial-source-policy";
 import { getPrismaClient } from "@/lib/prisma";
@@ -122,6 +126,7 @@ export type ContentPostRecord = {
   approvedAt: string;
   publishedAt: string;
   qualityScore: number | null;
+  researchCoverage: EditorialResearchCoverage | null;
   createdAt: string;
   updatedAt: string;
   revisions: {
@@ -132,6 +137,25 @@ export type ContentPostRecord = {
     createdAt: string;
   }[];
 };
+
+const researchCoverageSchema = z.object({
+  liveWebResearch: z.boolean(),
+  webQueries: z.number().int().nonnegative(),
+  researchQuestions: z.number().int().nonnegative(),
+  evidenceSources: z.number().int().nonnegative(),
+  citedSections: z.number().int().nonnegative(),
+  sectionCount: z.number().int().nonnegative(),
+  technicalSteps: z.number().int().nonnegative(),
+  unknownsRecorded: z.number().int().nonnegative()
+});
+
+function parseResearchCoverage(value: unknown) {
+  if (!value || typeof value !== "object" || !("research" in value)) return null;
+  const research = (value as { research?: unknown }).research;
+  if (!research || typeof research !== "object" || !("coverage" in research)) return null;
+  const parsed = researchCoverageSchema.safeParse((research as { coverage?: unknown }).coverage);
+  return parsed.success ? parsed.data : null;
+}
 
 export type ContentPostListResult = {
   counts: Record<ContentPostStatus, number>;
@@ -166,6 +190,7 @@ function mapContentPost(record: {
   approvedAt: Date | null;
   publishedAt: Date | null;
   qualityScore?: number | null;
+  researchTrace?: unknown;
   createdAt: Date;
   updatedAt: Date;
   revisions?: { id: string; version: number; action: string; actor: string | null; createdAt: Date }[];
@@ -182,6 +207,7 @@ function mapContentPost(record: {
     approvedAt: record.approvedAt?.toISOString() || "",
     publishedAt: record.publishedAt?.toISOString() || "",
     qualityScore: record.qualityScore ?? null,
+    researchCoverage: parseResearchCoverage(record.researchTrace),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
     revisions: (record.revisions || []).map((revision) => ({
@@ -217,8 +243,17 @@ export function publicationIssues(post: BlogPost) {
 
 function recordPublicationIssues(post: ContentPostRecord) {
   const issues = publicationIssues(post.content);
-  if (post.qualityScore !== null && post.qualityScore < 84) {
+  if (post.content.contentVersion === 3 && post.qualityScore === null) {
+    issues.push("Run Complete draft after editing so the research and editorial QA can be verified.");
+  } else if (post.qualityScore !== null && post.qualityScore < 84) {
     issues.push("Regenerate or manually review this article because its editorial quality score is below 84.");
+  }
+  if (post.content.contentVersion === 3) {
+    if (!post.researchCoverage?.liveWebResearch) issues.push("Complete a live-web research pass before approval.");
+    if ((post.researchCoverage?.webQueries || 0) < 3) issues.push("Complete at least three distinct web research queries before approval.");
+    if ((post.researchCoverage?.researchQuestions || 0) < 4) issues.push("Resolve at least four source-backed research questions before approval.");
+    if ((post.researchCoverage?.evidenceSources || 0) < 3) issues.push("Verify at least three authoritative evidence sources before approval.");
+    if ((post.researchCoverage?.technicalSteps || 0) < 5) issues.push("Build a researched technical guide with at least five validated steps.");
   }
   return issues;
 }
@@ -233,6 +268,7 @@ export function starterContentPost(kind: "blog" | "resource"): BlogPost {
   const label = kind === "resource" ? "Network Operations Resource" : "Network Engineering Article";
   const slug = `new-${kind}-${unique}`;
   return {
+    contentVersion: 3,
     contentType: kind,
     slug,
     title: `New ${label}`,

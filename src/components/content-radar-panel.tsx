@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Activity, Archive, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Clipboard, Clock3, ExternalLink, Eye, FilePenLine, FilePlus2, FileText, Globe2, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Sparkles, Trash2, Upload } from "lucide-react";
 import type { BlogPost } from "@/lib/blog";
+import type { EditorialResearchCoverage } from "@/lib/editorial-content-agents";
 import { contentPostStatuses, type ContentPostStatus } from "@/lib/content-admin-domain";
 import { evaluateEditorialReadiness } from "@/lib/editorial-publication-policy";
 
@@ -60,6 +61,7 @@ export type ContentPostRecord = {
   approvedAt: string;
   publishedAt: string;
   qualityScore: number | null;
+  researchCoverage: EditorialResearchCoverage | null;
   updatedAt: string;
   revisions: { id: string; version: number; action: string; actor: string; createdAt: string }[];
 };
@@ -499,10 +501,23 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
     if (!draft) return null;
     const readiness = evaluateEditorialReadiness(draft);
     const issues = [...readiness.issues];
-    if (!hasUnsavedChanges && selected?.qualityScore !== null && selected?.qualityScore !== undefined && selected.qualityScore < 84) {
-      issues.push("Regenerate or manually review this article because its editorial quality score is below 84.");
+    if (draft.contentVersion === 3) {
+      if (hasUnsavedChanges) {
+        issues.push("Save these edits, then run Complete draft to refresh research and editorial QA.");
+      } else if (selected?.qualityScore === null || selected?.qualityScore === undefined) {
+        issues.push("Run Complete draft so the research and editorial QA can be verified.");
+      } else if (selected.qualityScore < 84) {
+        issues.push("Regenerate or manually review this article because its editorial quality score is below 84.");
+      }
+      if (!hasUnsavedChanges) {
+        if (!selected?.researchCoverage?.liveWebResearch) issues.push("Complete a live-web research pass before approval.");
+        if ((selected?.researchCoverage?.webQueries || 0) < 3) issues.push("Complete at least three distinct web research queries before approval.");
+        if ((selected?.researchCoverage?.researchQuestions || 0) < 4) issues.push("Resolve at least four source-backed research questions before approval.");
+        if ((selected?.researchCoverage?.evidenceSources || 0) < 3) issues.push("Verify at least three authoritative evidence sources before approval.");
+        if ((selected?.researchCoverage?.technicalSteps || 0) < 5) issues.push("Build a researched technical guide with at least five validated steps.");
+      }
     }
-    return { ...readiness, issues };
+    return { ...readiness, issues: [...new Set(issues)] };
   }, [draft, hasUnsavedChanges, selected]);
   const needsRegeneration = Boolean(approvalReadiness?.issues.length);
 
@@ -859,7 +874,8 @@ export function ContentRadarPanel({ initialPosts = [] }: { initialPosts?: Conten
             <div className={`content-readiness-summary ${needsRegeneration ? "needs-work" : "is-ready"}`}>
               <span className={`status-pill content-status-${selected.status}`}>{selected.status}</span>
               <strong>{needsRegeneration ? `${approvalReadiness?.issues.length || 0} approval check(s) need attention` : "Ready for editorial approval"}</strong>
-              <small>{approvalReadiness ? `${approvalReadiness.usefulWords}/${approvalReadiness.minimumUsefulWords} useful words | ${approvalReadiness.citationCount} mapped primary source(s)` : "Checking article readiness..."}</small>
+              <small>{approvalReadiness ? `${approvalReadiness.usefulWords}/${approvalReadiness.minimumUsefulWords} useful words | ${approvalReadiness.citedSections}/${draft.sections.length} cited sections | ${selected.researchCoverage?.evidenceSources || draft.sources.length} evidence source(s)` : "Checking article readiness..."}</small>
+              {selected.researchCoverage ? <small>{`${selected.researchCoverage.webQueries} web search(es) | ${selected.researchCoverage.researchQuestions} research question(s) | ${selected.researchCoverage.technicalSteps} technical step(s) | live web ${selected.researchCoverage.liveWebResearch ? "verified" : "not verified"}`}</small> : null}
               {needsRegeneration ? <ul>{approvalReadiness?.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul> : <small>Approval locks the reviewed revision; publishing updates the public blog, sitemap, and LinkedIn delivery queue.</small>}
             </div>
             <div className="content-action-row">

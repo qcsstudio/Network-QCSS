@@ -87,7 +87,7 @@ test("editorial readiness blocks short uncited drafts before approval", () => {
   const readiness = evaluateEditorialReadiness(publicationReadyPost(70, false));
   assert.equal(readiness.usefulWords < readiness.minimumUsefulWords, true);
   assert.equal(readiness.citationCount, 0);
-  assert.ok(readiness.issues.includes("Add original technical analysis; this format requires at least 900 useful words."));
+  assert.ok(readiness.issues.includes("Add original technical analysis; this format requires at least 1000 useful words."));
   assert.ok(readiness.issues.includes("Attach primary-source citations to the claims they support."));
 });
 
