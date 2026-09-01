@@ -100,9 +100,12 @@ test("story quality gate rejects a visual brief that switches to an adjacent top
 test("generic supporting context does not falsely become a competing headline", () => {
   const issues = storySpineQualityIssues(
     article({
+      title: "Critical Cisco vulnerabilities: understand risks and prepare for patches",
+      primaryKeyword: "Cisco critical vulnerabilities",
       storySpine: {
         ...spine,
-        secondaryContext: ["Network security monitoring best practices"]
+        primarySubject: "Cisco critical vulnerabilities",
+        secondaryContext: ["Network security monitoring best practices", "FortiGate and Juniper packet capture tools"]
       }
     })
   );

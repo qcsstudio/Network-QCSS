@@ -150,7 +150,57 @@ export function buildStorySpineContext(spine: EditorialStorySpine) {
 }
 
 function meaningfulTokens(value: string) {
-  const stop = new Set(["about", "after", "against", "before", "being", "between", "could", "every", "from", "have", "into", "more", "must", "only", "other", "should", "their", "there", "these", "this", "through", "using", "when", "where", "which", "with", "without"]);
+  const stop = new Set([
+    "about",
+    "after",
+    "against",
+    "also",
+    "and",
+    "are",
+    "before",
+    "being",
+    "between",
+    "but",
+    "can",
+    "could",
+    "does",
+    "every",
+    "for",
+    "from",
+    "has",
+    "have",
+    "how",
+    "into",
+    "its",
+    "more",
+    "must",
+    "not",
+    "only",
+    "other",
+    "our",
+    "should",
+    "such",
+    "than",
+    "that",
+    "the",
+    "their",
+    "there",
+    "these",
+    "they",
+    "this",
+    "through",
+    "using",
+    "was",
+    "were",
+    "when",
+    "where",
+    "which",
+    "will",
+    "with",
+    "without",
+    "you",
+    "your"
+  ]);
   return new Set((value.toLowerCase().match(/[a-z0-9][a-z0-9.+-]{2,}/g) || []).filter((token) => !stop.has(token)));
 }
 
