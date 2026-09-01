@@ -2,8 +2,10 @@ import OpenAI from "openai";
 import { z } from "zod";
 import {
   advisoryLinkedInQualityIssues,
+  composeLinkedInProtocolCommentary,
   editorialLinkedInQualityIssues,
-  formatAgentLinkedInCommentary,
+  linkedInCommentaryPolicyVersion,
+  linkedInProtocolIssues,
   type LinkedInAdvisoryPost,
   type LinkedInEditorialPost
 } from "@/lib/linkedin-commentary";
@@ -15,11 +17,15 @@ const defaultWriterModel = "gpt-4.1-mini";
 const defaultCriticModel = "gpt-4.1-mini";
 
 const linkedInDraftSchema = z.object({
-  commentary: z.string().min(650).max(2_700),
+  hook: z.string().min(80).max(220),
+  evidence: z.string().min(160).max(460),
+  interpretation: z.string().min(120).max(360),
+  verification: z.string().min(100).max(240),
+  question: z.string().max(280),
   audience: z.string().min(15).max(180),
   pointOfView: z.string().min(30).max(400),
   factsUsed: z.array(z.string().min(10).max(320)).min(3).max(12),
-  actions: z.array(z.string().min(20).max(300)).min(3).max(4),
+  actions: z.array(z.string().min(20).max(180)).min(3).max(4),
   hashtags: z.array(z.string().regex(/^#[A-Za-z0-9]+$/)).min(3).max(5)
 });
 
@@ -32,7 +38,7 @@ const linkedInQaSchema = z.object({
   clarityScore: z.number().int().min(0).max(100),
   platformFitScore: z.number().int().min(0).max(100),
   violations: z.array(z.string().min(2).max(360)).max(12),
-  rationale: z.string().min(20).max(1_000),
+  rationale: z.string().min(20).max(1_600),
   correctionPrompt: z.string().max(1_600)
 });
 
@@ -41,7 +47,7 @@ type LinkedInDraft = z.infer<typeof linkedInDraftSchema>;
 
 type LinkedInAgentTrace = {
   provider: "openai-direct";
-  policyVersion: 3;
+  policyVersion: 4;
   writerModel: string;
   criticModel: string;
   attempts: number;
@@ -66,13 +72,17 @@ type LinkedInAgentInput =
 const draftJsonSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["commentary", "audience", "pointOfView", "factsUsed", "actions", "hashtags"],
+  required: ["hook", "evidence", "interpretation", "verification", "question", "audience", "pointOfView", "factsUsed", "actions", "hashtags"],
   properties: {
-    commentary: { type: "string", minLength: 650, maxLength: 2_700 },
+    hook: { type: "string", minLength: 80, maxLength: 220 },
+    evidence: { type: "string", minLength: 160, maxLength: 460 },
+    interpretation: { type: "string", minLength: 120, maxLength: 360 },
+    verification: { type: "string", minLength: 100, maxLength: 240 },
+    question: { type: "string", maxLength: 280 },
     audience: { type: "string", minLength: 15, maxLength: 180 },
     pointOfView: { type: "string", minLength: 30, maxLength: 400 },
     factsUsed: { type: "array", minItems: 3, maxItems: 12, items: { type: "string", minLength: 10, maxLength: 320 } },
-    actions: { type: "array", minItems: 3, maxItems: 4, items: { type: "string", minLength: 20, maxLength: 300 } },
+    actions: { type: "array", minItems: 3, maxItems: 4, items: { type: "string", minLength: 20, maxLength: 180 } },
     hashtags: { type: "array", minItems: 3, maxItems: 5, items: { type: "string", pattern: "^#[A-Za-z0-9]+$" } }
   }
 };
@@ -101,7 +111,7 @@ const qaJsonSchema = {
     clarityScore: { type: "integer", minimum: 0, maximum: 100 },
     platformFitScore: { type: "integer", minimum: 0, maximum: 100 },
     violations: { type: "array", maxItems: 12, items: { type: "string", minLength: 2, maxLength: 360 } },
-    rationale: { type: "string", minLength: 20, maxLength: 1_000 },
+    rationale: { type: "string", minLength: 20, maxLength: 1_600 },
     correctionPrompt: { type: "string", maxLength: 1_600 }
   }
 };
@@ -207,11 +217,11 @@ function writerInstructions(kind: LinkedInAgentInput["kind"]) {
     "Follow the supplied storySpine in order: operational consequence as the hook, source-confirmed trigger and mechanism, operator decision, concrete actions, closure verification, then the original QCS link. Secondary context may be mentioned only as explicitly separate context and must never replace the primary subject.",
     "Use only supplied facts. Preserve exact CVEs, product names, severity, CVSS, versions, exploitation status, fixes, workarounds, and source qualifications. Never upgrade possibility into confirmed exploitation.",
     "Explain why the evidence matters to a named audience and make every action concrete enough for a network or security team to perform and validate.",
-    "Use natural professional language, active voice, short paragraphs, deliberate blank lines, and no paragraph longer than three sentences.",
-    "Use at most three short Title Case section labels. Do not use emoji, fake Unicode bold or italics, excessive capitals, clickbait, promotional claims, or rhetorical filler.",
+    "Return separate hook, evidence, interpretation, verification, and optional question fields. The application will assemble them into the fixed QCS presentation protocol; do not place section labels, actions, links, or hashtags inside those prose fields.",
+    "Use natural professional language and active voice. Do not use emoji, fake Unicode bold or italics, excessive capitals, clickbait, promotional claims, or rhetorical filler.",
     "Do not truncate a sentence with ellipses. Avoid stock phrases such as in today's landscape, game changer, ever-evolving, a useful signal, QCS translated the signal, or could another engineer reproduce.",
-    "Place the supplied QCS URL on its own near the end. Finish with three to five precise hashtags on one final line. Do not put hashtags in the opening.",
-    "Return the required JSON only. The actions and hashtags arrays must exactly match the actions and final hashtag line used in commentary."
+    "Choose three to five precise hashtags. The application will place the supplied QCS URL and hashtags in the required footer; do not repeat either inside the prose fields.",
+    "Return the required JSON only. Use an empty question string when a question would add no practitioner value."
   ];
   if (kind === "advisory") {
     shared.push(
@@ -256,6 +266,7 @@ function qaPasses(qa: LinkedInQa) {
   return (
     qa.approved &&
     qa.violations.length === 0 &&
+    qa.correctionPrompt.trim() === "" &&
     qa.factualFidelityScore >= 95 &&
     qa.inferenceDisciplineScore >= 95 &&
     qa.specificityScore >= 88 &&
@@ -267,6 +278,7 @@ function qaPasses(qa: LinkedInQa) {
 
 function qaDeficits(qa: LinkedInQa) {
   const issues = [...qa.violations];
+  if (qa.correctionPrompt.trim()) issues.push(qa.correctionPrompt.trim());
   const thresholds: Array<[keyof LinkedInQa, number, string]> = [
     ["factualFidelityScore", 95, "factual fidelity"],
     ["inferenceDisciplineScore", 95, "inference discipline"],
@@ -295,7 +307,7 @@ function qualityScore(qa: LinkedInQa) {
   );
 }
 
-async function inspectPost(input: LinkedInAgentInput, draft: LinkedInDraft) {
+async function inspectPost(input: LinkedInAgentInput, commentary: string) {
   const config = linkedInContentAgentConfiguration();
   const response = await openAIClient().responses.create({
     model: config.criticModel,
@@ -312,7 +324,7 @@ async function inspectPost(input: LinkedInAgentInput, draft: LinkedInDraft) {
       "Treat dense paragraphs, excessive labels, all-caps presentation, clipped sentences, fake styling, hashtag stuffing, or a weak opening as publication-blocking defects.",
       "Passing thresholds: factual fidelity 95, inference discipline 95, specificity 88, practitioner value 88, clarity 88, and platform fit 86. Return JSON only."
     ].join(" "),
-    input: `CONTENT TYPE: ${input.kind}\n\nAPPROVED SOURCE MATERIAL:\n${JSON.stringify(evidenceFor(input))}\n\nPOST TO REVIEW:\n${draft.commentary}`,
+    input: `CONTENT TYPE: ${input.kind}\n\nAPPROVED SOURCE MATERIAL:\n${JSON.stringify(evidenceFor(input))}\n\nPOST TO REVIEW:\n${commentary}`,
     max_output_tokens: 1_600,
     text: {
       ...(usesReasoningControls(config.criticModel) ? { verbosity: "low" as const } : {}),
@@ -337,32 +349,39 @@ async function createLinkedInPost(input: LinkedInAgentInput): Promise<LinkedInRe
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     latestDraft = await writePost(input, correction);
     const presentationActions = latestDraft.actions.slice(0, input.kind === "advisory" ? 4 : 3);
-    latestDraft = {
-      ...latestDraft,
-      actions: presentationActions,
-      commentary: formatAgentLinkedInCommentary({
+    latestDraft = { ...latestDraft, actions: presentationActions };
+    let commentary = "";
+    try {
+      commentary = composeLinkedInProtocolCommentary({
         actions: presentationActions,
-        commentary: latestDraft.commentary,
+        evidence: latestDraft.evidence,
         hashtags: latestDraft.hashtags,
+        hook: latestDraft.hook,
+        interpretation: latestDraft.interpretation,
         linkLabel: input.kind === "advisory" ? "QCS technical brief" : "Original QCS analysis",
         maxLength: input.kind === "advisory" ? 2_700 : 2_200,
-        url: input.url
-      })
-    };
-    const hardIssues = deterministicIssues(input, latestDraft.commentary);
+        question: latestDraft.question,
+        url: input.url,
+        verification: latestDraft.verification
+      });
+    } catch (error) {
+      correction = error instanceof Error ? error.message : "The LinkedIn protocol composition failed.";
+      continue;
+    }
+    const hardIssues = [...linkedInProtocolIssues(commentary), ...deterministicIssues(input, commentary)];
     if (hardIssues.length) {
       correction = `The deterministic publication gate rejected the draft. Fix every item without losing supported facts: ${hardIssues.join(" ")}`;
       continue;
     }
 
-    latestQa = await inspectPost(input, latestDraft);
+    latestQa = await inspectPost(input, commentary);
     if (qaPasses(latestQa)) {
       return {
-        commentary: latestDraft.commentary.trim(),
+        commentary,
         qualityScore: qualityScore(latestQa),
         trace: {
           provider: "openai-direct",
-          policyVersion: 3,
+          policyVersion: linkedInCommentaryPolicyVersion,
           writerModel: config.writerModel,
           criticModel: config.criticModel,
           attempts: attempt,

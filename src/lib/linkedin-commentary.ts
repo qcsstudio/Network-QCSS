@@ -46,6 +46,22 @@ export type LinkedInAdvisoryPost = {
   sourceUrl?: string;
 };
 
+export const linkedInCommentaryPolicyVersion = 4;
+export const linkedInDeliveryLimit = 2_900;
+
+export type LinkedInProtocolDraft = {
+  actions: string[];
+  evidence: string;
+  hashtags: string[];
+  hook: string;
+  interpretation: string;
+  linkLabel: "Original QCS analysis" | "QCS technical brief";
+  maxLength: number;
+  question?: string;
+  url: string;
+  verification: string;
+};
+
 type EditorialPlan = {
   actionLabel: string;
   actions: string[];
@@ -95,6 +111,7 @@ function relevantHashtags(text: string, defaults: string[]) {
     [/sase/, "#SASE"],
     [/zero trust|ztna/, "#ZeroTrust"],
     [/bgp|rpki|roa/, "#BGP"],
+    [/bgp|rpki|roa|route origin/, "#RoutingSecurity"],
     [/cloud|aws|azure|gcp|vpc|vnet/, "#CloudSecurity"],
     [/ubuntu|linux kernel|intel iotg/, "#LinuxSecurity"],
     [/vulnerab|cve|privilege escalation|hardening/, "#VulnerabilityManagement"],
@@ -218,28 +235,18 @@ function editorialPlan(post: LinkedInEditorialPost): EditorialPlan {
 
 export function composeEditorialLinkedInPost(post: LinkedInEditorialPost, url: string) {
   const plan = editorialPlan(post);
-  const lines = [
-    plan.hook,
-    "",
-    cleanHeadline(post.title),
-    "",
-    plan.signalLabel,
-    plan.signal,
-    "",
-    plan.impactLabel,
-    plan.impact,
-    "",
-    plan.actionLabel,
-    ...plan.actions.map((item, index) => `${index + 1}. ${item}`),
-    "",
-    "QUESTION FOR NETWORK TEAMS",
-    plan.question,
-    "",
-    `Read the QCS analysis: ${url}`,
-    "",
-    plan.hashtags.join(" ")
-  ];
-  return lines.join("\n").slice(0, 2900);
+  return composeLinkedInProtocolCommentary({
+    actions: plan.actions.slice(0, 3),
+    evidence: `${cleanHeadline(post.title)}. ${plan.signal}`,
+    hashtags: plan.hashtags,
+    hook: plan.hook,
+    interpretation: plan.impact,
+    linkLabel: "Original QCS analysis",
+    maxLength: 2_200,
+    question: plan.question,
+    url,
+    verification: plan.actions.at(-1) || "Confirm the intended operating state with retained technical evidence before closure"
+  });
 }
 
 function advisoryHashtags(advisory: LinkedInAdvisoryPost) {
@@ -270,12 +277,12 @@ function advisoryHashtags(advisory: LinkedInAdvisoryPost) {
 }
 
 function advisoryActions(advisory: LinkedInAdvisoryPost) {
-  const products = clip(advisory.products.slice(0, 5).join(", ") || advisory.vendor, 150);
-  const evidence = (advisory.evidenceChecklist || []).map((item) => clip(item, 190)).filter(Boolean);
+  const products = normalize(advisory.products.slice(0, 5).join(", ") || advisory.vendor);
+  const evidence = (advisory.evidenceChecklist || []).map(normalize).filter(Boolean);
   const actions = [
     `Inventory ${products}; record deployed releases, service roles, owners, and exposure.`,
     evidence[0] || "Confirm applicability against the vendor's affected conditions before changing production controls.",
-    clip(advisory.remediation, 210),
+    normalize(advisory.remediation),
     evidence.at(-1) || "Retain before-and-after version, exposure, log, and service-validation evidence.",
     "Verify the running fix, relevant security logs, service health, and residual exposure before closure."
   ];
@@ -321,6 +328,78 @@ function collapseBlankLines(lines: string[]) {
 function questionCount(commentary: string) {
   const prose = commentary.replace(/https?:\/\/\S+/g, "");
   return (prose.match(/\?/g) || []).length;
+}
+
+function protocolLabels(commentary: string) {
+  const lines = commentary.split("\n").map((line) => line.trim());
+  return ["What Changed", "Why It Matters", "Action And Verification"].map((label) => ({
+    count: lines.filter((line) => line === label).length,
+    index: lines.indexOf(label),
+    label
+  }));
+}
+
+export function linkedInProtocolIssues(commentary: string) {
+  const issues: string[] = [];
+  const labels = protocolLabels(commentary);
+  if (labels.some((label) => label.count !== 1) || labels.some((label, index) => index > 0 && label.index <= labels[index - 1].index)) {
+    issues.push("Use the QCS LinkedIn presentation order exactly once: What Changed, Why It Matters, then Action And Verification.");
+  }
+  const actions = actionLines(commentary).filter((line) => /^[1-4]\.\s+/.test(line));
+  if (actions.length < 3 || actions.length > 4) issues.push("Use three article actions or four advisory actions on separate numbered lines.");
+  if (!/\nVerification:\s+\S/i.test(commentary)) issues.push("Add an explicit verification statement after the numbered actions.");
+  if (!/(?:Original QCS analysis|QCS technical brief): https:\/\/www\.qcsstudio\.com\//i.test(commentary)) {
+    issues.push("Include the labeled canonical QCS article or advisory link.");
+  }
+  const visibleLines = commentary.split("\n").map((line) => line.trim()).filter(Boolean);
+  const hashtags = commentary.match(/#[A-Za-z0-9]+/g) || [];
+  const finalLine = visibleLines.at(-1) || "";
+  if (hashtags.length < 3 || hashtags.length > 5 || !hashtags.every((tag) => finalLine.includes(tag))) {
+    issues.push("Finish with one line containing three to five focused hashtags.");
+  }
+  if (commentary.length > linkedInDeliveryLimit) issues.push(`The post exceeds the ${linkedInDeliveryLimit}-character delivery limit.`);
+  if (/(?:\.\.\.|…)/.test(commentary)) issues.push("Do not deliver clipped sentences or ellipses.");
+  if (commentary.split("\n").some((line) => line.trim().length > 420 && !/https?:\/\//i.test(line))) {
+    issues.push("Break dense LinkedIn copy into lines of 420 characters or fewer.");
+  }
+  return [...new Set(issues)];
+}
+
+export function assertLinkedInProtocol(commentary: string) {
+  const normalized = commentary.replace(/\r\n?/g, "\n").trim();
+  const issues = linkedInProtocolIssues(normalized);
+  if (issues.length) throw new Error(`LinkedIn delivery held by protocol v${linkedInCommentaryPolicyVersion}: ${issues.join(" ")}`);
+  return normalized;
+}
+
+export function composeLinkedInProtocolCommentary(input: LinkedInProtocolDraft) {
+  const actions = input.actions
+    .map((action) => normalize(action).replace(/^[1-4][.)]\s*/, "").replace(/[.\s]+$/, ""))
+    .filter(Boolean);
+  const hashtags = [...new Set(input.hashtags.filter((tag) => /^#[A-Za-z0-9]+$/.test(tag)))].slice(0, 5);
+  const question = normalize(input.question || "");
+  const commentary = collapseBlankLines([
+    normalize(input.hook),
+    "",
+    "What Changed",
+    ...wrapPresentationLine(normalize(input.evidence), 400),
+    "",
+    "Why It Matters",
+    ...wrapPresentationLine(normalize(input.interpretation), 400),
+    "",
+    "Action And Verification",
+    ...actions.map((action, index) => `${index + 1}. ${action}.`),
+    ...wrapPresentationLine(`Verification: ${normalize(input.verification).replace(/[.\s]+$/, "")}.`, 400),
+    ...(question ? ["", question] : []),
+    "",
+    `${input.linkLabel}: ${input.url}`,
+    "",
+    hashtags.join(" ")
+  ]).join("\n").trim();
+  if (commentary.length > input.maxLength) {
+    throw new Error(`LinkedIn protocol composition is ${commentary.length} characters; revise the content blocks below ${input.maxLength} instead of truncating them.`);
+  }
+  return assertLinkedInProtocol(commentary);
 }
 
 function keepOnlyFinalQuestion(lines: string[]) {
@@ -443,12 +522,12 @@ function actionLines(commentary: string) {
 }
 
 export function editorialLinkedInQualityIssues(commentary: string, url: string, post?: LinkedInEditorialPost) {
-  const issues = presentationIssues(commentary, url, 650, 2_200);
+  const issues = [...linkedInProtocolIssues(commentary), ...presentationIssues(commentary, url, 650, 2_200)];
   const actions = actionLines(commentary);
   if (!commentary.includes(`Original QCS analysis: ${url}`)) {
     issues.push("Label the canonical article link as the original QCS analysis.");
   }
-  if (actions.length < 3) issues.push("Include three concrete actions or decision checks on separate lines.");
+  if (actions.length !== 3) issues.push("Include exactly three concrete actions or decision checks on separate numbered lines.");
   if (questionCount(commentary) > 1) issues.push("Use no more than one purposeful audience question.");
   if (post) {
     const distinctiveTerms = comparable(`${post.title} ${post.content.primaryKeyword || ""}`)
@@ -462,7 +541,7 @@ export function editorialLinkedInQualityIssues(commentary: string, url: string, 
 }
 
 export function advisoryLinkedInQualityIssues(commentary: string, url: string, advisory?: LinkedInAdvisoryPost) {
-  const issues = presentationIssues(commentary, url, 850, 2_700);
+  const issues = [...linkedInProtocolIssues(commentary), ...presentationIssues(commentary, url, 850, 2_700)];
   const actions = actionLines(commentary).filter((line) => /^[1-4]\.\s+/.test(line));
   if (actions.length !== 4) issues.push("Include exactly four numbered defender actions.");
   if (new Set(actions.map(comparable)).size !== actions.length) issues.push("Every defender action must be materially distinct.");
@@ -497,49 +576,33 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
   const exploitation = normalize(advisory.exploitationStatus || "The source does not state an exploitation status.");
   const severity = advisory.severity.toLowerCase() === "unrated" ? "Vendor not rated" : `Vendor ${advisory.severity.toUpperCase()}`;
   const score = advisory.cvssScore === null || advisory.cvssScore === undefined ? "CVSS not supplied" : `CVSS ${advisory.cvssScore.toFixed(1)}`;
-  const affected = clip(advisory.products.slice(0, 8).join(", ") || "See the vendor advisory", 260);
-  const affectedVersions = clip((advisory.affectedVersions || []).slice(0, 8).join("; ") || "Confirm against the vendor's affected-release table", 320);
-  const fixedVersions = clip((advisory.fixedVersions || []).slice(0, 8).join("; ") || "No fixed release was extracted; follow the current vendor remediation", 330);
+  const affected = normalize(advisory.products.slice(0, 8).join(", ") || "See the vendor advisory");
+  const affectedVersions = normalize((advisory.affectedVersions || []).slice(0, 8).join("; ") || "Confirm against the vendor's affected-release table");
+  const fixedVersions = normalize((advisory.fixedVersions || []).slice(0, 8).join("; ") || "No fixed release was extracted; follow the current vendor remediation");
   const noWorkaround = /no (?:available )?workarounds?|no workaround (?:is|was) available/i.test(advisory.workaround || advisory.remediation);
   const mitigation = noWorkaround
     ? "No workaround is available. Prioritize the vendor-supported fix and temporary exposure reduction."
-    : clip(advisory.workaround || "No vendor workaround was extracted. Do not invent an unsupported mitigation.", 300);
+    : normalize(advisory.workaround || "No vendor workaround was extracted. Do not invent an unsupported mitigation.");
   const actions = advisoryActions(advisory);
   const hashtags = advisoryHashtags(advisory);
-  const lines = [
-    `${advisory.vendor.toUpperCase()} SECURITY ADVISORY | ${identifier}`,
-    "",
-    title,
-    "",
-    "EXPLOITATION STATUS",
-    exploitation,
-    "",
-    "RISK AND SCOPE",
-    `• Rating: ${severity}; ${score}`,
-    `• Products: ${affected}`,
-    `• Affected releases: ${affectedVersions}`,
-    "",
-    "WHAT IT MEANS",
-    clip(advisory.technicalExplanation || advisory.summary, 430),
-    "",
-    "POTENTIAL BUSINESS IMPACT",
-    clip(advisory.businessImpact || advisory.summary, 300),
-    "",
-    "DEFENDER ACTIONS",
-    ...actions.map((action, index) => `${index + 1}. ${action}.`),
-    "",
-    "FIX AND WORKAROUND",
-    `• Fixed path: ${fixedVersions}`,
-    `• Temporary control: ${mitigation}`,
-    "",
-    "VALIDATE BEFORE CLOSURE",
-    clip((advisory.evidenceChecklist || []).at(-1) || "Verify the running release, exposure path, relevant logs, service health, and retained change evidence.", 260),
-    "",
-    `QCS technical brief: ${url}`,
-    "",
-    hashtags.join(" ")
-  ];
-  const commentary = lines.join("\n");
-  if (commentary.length > 2900) throw new Error("The evidence-led LinkedIn advisory exceeds the safe commentary limit.");
-  return commentary;
+  return composeLinkedInProtocolCommentary({
+    actions,
+    evidence: [
+      `${advisory.vendor} security advisory ${identifier}: ${title}.`,
+      `Exploitation status: ${exploitation}`,
+      `Rating: ${severity}; ${score}. Products: ${affected}. Affected releases: ${affectedVersions}.`
+    ].join(" "),
+    hashtags,
+    hook: `${advisory.vendor} operators should treat ${identifier} as an evidence-led exposure and remediation decision, not a headline-only patch event.`,
+    interpretation: [
+      advisory.technicalExplanation || advisory.summary,
+      `Business impact: ${advisory.businessImpact || advisory.summary}`,
+      `Fixed path: ${fixedVersions}. Workaround status: ${mitigation}`,
+      advisory.sourceUrl ? `Official vendor source: ${advisory.sourceUrl}` : ""
+    ].filter(Boolean).join(" "),
+    linkLabel: "QCS technical brief",
+    maxLength: 2_700,
+    url,
+    verification: actions.at(-1) || "Verify the running release, exposure path, relevant logs, service health, and retained change evidence"
+  });
 }

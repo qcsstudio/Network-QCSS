@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { getPrismaClient } from "@/lib/prisma";
 import { decryptIntegrationSecret, encryptIntegrationSecret } from "@/lib/integration-secrets";
+import { assertLinkedInProtocol } from "@/lib/linkedin-commentary";
 
 const linkedinAuthorizeUrl = "https://www.linkedin.com/oauth/v2/authorization";
 const linkedinTokenUrl = "https://www.linkedin.com/oauth/v2/accessToken";
@@ -182,7 +183,7 @@ export async function publishLinkedInPost(input: LinkedInPublishInput) {
   const connection = await activeConnection();
   const author = `urn:li:person:${connection.accountId}`;
   const image = input.imageUrl ? await uploadImage(connection.accessToken, author, input.imageUrl) : "";
-  const commentary = input.commentary.slice(0, 2900);
+  const commentary = assertLinkedInProtocol(input.commentary);
   const body = {
     author,
     commentary,
@@ -227,10 +228,11 @@ export async function getLinkedInPost(externalId: string) {
 
 export async function updateLinkedInPostCommentary(externalId: string, commentary: string) {
   const connection = await activeConnection();
+  const validatedCommentary = assertLinkedInProtocol(commentary);
   const response = await fetch(`${linkedinApiBase}/posts/${encodeURIComponent(externalId)}`, {
     method: "POST",
     headers: { ...apiHeaders(connection.accessToken), "X-RestLi-Method": "PARTIAL_UPDATE" },
-    body: JSON.stringify({ patch: { $set: { commentary: commentary.slice(0, 2900) } } }),
+    body: JSON.stringify({ patch: { $set: { commentary: validatedCommentary } } }),
     signal: AbortSignal.timeout(requestTimeoutMs),
     cache: "no-store"
   });

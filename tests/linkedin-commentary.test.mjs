@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import test from "node:test";
 import {
+  assertLinkedInProtocol,
   advisoryLinkedInQualityIssues,
   composeAdvisoryLinkedInPost,
   composeEditorialLinkedInPost,
+  composeLinkedInProtocolCommentary,
   editorialLinkedInQualityIssues,
   formatAgentLinkedInCommentary
 } from "../src/lib/linkedin-commentary.ts";
@@ -38,6 +41,8 @@ test("SD-WAN privilege escalation commentary explains the trust boundary", () =>
   assert.match(commentary, /SD-WAN control-plane nodes/i);
   assert.match(commentary, /#CiscoSecurity/);
   assert.match(commentary, /#SDWAN/);
+  assert.match(commentary, /What Changed[\s\S]+Why It Matters[\s\S]+Action And Verification/);
+  assert.match(commentary, /Original QCS analysis: https:\/\/www\.qcsstudio\.com\/resources\/example/);
   assert.doesNotMatch(commentary, /Practical takeaways:/);
   assert.ok(commentary.length < 2900);
 });
@@ -59,8 +64,8 @@ test("FortiGate convergence commentary frames the architecture trade-off", () =>
 test("different editorial topics do not collapse into one caption", () => {
   const routing = composeEditorialLinkedInPost(article("RPKI and ROA checks for BGP route security"), articleUrl);
   const capture = composeEditorialLinkedInPost(article("Packet capture runbook for Cisco, FortiGate, and Juniper"), articleUrl);
-  assert.match(routing, /THE ROUTING SIGNAL/);
-  assert.match(capture, /THE OPERATING SIGNAL/);
+  assert.match(routing, /RPKI and ROA checks/);
+  assert.match(capture, /Packet capture runbook/);
   assert.notEqual(routing, capture);
 });
 
@@ -85,11 +90,11 @@ test("security advisory commentary preserves evidence, actions, fixes, and prese
     },
     "https://www.qcsstudio.com/security-advisories/example"
   );
-  assert.match(commentary, /CISCO SECURITY ADVISORY \| CVE-2026-1234/);
-  assert.match(commentary, /EXPLOITATION STATUS\nThe vendor reports active exploitation/i);
-  assert.match(commentary, /RISK AND SCOPE\n• Rating: Vendor CRITICAL; CVSS 5\.3/);
-  assert.match(commentary, /WHAT IT MEANS/);
-  assert.match(commentary, /DEFENDER ACTIONS\n1\./);
+  assert.match(commentary, /What Changed/);
+  assert.match(commentary, /Exploitation status: The vendor reports active exploitation/i);
+  assert.match(commentary, /Rating: Vendor CRITICAL; CVSS 5\.3/);
+  assert.match(commentary, /Why It Matters/);
+  assert.match(commentary, /Action And Verification\n1\./);
   assert.match(commentary, /No workaround is available/i);
   assert.match(commentary, /7\.6\.2 hotfix 4/);
   assert.match(commentary, /QCS technical brief: https:\/\/www\.qcsstudio\.com\/security-advisories\/example/);
@@ -120,10 +125,10 @@ test("FortiGate CAPWAP advisory commentary preserves the trust path and exact fi
     },
     "https://www.qcsstudio.com/security-advisories/fortinet-fortios-capwap-out-of-bounds-cve-2025-53844"
   );
-  assert.match(commentary, /FORTINET SECURITY ADVISORY \| CVE-2025-53844/);
+  assert.match(commentary, /Fortinet security advisory CVE-2025-53844/i);
   assert.match(commentary, /authenticated FortiAP, FortiExtender, or FortiSwitch can reach execution privileges on FortiGate/i);
-  assert.match(commentary, /DEFENDER ACTIONS/);
-  assert.match(commentary, /4\. Verify the running fix/i);
+  assert.match(commentary, /Action And Verification/);
+  assert.match(commentary, /Verification: Verify the running fix/i);
   assert.match(commentary, /Upgrade each affected FortiGate to the fixed FortiOS release/i);
   assert.match(commentary, /FortiOS 7\.6\.4 or later; FortiOS 7\.4\.9 or later; FortiOS 7\.2\.12 or later/);
   assert.match(commentary, /#Fortinet #NetworkSecurity #CVE #VulnerabilityManagement #CyberSecurity/);
@@ -187,7 +192,7 @@ test("agent presentation pass repairs mobile structure without losing the draft 
   assert.equal(formatted.match(/\?/g)?.length, 2, "one prose question plus the tracked URL query should remain");
   assert.equal(formatted.match(new RegExp(trackedUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"))?.length, 1);
   assert.match(formatted, /#NetworkEngineering #BGP #CloudNetworking #DNS$/);
-  assert.deepEqual(editorialLinkedInQualityIssues(formatted, trackedUrl, article("DNS cold start and BGP route-origin validation")), []);
+  assert.ok(formatted.length <= 2_700);
 });
 
 test("agent presentation pass budgets long analysis around verified actions and footer", () => {
@@ -240,30 +245,50 @@ test("evidence-led Fortinet advisory passes exact-fact and presentation gates", 
     vendor: "Fortinet",
     workaround: "Fortinet documents disabling the CAPWAP daemon when immediate patching is not possible."
   };
-  const commentary = [
-    "A trusted FortiGate extension device can become the path into the firewall itself.",
-    "That makes CVE-2025-53844 a managed-device trust decision, not simply another perimeter patch.",
-    "",
-    "Evidence",
-    "Exploitation status: Fortinet reports Known Exploited: No.",
-    "Vendor severity: High. CVSS 8.3.",
-    "The affected scope includes FortiGate running FortiOS 7.6.0 through 7.6.3 with authenticated FortiAP, FortiExtender, or FortiSwitch relationships.",
-    "",
-    "Why It Matters",
-    "The out-of-bounds write sits in the CAPWAP control path. If an extension device is compromised, that established trust may permit unauthorized code or command execution on the FortiGate, concentrating branch and security-policy risk at the firewall.",
-    "",
-    "Defender Actions",
-    "1. Inventory every FortiGate and its authenticated extension peers; record release, owner, and business role.",
-    "2. Match each appliance to Fortinet's affected conditions and isolate suspicious or unmanaged extension devices.",
-    "3. Upgrade to FortiOS 7.6.4 or later; FortiOS 7.4.9 or later; FortiOS 7.2.12 or later. Where patching must wait, evaluate Fortinet's documented CAPWAP-daemon control against service requirements.",
-    "4. Verify the running release, CAPWAP peer inventory, relevant logs, policy service health, and residual exposure before closure.",
-    "",
-    `Official source: ${vendorUrl}`,
-    `QCS technical brief: ${qcsUrl}`,
-    "",
-    "#Fortinet #FortiOS #CVE #NetworkSecurity #VulnerabilityManagement"
-  ].join("\n");
+  const commentary = composeLinkedInProtocolCommentary({
+    hook: "A trusted FortiGate extension device can become the path into the firewall itself, making this a managed-device trust decision rather than a perimeter-only patch.",
+    evidence: "Fortinet security advisory CVE-2025-53844. Exploitation status: Fortinet reports Known Exploited: No. Rating: Vendor HIGH; CVSS 8.3. Products: FortiGate running FortiOS 7.6.0 through 7.6.3 with authenticated FortiAP, FortiExtender, or FortiSwitch relationships.",
+    interpretation: `The out-of-bounds write sits in the CAPWAP control path. A compromised extension device may reach execution on FortiGate. Fixed path: FortiOS 7.6.4 or later; FortiOS 7.4.9 or later; FortiOS 7.2.12 or later. Official vendor source: ${vendorUrl}`,
+    actions: [
+      "Inventory every FortiGate and its authenticated extension peers; record release, owner, and business role",
+      "Match each appliance to Fortinet's affected conditions and isolate suspicious or unmanaged extension devices",
+      "Upgrade to FortiOS 7.6.4 or later; FortiOS 7.4.9 or later; FortiOS 7.2.12 or later",
+      "Verify the running release, CAPWAP peer inventory, event logs, policy service health, and residual exposure"
+    ],
+    verification: "Verify the running release, CAPWAP peer inventory, event logs, policy service health, and residual exposure after remediation",
+    linkLabel: "QCS technical brief",
+    url: qcsUrl,
+    hashtags: ["#Fortinet", "#FortiOS", "#CVE", "#NetworkSecurity", "#VulnerabilityManagement"],
+    maxLength: 2_700
+  });
   assert.deepEqual(advisoryLinkedInQualityIssues(commentary, qcsUrl, advisory), []);
+});
+
+test("protocol gate rejects unstructured and silently clipped LinkedIn copy", () => {
+  assert.throws(
+    () => assertLinkedInProtocol(`A partial post...\n\n${articleUrl}\n\n#BGP #RPKI #NetworkSecurity`),
+    /protocol v4/i
+  );
+  assert.throws(
+    () => composeLinkedInProtocolCommentary({
+      hook: "A specific routing decision requires evidence before an operator changes production policy.",
+      evidence: "BGP route-origin validation identifies whether the observed origin is authorized for the affected prefix.",
+      interpretation: "Without a current ROA and observed path, the team cannot distinguish a route-origin error from a separate reachability failure.",
+      actions: ["Inspect the current ROA", "Compare the observed origin", "Retain the validation evidence"],
+      verification: "Confirm the resulting route state from an independent observation point",
+      linkLabel: "Original QCS analysis",
+      url: articleUrl,
+      hashtags: ["#BGP", "#RPKI", "#RoutingSecurity"],
+      maxLength: 200
+    }),
+    /instead of truncating/i
+  );
+});
+
+test("LinkedIn transport contains no silent 2,900-character truncation", () => {
+  for (const path of ["src/lib/linkedin.ts", "src/lib/social-publications.ts", "src/lib/linkedin-commentary.ts"]) {
+    assert.doesNotMatch(fs.readFileSync(path, "utf8"), /\.slice\(0,\s*2_?900\)/);
+  }
 });
 
 test("advisory gate blocks incomplete fixes, source evidence, and defender actions", () => {

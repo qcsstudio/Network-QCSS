@@ -3,7 +3,11 @@ import { isAdminRequest } from "@/lib/admin-auth";
 import { jsonError, noStoreHeaders } from "@/lib/api";
 import { isAutomationRequest } from "@/lib/automation-auth";
 import { requestContext } from "@/lib/security";
-import { processLinkedInQueue, resetFailedLinkedInPublications } from "@/lib/social-publications";
+import {
+  processLinkedInQueue,
+  refreshRecentOutdatedLinkedInPublications,
+  resetFailedLinkedInPublications
+} from "@/lib/social-publications";
 import { createAuditLog } from "@/lib/store";
 
 export const runtime = "nodejs";
@@ -16,15 +20,19 @@ export async function GET(request: Request) {
   if (!automatedRequest && !adminRequest) return jsonError("Unauthorized", 401);
   const retryFailed = adminRequest && new URL(request.url).searchParams.get("retryFailed") === "1";
   const reset = retryFailed ? await resetFailedLinkedInPublications() : 0;
+  const upgrades = await refreshRecentOutdatedLinkedInPublications(1, 72);
   const outcomes = await processLinkedInQueue(1);
   await createAuditLog(
     {
       action: "social.linkedin_worker",
       actor: automatedRequest ? "automation-worker" : "admin",
       target: "linkedin",
-      metadata: { reset, processed: outcomes.length, outcomes }
+      metadata: { reset, upgraded: upgrades.length, upgrades, processed: outcomes.length, outcomes }
     },
     await requestContext()
   );
-  return NextResponse.json({ ok: true, reset, processed: outcomes.length, outcomes }, { headers: noStoreHeaders });
+  return NextResponse.json(
+    { ok: true, reset, upgraded: upgrades.length, upgrades, processed: outcomes.length, outcomes },
+    { headers: noStoreHeaders }
+  );
 }

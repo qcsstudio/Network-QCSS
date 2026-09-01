@@ -7,6 +7,7 @@ import { createAdvisoryLinkedInPost, createEditorialLinkedInPost } from "@/lib/l
 import {
   advisoryLinkedInQualityIssues,
   editorialLinkedInQualityIssues,
+  linkedInCommentaryPolicyVersion,
   type LinkedInAdvisoryPost
 } from "@/lib/linkedin-commentary";
 import { deleteLinkedInPost, publishLinkedInPost, updateLinkedInPostCommentary } from "@/lib/linkedin";
@@ -97,7 +98,7 @@ async function enqueue(input: {
         commentary: input.commentary,
         imageUrl: input.imageUrl,
         metadata: {
-          commentaryPolicyVersion: 3,
+          commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
           commentaryQualityScore: input.commentaryQualityScore,
           commentaryTrace: input.commentaryTrace,
           imageAlt: input.imageAlt,
@@ -117,7 +118,7 @@ async function enqueue(input: {
       commentary: input.commentary,
       imageUrl: input.imageUrl,
       metadata: {
-        commentaryPolicyVersion: 3,
+        commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
         commentaryQualityScore: input.commentaryQualityScore,
         commentaryTrace: input.commentaryTrace,
         imageAlt: input.imageAlt,
@@ -244,7 +245,7 @@ export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
           imageUrl: material.imageUrl,
           lastError: null,
           metadata: {
-            commentaryPolicyVersion: 3,
+            commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
             commentaryQualityScore: material.commentaryQualityScore,
             commentaryTrace: material.commentaryTrace,
             imageAlt: material.imageAlt,
@@ -311,13 +312,13 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
       let publicationMetadata = metadataObject(job.metadata);
       const policyVersion = Number(publicationMetadata.commentaryPolicyVersion || 0);
       const commentaryQualityScore = Number(publicationMetadata.commentaryQualityScore || 0);
-      if (policyVersion < 3 || commentaryQualityScore < 88 || !lineageFromMetadata(publicationMetadata)) {
+      if (policyVersion < linkedInCommentaryPolicyVersion || commentaryQualityScore < 88 || !lineageFromMetadata(publicationMetadata)) {
         const material = await currentPublicationMaterial(job);
         commentary = material.commentary;
         publicationImageUrl = material.imageUrl;
         publicationMetadata = {
           ...publicationMetadata,
-          commentaryPolicyVersion: 3,
+          commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
           commentaryQualityScore: material.commentaryQualityScore,
           commentaryTrace: material.commentaryTrace as unknown as Prisma.JsonValue,
           imageAlt: material.imageAlt,
@@ -403,7 +404,7 @@ async function currentPublicationMaterial(job: {
       ? {
           commentary: commentaryOverride.trim(),
           qualityScore: 100,
-          trace: { provider: "admin-reviewed", policyVersion: 3, generatedAt: new Date().toISOString() }
+          trace: { provider: "admin-reviewed", policyVersion: linkedInCommentaryPolicyVersion, generatedAt: new Date().toISOString() }
         }
       : await buildEditorialLinkedInCommentary(post);
     if (commentaryOverride) {
@@ -434,7 +435,7 @@ async function currentPublicationMaterial(job: {
       ? {
           commentary: commentaryOverride.trim(),
           qualityScore: 100,
-          trace: { provider: "admin-reviewed", policyVersion: 3, generatedAt: new Date().toISOString() }
+          trace: { provider: "admin-reviewed", policyVersion: linkedInCommentaryPolicyVersion, generatedAt: new Date().toISOString() }
         }
       : await buildAdvisoryLinkedInCommentary(advisory);
     if (commentaryOverride) {
@@ -475,7 +476,7 @@ export async function refreshLinkedInPublication(
   const material = await currentPublicationMaterial(publication, commentaryOverride);
   const metadata = metadataObject(publication.metadata);
   if (!replaceMedia) {
-    const commentary = material.commentary.slice(0, 2900);
+    const commentary = material.commentary;
     await updateLinkedInPostCommentary(publication.externalId, commentary);
     const previousReceipt = metadataObject((metadata.deliveryReceipt as Prisma.JsonValue | undefined) || null);
     return prisma.socialPublication.update({
@@ -485,7 +486,7 @@ export async function refreshLinkedInPublication(
         lastError: null,
         metadata: {
           ...metadata,
-          commentaryPolicyVersion: 3,
+          commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
           commentaryQualityScore: material.commentaryQualityScore,
           commentaryTrace: material.commentaryTrace,
           lineage: material.lineage,
@@ -542,7 +543,7 @@ export async function refreshLinkedInPublication(
       sourceUrl: material.sourceUrl,
       metadata: {
         ...metadata,
-        commentaryPolicyVersion: 3,
+        commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
         commentaryQualityScore: material.commentaryQualityScore,
         commentaryTrace: material.commentaryTrace,
         imageAlt: material.imageAlt,
@@ -589,7 +590,7 @@ export async function rebuildLinkedInPublication(publicationId: string) {
       lastError: null,
       metadata: {
         ...metadata,
-        commentaryPolicyVersion: 3,
+        commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
         commentaryQualityScore: material.commentaryQualityScore,
         commentaryTrace: material.commentaryTrace,
         imageAlt: material.imageAlt,
@@ -610,6 +611,38 @@ export async function rebuildLinkedInPublication(publicationId: string) {
     externalId: published?.externalId,
     error: published?.error
   };
+}
+
+export async function refreshRecentOutdatedLinkedInPublications(limit = 1, maxAgeHours = 72) {
+  const prisma = getPrismaClient();
+  const candidates = await prisma.socialPublication.findMany({
+    where: {
+      channel: "linkedin",
+      status: "published",
+      externalId: { not: null },
+      publishedAt: { gte: new Date(Date.now() - Math.max(1, maxAgeHours) * 60 * 60_000) }
+    },
+    orderBy: { publishedAt: "desc" },
+    take: 25
+  });
+  const outdated = candidates
+    .filter((publication) => Number(metadataObject(publication.metadata).commentaryPolicyVersion || 0) < linkedInCommentaryPolicyVersion)
+    .slice(0, Math.max(1, Math.min(limit, 3)));
+  const outcomes: Array<{ id: string; status: "updated" | "failed"; commentaryLength?: number; error?: string }> = [];
+
+  for (const publication of outdated) {
+    try {
+      const refreshed = await refreshLinkedInPublication(publication.id, false);
+      outcomes.push({ id: publication.id, status: "updated", commentaryLength: refreshed.commentary.length });
+    } catch (error) {
+      outcomes.push({
+        id: publication.id,
+        status: "failed",
+        error: error instanceof Error ? error.message.slice(0, 1_800) : "Unknown LinkedIn protocol upgrade error"
+      });
+    }
+  }
+  return outcomes;
 }
 
 export async function rebuildLinkedInPublicationsSince(since: Date, apply = false) {
