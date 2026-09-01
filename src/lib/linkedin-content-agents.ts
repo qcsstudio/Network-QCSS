@@ -17,7 +17,7 @@ const defaultWriterModel = "gpt-4.1-mini";
 const defaultCriticModel = "gpt-4.1-mini";
 
 const linkedInDraftSchema = z.object({
-  hook: z.string().min(80).max(220),
+  hook: z.string().min(80).max(200),
   evidence: z.string().min(160).max(650),
   interpretation: z.string().min(120).max(500),
   verification: z.string().min(100).max(320),
@@ -74,7 +74,7 @@ const draftJsonSchema = {
   additionalProperties: false,
   required: ["hook", "evidence", "interpretation", "verification", "question", "audience", "pointOfView", "factsUsed", "actions", "hashtags"],
   properties: {
-    hook: { type: "string", minLength: 80, maxLength: 220 },
+    hook: { type: "string", minLength: 80, maxLength: 200 },
     evidence: { type: "string", minLength: 160, maxLength: 650 },
     interpretation: { type: "string", minLength: 120, maxLength: 500 },
     verification: { type: "string", minLength: 100, maxLength: 320 },

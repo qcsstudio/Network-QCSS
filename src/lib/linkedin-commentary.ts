@@ -378,7 +378,7 @@ export function composeLinkedInProtocolCommentary(input: LinkedInProtocolDraft) 
   const hashtags = [...new Set(input.hashtags.filter((tag) => /^#[A-Za-z0-9]+$/.test(tag)))].slice(0, 5);
   const question = normalize(input.question || "");
   const commentary = collapseBlankLines([
-    normalize(input.hook),
+    ...wrapPresentationLine(normalize(input.hook), 200),
     "",
     "What Changed",
     ...wrapPresentationLine(normalize(input.evidence), 400),
