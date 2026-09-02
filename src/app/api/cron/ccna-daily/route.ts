@@ -13,7 +13,7 @@ export const maxDuration = 300;
 export async function GET(request: Request) {
   if (!(await isAutomationRequest(request))) return jsonError("Unauthorized", 401);
   try {
-    const result = await runCcnaDailyEdition({ actor: "ccna-daily-automation" });
+    const result = await runCcnaDailyEdition({ actor: "ccna-daily-automation", force: new URL(request.url).searchParams.get("runNow") === "1" });
     let distribution = null;
     if ("lesson" in result && result.lesson?.status === "published") distribution = await queueLinkedInForCcnaLesson(result.lesson);
     await createAuditLog({ action: "ccna.daily_run", actor: "automation-worker", target: "ccna-daily", metadata: { result, distributionId: distribution?.id } }, await requestContext());
