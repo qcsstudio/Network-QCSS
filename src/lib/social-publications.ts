@@ -386,6 +386,7 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
   await prisma.socialPublication.updateMany({
     where: {
       channel: "linkedin",
+      ...(publicationId ? { id: publicationId } : {}),
       status: "publishing",
       lastAttemptAt: { lte: new Date(Date.now() - 15 * 60_000) }
     },

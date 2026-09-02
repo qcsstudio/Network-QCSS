@@ -1,7 +1,6 @@
 import OpenAI from "openai";
-import { z } from "zod";
 import { ccnaOfficialSources, type CcnaCurriculumTopic } from "@/lib/ccna-curriculum";
-import { ccnaLessonContentSchema, evaluateCcnaLessonQuality, type CcnaLessonContent } from "@/lib/ccna-lesson-schema";
+import { ccnaLessonContentSchema, ccnaOpenAIResponseSchema, evaluateCcnaLessonQuality, type CcnaLessonContent } from "@/lib/ccna-lesson-schema";
 import { openAIApiKeyStatus, openAICredentialMessage } from "@/lib/openai-config";
 
 const allowedSourceHosts = [
@@ -88,8 +87,7 @@ export function ccnaContentAgentConfiguration() {
 
 export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic) {
   const config = ccnaContentAgentConfiguration();
-  const schema = z.toJSONSchema(ccnaLessonContentSchema, { target: "draft-7" }) as Record<string, unknown>;
-  delete schema.$schema;
+  const schema = ccnaOpenAIResponseSchema();
   const startedAt = Date.now();
   const response = await openAIClient().responses.create({
     model: config.model,

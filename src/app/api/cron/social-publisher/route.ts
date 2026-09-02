@@ -18,10 +18,11 @@ export async function GET(request: Request) {
   const adminRequest = isAdminRequest(request);
   const automatedRequest = await isAutomationRequest(request);
   if (!automatedRequest && !adminRequest) return jsonError("Unauthorized", 401);
+  const publicationId = new URL(request.url).searchParams.get("publicationId")?.trim() || "";
   const retryFailed = adminRequest && new URL(request.url).searchParams.get("retryFailed") === "1";
   const reset = retryFailed ? await resetFailedLinkedInPublications() : 0;
-  const upgrades = await refreshRecentOutdatedLinkedInPublications(1, 72);
-  const outcomes = await processLinkedInQueue(1);
+  const upgrades = publicationId ? [] : await refreshRecentOutdatedLinkedInPublications(1, 72);
+  const outcomes = await processLinkedInQueue(1, publicationId);
   await createAuditLog(
     {
       action: "social.linkedin_worker",

@@ -71,6 +71,18 @@ export const ccnaLessonContentSchema = z.object({
 
 export type CcnaLessonContent = z.infer<typeof ccnaLessonContentSchema>;
 
+export function ccnaOpenAIResponseSchema() {
+  const schema = z.toJSONSchema(ccnaLessonContentSchema, {
+    target: "draft-7",
+    override: ({ jsonSchema }) => {
+      // OpenAI does not accept JSON Schema's uri format; Zod still validates URLs after generation.
+      if (jsonSchema.format === "uri") delete jsonSchema.format;
+    }
+  });
+  delete schema.$schema;
+  return schema;
+}
+
 function usefulWords(content: CcnaLessonContent) {
   return [
     content.plainAnswer,

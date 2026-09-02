@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ccnaCurriculum, ccnaModules } from "../src/lib/ccna-curriculum.ts";
-import { ccnaLessonContentSchema, evaluateCcnaLessonQuality } from "../src/lib/ccna-lesson-schema.ts";
+import { ccnaLessonContentSchema, ccnaOpenAIResponseSchema, evaluateCcnaLessonQuality } from "../src/lib/ccna-lesson-schema.ts";
+
+test("OpenAI schema omits unsupported URI format while runtime URL validation stays strict", () => {
+  const schema = ccnaOpenAIResponseSchema();
+  assert.equal(JSON.stringify(schema).includes('"format":"uri"'), false);
+  assert.equal(schema.$schema, undefined);
+  const content = lessonContent();
+  content.sources[0].url = "not-a-url";
+  assert.equal(ccnaLessonContentSchema.safeParse(content).success, false);
+});
 
 const sources = [
   { label: "Cisco CCNA exam", url: "https://www.cisco.com/site/us/en/learn/training-certifications/exams/ccna.html", supports: "The current CCNA exam version, duration, and official learning scope." },

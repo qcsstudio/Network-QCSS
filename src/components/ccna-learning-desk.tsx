@@ -23,6 +23,11 @@ function newsletterCopy(lesson: CcnaLessonRecord) {
     "Practice and quiz:",
     `https://www.qcsstudio.com/courses/ccna/lessons/${lesson.slug}`,
     "",
+    "Complete course syllabus: https://www.qcsstudio.com/courses/ccna",
+    "",
+    "Primary sources:",
+    ...content.sources.map((source) => `${source.label}: ${source.url}`),
+    "",
     "#CCNA #CiscoNetworking #NetworkEngineering #GNS3 #NetworkingStudents"
   ].join("\n");
 }
@@ -32,6 +37,7 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
   const [selectedId, setSelectedId] = useState(initialLessons.find((lesson) => !["published", "skipped"].includes(lesson.status))?.id || initialLessons[0]?.id || "");
   const [busy, setBusy] = useState("");
   const [copied, setCopied] = useState(false);
+  const [requestError, setRequestError] = useState("");
   const selected = lessons.find((lesson) => lesson.id === selectedId) || lessons[0];
   const stats = useMemo(() => ({
     published: lessons.filter((lesson) => lesson.status === "published").length,
@@ -41,11 +47,14 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
 
   async function mutate(action: Action, id = "") {
     setBusy(`${action}:${id}`);
+    setRequestError("");
     try {
       const response = await fetch("/api/admin/ccna-lessons", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, id: id || undefined }) });
       const payload = await response.json() as { error?: string; lessons?: CcnaLessonRecord[] };
       if (!response.ok) throw new Error(payload.error || "CCNA action failed.");
       if (payload.lessons) setLessons(payload.lessons);
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : "CCNA action failed. Please retry.");
     } finally {
       setBusy("");
     }
@@ -64,6 +73,7 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
         <div><p className="eyebrow">CCNA Learning Desk</p><h2>Weekday lesson and LinkedIn distribution control</h2><p>The next syllabus topic runs once per India weekday after 08:00. Only complete, cited, lab-ready lessons pass automatic publication.</p></div>
         <div className="button-row"><button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("sync")} type="button"><RefreshCcw aria-hidden="true" size={17} /> Sync syllabus</button><button className="button primary" disabled={Boolean(busy)} onClick={() => mutate("run_today")} type="button">{busy.startsWith("run_today") ? <LoaderCircle aria-hidden="true" className="admin-action-spinner" size={17} /> : <Play aria-hidden="true" size={17} />} Run today&apos;s edition</button></div>
       </header>
+      {requestError ? <p className="form-error" role="alert">{requestError}</p> : null}
       <div className="ccna-admin-metrics"><div><GraduationCap aria-hidden="true" /><span>Curriculum</span><strong>{lessons.length}</strong></div><div><CalendarCheck aria-hidden="true" /><span>Published</span><strong>{stats.published}</strong></div><div><BookOpenCheck aria-hidden="true" /><span>Remaining</span><strong>{stats.remaining}</strong></div><div><RefreshCcw aria-hidden="true" /><span>Needs review</span><strong>{stats.review}</strong></div></div>
 
       <div className="ccna-admin-layout">
