@@ -129,7 +129,7 @@ test("FortiGate CAPWAP advisory commentary preserves the trust path and exact fi
   assert.match(commentary, /authenticated FortiAP, FortiExtender, or FortiSwitch can reach execution privileges on FortiGate/i);
   assert.match(commentary, /Action And Verification/);
   assert.match(commentary, /Verification: Verify the running fix/i);
-  assert.match(commentary, /Upgrade each affected FortiGate to the fixed FortiOS release/i);
+  assert.match(commentary, /Apply the vendor-supported remediation for CVE-2025-53844/i);
   assert.match(commentary, /FortiOS 7\.6\.4 or later; FortiOS 7\.4\.9 or later; FortiOS 7\.2\.12 or later/);
   assert.match(commentary, /#Fortinet #NetworkSecurity #CVE #VulnerabilityManagement #CyberSecurity/);
   assert.equal(commentary.match(/#[A-Za-z0-9]+/g)?.length, 5);

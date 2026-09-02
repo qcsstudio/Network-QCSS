@@ -267,6 +267,8 @@ function advisoryHashtags(advisory: LinkedInAdvisoryPost) {
       ? "#GoogleCloud"
       : /microsoft|azure/.test(text)
         ? "#MicrosoftSecurity"
+        : /citrix|netscaler/.test(text)
+          ? "#CitrixSecurity"
         : /cisco/.test(text)
           ? "#CiscoSecurity"
           : /fortinet|fortigate|fortios/.test(text)
@@ -289,11 +291,12 @@ function advisoryHashtags(advisory: LinkedInAdvisoryPost) {
 function advisoryActions(advisory: LinkedInAdvisoryPost) {
   const products = normalize(advisory.products.slice(0, 5).join(", ") || advisory.vendor);
   const evidence = (advisory.evidenceChecklist || []).map(normalize).filter(Boolean);
+  const identifier = advisory.cves[0] || advisory.title;
   const actions = [
     `Inventory ${products}; record deployed releases, service roles, owners, and exposure.`,
     evidence[0] || "Confirm applicability against the vendor's affected conditions before changing production controls.",
-    normalize(advisory.remediation),
-    `Verify the running fix, relevant security logs, service health, and residual exposure before closure${evidence.at(-1) ? `; retain ${evidence.at(-1)}` : ""}.`
+    `Apply the vendor-supported remediation for ${identifier} through controlled change management with an accountable owner and rollback path.`,
+    "Verify the running fix, relevant security logs, service health, and residual exposure before closure."
   ];
   return [...new Set(actions.map((item) => normalize(item).replace(/[.\s]+$/, "")))].slice(0, 4);
 }
@@ -583,7 +586,7 @@ export function composeAdvisoryLinkedInPost(advisory: LinkedInAdvisoryPost, url:
   const title = cleanHeadline(advisory.title);
   const identifier = advisory.cves[0] || "Vendor advisory";
   const exploitation = normalize(advisory.exploitationStatus || "The source does not state an exploitation status.");
-  const severity = advisory.severity.toLowerCase() === "unrated" ? "Vendor not rated" : `Vendor ${advisory.severity.toUpperCase()}`;
+  const severity = advisory.severity.toLowerCase() === "unrated" ? "Vendor UNRATED" : `Vendor ${advisory.severity.toUpperCase()}`;
   const score = advisory.cvssScore === null || advisory.cvssScore === undefined ? "CVSS not supplied" : `CVSS ${advisory.cvssScore.toFixed(1)}`;
   const affected = normalize(advisory.products.slice(0, 8).join(", ") || "See the vendor advisory");
   const affectedVersions = normalize((advisory.affectedVersions || []).slice(0, 8).join("; ") || "Confirm against the vendor's affected-release table");
