@@ -152,6 +152,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <Link href="/security-advisories">Advisories</Link>
                 <Link href="/resources">Blog &amp; Resources</Link>
                 <Link href="/institute">Institute</Link>
+                <Link href="/courses/ccna">CCNA Daily Course</Link>
               </div>
               <div>
                 <span>System</span>

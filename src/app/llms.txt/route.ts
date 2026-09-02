@@ -1,10 +1,13 @@
 import { networkUtilityTools } from "@/lib/network-tools";
 import { blogPosts } from "@/lib/blog";
 import { services, siteConfig, solutionPages, tools } from "@/lib/content";
+import { ccnaCurriculum } from "@/lib/ccna-curriculum";
+import { getPublishedCcnaLessons } from "@/lib/ccna-learning";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
-export function GET() {
+export async function GET() {
+  const ccnaLessons = await getPublishedCcnaLessons().catch(() => []);
   const lines = [
     "# QuantumCrafters Studio Pvt. Ltd.",
     "",
@@ -26,6 +29,11 @@ export function GET() {
     "",
     "## Blog and Resource Guides",
     ...blogPosts.map((post) => `- ${post.title}: ${siteConfig.url}/resources/${post.slug} - ${post.answer}`),
+    "",
+    "## CCNA 200-301 Learning Course",
+    `- Course syllabus and learning path: ${siteConfig.url}/courses/ccna`,
+    `- The controlled curriculum contains ${ccnaCurriculum.length} weekday topics with plain-English teaching, real-life scenarios, GNS3 labs, practice questions, and scored quizzes.`,
+    ...ccnaLessons.map((lesson) => `- Day ${lesson.sequence}, ${lesson.title}: ${siteConfig.url}/courses/ccna/lessons/${lesson.slug} - ${lesson.content?.plainAnswer || lesson.moduleTitle}`),
     "",
     "## Positioning",
     "- Evidence-first network command studio: diagnose, operate, secure, modernize, test, and train.",

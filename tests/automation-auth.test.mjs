@@ -29,3 +29,11 @@ test("GitHub automation identity rejects expired and unsupported events", () => 
   assert.equal(validateGithubAutomationClaims({ ...validClaims, exp: now - 31 }, now), false);
   assert.equal(validateGithubAutomationClaims({ ...validClaims, event_name: "pull_request" }, now), false);
 });
+
+test("CCNA scheduler is trusted only on the production branch and supported events", () => {
+  const claims = { ...validClaims, workflow_ref: "qcsstudio/Network-QCSS/.github/workflows/ccna-daily.yml@refs/heads/main" };
+  assert.equal(validateGithubAutomationClaims(claims, now), true);
+  assert.equal(validateGithubAutomationClaims({ ...claims, event_name: "workflow_dispatch" }, now), true);
+  assert.equal(validateGithubAutomationClaims({ ...claims, ref: "refs/heads/feature" }, now), false);
+  assert.equal(validateGithubAutomationClaims({ ...claims, event_name: "pull_request" }, now), false);
+});

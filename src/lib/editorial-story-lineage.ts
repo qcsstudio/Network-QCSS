@@ -22,7 +22,7 @@ export type EditorialVisualBrief = {
 export type EditorialLineage = {
   policyVersion: 1;
   hash: string;
-  contentType: "content_post" | "security_advisory";
+  contentType: "ccna_lesson" | "content_post" | "security_advisory";
   contentId: string;
   contentRevision: string;
   storySpine: EditorialStorySpine;

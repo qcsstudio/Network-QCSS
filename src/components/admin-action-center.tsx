@@ -29,6 +29,7 @@ function requestBodyAction(init?: RequestInit) {
 function operationLabel(pathname: string, method: string, init?: RequestInit) {
   const action = requestBodyAction(init);
   if (pathname.includes("content-radar")) return "Content radar scan";
+  if (pathname.includes("ccna-lessons")) return action ? `CCNA ${action}` : "CCNA Learning Desk";
   if (pathname.includes("advisory-discovery")) return "Security advisory scan";
   if (pathname.includes("social-publisher")) return pathname.includes("retryFailed") ? "LinkedIn failure retry" : "LinkedIn queue processing";
   if (pathname.includes("editorial-images")) return "Contextual image generation";

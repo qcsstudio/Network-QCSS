@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/content-editorial",
       "schedule": "47 3 * * *"
+    },
+    {
+      "path": "/api/cron/ccna-daily",
+      "schedule": "35 2 * * 1-5"
     }
   ]
 }

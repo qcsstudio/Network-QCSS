@@ -18,6 +18,8 @@ import { getEmptyVerifyGridPortfolio, getVerifyGridPortfolio, type VerifyGridPor
 import { VerifyGridAccessGate } from "@/components/verifygrid-access-gate";
 import { VerifyGridSecurityBar } from "@/components/verifygrid-security-bar";
 import { getVerifyGridAccessState } from "@/lib/verifygrid-operator-auth";
+import { CcnaLearningDesk } from "@/components/ccna-learning-desk";
+import { listCcnaLessons, syncCcnaCurriculum, type CcnaLessonRecord } from "@/lib/ccna-learning";
 
 export const metadata: Metadata = {
   title: "Operator Dashboard",
@@ -36,7 +38,7 @@ export default async function AdminPage() {
     },
     await requestContext()
   );
-  const [dashboardResult, contentPosts, distributionSnapshot, advisories, verifyGridAccess] = await Promise.all([
+  const [dashboardResult, contentPosts, distributionSnapshot, advisories, verifyGridAccess, ccnaLessons] = await Promise.all([
     getDashboardSnapshot()
       .then((snapshot) => ({ snapshot, storageUnavailable: false }))
       .catch((error) => {
@@ -55,7 +57,11 @@ export default async function AdminPage() {
       console.error("Advisory management storage is unavailable.", error);
       return [] as AdminAdvisoryRecord[];
     }),
-    getVerifyGridAccessState(session.email)
+    getVerifyGridAccessState(session.email),
+    syncCcnaCurriculum(session.email).then(() => listCcnaLessons()).catch((error) => {
+      console.error("CCNA Learning Desk storage is unavailable.", error);
+      return [] as CcnaLessonRecord[];
+    })
   ]);
   const { snapshot, storageUnavailable } = dashboardResult;
   const verifyGridPortfolio = verifyGridAccess.state === "unlocked" ? await getVerifyGridPortfolio().catch((error) => {
@@ -102,11 +108,13 @@ export default async function AdminPage() {
             advisories: advisories.length,
             content: contentPosts.length,
             distribution: distributionSnapshot?.linkedin.connected ? "Live" : "Check",
+            learning: ccnaLessons.filter((lesson) => lesson.status === "published").length,
             overview: snapshot.totals.leads,
             verifygrid: verifyGridAccess.state === "unlocked" ? "Ready" : "Locked"
           }}
           content={<ContentRadarPanel initialPosts={contentPosts} />}
           distribution={<DistributionControlPanel initialSnapshot={distributionSnapshot} />}
+          learning={<CcnaLearningDesk initialLessons={ccnaLessons} />}
           overview={<OperatorDashboard snapshot={snapshot} />}
           verifygrid={verifyGridAccess.state === "unlocked" ? (
             <>

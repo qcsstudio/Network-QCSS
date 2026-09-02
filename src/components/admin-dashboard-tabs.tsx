@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { FileText, LayoutDashboard, ScanSearch, Share2, ShieldAlert, type LucideIcon } from "lucide-react";
+import { FileText, GraduationCap, LayoutDashboard, ScanSearch, Share2, ShieldAlert, type LucideIcon } from "lucide-react";
 
-const tabIds = ["overview", "content", "advisories", "distribution", "verifygrid"] as const;
+const tabIds = ["overview", "content", "advisories", "learning", "distribution", "verifygrid"] as const;
 type AdminTabId = (typeof tabIds)[number];
 
 type AdminDashboardTabsProps = {
@@ -11,6 +11,7 @@ type AdminDashboardTabsProps = {
   badges: Record<AdminTabId, number | string>;
   content: ReactNode;
   distribution: ReactNode;
+  learning: ReactNode;
   overview: ReactNode;
   verifygrid: ReactNode;
 };
@@ -19,6 +20,7 @@ const tabDefinitions: Array<{ id: AdminTabId; label: string; icon: LucideIcon }>
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "content", label: "Content Desk", icon: FileText },
   { id: "advisories", label: "Advisory Desk", icon: ShieldAlert },
+  { id: "learning", label: "CCNA Daily", icon: GraduationCap },
   { id: "distribution", label: "Distribution", icon: Share2 },
   { id: "verifygrid", label: "VerifyGrid", icon: ScanSearch }
 ];
@@ -27,6 +29,7 @@ const badgeDescriptions: Record<AdminTabId, string> = {
   advisories: "managed advisories",
   content: "managed content items",
   distribution: "distribution status",
+  learning: "CCNA lessons",
   overview: "captured leads",
   verifygrid: "VerifyGrid access status"
 };
@@ -37,16 +40,17 @@ function tabFromHash() {
   return tabIds.includes(value as AdminTabId) ? (value as AdminTabId) : "overview";
 }
 
-export function AdminDashboardTabs({ advisories, badges, content, distribution, overview, verifygrid }: AdminDashboardTabsProps) {
+export function AdminDashboardTabs({ advisories, badges, content, distribution, learning, overview, verifygrid }: AdminDashboardTabsProps) {
   const [activeTab, setActiveTab] = useState<AdminTabId>("overview");
   const tabRefs = useRef<Record<AdminTabId, HTMLButtonElement | null>>({
     advisories: null,
     content: null,
     distribution: null,
+    learning: null,
     overview: null,
     verifygrid: null
   });
-  const panels: Record<AdminTabId, ReactNode> = { advisories, content, distribution, overview, verifygrid };
+  const panels: Record<AdminTabId, ReactNode> = { advisories, content, distribution, learning, overview, verifygrid };
 
   useEffect(() => {
     const syncFromHash = () => setActiveTab(tabFromHash());

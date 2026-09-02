@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BookOpenCheck, FlaskConical, ListChecks } from "lucide-react";
 import { CardVisual } from "@/components/card-visual";
 import { DomainHeroVisual } from "@/components/domain-hero-visual";
 import { LeadForm } from "@/components/lead-form";
@@ -79,6 +80,24 @@ export default function InstitutePage() {
       </section>
 
       <SignalJourney variant="learning" />
+
+      <section className="section institute-ccna-feature">
+        <div className="section-heading">
+          <p className="eyebrow">CCNA 200-301 learning system</p>
+          <h2>One guided lesson every weekday, from first packet to capstone.</h2>
+          <p>
+            Follow a 60-day path aligned to the current CCNA v1.1 blueprint and bridged to the announced v2.0 update.
+            Every published topic teaches the idea in plain English, applies it to a real situation, builds a licensed
+            GNS3 or Cisco Modeling Labs exercise, and checks understanding with original questions.
+          </p>
+          <Link className="button primary" href="/courses/ccna">Open the CCNA syllabus</Link>
+        </div>
+        <div className="institute-ccna-method" aria-label="CCNA daily learning method">
+          <div><BookOpenCheck aria-hidden="true" /><strong>Learn</strong><span>Short mental models and current Cisco scope</span></div>
+          <div><FlaskConical aria-hidden="true" /><strong>Build</strong><span>Reproducible topologies, commands, and evidence</span></div>
+          <div><ListChecks aria-hidden="true" /><strong>Prove</strong><span>Practice questions, troubleshooting, and quiz</span></div>
+        </div>
+      </section>
 
       <section className="section">
         <div className="section-heading">

@@ -3,17 +3,23 @@ import { services, siteConfig, solutionPages, tools } from "@/lib/content";
 import { getAllPublishedBlogPosts } from "@/lib/content-posts";
 import { networkUtilityTools } from "@/lib/network-tools";
 import { listSecurityAdvisories } from "@/lib/advisories";
+import { getPublishedCcnaLessons } from "@/lib/ccna-learning";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const [blogPosts, advisories] = await Promise.all([getAllPublishedBlogPosts(), listSecurityAdvisories(250)]);
+  const [blogPosts, advisories, ccnaLessons] = await Promise.all([
+    getAllPublishedBlogPosts(),
+    listSecurityAdvisories(250),
+    getPublishedCcnaLessons().catch(() => [])
+  ]);
   const staticRoutes = [
     { path: "", priority: 1, changeFrequency: "weekly" as const },
     { path: "/solutions", priority: 0.92, changeFrequency: "weekly" as const },
     { path: "/diagnose", priority: 0.96, changeFrequency: "weekly" as const },
     { path: "/institute", priority: 0.88, changeFrequency: "weekly" as const },
+    { path: "/courses/ccna", priority: 0.95, changeFrequency: "daily" as const },
     { path: "/resources", priority: 0.84, changeFrequency: "weekly" as const },
     { path: "/intelligence", priority: 0.94, changeFrequency: "daily" as const },
     { path: "/security-advisories", priority: 0.96, changeFrequency: "hourly" as const },
@@ -68,5 +74,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: advisory.priorityScore >= 85 ? 0.94 : 0.86
   }));
 
-  return [...staticRoutes, ...advisoryRoutes, ...blogRoutes, ...solutionRoutes, ...serviceRoutes, ...toolRoutes, ...networkToolRoutes];
+  const ccnaLessonRoutes = ccnaLessons.map((lesson) => ({
+    url: `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}`,
+    lastModified: new Date(lesson.updatedAt),
+    changeFrequency: "monthly" as const,
+    priority: 0.84
+  }));
+
+  return [...staticRoutes, ...ccnaLessonRoutes, ...advisoryRoutes, ...blogRoutes, ...solutionRoutes, ...serviceRoutes, ...toolRoutes, ...networkToolRoutes];
 }

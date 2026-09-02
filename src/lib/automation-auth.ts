@@ -5,7 +5,10 @@ const githubJwksUrl = `${githubIssuer}/.well-known/jwks`;
 const githubAudience = "https://www.qcsstudio.com/automation";
 const githubRepository = "qcsstudio/network-qcss";
 const githubRepositoryId = "1286536826";
-const githubWorkflowRef = "qcsstudio/network-qcss/.github/workflows/editorial-automation.yml@refs/heads/main";
+const githubWorkflowRefs = new Set([
+  "qcsstudio/network-qcss/.github/workflows/editorial-automation.yml@refs/heads/main",
+  "qcsstudio/network-qcss/.github/workflows/ccna-daily.yml@refs/heads/main"
+]);
 
 type GithubOidcClaims = {
   iss?: string;
@@ -50,7 +53,7 @@ export function validateGithubAutomationClaims(claims: GithubOidcClaims, nowSeco
       repository === githubRepository &&
       claims.repository_id === githubRepositoryId &&
       claims.ref === "refs/heads/main" &&
-      workflowRef === githubWorkflowRef &&
+      Boolean(workflowRef && githubWorkflowRefs.has(workflowRef)) &&
       (claims.event_name === "schedule" || claims.event_name === "workflow_dispatch") &&
       subject === `repo:${githubRepository}:ref:refs/heads/main`
   );

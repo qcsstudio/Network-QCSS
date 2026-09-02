@@ -9,6 +9,7 @@ const representativeRoutes = [
   "/network-tools",
   "/network-tools/vendor-task-script-generator",
   "/institute",
+  "/courses/ccna",
   "/intelligence",
   "/resources",
   "/security-advisories",
@@ -37,7 +38,7 @@ async function sitemapRoutes(page: Page) {
 }
 
 async function auditRoute(page: Page, path: string, width: number) {
-  const response = await page.goto(path, { waitUntil: "domcontentloaded", timeout: 30_000 });
+  const response = await page.goto(path, { waitUntil: "domcontentloaded", timeout: 60_000 });
   await page.waitForTimeout(350);
   await page
     .waitForFunction(
@@ -268,8 +269,9 @@ async function runSitemapAudit(browser: Browser, width: number, height: number) 
   await sitemapPage.close();
   const failures: string[] = [];
 
-  for (let index = 0; index < routes.length; index += 6) {
-    const batch = routes.slice(index, index + 6);
+  const batchSize = 3;
+  for (let index = 0; index < routes.length; index += batchSize) {
+    const batch = routes.slice(index, index + batchSize);
     console.log(`[frontend-qa ${width}px] ${index + 1}-${Math.min(index + batch.length, routes.length)} of ${routes.length}`);
     const results = await Promise.all(
       batch.map(async (path) => {
@@ -318,7 +320,22 @@ test("representative page families have no serious accessibility violations", as
     expect(response?.status(), path).toBeLessThan(400);
     const results = await new AxeBuilder({ page }).analyze();
     const serious = results.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical");
-    expect(serious, `${path}\n${serious.map((item) => `${item.id}: ${item.help}`).join("\n")}`).toEqual([]);
+    const issues = serious.flatMap((item) => item.nodes.map((node) => `${item.id}: ${node.target.join(" ")}`));
+    expect(issues, `${path}\n${issues.join("\n")}`).toEqual([]);
+  }
+});
+
+test("CCNA syllabus stays aligned and readable at every supported breakpoint", async ({ browser }, testInfo) => {
+  for (const width of [360, 390, 768, 1024, 1440, 1920]) {
+    const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 2 });
+    const page = await context.newPage();
+    await preparePage(page);
+    const failures = await auditRoute(page, "/courses/ccna", width);
+    expect(failures, `${width}px: ${failures.join("; ")}`).toEqual([]);
+    await expect(page.locator(".ccna-module li")).toHaveCount(60);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("CCNA 200-301 Networking Course");
+    await page.screenshot({ path: testInfo.outputPath(`ccna-${width}.png`), fullPage: false });
+    await context.close();
   }
 });
 

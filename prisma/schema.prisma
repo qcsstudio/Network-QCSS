@@ -180,6 +180,39 @@ model SocialPublication {
   @@index([contentType, contentId])
 }
 
+model CcnaLesson {
+  id                String    @id @default(cuid())
+  sequence          Int       @unique
+  slug              String    @unique
+  title             String
+  moduleId          String
+  moduleTitle       String
+  examDomain        String
+  v11Blueprint      String
+  v20Blueprint      String?
+  status            String    @default("scheduled")
+  scheduledFor      DateTime?
+  publishedAt       DateTime?
+  content           Json      @default("{}")
+  sources           Json      @default("[]")
+  generationTrace   Json?
+  qualityScore      Int?
+  attempts          Int       @default(0)
+  nextAttemptAt     DateTime   @default(now())
+  generationStartedAt DateTime?
+  lastError         String?
+  createdBy         String?
+  approvedBy        String?
+  approvedAt        DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([status, sequence])
+  @@index([scheduledFor])
+  @@index([publishedAt])
+  @@index([moduleId, sequence])
+}
+
 model EditorialImage {
   id              String    @id @default(cuid())
   contentType     String

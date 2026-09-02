@@ -1237,7 +1237,7 @@ main[class^="purpose-"] > .section:nth-of-type(even)::before {
 
 .advisory-command-facts div { min-width: 0; padding: 0 9px; border-left: 1px solid rgba(71, 96, 139, 0.12); }
 .advisory-command-facts div:first-child { padding-left: 0; border-left: 0; }
-.advisory-command-facts dt { color: #7b879a; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.advisory-command-facts dt { color: #58687f; font-size: 12px; font-weight: 800; text-transform: uppercase; }
 .advisory-command-facts dd { overflow-wrap: anywhere; margin: 4px 0 0; color: var(--ink); font-size: 13px; font-weight: 700; }
 .advisory-command-body .text-link { margin-top: 3px; }
 

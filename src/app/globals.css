@@ -8817,6 +8817,669 @@ td span {
   }
 }
 
+/* CCNA learning system */
+.ccna-course-page,
+.ccna-lesson-page {
+  --ccna-ink: #111c31;
+  --ccna-blue: #3568cf;
+  --ccna-cyan: #2f9fb8;
+  --ccna-green: #14875a;
+  --ccna-orange: #d86e25;
+  color: var(--ccna-ink);
+  background: #f4f7fb;
+}
+
+.ccna-course-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(440px, 0.92fr);
+  min-height: min(780px, calc(100svh - 76px));
+  gap: clamp(36px, 5vw, 78px);
+  align-items: center;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 104px clamp(24px, 5vw, 80px) 54px;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(53, 104, 207, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(53, 104, 207, 0.06) 1px, transparent 1px),
+    #f7f9fc;
+  background-size: 48px 48px, 48px 48px, auto;
+}
+
+.ccna-course-copy { position: relative; z-index: 2; }
+.ccna-course-copy h1 {
+  max-width: 16ch;
+  margin: 18px 0 22px;
+  font-family: var(--font-display), sans-serif;
+  font-size: 56px;
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+.ccna-course-copy h1 > span { display: block; white-space: nowrap; }
+.ccna-course-lead { max-width: 720px; color: #506079; font-size: 21px; line-height: 1.62; }
+.ccna-course-copy .button-row { margin-top: 30px; }
+.ccna-course-copy .button { display: inline-flex; align-items: center; gap: 9px; }
+
+.ccna-course-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 42px 0 0;
+  border: 1px solid #d8e1ec;
+  background: #d8e1ec;
+}
+.ccna-course-stats div { min-width: 0; padding: 17px 18px; background: rgba(255, 255, 255, 0.94); }
+.ccna-course-stats dt { color: #64728a; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.ccna-course-stats dd { margin: 6px 0 0; color: #17243a; font-size: 15px; font-weight: 700; }
+
+.ccna-course-visual {
+  position: relative;
+  height: min(610px, calc(100svh - 170px));
+  min-height: 500px;
+  overflow: hidden;
+  border: 1px solid #b7c7da;
+  border-radius: 8px;
+  background: #0a172a;
+  box-shadow: 0 28px 68px rgba(21, 42, 77, 0.2);
+}
+.ccna-course-visual::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 42%, rgba(5, 16, 31, 0.92) 100%); }
+.ccna-course-visual > img { object-fit: contain; object-position: center 35%; padding: 34px 22px 110px; }
+.ccna-visual-console { position: absolute; z-index: 2; left: 28px; right: 28px; bottom: 28px; display: flex; flex-direction: column; gap: 7px; padding: 20px; border-left: 4px solid #ef3d78; background: rgba(5, 16, 31, 0.92); color: white; }
+.ccna-visual-console span,
+.ccna-visual-console i { color: #78d5e4; font-family: var(--font-tech), sans-serif; font-size: 13px; font-style: normal; font-weight: 700; }
+.ccna-visual-console strong { font-size: 27px; line-height: 1.2; }
+.ccna-visual-node { position: absolute; z-index: 3; display: flex; align-items: center; gap: 8px; padding: 10px 13px; border: 1px solid rgba(255,255,255,.38); border-radius: 6px; background: rgba(255,255,255,.94); color: #17243a; font-weight: 700; box-shadow: 0 10px 25px rgba(4,13,26,.2); }
+.ccna-visual-node.is-one { top: 8%; left: 6%; }
+.ccna-visual-node.is-two { top: 25%; right: 5%; }
+.ccna-visual-node.is-three { top: 45%; left: 8%; }
+
+.ccna-version-band { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: clamp(32px, 7vw, 100px); align-items: center; padding: 42px max(24px, calc((100vw - 1450px) / 2)); background: #0b192c; color: #f7fbff; }
+.ccna-version-band h2 { max-width: 18ch; margin: 7px 0 0; color: #f7fbff; font-size: 42px; line-height: 1.1; }
+.ccna-version-band .eyebrow,
+.ccna-lesson-hero .eyebrow,
+.ccna-scenario-section .eyebrow,
+.ccna-lab-section > header .eyebrow { color: #91b9ff; }
+.ccna-version-band > p { max-width: 760px; color: #c5d1df; font-size: 18px; line-height: 1.65; }
+.ccna-version-band strong { color: #ffad69; }
+
+.ccna-method-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.ccna-method-grid article { display: grid; grid-template-rows: 44px auto 1fr; gap: 12px; min-height: 225px; padding: 25px; border-top: 3px solid var(--ccna-blue); background: white; box-shadow: 0 12px 28px rgba(21, 42, 77, 0.08); }
+.ccna-method-grid article:nth-child(2) { border-color: var(--ccna-cyan); }
+.ccna-method-grid article:nth-child(3) { border-color: var(--ccna-green); }
+.ccna-method-grid article:nth-child(4) { border-color: var(--ccna-orange); }
+.ccna-method-grid svg { width: 34px; height: 34px; color: var(--ccna-blue); }
+.ccna-method-grid strong { font-size: 19px; }
+.ccna-method-grid p { color: #5a6880; line-height: 1.6; }
+
+.ccna-syllabus-section { background: #eef3f8; }
+.ccna-module-list { display: grid; gap: 18px; }
+.ccna-module { overflow: hidden; border: 1px solid #d5deea; border-radius: 8px; background: white; }
+.ccna-module > header { display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; gap: 18px; align-items: center; padding: 24px 26px; border-bottom: 1px solid #dce4ee; background: #f9fbfd; }
+.ccna-module > header > span { display: grid; place-items: center; width: 48px; aspect-ratio: 1; border-radius: 6px; background: #102039; color: white; font-family: var(--font-tech), sans-serif; font-weight: 700; }
+.ccna-module header p { margin: 0 0 3px; color: var(--ccna-blue); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.ccna-module header h3 { margin: 0; font-size: 23px; }
+.ccna-module header > strong { color: #64728a; font-size: 14px; }
+.ccna-module ol { margin: 0; padding: 0; list-style: none; }
+.ccna-module li { display: grid; grid-template-columns: 90px minmax(0, 1fr) 42px; gap: 18px; align-items: center; min-height: 104px; padding: 18px 26px; border-bottom: 1px solid #e7ecf2; }
+.ccna-module li:last-child { border-bottom: 0; }
+.ccna-module li > span { color: #64728a; font-family: var(--font-tech), sans-serif; font-size: 14px; font-weight: 700; }
+.ccna-module li strong { display: block; color: #16223a; font-size: 18px; }
+.ccna-module li p { margin: 5px 0; color: #617089; line-height: 1.48; }
+.ccna-module li small { color: #3568cf; font-weight: 650; }
+.ccna-module li > a { display: grid; place-items: center; width: 40px; aspect-ratio: 1; border: 1px solid #b8c8dc; border-radius: 6px; color: #244c9d; }
+.ccna-lesson-scheduled { display: grid; place-items: center; width: 36px; height: 36px; color: #58687f; }
+
+.ccna-source-section { display: grid; grid-template-columns: minmax(280px, .8fr) minmax(0, 1.2fr); gap: 60px; background: white; }
+.ccna-source-links { display: grid; gap: 10px; }
+.ccna-source-links a { display: flex; justify-content: space-between; gap: 20px; padding: 18px 20px; border: 1px solid #d7e0eb; color: #17243a; }
+.ccna-source-links span { display: flex; align-items: center; gap: 6px; color: #3568cf; white-space: nowrap; }
+
+.ccna-lesson-hero { padding: 118px max(24px, calc((100vw - 1450px) / 2)) 58px; background: #0a1729; color: white; }
+.ccna-lesson-breadcrumb { display: flex; gap: 18px; align-items: center; margin-bottom: 34px; color: #9eafc5; font-size: 14px; font-weight: 700; }
+.ccna-lesson-breadcrumb a { display: inline-flex; align-items: center; gap: 7px; color: #72d4df; }
+.ccna-lesson-hero-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr); gap: 70px; align-items: end; }
+.ccna-lesson-hero h1 { max-width: 16ch; margin: 14px 0 20px; color: white; font-family: var(--font-display), sans-serif; font-size: 64px; line-height: 1.04; letter-spacing: 0; }
+.ccna-lesson-hero-grid > div:first-child > p:not(.eyebrow) { max-width: 740px; color: #bdcadd; font-size: 20px; line-height: 1.62; }
+.ccna-complete-button { display: inline-flex; align-items: center; gap: 9px; min-height: 46px; margin-top: 25px; padding: 0 16px; border: 1px solid #48617d; border-radius: 6px; background: #132742; color: white; font-weight: 700; }
+.ccna-complete-button.is-complete { border-color: #35c897; color: #7ae0b5; }
+.ccna-complete-button svg:last-child { margin-left: 5px; }
+.ccna-lesson-map { padding: 26px; border-top: 3px solid #ef3d78; background: #112139; }
+.ccna-lesson-map > span { color: #ffad69; font-family: var(--font-tech), sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; }
+.ccna-lesson-map dl { display: grid; gap: 0; margin: 16px 0 0; }
+.ccna-lesson-map dl div { display: grid; grid-template-columns: 130px 1fr; gap: 18px; padding: 12px 0; border-top: 1px solid #2c405c; }
+.ccna-lesson-map dt { color: #9faec2; }
+.ccna-lesson-map dd { margin: 0; color: white; font-weight: 700; }
+
+.ccna-lesson-layout { display: grid; grid-template-columns: minmax(0, 980px) minmax(280px, 340px); gap: 52px; align-items: start; max-width: 1450px; margin: 0 auto; padding: 58px 24px 80px; }
+.ccna-lesson-article { min-width: 0; }
+.ccna-lesson-article > section { margin-bottom: 28px; padding: clamp(24px, 4vw, 46px); border: 1px solid #d7e0eb; border-radius: 8px; background: white; }
+.ccna-lesson-article h2 { margin: 7px 0 18px; font-size: 38px; line-height: 1.16; }
+.ccna-lesson-article h3 { color: #17243a; }
+.ccna-lesson-article p,
+.ccna-lesson-article li,
+.ccna-lesson-article dd { color: #4e5e76; font-size: 17px; line-height: 1.72; }
+.ccna-answer-block { display: grid; grid-template-columns: 38px 1fr; gap: 18px; border-left: 5px solid #ff8738 !important; }
+.ccna-answer-block > svg { color: #d86e25; }
+.ccna-objectives { display: grid; grid-template-columns: .7fr 1fr 1fr; gap: 30px; }
+.ccna-objectives ul { padding-left: 20px; }
+.ccna-objectives strong { color: #3568cf; }
+.ccna-teaching-section > header,
+.ccna-lab-steps section > header { display: flex; gap: 16px; align-items: flex-start; }
+.ccna-teaching-section > header span,
+.ccna-lab-steps section > header span { flex: 0 0 auto; display: grid; place-items: center; width: 39px; aspect-ratio: 1; border-radius: 6px; background: #eaf0fa; color: #3568cf; font-family: var(--font-tech), sans-serif; font-weight: 800; }
+.ccna-teaching-section > header h2 { margin-top: 0; }
+.ccna-teaching-section > aside { display: grid; grid-template-columns: 28px 1fr; gap: 14px; margin: 26px 0; padding: 22px; border-left: 3px solid #2f9fb8; background: #f2f8fa; }
+.ccna-teaching-section > aside svg { color: #2f9fb8; }
+.ccna-teaching-section > aside p { margin: 5px 0 0; }
+.ccna-teaching-section > ul { display: grid; gap: 10px; padding: 0; list-style: none; }
+.ccna-teaching-section > ul li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; }
+.ccna-teaching-section > ul svg { margin-top: 6px; color: #14875a; }
+
+.ccna-scenario-section { position: relative; overflow: hidden; border-color: #233d5c !important; background: #102039 !important; color: white; }
+.ccna-scenario-section .ccna-section-icon { position: absolute; top: 30px; right: 34px; display: grid; place-items: center; width: 62px; aspect-ratio: 1; border: 1px solid #35506f; border-radius: 50%; color: #62c9da; }
+.ccna-scenario-section h2,
+.ccna-scenario-section > strong { color: white; }
+.ccna-scenario-section p,
+.ccna-scenario-section li { color: #c0cede; }
+.ccna-scenario-section ol { display: grid; gap: 11px; padding-left: 24px; }
+.ccna-scenario-section > strong { display: block; margin-top: 24px; padding-top: 20px; border-top: 1px solid #304864; font-size: 18px; line-height: 1.6; }
+
+.ccna-lab-section { padding: 0 !important; overflow: hidden; }
+.ccna-lab-section > header { display: flex; justify-content: space-between; gap: 30px; padding: 36px 40px; background: #102039; color: white; }
+.ccna-lab-section > header h2 { margin-bottom: 10px; color: white; }
+.ccna-lab-section > header p { max-width: 700px; margin: 0; color: #c0cede; }
+.ccna-lab-section > header > svg { flex: 0 0 auto; color: #ff9c54; }
+.ccna-topology-strip { padding: 24px 40px; border-bottom: 1px solid #d7e0eb; background: #eef4f8; }
+.ccna-topology-strip > span { display: block; color: #243652; font-weight: 700; }
+.ccna-topology-strip > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.ccna-topology-strip i { padding: 7px 10px; border-radius: 4px; background: #dce8f0; color: #36516e; font-size: 13px; font-style: normal; font-weight: 700; }
+.ccna-address-table,
+.ccna-lab-setup,
+.ccna-lab-steps,
+.ccna-lab-proof-grid,
+.ccna-lab-note { margin: 30px 40px; }
+.ccna-table-scroll { overflow-x: auto; }
+.ccna-address-table table { width: 100%; border-collapse: collapse; }
+.ccna-address-table th,
+.ccna-address-table td { padding: 12px; border: 1px solid #d7e0eb; text-align: left; }
+.ccna-address-table th { background: #edf2f7; color: #263650; font-size: 13px; text-transform: uppercase; }
+.ccna-address-table code { white-space: nowrap; }
+.ccna-lab-setup ol { display: grid; gap: 8px; }
+.ccna-lab-steps { display: grid; gap: 18px; }
+.ccna-lab-steps > section { padding: 24px; border: 1px solid #d8e1eb; background: #fbfcfe; }
+.ccna-lab-steps h3 { margin: 5px 0 15px; }
+.ccna-lab-steps pre { overflow-x: auto; margin: 20px 0; padding: 20px; border-left: 4px solid #47c6d9; background: #071526; color: #d7e9f4; font-size: 14px; line-height: 1.65; }
+.ccna-lab-steps dl { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 0; }
+.ccna-lab-steps dl div { padding: 16px; background: #eef3f8; }
+.ccna-lab-steps dt { margin-bottom: 7px; color: #3568cf; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.ccna-lab-steps dd { margin: 0; font-size: 15px; }
+.ccna-lab-proof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.ccna-lab-proof-grid section { padding: 22px; border-top: 3px solid #14875a; background: #f3f8f6; }
+.ccna-lab-proof-grid section:last-child { border-color: #d86e25; background: #fbf6f1; }
+.ccna-lab-proof-grid svg { color: #14875a; }
+.ccna-lab-proof-grid section:last-child svg { color: #d86e25; }
+.ccna-lab-proof-grid ul,
+.ccna-lab-note ul { padding-left: 20px; }
+.ccna-lab-note { padding: 22px; border: 1px solid #ead4bf; background: #fff8f1; }
+.ccna-lab-note p { margin-bottom: 8px; }
+
+.ccna-practice-section details { border-top: 1px solid #dbe3ed; }
+.ccna-practice-section details:last-child { border-bottom: 1px solid #dbe3ed; }
+.ccna-practice-section summary { display: grid; grid-template-columns: 42px 1fr; gap: 14px; align-items: center; padding: 18px 0; color: #17243a; font-size: 17px; font-weight: 700; cursor: pointer; }
+.ccna-practice-section summary span { color: #3568cf; font-family: var(--font-tech), sans-serif; }
+.ccna-practice-section details > div { padding: 0 0 22px 56px; }
+.ccna-practice-section details > div > strong { color: #14875a; }
+
+.ccna-quiz-heading { display: flex; justify-content: space-between; gap: 20px; align-items: center; margin-bottom: 26px; }
+.ccna-quiz-heading h2 { margin-bottom: 0; }
+.ccna-quiz-heading > strong { display: grid; place-items: center; width: 72px; aspect-ratio: 1; border-radius: 50%; background: #102039; color: white; font-size: 22px; }
+.ccna-quiz-heading > span { color: #66758b; font-weight: 700; }
+.ccna-quiz-list { display: grid; gap: 18px; }
+.ccna-quiz-question { min-width: 0; padding: 20px; border: 1px solid #d8e1eb; }
+.ccna-quiz-question legend { display: flex; gap: 10px; max-width: 100%; padding: 0 8px; color: #17243a; font-size: 17px; font-weight: 700; }
+.ccna-quiz-question legend span { color: #3568cf; }
+.ccna-quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-top: 10px; }
+.ccna-quiz-options label { display: grid; grid-template-columns: 20px 1fr 20px; gap: 8px; align-items: center; min-height: 52px; padding: 10px 12px; border: 1px solid #d7e0eb; border-radius: 6px; color: #46566d; cursor: pointer; }
+.ccna-quiz-options label.is-correct { border-color: #14875a; background: #eef8f3; color: #116a49; }
+.ccna-quiz-options label.is-wrong { border-color: #c44455; background: #fff1f3; color: #9b2f3e; }
+.ccna-quiz-explanation { padding: 16px; border-left: 3px solid #c44455; background: #fff4f5; }
+.ccna-quiz-explanation.is-correct { border-color: #14875a; background: #eff8f4; }
+.ccna-quiz .button-row { margin-top: 24px; }
+.ccna-takeaways ul { display: grid; gap: 12px; padding-left: 22px; }
+
+.ccna-lesson-sidebar { position: sticky; top: 98px; display: grid; gap: 16px; }
+.ccna-lesson-sidebar > nav,
+.ccna-lesson-sidebar > section { display: grid; gap: 10px; padding: 22px; border: 1px solid #d7e0eb; border-radius: 8px; background: white; }
+.ccna-lesson-sidebar > nav a,
+.ccna-lesson-sidebar > section > a { display: flex; justify-content: space-between; gap: 8px; padding: 9px 0; border-top: 1px solid #e5ebf2; color: #3568cf; }
+.ccna-lesson-sidebar dl { margin: 0; }
+.ccna-lesson-sidebar dl div { padding: 11px 0; border-top: 1px solid #e5ebf2; }
+.ccna-lesson-sidebar dt { color: #17243a; font-weight: 700; }
+.ccna-lesson-sidebar dd { margin: 4px 0 0; color: #66758b; font-size: 14px; line-height: 1.55; }
+.ccna-lesson-pagination { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 1450px; margin: 0 auto; padding: 0 24px 80px; }
+.ccna-lesson-pagination a { display: flex; gap: 15px; align-items: center; justify-content: flex-start; min-height: 92px; padding: 20px; border: 1px solid #cfd9e6; border-radius: 8px; background: white; color: #3568cf; }
+.ccna-lesson-pagination a:last-child { justify-content: flex-end; text-align: right; }
+.ccna-lesson-pagination span { display: grid; gap: 5px; color: #6a7890; font-size: 13px; }
+.ccna-lesson-pagination strong { color: #17243a; font-size: 16px; }
+
+@media (max-width: 1100px) {
+  .ccna-course-hero { grid-template-columns: 1fr; min-height: auto; }
+  .ccna-course-copy h1 { max-width: 16ch; font-size: 56px; }
+  .ccna-course-visual { width: min(100%, 680px); height: auto; min-height: 0; aspect-ratio: 4 / 4.35; }
+  .ccna-method-grid { grid-template-columns: 1fr 1fr; }
+  .ccna-lesson-layout { grid-template-columns: 1fr; }
+  .ccna-lesson-sidebar { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .ccna-course-hero { padding: 96px 16px 44px; gap: 34px; }
+  .ccna-course-copy h1 { font-size: 38px; }
+  .ccna-course-lead { font-size: 17px; }
+  .ccna-course-copy .button-row { display: grid; grid-template-columns: 1fr; }
+  .ccna-course-copy .button { justify-content: center; width: 100%; }
+  .ccna-course-stats { grid-template-columns: 1fr; }
+  .ccna-course-visual { aspect-ratio: 1 / 1.08; }
+  .ccna-visual-node { font-size: 12px; }
+  .ccna-version-band,
+  .ccna-source-section { grid-template-columns: 1fr; padding: 34px 16px; }
+  .ccna-method-grid { grid-template-columns: 1fr; }
+  .ccna-module > header { grid-template-columns: 48px 1fr; padding: 18px 16px; }
+  .ccna-module header > strong { grid-column: 2; }
+  .ccna-module li { grid-template-columns: 66px minmax(0, 1fr) 36px; gap: 10px; padding: 16px; }
+  .ccna-module li p { font-size: 14px; }
+  .ccna-module li small { display: block; font-size: 11px; }
+  .ccna-source-links a { align-items: flex-start; flex-direction: column; }
+  .ccna-lesson-hero { padding: 96px 16px 42px; }
+  .ccna-lesson-breadcrumb { flex-wrap: wrap; }
+  .ccna-lesson-hero-grid { grid-template-columns: 1fr; gap: 30px; }
+  .ccna-lesson-hero h1 { font-size: 38px; }
+  .ccna-lesson-map dl div { grid-template-columns: 105px 1fr; }
+  .ccna-lesson-layout { padding: 28px 12px 52px; }
+  .ccna-lesson-article > section { padding: 24px 18px; }
+  .ccna-objectives,
+  .ccna-lab-steps dl,
+  .ccna-lab-proof-grid,
+  .ccna-quiz-options,
+  .ccna-lesson-sidebar { grid-template-columns: 1fr; }
+  .ccna-lab-section > header,
+  .ccna-topology-strip { padding: 25px 18px; }
+  .ccna-address-table,
+  .ccna-lab-setup,
+  .ccna-lab-steps,
+  .ccna-lab-proof-grid,
+  .ccna-lab-note { margin: 24px 18px; }
+  .ccna-practice-section details > div { padding-left: 0; }
+  .ccna-lesson-pagination { grid-template-columns: 1fr; padding: 0 12px 52px; }
+  .ccna-lesson-pagination > span { display: none; }
+}
+
+@media (max-width: 420px) {
+  .ccna-course-copy h1,
+  .ccna-lesson-hero h1 { font-size: 33px; }
+  .ccna-module li { grid-template-columns: 1fr 34px; }
+  .ccna-module li > span { grid-column: 1 / -1; }
+  .ccna-visual-node.is-three { display: none; }
+  .ccna-lesson-article p,
+  .ccna-lesson-article li,
+  .ccna-lesson-article dd { font-size: 16px; }
+}
+
+.institute-ccna-feature {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.72fr);
+  gap: clamp(34px, 6vw, 88px);
+  align-items: center;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: #f4f7fb;
+}
+
+.institute-ccna-feature .section-heading {
+  margin: 0;
+}
+
+.institute-ccna-feature .button {
+  margin-top: 26px;
+}
+
+.institute-ccna-method {
+  display: grid;
+  border-top: 1px solid #cfd9e6;
+}
+
+.institute-ccna-method > div {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 0.34fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  min-height: 100px;
+  padding: 20px 0;
+  border-bottom: 1px solid #cfd9e6;
+}
+
+.institute-ccna-method svg {
+  color: #3568cf;
+}
+
+.institute-ccna-method strong {
+  color: #17243a;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.15rem;
+}
+
+.institute-ccna-method span {
+  color: #58687f;
+  line-height: 1.55;
+}
+
+.ccna-admin-desk {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+
+.ccna-admin-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  align-items: flex-end;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--brand-blue);
+  background: var(--surface);
+}
+
+.ccna-admin-heading > div:first-child {
+  max-width: 820px;
+}
+
+.ccna-admin-heading h2,
+.ccna-admin-detail h3 {
+  margin: 6px 0 10px;
+}
+
+.ccna-admin-heading p:last-child,
+.ccna-admin-detail header p,
+.ccna-admin-preview p,
+.ccna-native-note p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.ccna-admin-heading .button-row {
+  flex: 0 0 auto;
+}
+
+.ccna-admin-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.ccna-admin-metrics > div {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 76px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.ccna-admin-metrics svg {
+  color: var(--brand-blue);
+}
+
+.ccna-admin-metrics span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ccna-admin-metrics strong {
+  color: var(--ink);
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.55rem;
+}
+
+.ccna-admin-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.36fr) minmax(0, 1fr);
+  min-height: 650px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.ccna-admin-queue {
+  max-height: 760px;
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+  background: var(--soft);
+}
+
+.ccna-admin-queue button {
+  display: grid;
+  width: 100%;
+  gap: 7px;
+  padding: 18px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ccna-admin-queue button:hover,
+.ccna-admin-queue button.is-selected {
+  background: var(--surface);
+}
+
+.ccna-admin-queue button.is-selected {
+  box-shadow: inset 4px 0 0 var(--brand-blue);
+}
+
+.ccna-admin-queue button > span {
+  color: var(--brand-blue);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ccna-admin-queue button > strong {
+  line-height: 1.35;
+}
+
+.ccna-admin-queue button > i {
+  width: fit-content;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ccna-admin-detail {
+  display: grid;
+  align-content: start;
+  gap: 22px;
+  min-width: 0;
+  padding: clamp(22px, 3vw, 38px);
+}
+
+.ccna-admin-detail > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.ccna-admin-map {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.ccna-admin-map > div {
+  min-width: 0;
+  padding: 16px;
+  border-right: 1px solid var(--line);
+}
+
+.ccna-admin-map > div:last-child {
+  border-right: 0;
+}
+
+.ccna-admin-map dt {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.ccna-admin-map dd {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.ccna-admin-preview {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+  border-left: 4px solid var(--brand-green);
+  background: #f3f8f6;
+}
+
+.ccna-admin-preview > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ccna-admin-preview span {
+  padding: 7px 10px;
+  border: 1px solid #cedfd8;
+  background: var(--surface);
+  color: #28634d;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.ccna-admin-error {
+  padding: 16px;
+  border-left: 4px solid #ba3a4e;
+  background: #fff1f3;
+  color: #8b2a3b;
+  line-height: 1.55;
+}
+
+.ccna-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.ccna-native-note {
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.ccna-native-note strong {
+  color: var(--ink);
+}
+
+@media (max-width: 1100px) {
+  .institute-ccna-feature,
+  .ccna-admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ccna-admin-queue {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(230px, 0.4fr);
+    max-height: none;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .ccna-admin-queue button {
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+  }
+
+  .ccna-admin-queue button.is-selected {
+    box-shadow: inset 0 -4px 0 var(--brand-blue);
+  }
+}
+
+@media (max-width: 760px) {
+  .institute-ccna-feature {
+    padding-inline: 18px;
+  }
+
+  .institute-ccna-method > div {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .institute-ccna-method span {
+    grid-column: 2;
+  }
+
+  .ccna-admin-heading,
+  .ccna-admin-detail > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ccna-admin-heading {
+    padding: 22px 18px;
+  }
+
+  .ccna-admin-heading .button-row,
+  .ccna-admin-heading .button {
+    width: 100%;
+  }
+
+  .ccna-admin-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ccna-admin-metrics > div {
+    grid-template-columns: 30px 1fr;
+  }
+
+  .ccna-admin-metrics strong {
+    grid-column: 2;
+  }
+
+  .ccna-admin-detail {
+    padding: 22px 16px;
+  }
+
+  .ccna-admin-map {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ccna-admin-map > div:nth-child(2) {
+    border-right: 0;
+  }
+
+  .ccna-admin-map > div:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+}
+
 .advisory-desk-hero,
 .advisory-article-hero {
   align-items: center;

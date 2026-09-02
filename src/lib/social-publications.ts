@@ -1,5 +1,6 @@
 import type { Prisma, SecurityAdvisory } from "@prisma/client";
 import type { ContentPostRecord } from "@/lib/content-posts";
+import { getCcnaLessonById, type CcnaLessonRecord } from "@/lib/ccna-learning";
 import { siteConfig } from "@/lib/content";
 import { ensureEditorialImageForPublication } from "@/lib/editorial-image-generation";
 import { createAdvisoryLinkedInPost, createEditorialLinkedInPost } from "@/lib/linkedin-content-agents";
@@ -7,6 +8,7 @@ import {
   advisoryLinkedInQualityIssues,
   composeAdvisoryLinkedInPost,
   composeEditorialLinkedInPost,
+  composeLinkedInProtocolCommentary,
   editorialLinkedInQualityIssues,
   linkedInCommentaryPolicyVersion,
   type LinkedInAdvisoryPost
@@ -98,8 +100,62 @@ export function buildAdvisoryLinkedInCommentary(advisory: SecurityAdvisory) {
   });
 }
 
+function ccnaStorySpine(lesson: CcnaLessonRecord) {
+  if (!lesson.content) throw new Error("The CCNA lesson has no publishable content.");
+  return {
+    primarySubject: `${lesson.title} for CCNA 200-301 learners`,
+    trigger: lesson.content.learnerOutcome,
+    mechanism: lesson.content.plainAnswer,
+    consequence: lesson.content.realWorldScenario.takeaway,
+    operatorDecision: lesson.content.lab.goal,
+    verification: lesson.content.lab.verification.slice(0, 2).join(" "),
+    secondaryContext: [`Current v1.1 map ${lesson.v11Blueprint}`, `Announced v2.0 map ${lesson.v20Blueprint}`],
+    visualSequence: [
+      `Establish the ${lesson.title} packet path or decision.`,
+      `Build the ${lesson.content.lab.title} lab topology.`,
+      "Verify the intended state with observable command evidence."
+    ] as [string, string, string]
+  };
+}
+
+function completeExcerpt(value: string, limit: number) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= limit) return normalized;
+  const sentences = normalized.match(/[^.!?]+[.!?]+/g) || [];
+  const selected: string[] = [];
+  for (const sentence of sentences) {
+    if ([...selected, sentence.trim()].join(" ").length > limit) break;
+    selected.push(sentence.trim());
+  }
+  if (selected.length) return selected.join(" ");
+  const clipped = normalized.slice(0, limit - 1).replace(/\s+\S*$/, "").replace(/[,:;.!?\s]+$/, "");
+  return `${clipped}.`;
+}
+
+export function buildCcnaLinkedInCommentary(lesson: CcnaLessonRecord) {
+  if (!lesson.content) throw new Error("The CCNA lesson has no publishable content.");
+  const url = trackedUrl(`/courses/ccna/lessons/${lesson.slug}`, "ccna-daily", `day-${lesson.sequence}`);
+  const content = lesson.content;
+  return composeLinkedInProtocolCommentary({
+    hook: `CCNA Daily ${lesson.sequence}: ${lesson.title}. Learn the idea, build it in a small lab, then prove what the network is doing.`,
+    evidence: `${completeExcerpt(content.plainAnswer, 460)} Current 200-301 v1.1 map: ${lesson.v11Blueprint}. Announced v2.0 bridge: ${lesson.v20Blueprint}.`,
+    interpretation: `${completeExcerpt(content.realWorldScenario.situation, 360)} The practical takeaway: ${completeExcerpt(content.realWorldScenario.takeaway, 300)}`,
+    actions: [
+      `Explain ${lesson.title} in your own words using the packet or control path`,
+      `Build ${content.lab.title} in GNS3 with properly licensed images or use Cisco Modeling Labs`,
+      "Complete the practice set and scored quiz, then save the command evidence used to verify the result"
+    ],
+    verification: completeExcerpt(content.lab.verification[0], 320),
+    question: `What evidence would convince you that your ${lesson.title.toLowerCase()} lab is working as intended?`,
+    linkLabel: "Original QCS analysis",
+    maxLength: 2_700,
+    url,
+    hashtags: ["#CCNA", "#CiscoNetworking", "#NetworkEngineering", "#GNS3", "#NetworkingStudents"]
+  });
+}
+
 async function enqueue(input: {
-  contentType: "content_post" | "security_advisory";
+  contentType: "ccna_lesson" | "content_post" | "security_advisory";
   contentId: string;
   contentRevision: string;
   sourceUrl: string;
@@ -204,6 +260,28 @@ export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revis
       contentRevision: revisionKey,
       storySpine
     })
+  });
+}
+
+export async function queueLinkedInForCcnaLesson(lesson: CcnaLessonRecord) {
+  if (!lesson.content || lesson.status !== "published") throw new Error("Only a complete published CCNA lesson can enter distribution.");
+  const revision = lesson.updatedAt;
+  const storySpine = ccnaStorySpine(lesson);
+  return enqueue({
+    contentType: "ccna_lesson",
+    contentId: lesson.id,
+    contentRevision: revision,
+    sourceUrl: `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}`,
+    commentary: buildCcnaLinkedInCommentary(lesson),
+    commentaryQualityScore: 100,
+    commentaryTrace: {
+      provider: "ccna-learning-protocol",
+      policyVersion: linkedInCommentaryPolicyVersion,
+      generatedAt: new Date().toISOString()
+    },
+    imageUrl: `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}/social-image?v=${encodeURIComponent(revision)}`,
+    imageAlt: `QCS CCNA Daily lesson ${lesson.sequence}: ${lesson.title}`,
+    lineage: createEditorialLineage({ contentType: "ccna_lesson", contentId: lesson.id, contentRevision: revision, storySpine })
   });
 }
 
@@ -364,19 +442,21 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
           }
         });
       }
-      const generatedImage = await ensureEditorialImageForPublication(job);
-      if (!generatedImage?.generatedAt) {
-        throw new Error(editorialImageWaitMessage);
-      }
       const publicationLineage = lineageFromMetadata(publicationMetadata);
-      const imageLineage = lineageFromMetadata(generatedImage.agentTrace);
-      if (!publicationLineage || !imageLineage || publicationLineage.hash !== imageLineage.hash) {
-        throw new Error("LinkedIn delivery was held because the article revision and contextual image do not share the same editorial lineage.");
+      const generatedImage = job.contentType === "ccna_lesson" ? null : await ensureEditorialImageForPublication(job);
+      if (job.contentType === "ccna_lesson") {
+        if (!publicationLineage) throw new Error("LinkedIn delivery was held because the CCNA lesson lineage is missing.");
+      } else {
+        if (!generatedImage?.generatedAt) throw new Error(editorialImageWaitMessage);
+        const imageLineage = lineageFromMetadata(generatedImage.agentTrace);
+        if (!publicationLineage || !imageLineage || publicationLineage.hash !== imageLineage.hash) {
+          throw new Error("LinkedIn delivery was held because the article revision and contextual image do not share the same editorial lineage.");
+        }
       }
       if (!publicationImageUrl) throw new Error("LinkedIn delivery is missing its canonical article image URL.");
       const imageUrl = (() => {
         const url = new URL(publicationImageUrl);
-        url.searchParams.set("asset", generatedImage.generatedAt.toISOString());
+        if (generatedImage?.generatedAt) url.searchParams.set("asset", generatedImage.generatedAt.toISOString());
         return url.toString();
       })();
       const result = await publishLinkedInPost({
@@ -487,6 +567,25 @@ async function currentPublicationMaterial(job: {
       sourceUrl: `${siteConfig.url}/security-advisories/${resolved.source.slug}`
     };
   }
+  if (job.contentType === "ccna_lesson") {
+    const lesson = await getCcnaLessonById(job.contentId);
+    if (!lesson?.content) throw new Error("The CCNA lesson revision is unavailable.");
+    const commentary = commentaryOverride?.trim() || buildCcnaLinkedInCommentary(lesson);
+    const storySpine = ccnaStorySpine(lesson);
+    return {
+      commentary,
+      commentaryQualityScore: 100,
+      commentaryTrace: {
+        provider: commentaryOverride ? "admin-reviewed" : "ccna-learning-protocol",
+        policyVersion: linkedInCommentaryPolicyVersion,
+        generatedAt: new Date().toISOString()
+      } as Prisma.InputJsonValue,
+      imageAlt: `QCS CCNA Daily lesson ${lesson.sequence}: ${lesson.title}`,
+      imageUrl: `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}/social-image?v=${encodeURIComponent(job.contentRevision)}`,
+      lineage: createEditorialLineage({ contentType: "ccna_lesson", contentId: lesson.id, contentRevision: job.contentRevision, storySpine }),
+      sourceUrl: `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}`
+    };
+  }
   throw new Error(`Unsupported LinkedIn content type: ${job.contentType}`);
 }
 
@@ -531,18 +630,22 @@ export async function refreshLinkedInPublication(
     });
   }
 
-  const generatedImage = await ensureEditorialImageForPublication(publication, true, {
-    premiumAllowed: forceProceduralImage ? false : undefined
-  });
-  if (!generatedImage?.generatedAt) {
-    throw new Error("The current contextual image is not ready, so the existing LinkedIn post was left unchanged.");
-  }
-  const refreshedImageLineage = lineageFromMetadata(generatedImage.agentTrace);
-  if (!refreshedImageLineage || refreshedImageLineage.hash !== material.lineage.hash) {
-    throw new Error("The replacement image does not match the approved article revision, so the existing LinkedIn post was left unchanged.");
+  const generatedImage = publication.contentType === "ccna_lesson"
+    ? null
+    : await ensureEditorialImageForPublication(publication, true, {
+        premiumAllowed: forceProceduralImage ? false : undefined
+      });
+  if (publication.contentType !== "ccna_lesson") {
+    if (!generatedImage?.generatedAt) {
+      throw new Error("The current contextual image is not ready, so the existing LinkedIn post was left unchanged.");
+    }
+    const refreshedImageLineage = lineageFromMetadata(generatedImage.agentTrace);
+    if (!refreshedImageLineage || refreshedImageLineage.hash !== material.lineage.hash) {
+      throw new Error("The replacement image does not match the approved article revision, so the existing LinkedIn post was left unchanged.");
+    }
   }
   const generatedImageUrl = new URL(material.imageUrl);
-  generatedImageUrl.searchParams.set("asset", generatedImage.generatedAt.toISOString());
+  if (generatedImage?.generatedAt) generatedImageUrl.searchParams.set("asset", generatedImage.generatedAt.toISOString());
   material.imageUrl = generatedImageUrl.toString();
 
   const replacement = await publishLinkedInPost({
@@ -592,7 +695,7 @@ export async function rebuildLinkedInPublication(publicationId: string) {
 
   if (publication.contentType === "security_advisory") {
     await ensureEditorialImageForPublication(publication, true);
-  } else {
+  } else if (publication.contentType === "content_post") {
     await ensureEditorialImageForPublication(publication, false);
   }
 
@@ -719,11 +822,13 @@ export async function getSocialPublicationSummary() {
   ]);
   const contentIds = latest.filter((entry) => entry.contentType === "content_post").map((entry) => entry.contentId);
   const advisoryIds = latest.filter((entry) => entry.contentType === "security_advisory").map((entry) => entry.contentId);
-  const [contentTitles, advisoryTitles] = await Promise.all([
+  const ccnaIds = latest.filter((entry) => entry.contentType === "ccna_lesson").map((entry) => entry.contentId);
+  const [contentTitles, advisoryTitles, ccnaTitles] = await Promise.all([
     prisma.contentPost.findMany({ where: { id: { in: contentIds } }, select: { id: true, title: true } }),
-    prisma.securityAdvisory.findMany({ where: { id: { in: advisoryIds } }, select: { id: true, title: true } })
+    prisma.securityAdvisory.findMany({ where: { id: { in: advisoryIds } }, select: { id: true, title: true } }),
+    prisma.ccnaLesson.findMany({ where: { id: { in: ccnaIds } }, select: { id: true, title: true } })
   ]);
-  const titles = new Map([...contentTitles, ...advisoryTitles].map((entry) => [entry.id, entry.title]));
+  const titles = new Map([...contentTitles, ...advisoryTitles, ...ccnaTitles].map((entry) => [entry.id, entry.title]));
   return {
     counts: Object.fromEntries(counts.map((entry) => [entry.status, entry._count._all])),
     latest: latest.map((entry) => {
