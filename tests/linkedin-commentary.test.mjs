@@ -310,6 +310,54 @@ test("LinkedIn transport escapes little-text control characters without hiding t
   assert.equal(linkedInLittleTextMatches(commentary, commentary), true);
 });
 
+test("future blog and advisory posts use the same lossless LinkedIn transport", () => {
+  const blogCommentary = composeEditorialLinkedInPost(
+    article("BGP (Border Gateway Protocol) route-origin validation for hybrid cloud networks"),
+    articleUrl
+  );
+  const advisoryUrl = "https://www.qcsstudio.com/security-advisories/cisco-fixed-release?utm_source=linkedin";
+  const advisoryCommentary = composeAdvisoryLinkedInPost(
+    {
+      affectedVersions: ["15.0(0) through 15.0(1)"],
+      businessImpact: "An authenticated operator could cross the intended management boundary.",
+      cves: ["CVE-2026-4321"],
+      cvssScore: 8.1,
+      evidenceChecklist: ["Confirm the running release and retain authentication logs."],
+      exploitationStatus: "Cisco reports no known exploitation.",
+      fixedVersions: ["15.0(1)ES202607 or later"],
+      products: ["Cisco Unified Intelligence Center"],
+      remediation: "Install the vendor-fixed release and validate service health.",
+      severity: "high",
+      sourceUrl: "https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/example",
+      summary: "An authenticated management-path vulnerability requires a fixed release.",
+      technicalExplanation: "The affected control is enforced inside the authenticated management path.",
+      title: "Cisco Unified Intelligence Center management vulnerability",
+      vendor: "Cisco",
+      workaround: "No workaround is available."
+    },
+    advisoryUrl
+  );
+
+  for (const [kind, commentary, expectedUrl] of [
+    ["blog", blogCommentary, articleUrl],
+    ["advisory", advisoryCommentary, advisoryUrl]
+  ]) {
+    const transport = encodeLinkedInLittleText(commentary);
+    assert.match(transport, /\\\(/, `${kind} transport must escape opening parentheses`);
+    assert.equal(decodeLinkedInLittleText(transport), commentary);
+    assert.equal(linkedInLittleTextMatches(transport, commentary), true);
+    assert.ok(commentary.includes(expectedUrl), `${kind} commentary must retain its QCS URL`);
+    assert.ok((commentary.match(/#[A-Za-z0-9]+/g) || []).length >= 3, `${kind} commentary must retain focused hashtags`);
+  }
+});
+
+test("every LinkedIn post write uses the encoded transport field", () => {
+  const source = fs.readFileSync("src/lib/linkedin.ts", "utf8");
+  assert.match(source, /commentary:\s*transportCommentary/);
+  assert.match(source, /\$set:\s*\{\s*commentary:\s*transportCommentary\s*\}/);
+  assert.doesNotMatch(source, /\$set:\s*\{\s*commentary:\s*validatedCommentary\s*\}/);
+});
+
 test("LinkedIn transport contains no silent 2,900-character truncation", () => {
   for (const path of ["src/lib/linkedin.ts", "src/lib/social-publications.ts", "src/lib/linkedin-commentary.ts"]) {
     assert.doesNotMatch(fs.readFileSync(path, "utf8"), /\.slice\(0,\s*2_?900\)/);
