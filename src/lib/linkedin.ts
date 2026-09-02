@@ -3,12 +3,18 @@ import type { Prisma } from "@prisma/client";
 import { getPrismaClient } from "@/lib/prisma";
 import { decryptIntegrationSecret, encryptIntegrationSecret } from "@/lib/integration-secrets";
 import { assertLinkedInProtocol } from "@/lib/linkedin-commentary";
+import {
+  decodeLinkedInLittleText,
+  encodeLinkedInLittleText,
+  linkedInLittleTextMatches
+} from "@/lib/linkedin-little-text";
 
 const linkedinAuthorizeUrl = "https://www.linkedin.com/oauth/v2/authorization";
 const linkedinTokenUrl = "https://www.linkedin.com/oauth/v2/accessToken";
 const linkedinUserInfoUrl = "https://api.linkedin.com/v2/userinfo";
 const linkedinApiBase = "https://api.linkedin.com/rest";
 const requestTimeoutMs = 15_000;
+const readBackDelaysMs = [0, 700, 1_600];
 
 type LinkedInTokenResponse = {
   access_token: string;
@@ -179,14 +185,65 @@ async function uploadImage(accessToken: string, owner: string, imageUrl: string)
   return image;
 }
 
+async function fetchLinkedInPost(accessToken: string, externalId: string) {
+  const response = await fetch(`${linkedinApiBase}/posts/${encodeURIComponent(externalId)}`, {
+    headers: apiHeaders(accessToken),
+    signal: AbortSignal.timeout(requestTimeoutMs),
+    cache: "no-store"
+  });
+  if (!response.ok) throw await responseError(response, "LinkedIn post lookup");
+  return response.json() as Promise<Record<string, unknown>>;
+}
+
+async function verifyLinkedInCommentary(accessToken: string, externalId: string, expectedCommentary: string) {
+  let observedCommentary = "";
+  let lastError: Error | null = null;
+
+  for (const delayMs of readBackDelaysMs) {
+    if (delayMs) await new Promise((resolve) => setTimeout(resolve, delayMs));
+    try {
+      const post = await fetchLinkedInPost(accessToken, externalId);
+      observedCommentary = typeof post.commentary === "string" ? post.commentary : "";
+      if (linkedInLittleTextMatches(observedCommentary, expectedCommentary)) {
+        const decodedCommentary = decodeLinkedInLittleText(observedCommentary);
+        assertLinkedInProtocol(decodedCommentary);
+        return {
+          liveCommentaryHash: crypto.createHash("sha256").update(decodedCommentary).digest("hex"),
+          liveCommentaryLength: decodedCommentary.length,
+          verifiedAt: new Date().toISOString()
+        };
+      }
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Unknown LinkedIn read-back error");
+    }
+  }
+
+  if (lastError && !observedCommentary) throw lastError;
+  throw new Error(
+    `LinkedIn accepted the write but live commentary verification failed: expected ${expectedCommentary.length} characters, observed ${decodeLinkedInLittleText(observedCommentary).length}.`
+  );
+}
+
+async function deleteLinkedInPostWithToken(accessToken: string, externalId: string) {
+  const response = await fetch(`${linkedinApiBase}/posts/${encodeURIComponent(externalId)}`, {
+    method: "DELETE",
+    headers: { ...apiHeaders(accessToken), "X-RestLi-Method": "DELETE" },
+    signal: AbortSignal.timeout(requestTimeoutMs),
+    cache: "no-store"
+  });
+  if (response.status === 404) return;
+  if (!response.ok) throw await responseError(response, "LinkedIn post deletion");
+}
+
 export async function publishLinkedInPost(input: LinkedInPublishInput) {
   const connection = await activeConnection();
   const author = `urn:li:person:${connection.accountId}`;
   const image = input.imageUrl ? await uploadImage(connection.accessToken, author, input.imageUrl) : "";
   const commentary = assertLinkedInProtocol(input.commentary);
+  const transportCommentary = encodeLinkedInLittleText(commentary);
   const body = {
     author,
-    commentary,
+    commentary: transportCommentary,
     visibility: "PUBLIC",
     distribution: { feedDistribution: "MAIN_FEED", targetEntities: [], thirdPartyDistributionChannels: [] },
     ...(image ? { content: { media: { id: image, altText: (input.imageAlt || "QCS network security intelligence").slice(0, 120) } } } : {}),
@@ -203,6 +260,13 @@ export async function publishLinkedInPost(input: LinkedInPublishInput) {
   if (!response.ok) throw await responseError(response, "LinkedIn post publication");
   const externalId = response.headers.get("x-restli-id") || response.headers.get("x-linkedin-id") || "";
   if (!externalId) throw new Error("LinkedIn published the post without returning a post identifier.");
+  let verification;
+  try {
+    verification = await verifyLinkedInCommentary(connection.accessToken, externalId, commentary);
+  } catch (error) {
+    await deleteLinkedInPostWithToken(connection.accessToken, externalId).catch(() => undefined);
+    throw error;
+  }
   return {
     externalId,
     permalink: `https://www.linkedin.com/feed/update/${externalId}/`,
@@ -210,6 +274,9 @@ export async function publishLinkedInPost(input: LinkedInPublishInput) {
       apiVersion: process.env.LINKEDIN_API_VERSION?.trim() || "202607",
       commentaryHash: crypto.createHash("sha256").update(commentary).digest("hex"),
       commentaryLength: commentary.length,
+      transportCommentaryHash: crypto.createHash("sha256").update(transportCommentary).digest("hex"),
+      transportCommentaryLength: transportCommentary.length,
+      ...verification,
       imageAssetId: image
     }
   };
@@ -217,36 +284,33 @@ export async function publishLinkedInPost(input: LinkedInPublishInput) {
 
 export async function getLinkedInPost(externalId: string) {
   const connection = await activeConnection();
-  const response = await fetch(`${linkedinApiBase}/posts/${encodeURIComponent(externalId)}`, {
-    headers: apiHeaders(connection.accessToken),
-    signal: AbortSignal.timeout(requestTimeoutMs),
-    cache: "no-store"
-  });
-  if (!response.ok) throw await responseError(response, "LinkedIn post lookup");
-  return response.json() as Promise<Record<string, unknown>>;
+  return fetchLinkedInPost(connection.accessToken, externalId);
 }
 
 export async function updateLinkedInPostCommentary(externalId: string, commentary: string) {
   const connection = await activeConnection();
   const validatedCommentary = assertLinkedInProtocol(commentary);
+  const transportCommentary = encodeLinkedInLittleText(validatedCommentary);
   const response = await fetch(`${linkedinApiBase}/posts/${encodeURIComponent(externalId)}`, {
     method: "POST",
     headers: { ...apiHeaders(connection.accessToken), "X-RestLi-Method": "PARTIAL_UPDATE" },
-    body: JSON.stringify({ patch: { $set: { commentary: validatedCommentary } } }),
+    body: JSON.stringify({ patch: { $set: { commentary: transportCommentary } } }),
     signal: AbortSignal.timeout(requestTimeoutMs),
     cache: "no-store"
   });
   if (!response.ok) throw await responseError(response, "LinkedIn post update");
+  const verification = await verifyLinkedInCommentary(connection.accessToken, externalId, validatedCommentary);
+  return {
+    apiVersion: process.env.LINKEDIN_API_VERSION?.trim() || "202607",
+    commentaryHash: crypto.createHash("sha256").update(validatedCommentary).digest("hex"),
+    commentaryLength: validatedCommentary.length,
+    transportCommentaryHash: crypto.createHash("sha256").update(transportCommentary).digest("hex"),
+    transportCommentaryLength: transportCommentary.length,
+    ...verification
+  };
 }
 
 export async function deleteLinkedInPost(externalId: string) {
   const connection = await activeConnection();
-  const response = await fetch(`${linkedinApiBase}/posts/${encodeURIComponent(externalId)}`, {
-    method: "DELETE",
-    headers: { ...apiHeaders(connection.accessToken), "X-RestLi-Method": "DELETE" },
-    signal: AbortSignal.timeout(requestTimeoutMs),
-    cache: "no-store"
-  });
-  if (response.status === 404) return;
-  if (!response.ok) throw await responseError(response, "LinkedIn post deletion");
+  return deleteLinkedInPostWithToken(connection.accessToken, externalId);
 }

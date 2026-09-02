@@ -47,7 +47,7 @@ type LinkedInDraft = z.infer<typeof linkedInDraftSchema>;
 
 type LinkedInAgentTrace = {
   provider: "openai-direct";
-  policyVersion: 4;
+  policyVersion: typeof linkedInCommentaryPolicyVersion;
   writerModel: string;
   criticModel: string;
   attempts: number;

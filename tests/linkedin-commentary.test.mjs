@@ -10,6 +10,11 @@ import {
   editorialLinkedInQualityIssues,
   formatAgentLinkedInCommentary
 } from "../src/lib/linkedin-commentary.ts";
+import {
+  decodeLinkedInLittleText,
+  encodeLinkedInLittleText,
+  linkedInLittleTextMatches
+} from "../src/lib/linkedin-little-text.ts";
 
 const articleUrl = "https://www.qcsstudio.com/resources/example?utm_source=linkedin";
 
@@ -267,7 +272,7 @@ test("evidence-led Fortinet advisory passes exact-fact and presentation gates", 
 test("protocol gate rejects unstructured and silently clipped LinkedIn copy", () => {
   assert.throws(
     () => assertLinkedInProtocol(`A partial post...\n\n${articleUrl}\n\n#BGP #RPKI #NetworkSecurity`),
-    /protocol v4/i
+    /protocol v5/i
   );
   assert.throws(
     () => composeLinkedInProtocolCommentary({
@@ -283,6 +288,26 @@ test("protocol gate rejects unstructured and silently clipped LinkedIn copy", ()
     }),
     /instead of truncating/i
   );
+});
+
+test("LinkedIn transport escapes little-text control characters without hiding the footer", () => {
+  const commentary = [
+    "Cisco fixed 15.0(1)ES202607+ and Citrix classified the flaw as CWE-119 (Classic Buffer Overflow).",
+    "Contact noc@example.com and retain the change_record before validation.",
+    "Original QCS analysis: https://www.qcsstudio.com/resources/example?utm_source=linkedin",
+    "#CiscoSecurity #NetworkSecurity #VulnerabilityManagement"
+  ].join("\n\n");
+  const encoded = encodeLinkedInLittleText(commentary);
+
+  assert.match(encoded, /15\.0\\\(1\\\)ES202607\+/);
+  assert.match(encoded, /CWE-119 \\\(Classic Buffer Overflow\\\)/);
+  assert.match(encoded, /noc\\@example\.com/);
+  assert.match(encoded, /change\\_record/);
+  assert.match(encoded, /utm\\_source=linkedin/);
+  assert.match(encoded, /#CiscoSecurity #NetworkSecurity #VulnerabilityManagement$/);
+  assert.equal(decodeLinkedInLittleText(encoded), commentary);
+  assert.equal(linkedInLittleTextMatches(encoded, commentary), true);
+  assert.equal(linkedInLittleTextMatches(commentary, commentary), true);
 });
 
 test("LinkedIn transport contains no silent 2,900-character truncation", () => {

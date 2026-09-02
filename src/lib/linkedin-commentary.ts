@@ -46,7 +46,7 @@ export type LinkedInAdvisoryPost = {
   sourceUrl?: string;
 };
 
-export const linkedInCommentaryPolicyVersion = 4;
+export const linkedInCommentaryPolicyVersion = 5;
 export const linkedInDeliveryLimit = 2_900;
 
 export type LinkedInProtocolDraft = {
