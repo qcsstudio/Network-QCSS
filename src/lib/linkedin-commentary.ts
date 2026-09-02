@@ -183,19 +183,29 @@ function editorialPlan(post: LinkedInEditorialPost): EditorialPlan {
   }
 
   if (/vulnerab|\bcve\b|security advisory|hardening release|remote code execution/.test(text)) {
+    const checklist = (post.content.checklist || []).map(normalize).filter(Boolean);
+    const fixedReleaseDetails = (section(post, /solution choices|fixed release|remediation/i)?.bullets || [])
+      .map(normalize)
+      .filter((item) => /fixed|version|release|hotfix|upgrade/i.test(item))
+      .slice(0, 4);
+    const actions = [
+      [checklist[0], checklist[1]].filter(Boolean).join("; ") || "Confirm affected products and releases against owned assets and retain a rollback-ready backup",
+      checklist[2] || "Apply the vendor-supported fixed release through controlled change management",
+      [checklist[3], checklist[4]].filter(Boolean).join("; ") || "Verify the running release, service health, authentication logs, and residual exposure"
+    ];
     return {
       hook: "A vulnerability headline is a trigger to prove exposure, not a reason to change every device at the same urgency.",
       signalLabel: "THE RISK SIGNAL",
-      signal: `${source} reported ${headline}. The defensible decision starts by matching the vendor's affected criteria to product, release, deployment role, reachability, and business service.`,
+      signal: `${source} reported ${headline}. ${(post.content.takeaways || []).slice(0, 2).map(normalize).join(" ") || "Match the vendor's affected criteria to product, release, deployment role, reachability, and business service."}`,
       impactLabel: "WHAT CHANGES THE PRIORITY",
-      impact: clip(post.content.takeaways?.[1] || post.content.answer || "Confirmed exposure, privileged reachability, business impact, compensating controls, and rollback safety should determine the response order.", 340),
+      impact: [
+        post.content.takeaways?.[2] || post.content.answer || "Confirmed exposure and business impact should determine the response order.",
+        fixedReleaseDetails.length ? `Fixed-release evidence: ${fixedReleaseDetails.join("; ")}.` : "",
+        post.content.takeaways?.[4] || "Retain rollback and post-change verification evidence."
+      ].filter(Boolean).map(normalize).join(" "),
       actionLabel: "EVIDENCE-LED RESPONSE",
-      actions: [
-        "Confirm affected products and releases against owned assets instead of assigning risk from the headline alone.",
-        "Prioritize internet-facing, privileged, and control-plane systems, then record temporary controls where remediation must wait.",
-        "Deploy the vendor-supported action with rollback, and retain before-and-after version, exposure, telemetry, and service evidence."
-      ],
-      question: "Could another engineer reproduce your affected-asset decision from the evidence retained today?",
+      actions,
+      question: "Which affected product and fixed release should your team validate first against its live inventory?",
       hashtags: relevantHashtags(hashtagText, ["#NetworkSecurity"])
     };
   }
