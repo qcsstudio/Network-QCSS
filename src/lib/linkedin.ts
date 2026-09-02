@@ -30,6 +30,17 @@ type LinkedInUserInfo = {
   picture?: string;
 };
 
+class LinkedInApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly responseBody: string
+  ) {
+    super(message);
+    this.name = "LinkedInApiError";
+  }
+}
+
 type LinkedInPublishInput = {
   commentary: string;
   imageUrl?: string;
@@ -56,7 +67,15 @@ function apiHeaders(accessToken: string) {
 
 async function responseError(response: Response, operation: string) {
   const body = (await response.text()).slice(0, 1200);
-  return new Error(`${operation} failed with HTTP ${response.status}${body ? `: ${body}` : "."}`);
+  return new LinkedInApiError(`${operation} failed with HTTP ${response.status}${body ? `: ${body}` : "."}`, response.status, body);
+}
+
+function isRestrictedPostRead(error: unknown) {
+  return (
+    error instanceof LinkedInApiError &&
+    error.status === 403 &&
+    /partnerApiPostsExternal\.GET/i.test(error.responseBody)
+  );
 }
 
 export function linkedinConfigured() {
@@ -214,6 +233,13 @@ async function verifyLinkedInCommentary(accessToken: string, externalId: string,
         };
       }
     } catch (error) {
+      if (isRestrictedPostRead(error)) {
+        return {
+          liveReadback: "unavailable_missing_partner_permission",
+          verificationMode: "accepted_write_plus_validated_little_text",
+          writeAcceptedAt: new Date().toISOString()
+        };
+      }
       lastError = error instanceof Error ? error : new Error("Unknown LinkedIn read-back error");
     }
   }
