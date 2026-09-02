@@ -242,7 +242,7 @@ export function composeEditorialLinkedInPost(post: LinkedInEditorialPost, url: s
     hook: plan.hook,
     interpretation: plan.impact,
     linkLabel: "Original QCS analysis",
-    maxLength: 2_200,
+    maxLength: 2_700,
     question: plan.question,
     url,
     verification: plan.actions.at(-1) || "Confirm the intended operating state with retained technical evidence before closure"
@@ -521,7 +521,7 @@ function actionLines(commentary: string) {
 }
 
 export function editorialLinkedInQualityIssues(commentary: string, url: string, post?: LinkedInEditorialPost) {
-  const issues = [...linkedInProtocolIssues(commentary), ...presentationIssues(commentary, url, 650, 2_200)];
+  const issues = [...linkedInProtocolIssues(commentary), ...presentationIssues(commentary, url, 650, 2_700)];
   const actions = actionLines(commentary);
   if (!commentary.includes(`Original QCS analysis: ${url}`)) {
     issues.push("Label the canonical article link as the original QCS analysis.");
