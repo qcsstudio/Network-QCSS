@@ -175,3 +175,16 @@ test("CCNA LinkedIn commentary preserves structure, link, and five hashtags", as
   assert.doesNotMatch(commentary, /your your|with properly licensed images or use Cisco Modeling Labs/);
   assert.match(commentary, /Which command output would you keep/);
 });
+
+test("native CCNA edition includes complete lab commands, assessments and citations", async () => {
+  const { buildCcnaNewsletterEdition } = await import("../src/lib/ccna-newsletter.ts");
+  const content = lessonContent();
+  const edition = buildCcnaNewsletterEdition({ title: "CCNA lab", slug: "ccna-lab", content });
+  assert.match(edition, /show ip interface brief/);
+  assert.match(edition, /Expected evidence:/);
+  assert.match(edition, /PRACTICE QUESTIONS/);
+  assert.match(edition, /QUIZ ANSWER KEY/);
+  assert.ok(edition.indexOf("QUIZ ANSWER KEY") > edition.indexOf(content.quiz.at(-1).question));
+  assert.ok(content.sources.every((source) => edition.includes(source.url)));
+  assert.match(edition, /Original QCS lesson and interactive quiz: https:\/\/www\.qcsstudio\.com\/courses\/ccna\/lessons\/ccna-lab/);
+});

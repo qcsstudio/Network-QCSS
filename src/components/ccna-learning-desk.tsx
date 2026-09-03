@@ -4,33 +4,9 @@ import Link from "next/link";
 import { BookOpenCheck, CalendarCheck, Check, Clipboard, ExternalLink, GraduationCap, LoaderCircle, Play, RefreshCcw, Send, SkipForward } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { CcnaLessonRecord } from "@/lib/ccna-learning";
+import { buildCcnaNewsletterEdition } from "@/lib/ccna-newsletter";
 
 type Action = "draft" | "generate" | "publish" | "queue_linkedin" | "run_today" | "skip" | "sync";
-
-function newsletterCopy(lesson: CcnaLessonRecord) {
-  if (!lesson.content) return "";
-  const content = lesson.content;
-  return [
-    lesson.title,
-    "",
-    content.plainAnswer,
-    "",
-    ...content.sections.flatMap((section) => [section.heading, section.explanation, "", `Example: ${section.example}`, ""]),
-    `LAB: ${content.lab.title}`,
-    content.lab.goal,
-    ...content.lab.steps.map((step, index) => `${index + 1}. ${step.title}: ${step.instruction}`),
-    "",
-    "Practice and quiz:",
-    `https://www.qcsstudio.com/courses/ccna/lessons/${lesson.slug}`,
-    "",
-    "Complete course syllabus: https://www.qcsstudio.com/courses/ccna",
-    "",
-    "Primary sources:",
-    ...content.sources.map((source) => `${source.label}: ${source.url}`),
-    "",
-    "#CCNA #CiscoNetworking #NetworkEngineering #GNS3 #NetworkingStudents"
-  ].join("\n");
-}
 
 export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLessonRecord[] }) {
   const [lessons, setLessons] = useState(initialLessons);
@@ -62,9 +38,14 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
 
   async function copyEdition() {
     if (!selected?.content) return;
-    await navigator.clipboard.writeText(newsletterCopy(selected));
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2500);
+    try {
+      await navigator.clipboard.writeText(buildCcnaNewsletterEdition(selected));
+      setCopied(true);
+      setRequestError("");
+      window.setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setRequestError("The browser blocked clipboard access. Allow clipboard access and try again.");
+    }
   }
 
   return (
