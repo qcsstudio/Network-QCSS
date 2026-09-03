@@ -12,6 +12,23 @@ test("OpenAI schema omits unsupported URI format while runtime URL validation st
   assert.equal(ccnaLessonContentSchema.safeParse(content).success, false);
 });
 
+test("verified section citations are reconciled into the lesson bibliography", async () => {
+  const { reconcileCcnaLessonSources } = await import("../src/lib/ccna-content-agent.ts");
+  const content = lessonContent();
+  const verified = "https://www.rfc-editor.org/rfc/rfc8200.html";
+  const discovered = [...content.sources.map((source) => source.url), verified];
+  content.sections[0].sourceUrls = [`${verified}#section-3`];
+  const reconciled = reconcileCcnaLessonSources(content, discovered);
+  const added = reconciled.sources.find((source) => source.url === verified);
+  assert.ok(added);
+  assert.deepEqual(reconciled.sections[0].sourceUrls, [verified]);
+
+  content.sections[0].sourceUrls = ["https://example.com/unverified"];
+  assert.throws(() => reconcileCcnaLessonSources(content, discovered), /untrusted source URL/);
+  content.sections[0].sourceUrls = ["https://www.cisco.com/unverified-reference"];
+  assert.throws(() => reconcileCcnaLessonSources(content, discovered), /unverified source URL/);
+});
+
 const sources = [
   { label: "Cisco CCNA exam", url: "https://www.cisco.com/site/us/en/learn/training-certifications/exams/ccna.html", supports: "The current CCNA exam version, duration, and official learning scope." },
   { label: "Cisco learning content", url: "https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301-CCNA-v1.1.pdf", supports: "The current exam blueprint mapping used by this lesson." },

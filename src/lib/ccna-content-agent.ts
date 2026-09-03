@@ -65,14 +65,51 @@ function parseContent(value: string) {
   }
 }
 
-function validateSources(content: CcnaLessonContent, discovered: string[]) {
-  const accepted = new Set([...ccnaOfficialSources.map((source) => source.url), ...discovered]);
-  const invalid = content.sources.filter((source) => !isTrustedSource(source.url) || !accepted.has(source.url));
-  if (invalid.length) throw new Error(`The CCNA lesson cited unverified source URLs: ${invalid.map((source) => source.url).join(", ")}`);
-  const sourceUrls = new Set(content.sources.map((source) => source.url));
-  if (content.sections.some((section) => section.sourceUrls.some((url) => !sourceUrls.has(url)))) {
-    throw new Error("The CCNA lesson contains section citations that are not present in its bibliography.");
+function canonicalSourceUrl(value: string) {
+  const url = new URL(value);
+  url.hash = "";
+  for (const key of [...url.searchParams.keys()]) {
+    if (/^utm_/i.test(key)) url.searchParams.delete(key);
   }
+  if (url.pathname !== "/") url.pathname = url.pathname.replace(/\/+$/, "");
+  return url.toString();
+}
+
+export function reconcileCcnaLessonSources(content: CcnaLessonContent, discovered: string[]) {
+  const accepted = [...ccnaOfficialSources.map((source) => source.url), ...discovered].filter(isTrustedSource);
+  const acceptedByCanonical = new Map(accepted.map((url) => [canonicalSourceUrl(url), url]));
+  const bibliography = [...content.sources];
+  const bibliographyByCanonical = new Map(bibliography.map((source) => [canonicalSourceUrl(source.url), source]));
+
+  for (const source of bibliography) {
+    if (!isTrustedSource(source.url) || !acceptedByCanonical.has(canonicalSourceUrl(source.url))) {
+      throw new Error(`The CCNA lesson cited an unverified source URL: ${source.url}`);
+    }
+  }
+
+  const sections = content.sections.map((section) => ({
+    ...section,
+    sourceUrls: section.sourceUrls.map((sourceUrl) => {
+      if (!isTrustedSource(sourceUrl)) throw new Error(`The CCNA lesson cited an untrusted source URL: ${sourceUrl}`);
+      const canonical = canonicalSourceUrl(sourceUrl);
+      const verifiedUrl = acceptedByCanonical.get(canonical);
+      if (!verifiedUrl) throw new Error(`The CCNA lesson cited an unverified source URL: ${sourceUrl}`);
+      const existing = bibliographyByCanonical.get(canonical);
+      if (existing) return existing.url;
+      if (bibliography.length >= 10) throw new Error("The CCNA lesson used more than ten authoritative sources; consolidate its citations before publishing.");
+      const official = ccnaOfficialSources.find((source) => canonicalSourceUrl(source.url) === canonical);
+      const source = {
+        label: official?.label || `Technical source: ${new URL(verifiedUrl).hostname.replace(/^www\./, "")}`,
+        url: verifiedUrl,
+        supports: `Primary evidence for the lesson section titled \"${section.heading}\".`
+      };
+      bibliography.push(source);
+      bibliographyByCanonical.set(canonical, source);
+      return verifiedUrl;
+    })
+  }));
+
+  return ccnaLessonContentSchema.parse({ ...content, sections, sources: bibliography });
 }
 
 export function ccnaContentAgentConfiguration() {
@@ -136,8 +173,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic) {
   if (!activity.queries.length || activity.urls.length < 2) {
     throw new Error("The CCNA teaching agent did not complete an adequate authoritative live-web research pass.");
   }
-  const content = parseContent(response.output_text);
-  validateSources(content, activity.urls);
+  const content = reconcileCcnaLessonSources(parseContent(response.output_text), activity.urls);
   const quality = evaluateCcnaLessonQuality(content);
   return {
     content,
