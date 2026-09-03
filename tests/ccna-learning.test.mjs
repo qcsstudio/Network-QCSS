@@ -130,6 +130,14 @@ test("the CCNA gate rejects serialized prose and duplicated filler lab steps", (
   assert.ok(quality.issues.some((issue) => issue.includes("repeat article sections")));
 });
 
+test("the CCNA gate distinguishes unused VLAN settings from unsupported switching features", () => {
+  const content = lessonContent();
+  content.quiz[0].explanation = "The built-in Ethernet switch forwards frames without VLAN capabilities.";
+  assert.ok(evaluateCcnaLessonQuality(content).issues.some((issue) => issue.includes("VLAN port modes")));
+  content.quiz[0].explanation = "The built-in Ethernet switch supports VLAN port modes, but this lab uses one shared access segment.";
+  assert.equal(evaluateCcnaLessonQuality(content).ready, true);
+});
+
 test("CCNA LinkedIn commentary preserves structure, link, and five hashtags", async () => {
   process.env.NEXT_PUBLIC_SITE_URL = "https://www.qcsstudio.com";
   const { buildCcnaLinkedInCommentary } = await import("../src/lib/social-publications.ts");
@@ -164,4 +172,6 @@ test("CCNA LinkedIn commentary preserves structure, link, and five hashtags", as
   assert.equal(commentary.split("\n").at(-1), "#CCNA #CiscoNetworking #NetworkEngineering #GNS3 #NetworkingStudents");
   assert.ok(commentary.length <= 2_700);
   assert.doesNotMatch(commentary, /\.{3}|…/);
+  assert.doesNotMatch(commentary, /your your|with properly licensed images or use Cisco Modeling Labs/);
+  assert.match(commentary, /Which command output would you keep/);
 });

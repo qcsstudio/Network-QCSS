@@ -128,6 +128,10 @@ export function evaluateCcnaLessonQuality(content: CcnaLessonContent) {
   if (/["'](?:url|supports|sources|sourceUrls|label)["']\s*:|needs_search_refs|update_bibliography|\*\*(?:Prerequisites|Objectives|Learner Outcome)/i.test(prose)) {
     issues.push("Remove serialized data, generation instructions, and misplaced section headings from the teaching prose.");
   }
+  const teachingClaims = [prose, ...content.practiceQuestions.flatMap((question) => [question.answer, question.explanation]), ...content.quiz.map((question) => question.explanation)].join("\n");
+  if (/built[- ]in (?:ethernet )?switch/i.test(teachingClaims) && /without VLAN(?: or advanced)? (?:capabilities|features)|no VLAN capabilities|does not support VLAN(?:s| tagging)/i.test(teachingClaims)) {
+    issues.push("Correct the GNS3 built-in switch claim: it supports VLAN port modes even when the lesson does not use them.");
+  }
   const normalized = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (new Set(content.lab.steps.map((step) => normalized(step.title))).size !== content.lab.steps.length) {
     issues.push("Every lab step must have a distinct operational purpose; remove duplicated steps.");

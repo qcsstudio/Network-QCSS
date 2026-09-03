@@ -141,12 +141,12 @@ export function buildCcnaLinkedInCommentary(lesson: CcnaLessonRecord) {
     evidence: `${completeExcerpt(content.plainAnswer, 460)} Current 200-301 v1.1 map: ${lesson.v11Blueprint}. Announced v2.0 bridge: ${lesson.v20Blueprint}.`,
     interpretation: `${completeExcerpt(content.realWorldScenario.situation, 360)} The practical takeaway: ${completeExcerpt(content.realWorldScenario.takeaway, 300)}`,
     actions: [
-      `Explain ${lesson.title} in your own words using the packet or control path`,
-      `Build ${content.lab.title} in GNS3 with properly licensed images or use Cisco Modeling Labs`,
+      completeExcerpt(content.objectives[0], 260),
+      completeExcerpt(content.lab.goal, 360),
       "Complete the practice set and scored quiz, then save the command evidence used to verify the result"
     ],
     verification: completeExcerpt(content.lab.verification[0], 320),
-    question: `What evidence would convince you that your ${lesson.title.toLowerCase()} lab is working as intended?`,
+    question: "Which command output would you keep to show that your lab works, and what does it prove?",
     linkLabel: "Original QCS analysis",
     maxLength: 2_700,
     url,
@@ -626,6 +626,7 @@ export async function refreshLinkedInPublication(
       where: { id: publication.id },
       data: {
         commentary,
+        contentRevision: publication.contentType === "ccna_lesson" ? material.lineage.contentRevision : publication.contentRevision,
         lastError: null,
         metadata: {
           ...metadata,
@@ -681,6 +682,7 @@ export async function refreshLinkedInPublication(
     where: { id: publication.id },
     data: {
       commentary: material.commentary,
+      contentRevision: publication.contentType === "ccna_lesson" ? material.lineage.contentRevision : publication.contentRevision,
       externalId: replacement.externalId,
       imageUrl: material.imageUrl,
       lastError: null,

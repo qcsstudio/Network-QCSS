@@ -19,7 +19,7 @@ export function ccnaSocialVisual(lesson: CcnaLessonRecord, width: number, height
       <div style={{ position: "absolute", left: px(72), right: px(72), top: px(58), height: px(4), display: "flex", background: "linear-gradient(90deg,#ff8738,#ee3d7b,#4d78df,#48c7d9)" }} />
       <div style={{ display: "flex", flexDirection: "column", width: "56%", padding: `${px(92)}px ${px(38)}px ${px(72)}px ${px(82)}px`, zIndex: 1 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img alt="QuantumCrafters Studio Pvt. Ltd." src={`${siteConfig.url}/brand/quantumcrafters-logo.png`} style={{ width: px(300), height: "auto", padding: px(15), background: "rgba(255,255,255,.96)", borderRadius: px(8), objectFit: "contain" }} />
+        <img alt="QuantumCrafters Studio Pvt. Ltd." src={`${siteConfig.url}/brand/quantumcrafters-logo.png`} width={px(330)} height={px(123)} style={{ width: px(330), height: px(123), flexShrink: 0, padding: px(15), background: "rgba(255,255,255,.96)", borderRadius: px(8), objectFit: "contain" }} />
         <div style={{ marginTop: px(58), display: "flex", color: "#5ad1dd", fontSize: px(25), fontWeight: 700, textTransform: "uppercase", letterSpacing: 0 }}>CCNA DAILY / DAY {String(lesson.sequence).padStart(2, "0")}</div>
         <div style={{ marginTop: px(18), display: "flex", fontSize: px(62), lineHeight: 1.06, fontWeight: 800, maxWidth: px(940) }}>{shortTitle(lesson.title)}</div>
         <div style={{ marginTop: px(28), display: "flex", color: "#bfcbda", fontSize: px(28), lineHeight: 1.35 }}>{lesson.moduleTitle}</div>

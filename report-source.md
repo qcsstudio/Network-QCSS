@@ -53,3 +53,11 @@ The weekday endpoint is gated by Asia/Kolkata time and becomes due after 08:00. 
 3. Review the lesson, citations, platform assumptions, lab verification checks, and quality issues. Publish only a lesson that clears the gate.
 4. Check the Distribution tab for LinkedIn queue and delivery status. The canonical QCS link and five relevant hashtags are required.
 5. For a native LinkedIn newsletter edition, use Copy native edition and Open LinkedIn editor. Native newsletter publication remains a manual LinkedIn action.
+
+## Launch Verification
+
+Production generation and LinkedIn delivery succeeded on 2026-09-03. The first lesson was then reviewed against GNS3's first-topology and built-in switch documentation. Corrections clarify supported VLAN port modes, exact Ethernet endpoints, per-console command context, peer versus self-ping, and licensing boundaries. The repeatable repair script defaults to dry-run, records its review sources, and uses an optimistic revision check. Future writer/reviewer instructions and a regression test cover the same defects.
+
+The live course and lesson appear in the sitemap. Desktop and mobile inspection found no horizontal overflow. The quiz was exercised with five correct answers (5/5) and reset (0/5 answered). The first lesson contains 2,160 useful words, six cited teaching sections, eight operational lab steps, six practice questions and five quiz questions. These are structural measurements, not a claim of perfect teaching or an externally certified reading score. The lab has been checked against documentation but not executed in GNS3.
+
+LinkedIn delivery stores the exact submitted caption, hashes, image asset, external post ID and write acceptance receipt. Live API readback is unavailable with the current partner permissions, so an accepted write is not represented as independent verification of the rendered LinkedIn feed. Images are checked at 1920x1080 and use explicit logo dimensions to prevent a zero-height logo in the image renderer.
