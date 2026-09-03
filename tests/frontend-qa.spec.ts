@@ -339,6 +339,25 @@ test("CCNA syllabus stays aligned and readable at every supported breakpoint", a
   }
 });
 
+test("published CCNA lesson headings and quiz controls fit every breakpoint", async ({ page }) => {
+  await preparePage(page);
+  await page.goto("/courses/ccna", { waitUntil: "domcontentloaded" });
+  const firstLesson = page.locator(".ccna-module li a").first();
+  test.skip(await firstLesson.count() === 0, "Publish a CCNA lesson before running lesson-content QA.");
+  const path = await firstLesson.getAttribute("href");
+  expect(path).toBeTruthy();
+  for (const width of [360, 390, 768, 1024, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(path!, { waitUntil: "domcontentloaded" });
+    await page.evaluate(() => document.fonts.ready);
+    const clipped = await page.locator(".ccna-lesson-page").evaluate((root) => [...root.querySelectorAll<HTMLElement>("h1, h2, h3, button, legend")]
+      .filter((element) => element.clientWidth > 0 && element.scrollWidth > element.clientWidth + 2)
+      .map((element) => element.textContent?.slice(0, 100)));
+    expect(clipped, `Clipped headings or controls at ${width}px`).toEqual([]);
+    expect(await page.getByRole("radio").count()).toBeGreaterThanOrEqual(20);
+  }
+});
+
 test("consent panel is compact and contained on a small mobile viewport", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 360, height: 740 }, deviceScaleFactor: 2 });
   const page = await context.newPage();

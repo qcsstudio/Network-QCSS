@@ -8953,6 +8953,7 @@ td span {
 
 .ccna-lesson-layout { display: grid; grid-template-columns: minmax(0, 980px) minmax(280px, 340px); gap: 52px; align-items: start; max-width: 1450px; margin: 0 auto; padding: 58px 24px 80px; }
 .ccna-lesson-article { min-width: 0; }
+.ccna-lesson-page :is(h1, h2, h3, legend) { min-width: 0; overflow-wrap: anywhere; }
 .ccna-lesson-article > section { margin-bottom: 28px; padding: clamp(24px, 4vw, 46px); border: 1px solid #d7e0eb; border-radius: 8px; background: white; }
 .ccna-lesson-article h2 { margin: 7px 0 18px; font-size: 38px; line-height: 1.16; }
 .ccna-lesson-article h3 { color: #17243a; }
@@ -8980,7 +8981,7 @@ td span {
 .ccna-section-sources svg { flex-shrink: 0; }
 
 .ccna-scenario-section { position: relative; overflow: hidden; border-color: #233d5c !important; background: #102039 !important; color: white; }
-.ccna-scenario-section .ccna-section-icon { position: absolute; top: 30px; right: 34px; display: grid; place-items: center; width: 62px; aspect-ratio: 1; border: 1px solid #35506f; border-radius: 50%; color: #62c9da; }
+.ccna-scenario-section .ccna-section-icon { display: grid; place-items: center; width: 48px; aspect-ratio: 1; margin-bottom: 18px; border: 1px solid #35506f; border-radius: 6px; color: #62c9da; }
 .ccna-scenario-section h2,
 .ccna-scenario-section > strong { color: white; }
 .ccna-scenario-section p,
@@ -9071,6 +9072,10 @@ td span {
   .ccna-course-copy h1 { max-width: 16ch; font-size: 56px; }
   .ccna-course-visual { width: min(100%, 680px); height: auto; min-height: 0; aspect-ratio: 4 / 4.35; }
   .ccna-method-grid { grid-template-columns: 1fr 1fr; }
+  .ccna-lesson-hero-grid { grid-template-columns: 1fr; gap: 32px; }
+  .ccna-lesson-hero h1 { max-width: 22ch; font-size: 52px; }
+  .ccna-objectives { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .ccna-objectives > div:first-child { grid-column: 1 / -1; }
   .ccna-lesson-layout { grid-template-columns: 1fr; }
   .ccna-lesson-sidebar { position: static; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
@@ -9100,6 +9105,7 @@ td span {
   .ccna-lesson-map dl div { grid-template-columns: 105px 1fr; }
   .ccna-lesson-layout { padding: 28px 12px 52px; }
   .ccna-lesson-article > section { padding: 24px 18px; }
+  .ccna-lesson-article h2 { font-size: 28px; }
   .ccna-objectives,
   .ccna-lab-steps dl,
   .ccna-lab-proof-grid,
