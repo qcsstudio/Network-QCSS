@@ -71,12 +71,15 @@ export const ccnaLessonContentSchema = z.object({
 
 export type CcnaLessonContent = z.infer<typeof ccnaLessonContentSchema>;
 
-export function ccnaOpenAIResponseSchema() {
+export function ccnaOpenAIResponseSchema(allowedSourceUrls?: string[]) {
   const schema = z.toJSONSchema(ccnaLessonContentSchema, {
     target: "draft-7",
     override: ({ jsonSchema }) => {
       // OpenAI does not accept JSON Schema's uri format; Zod still validates URLs after generation.
-      if (jsonSchema.format === "uri") delete jsonSchema.format;
+      if (jsonSchema.format === "uri") {
+        delete jsonSchema.format;
+        if (allowedSourceUrls?.length) jsonSchema.enum = [...new Set(allowedSourceUrls)];
+      }
     }
   });
   delete schema.$schema;

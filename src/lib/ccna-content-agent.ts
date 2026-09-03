@@ -124,7 +124,6 @@ export function ccnaContentAgentConfiguration() {
 
 export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic) {
   const config = ccnaContentAgentConfiguration();
-  const schema = ccnaOpenAIResponseSchema();
   const startedAt = Date.now();
   const client = openAIClient();
   const researchModel = env("CCNA_RESEARCH_MODEL") || "gpt-5-mini";
@@ -158,6 +157,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic) {
     evidence.push(`RESEARCH QUESTION: ${query}\n${research.output_text}`);
   }
   if (actualQueries.size < 3 || discovered.size < 3) throw new Error("CCNA research must complete three distinct searches with authoritative source evidence.");
+  const schema = ccnaOpenAIResponseSchema([...ccnaOfficialSources.map((source) => source.url), ...discovered]);
   const topicBoundary = topic.sequence === 1
     ? "DAY ONE BOUNDARY: This is a study-method and first-observation lesson, not VLAN/OSPF configuration. Use exactly two built-in GNS3 VPCS nodes and one built-in Ethernet switch on one subnet. Supply the exact cable endpoints, IP/mask plan, VPCS ip/show ip/ping/save commands, a single reversible wrong-IP fault, and an isolated lab cleanup. No Cisco image is needed for this first lab. Explain licensing only as a boundary for later Cisco labs. Do not test unintroduced routing protocols, VLANs, or ACLs. Do not describe CCNA v1.1 as theory-only; it already includes configuration and verification."
     : `TOPIC BOUNDARY: Teach only ${topic.title}; use the smallest topology that proves ${topic.objective}. State every prerequisite. If GNS3 cannot reproduce a radio, cloud service, or platform feature, provide an explicitly labeled observation or paper exercise and a practical alternative instead of invented emulator behavior.`;

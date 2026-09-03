@@ -12,6 +12,13 @@ test("OpenAI schema omits unsupported URI format while runtime URL validation st
   assert.equal(ccnaLessonContentSchema.safeParse(content).success, false);
 });
 
+test("generation citation fields accept only exact verified URLs", () => {
+  const urls = ["https://docs.gns3.com/docs/emulators/vpcs"];
+  const schema = ccnaOpenAIResponseSchema(urls);
+  assert.deepEqual(schema.properties.sources.items.properties.url.enum, urls);
+  assert.deepEqual(schema.properties.sections.items.properties.sourceUrls.items.enum, urls);
+});
+
 test("verified section citations are reconciled into the lesson bibliography", async () => {
   const { reconcileCcnaLessonSources } = await import("../src/lib/ccna-content-agent.ts");
   const content = lessonContent();
