@@ -3,11 +3,21 @@ import type { CcnaLessonRecord } from "@/lib/ccna-learning";
 export function buildCcnaNewsletterEdition(lesson: CcnaLessonRecord) {
   if (!lesson.content) return "";
   const content = lesson.content;
+  const guide = content.beginnerGuide;
   const lines = (items: string[]) => items.map((item) => `- ${item}`);
   return [
     lesson.title, "", content.plainAnswer, "",
     "LEARNING TARGETS", ...lines(content.objectives), "",
     "BEFORE YOU BEGIN", ...lines(content.prerequisites), "",
+    "New to computers? https://www.qcsstudio.com/courses/ccna/start-here", "",
+    ...(guide ? [
+      "START WITH SOMETHING FAMILIAR", guide.startingPoint, "", "Why learn this?", guide.whyItMatters, "",
+      "An everyday comparison", guide.everydayComparison.familiarSituation, "", "What happens in a network", guide.everydayComparison.networkMeaning, "",
+      "Where the comparison stops", guide.everydayComparison.whereItStops, "",
+      "FOLLOW ONE WORKED EXAMPLE", ...guide.walkthrough.flatMap((step, index) => [`${index + 1}. ${step.action}`, step.whatHappens, `Why: ${step.why}`, ""]),
+      "YOUR FIRST SMALL TASK", guide.firstPractice.task, `Hint: ${guide.firstPractice.hint}`, `Expected result: ${guide.firstPractice.expected}`, "",
+      "CHECK YOUR UNDERSTANDING", guide.checkUnderstanding.question, `Hint: ${guide.checkUnderstanding.hint}`, `Explanation: ${guide.checkUnderstanding.answer}`, ""
+    ] : []),
     ...content.sections.flatMap((section) => [
       section.heading, "", section.explanation, "", `Example: ${section.example}`, "",
       ...lines(section.keyPoints), "", ...section.sourceUrls.map((url) => `Reference: ${url}`), ""
@@ -20,7 +30,8 @@ export function buildCcnaNewsletterEdition(lesson: CcnaLessonRecord) {
     "Setup", ...lines(content.lab.setup), "",
     ...content.lab.steps.flatMap((step, index) => [
       `${index + 1}. ${step.title}`, step.instruction, "", ...step.commands, "",
-      `Expected evidence: ${step.expectedResult}`, `Why: ${step.why}`, ""
+      ...(step.commandExplanations || []).map((explanation, commandIndex) => `${step.commands[commandIndex]}: ${explanation}`), "",
+      `What you should see: ${step.expectedResult}`, `Why: ${step.why}`, ""
     ]),
     "Verify", ...lines(content.lab.verification), "",
     "Troubleshoot", ...lines(content.lab.troubleshooting), "",

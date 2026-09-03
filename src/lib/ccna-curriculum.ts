@@ -44,7 +44,7 @@ const modules: ModuleSeed[] = [
     title: "Network Foundations and the Packet Journey",
     domain: "Network fundamentals",
     topics: [
-      ["Your CCNA roadmap and evidence-led lab method", "ccna-roadmap-and-lab-method", "Build a repeatable study, lab, verification, and troubleshooting routine.", "Exam orientation", "Practical skills orientation", "operations"],
+      ["Your first network: a step-by-step CCNA beginner lesson", "ccna-roadmap-and-lab-method", "Connect two practice computers, understand each command, find one wrong address and check the repair.", "Exam orientation", "Practical skills orientation", "operations"],
       ["Routers, switches, firewalls, access points, and endpoints", "network-components-and-their-jobs", "Explain what each common network component decides and forwards.", "1.1", "1.0", "operations"],
       ["Campus, WAN, SOHO, cloud, and spine-leaf topologies", "network-topologies-explained", "Compare common physical and logical designs using traffic paths and failure domains.", "1.2", "1.0", "operations"],
       ["OSI and TCP/IP models without memorization", "osi-and-tcp-ip-models", "Use layered models to locate a fault instead of merely reciting layer names.", "1.0", "1.0", "operations"],

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle2, ExternalLink, FlaskConical, Lightbulb, Network, ShieldCheck, Wrench } from "lucide-react";
 import { CcnaProgress } from "@/components/ccna-progress";
 import { CcnaQuiz } from "@/components/ccna-quiz";
+import { CcnaBeginnerGuide } from "@/components/ccna-beginner-guide";
 import { StructuredData } from "@/components/structured-data";
 import { getPublishedCcnaLessonBySlug, getPublishedCcnaLessons } from "@/lib/ccna-learning";
 import { siteConfig } from "@/lib/content";
@@ -84,18 +85,22 @@ export default async function CcnaLessonPage({ params }: PageProps) {
             <dl><div><dt>Current v1.1</dt><dd>{lesson.v11Blueprint}</dd></div><div><dt>Announced v2.0</dt><dd>{lesson.v20Blueprint}</dd></div><div><dt>Domain</dt><dd>{lesson.examDomain}</dd></div></dl>
           </div>
         </div>
+        <p className="ccna-beginner-link">New to computers? <Link href="/courses/ccna/start-here">Start with computer and network basics <ArrowRight aria-hidden="true" size={16} /></Link></p>
       </header>
 
       <div className="ccna-lesson-layout">
         <article className="ccna-lesson-article">
+          {content.beginnerGuide ? <CcnaBeginnerGuide guide={content.beginnerGuide} /> : null}
           <section className="ccna-answer-block"><Lightbulb aria-hidden="true" size={24} /><div><p className="eyebrow">Short answer</p><h2>What should you understand today?</h2><p>{content.plainAnswer}</p></div></section>
 
           <section className="ccna-objectives"><div><p className="eyebrow">Before you begin</p><h2>Learning targets</h2></div><div><strong>Prerequisites</strong><ul>{content.prerequisites.map((item) => <li key={item}>{item}</li>)}</ul></div><div><strong>By the end</strong><ul>{content.objectives.map((item) => <li key={item}>{item}</li>)}</ul></div></section>
 
+          <section className="ccna-early-glossary" id="new-words"><h2>Words you will meet</h2><p>Open a word when you need its meaning. You do not need to memorize the whole list before reading.</p><div>{content.glossary.map((item) => <details key={item.term}><summary>{item.term}</summary><p>{item.meaning}</p></details>)}</div></section>
+
           {content.sections.map((section, sectionIndex) => (
             <section className="ccna-teaching-section" key={section.heading}>
               <header><span>{String(sectionIndex + 1).padStart(2, "0")}</span><h2>{section.heading}</h2></header>
-              <p>{section.explanation}</p>
+              {section.explanation.split(/\n\n+/).map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}
               <aside><Lightbulb aria-hidden="true" size={20} /><div><strong>Put it into a real situation</strong><p>{section.example}</p></div></aside>
               <ul>{section.keyPoints.map((point) => <li key={point}><CheckCircle2 aria-hidden="true" size={17} />{point}</li>)}</ul>
               <div className="ccna-section-sources"><strong>References</strong>{section.sourceUrls.map((url) => <a href={url} key={url} rel="noreferrer" target="_blank">{content.sources.find((source) => source.url === url)?.label || new URL(url).hostname}<ExternalLink aria-hidden="true" size={14} /></a>)}</div>
@@ -110,7 +115,7 @@ export default async function CcnaLessonPage({ params }: PageProps) {
             {content.lab.addressing.length ? <div className="ccna-address-table"><h3>Addressing plan</h3><div className="ccna-table-scroll"><table><thead><tr><th>Device</th><th>Interface</th><th>Address</th><th>Purpose</th></tr></thead><tbody>{content.lab.addressing.map((row) => <tr key={`${row.device}-${row.interface}-${row.address}`}><td>{row.device}</td><td>{row.interface}</td><td><code>{row.address}</code></td><td>{row.purpose}</td></tr>)}</tbody></table></div></div> : null}
             <div className="ccna-lab-setup"><h3>Set up the lab</h3><ol>{content.lab.setup.map((item) => <li key={item}>{item}</li>)}</ol></div>
             <div className="ccna-lab-steps">
-              {content.lab.steps.map((step, stepIndex) => <section key={step.title}><header><span>{String(stepIndex + 1).padStart(2, "0")}</span><h3>{step.title}</h3></header><p>{step.instruction}</p>{step.commands.length ? <pre><code>{step.commands.join("\n")}</code></pre> : null}<dl><div><dt>Expected evidence</dt><dd>{step.expectedResult}</dd></div><div><dt>Why this step matters</dt><dd>{step.why}</dd></div></dl></section>)}
+              {content.lab.steps.map((step, stepIndex) => <section key={step.title}><header><span>{String(stepIndex + 1).padStart(2, "0")}</span><h3>{step.title}</h3></header><p>{step.instruction}</p>{step.commands.length ? <><pre><code>{step.commands.join("\n")}</code></pre>{step.commandExplanations?.length ? <div className="ccna-command-explanations"><h4>What each command means</h4><dl>{step.commands.map((command, commandIndex) => <div key={`${commandIndex}-${command}`}><dt><code>{command}</code></dt><dd>{step.commandExplanations?.[commandIndex]}</dd></div>)}</dl></div> : null}</> : null}<dl><div><dt>What you should see</dt><dd>{step.expectedResult}</dd></div><div><dt>Why this step matters</dt><dd>{step.why}</dd></div></dl></section>)}
             </div>
             <div className="ccna-lab-proof-grid"><section><ShieldCheck aria-hidden="true" /><h3>Verify</h3><ul>{content.lab.verification.map((item) => <li key={item}>{item}</li>)}</ul></section><section><Wrench aria-hidden="true" /><h3>Troubleshoot</h3><ul>{content.lab.troubleshooting.map((item) => <li key={item}>{item}</li>)}</ul></section></div>
             <div className="ccna-lab-note"><strong>Licensing and cleanup</strong><p>{content.lab.licensingNote}</p><ul>{content.lab.cleanup.map((item) => <li key={item}>{item}</li>)}</ul></div>
@@ -124,8 +129,7 @@ export default async function CcnaLessonPage({ params }: PageProps) {
         </article>
 
         <aside className="ccna-lesson-sidebar">
-          <nav aria-label="Lesson contents"><strong>In this lesson</strong><a href="#main-content">Explanation</a><a href="#real-world-scenario">Scenario</a><a href="#gns3-lab">GNS3 lab</a><a href="#practice-questions">Practice</a><a href="#lesson-quiz-title">Quiz</a></nav>
-          <section><strong>Glossary</strong><dl>{content.glossary.map((item) => <div key={item.term}><dt>{item.term}</dt><dd>{item.meaning}</dd></div>)}</dl></section>
+          <nav aria-label="Lesson contents"><strong>In this lesson</strong>{content.beginnerGuide ? <a href="#start-with-an-example">Start with an example</a> : null}<a href="#new-words">New words</a><a href="#real-world-scenario">Real-life example</a><a href="#gns3-lab">Practice network</a><a href="#practice-questions">Practice questions</a><a href="#lesson-quiz-title">Quiz</a></nav>
           <section><strong>Sources checked</strong>{content.sources.map((source) => <a href={source.url} key={source.url} rel="noreferrer" target="_blank">{source.label}<ExternalLink aria-hidden="true" size={14} /></a>)}</section>
         </aside>
       </div>

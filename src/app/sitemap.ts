@@ -20,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/diagnose", priority: 0.96, changeFrequency: "weekly" as const },
     { path: "/institute", priority: 0.88, changeFrequency: "weekly" as const },
     { path: "/courses/ccna", priority: 0.95, changeFrequency: "daily" as const },
+    { path: "/courses/ccna/start-here", priority: 0.86, changeFrequency: "monthly" as const },
     { path: "/resources", priority: 0.84, changeFrequency: "weekly" as const },
     { path: "/intelligence", priority: 0.94, changeFrequency: "daily" as const },
     { path: "/security-advisories", priority: 0.96, changeFrequency: "hourly" as const },

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ccnaCurriculum, ccnaModules } from "../src/lib/ccna-curriculum.ts";
 import { ccnaLessonContentSchema, ccnaOpenAIResponseSchema, evaluateCcnaLessonQuality } from "../src/lib/ccna-lesson-schema.ts";
+import { ccnaFoundationQuiz, ccnaFoundationUnits, ccnaFoundationSources } from "../src/lib/ccna-foundations.ts";
+import { ccnaBeginnerWritingPolicy, ccnaBeginnerReviewPolicy, ccnaTeachingPolicyVersion } from "../src/lib/ccna-teaching-policy.ts";
 
 test("OpenAI schema omits unsupported URI format while runtime URL validation stays strict", () => {
   const schema = ccnaOpenAIResponseSchema();
@@ -52,6 +54,18 @@ function lessonContent() {
     metaDescription: "Learn the CCNA packet path in plain English, build a safe GNS3 lab, verify the result with commands, and test your understanding with original questions.",
     plainAnswer: "A network forwards traffic through a sequence of physical, data-link, and routing decisions. A useful CCNA method predicts each decision first, then compares that prediction with interface, table, and packet evidence.",
     learnerOutcome: "By the end of this lesson, the learner can describe a packet path, build the topology, collect relevant evidence, and explain whether the observed forwarding result is correct.",
+    beginnerGuide: {
+      startingPoint: "Begin with two practice computers. You do not need to know their commands yet; we explain the address, console and each action before using them.",
+      whyItMatters: "Reading an address and checking one small result helps you find a wrong setting before replacing devices or changing unrelated settings.",
+      everydayComparison: {
+        familiarSituation: "Imagine sending a note to another desk in the same room. Check the desk label first, deliver the note and look for a reply from the intended person.",
+        networkMeaning: "Each practice computer has an IP address. The switch connects the local links. A ping asks the other computer for a small test reply.",
+        whereItStops: "A switch is not a person reading a desk label. It forwards frames using networking rules, which later lessons explain."
+      },
+      walkthrough: Array.from({ length: 3 }, (_, index) => ({ action: `Read the planned address for practice step ${index + 1}.`, whatHappens: "Compare the numbers on the page with the address shown in the named device's console.", why: "Reading the values first catches a mistake before you use those settings in another task." })),
+      firstPractice: { task: "Draw two boxes on paper and label them PC1 and PC2. Write their planned addresses beside them and compare the four numbers.", expected: "The first three numbers match with this mask, but the last numbers are different.", hint: "Read each address as four whole numbers separated by dots, then compare left to right." },
+      checkUnderstanding: { question: "Why should the two practice computers have different addresses?", hint: "Think about how to choose the correct desk when two labels are identical.", answer: "Each connection needs a distinct address within this group so the communication identifies the intended destination without an address conflict." }
+    },
     prerequisites: ["Basic familiarity with IPv4 addresses", "A computer able to run GNS3 or Cisco Modeling Labs"],
     objectives: ["Explain the forwarding decision at every network hop", "Build a small reproducible topology without hidden dependencies", "Verify the intended state with commands and retained evidence"],
     sections: Array.from({ length: 5 }, (_, index) => ({
@@ -78,6 +92,7 @@ function lessonContent() {
         title: `Lab step ${index + 1}`,
         instruction: `Perform controlled lab action ${index + 1}, record the intended state before the change, and save the resulting evidence so another learner can reproduce the observation accurately.`,
         commands: ["show ip interface brief"],
+        commandExplanations: ["show displays information without changing it. ip interface brief asks for a short interface and IPv4 summary. Enter it in the named Cisco router console and press Enter."],
         expectedResult: "The relevant interface and protocol state agree with the documented topology and address plan.",
         why: "This action tests one dependency and prevents an unrelated configuration change from hiding the original fault."
       })),
@@ -181,10 +196,56 @@ test("native CCNA edition includes complete lab commands, assessments and citati
   const content = lessonContent();
   const edition = buildCcnaNewsletterEdition({ title: "CCNA lab", slug: "ccna-lab", content });
   assert.match(edition, /show ip interface brief/);
-  assert.match(edition, /Expected evidence:/);
+  assert.match(edition, /What you should see:/);
+  assert.match(edition, /START WITH SOMETHING FAMILIAR/);
+  assert.ok(edition.includes(content.beginnerGuide.everydayComparison.whereItStops));
+  assert.ok(edition.includes(content.lab.steps[0].commandExplanations[0]));
+  assert.match(edition, /courses\/ccna\/start-here/);
   assert.match(edition, /PRACTICE QUESTIONS/);
   assert.match(edition, /QUIZ ANSWER KEY/);
   assert.ok(edition.indexOf("QUIZ ANSWER KEY") > edition.indexOf(content.quiz.at(-1).question));
   assert.ok(content.sources.every((source) => edition.includes(source.url)));
   assert.match(edition, /Original QCS lesson and interactive quiz: https:\/\/www\.qcsstudio\.com\/courses\/ccna\/lessons\/ccna-lab/);
+});
+
+test("new generations require beginner support while legacy lessons remain readable", () => {
+  const schema = ccnaOpenAIResponseSchema();
+  assert.ok(schema.required.includes("beginnerGuide"));
+  assert.ok(schema.properties.lab.properties.steps.items.required.includes("commandExplanations"));
+  const legacy = lessonContent();
+  delete legacy.beginnerGuide;
+  for (const step of legacy.lab.steps) delete step.commandExplanations;
+  assert.equal(ccnaLessonContentSchema.safeParse(legacy).success, true);
+  const quality = evaluateCcnaLessonQuality(legacy);
+  assert.equal(quality.ready, false);
+  assert.ok(quality.issues.some((issue) => issue.includes("zero-background")));
+  assert.ok(quality.issues.some((issue) => issue.includes("every command line")));
+});
+
+test("a missing command explanation holds the lesson instead of silently publishing", () => {
+  const content = lessonContent();
+  content.lab.steps[0].commands.push("show version");
+  assert.equal(evaluateCcnaLessonQuality(content).ready, false);
+  content.lab.steps[0].commandExplanations.push("show version displays the router software version and platform details without changing its settings. Press Enter after typing it in the router console.");
+  assert.equal(evaluateCcnaLessonQuality(content).ready, true);
+});
+
+test("computer basics form an unnumbered prerequisite path without changing the 60 topics", () => {
+  assert.equal(ccnaFoundationUnits.length, 6);
+  assert.equal(new Set(ccnaFoundationUnits.map((unit) => unit.id)).size, 6);
+  assert.ok(ccnaFoundationUnits.every((unit) => unit.paragraphs.length >= 4 && unit.steps.length >= 3 && unit.answer.length >= 60));
+  assert.equal(ccnaFoundationQuiz.length, 5);
+  assert.ok(ccnaFoundationQuiz.every((item) => item.options.length === 4 && new Set(item.options).size === 4 && item.correctIndex >= 0 && item.correctIndex < 4 && item.explanation.length >= 60));
+  assert.equal(ccnaCurriculum[0].slug, "ccna-roadmap-and-lab-method");
+  assert.equal(ccnaCurriculum.length, 60);
+  assert.ok(ccnaFoundationSources.every((source) => new URL(source.url).protocol === "https:"));
+});
+
+test("writing and independent review both enforce the beginner teaching policy", () => {
+  assert.equal(ccnaTeachingPolicyVersion, 3);
+  assert.match(ccnaBeginnerWritingPolicy, /no prior computer or networking knowledge/);
+  assert.match(ccnaBeginnerWritingPolicy, /commandExplanations/);
+  assert.match(ccnaBeginnerWritingPolicy, /paper alternative/);
+  assert.match(ccnaBeginnerReviewPolicy, /undefined essential jargon/);
+  assert.match(ccnaBeginnerReviewPolicy, /every command explanation matches its exact command/);
 });

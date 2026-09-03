@@ -15,6 +15,8 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
   const [copied, setCopied] = useState(false);
   const [requestError, setRequestError] = useState("");
   const selected = lessons.find((lesson) => lesson.id === selectedId) || lessons[0];
+  const commandCount = selected?.content?.lab.steps.reduce((total, step) => total + step.commands.length, 0) || 0;
+  const explainedCommandCount = selected?.content?.lab.steps.reduce((total, step) => total + step.commands.filter((_, index) => Boolean(step.commandExplanations?.[index])).length, 0) || 0;
   const stats = useMemo(() => ({
     published: lessons.filter((lesson) => lesson.status === "published").length,
     review: lessons.filter((lesson) => lesson.status === "needs_review").length,
@@ -66,6 +68,7 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
           <header><div><p className="eyebrow">Week {selected.week} / Day {selected.sequence}</p><h3>{selected.title}</h3><p>{selected.moduleTitle}</p></div><span className={`status-pill content-status-${selected.status}`}>{selected.status.replace("_", " ")}</span></header>
           <dl className="ccna-admin-map"><div><dt>Current v1.1</dt><dd>{selected.v11Blueprint}</dd></div><div><dt>Announced v2.0</dt><dd>{selected.v20Blueprint}</dd></div><div><dt>Quality</dt><dd>{selected.qualityScore || "Pending"}</dd></div><div><dt>Attempts</dt><dd>{selected.attempts}</dd></div></dl>
           {selected.content ? <div className="ccna-admin-preview"><strong>{selected.content.learnerOutcome}</strong><p>{selected.content.plainAnswer}</p><div><span>{selected.content.sections.length} teaching sections</span><span>{selected.content.lab.steps.length} lab steps</span><span>{selected.content.practiceQuestions.length} practice questions</span><span>{selected.content.quiz.length} quiz questions</span><span>{selected.content.sources.length} sources</span></div></div> : <div className="empty-state"><h3>Lesson content is not generated yet.</h3><p>Generation researches the controlled topic, builds the lesson and lab, then applies the publishing gate.</p></div>}
+          {selected.content ? <p className="ccna-admin-beginner-status">Beginner guide: {selected.content.beginnerGuide ? "included" : "required before the next publication"}. Command explanations: {explainedCommandCount}/{commandCount}. Automated checks do not replace testing with real learners.</p> : null}
           {selected.lastError ? <p className="ccna-admin-error">{selected.lastError}</p> : null}
           <div className="ccna-admin-actions">
             {["scheduled", "retry", "needs_review", "draft"].includes(selected.status) ? <button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("generate", selected.id)} type="button"><RefreshCcw aria-hidden="true" size={17} /> {selected.content ? "Regenerate" : "Generate lesson"}</button> : null}

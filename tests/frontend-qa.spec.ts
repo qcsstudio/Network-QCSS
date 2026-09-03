@@ -358,6 +358,31 @@ test("published CCNA lesson headings and quiz controls fit every breakpoint", as
   }
 });
 
+test("CCNA zero-background guide supports practice, explanations and narrow screens", async ({ page }, testInfo) => {
+  await preparePage(page);
+  await page.goto("/courses/ccna/start-here", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Start from zero.");
+  await expect(page.locator(".ccna-foundation-index ol li")).toHaveCount(6);
+  const send = page.getByRole("button", { name: "Send practice message", exact: true });
+  await expect(send).toBeDisabled();
+  await page.getByLabel("Practice message", { exact: true }).fill("Hello network");
+  await send.click();
+  await expect(page.locator(".ccna-practice-message-path [role=status]")).toContainText("Hello network");
+  await page.getByRole("button", { name: "Clear practice", exact: true }).click();
+  await expect(send).toBeDisabled();
+  await expect(page.locator(".ccna-practice-message-path [role=status]")).toContainText("No message yet.");
+  await page.locator("#computer summary").click();
+  await expect(page.locator("#computer details p")).toBeVisible();
+  for (const width of [320, 360, 390, 768, 1024, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.evaluate(() => document.fonts.ready);
+    const clipped = await page.locator(".ccna-foundations-page").evaluate((root) => [...root.querySelectorAll<HTMLElement>("h1, h2, h3, button, input, legend")].filter((element) => element.clientWidth > 0 && element.scrollWidth > element.clientWidth + 2).map((element) => element.textContent?.slice(0, 100)));
+    expect(clipped, `Beginner guide at ${width}px`).toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`ccna-start-${width}.png`), fullPage: false });
+  }
+});
+
 test("consent panel is compact and contained on a small mobile viewport", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 360, height: 740 }, deviceScaleFactor: 2 });
   const page = await context.newPage();

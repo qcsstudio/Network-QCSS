@@ -7,6 +7,7 @@ import { ccnaCourseFacts, ccnaModules, ccnaOfficialSources, ccnaCurriculum } fro
 import { getPublishedCcnaLessons } from "@/lib/ccna-learning";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
+import { ccnaFoundationUnits } from "@/lib/ccna-foundations";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +35,8 @@ export default async function CcnaCoursePage() {
           educationalLevel: "Beginner to associate",
           inLanguage: "en",
           isAccessibleForFree: true,
-          timeRequired: "P12W",
-          hasCourseInstance: { "@type": "CourseInstance", courseMode: "online", courseWorkload: "PT1H30M per weekday" },
+          coursePrerequisites: "No previous computer or network knowledge. Begin with the free Start from zero guide, then study at your own pace.",
+          hasCourseInstance: { "@type": "CourseInstance", courseMode: "online" },
           syllabusSections: ccnaModules.map((module) => ({ "@type": "Syllabus", name: module.title, description: module.domain }))
         },
         {
@@ -51,10 +52,11 @@ export default async function CcnaCoursePage() {
         <div className="ccna-course-copy">
           <p className="eyebrow">QCS CCNA Daily / 200-301</p>
           <h1><span>CCNA 200-301</span> Networking Course</h1>
-          <p className="ccna-course-lead">A guided {ccnaCourseFacts.weekdayLessons}-lesson path for students preparing for today&apos;s CCNA v1.1 and building the troubleshooting, IPv6, security, and AI skills emphasized in v2.0.</p>
+          <p className="ccna-course-lead">New to computers? Start with clicking, typing and saving a file. Then learn how networks work, one clear example at a time. No previous computer or networking knowledge is needed.</p>
+          <p>CCNA means Cisco Certified Network Associate. This free course helps you build the skills behind that certification. Read, try and repeat at your own pace.</p>
           <div className="button-row">
-            {latest ? <Link className="button primary" href={`/courses/ccna/lessons/${latest.slug}`}>Open latest lesson <ArrowRight aria-hidden="true" size={17} /></Link> : <a className="button primary" href="#syllabus">Explore syllabus <ArrowRight aria-hidden="true" size={17} /></a>}
-            <Link className="button secondary" href="/institute">Ask about instructor-led training</Link>
+            <Link className="button primary" href="/courses/ccna/start-here">Start from zero <ArrowRight aria-hidden="true" size={17} /></Link>
+            {latest ? <Link className="button secondary" href={`/courses/ccna/lessons/${latest.slug}`}>Open latest lesson</Link> : <a className="button secondary" href="#syllabus">Explore syllabus</a>}
           </div>
           <dl className="ccna-course-stats">
             <div><dt>Current exam</dt><dd>v1.1 through 2 Feb 2027</dd></div>
@@ -64,30 +66,35 @@ export default async function CcnaCoursePage() {
         </div>
         <div className="ccna-course-visual" aria-label="CCNA lab topology connecting users, switches, routers, security, and cloud services">
           <Image alt="Isometric network lab connecting switches, routers, servers, and monitoring consoles" fill priority sizes="(max-width: 900px) 100vw, 48vw" src="/brand/envato/illustrations/isometric-data-center-network.svg" />
-          <div className="ccna-visual-console"><span>DAY {String((latest?.sequence || 1)).padStart(2, "0")}</span><strong>{latest?.title || "Your first evidence-led network lab"}</strong><i>LEARN / BUILD / VERIFY</i></div>
+          <div className="ccna-visual-console"><span>LESSON {String((latest?.sequence || 1)).padStart(2, "0")}</span><strong>{latest?.title || "Your first practice network"}</strong><i>UNDERSTAND / TRY / CHECK</i></div>
           <div className="ccna-visual-node is-one"><Route aria-hidden="true" size={19} /> Route</div>
           <div className="ccna-visual-node is-two"><ShieldCheck aria-hidden="true" size={19} /> Secure</div>
           <div className="ccna-visual-node is-three"><FlaskConical aria-hidden="true" size={19} /> Prove</div>
         </div>
       </section>
 
+      <section className="ccna-zero-band">
+        <div><p className="eyebrow">Before the 60 lessons</p><h2>Your first six small steps.</h2><p>Begin here when computer words are new to you. Each step includes an explanation, a safe task and a question with an answer. You can read on a phone; later software labs need a suitable computer.</p><Link href="/courses/ccna/start-here">Open the beginner guide <ArrowRight aria-hidden="true" size={17} /></Link></div>
+        <ol>{ccnaFoundationUnits.map((unit, index) => <li key={unit.id}><span>{String(index + 1).padStart(2, "0")}</span><Link href={`/courses/ccna/start-here#${unit.id}`}>{unit.title}</Link></li>)}</ol>
+      </section>
+
       <section className="ccna-version-band">
-        <div><p className="eyebrow">Which version should I study?</p><h2>Study v1.1 now. Build the v2.0 bridge as you go.</h2></div>
+        <div><p className="eyebrow">Which exam version?</p><h2>Choose by your planned exam date.</h2></div>
         <p>Cisco says the current exam remains available through <strong>2 February 2027</strong>, with v2.0 starting on <strong>3 February 2027</strong>. The refreshed blueprint keeps the technical core but gives more weight to practical troubleshooting, security-first operations, IPv6, AI, and network management. Each QCS lesson shows both mappings.</p>
       </section>
 
       <section className="section ccna-method-section">
-        <div className="section-heading"><p className="eyebrow">How every lesson works</p><h2>Understand it. See it. Build it. Prove it.</h2><p>Lessons are designed for first-time learners, but the validation steps follow the habits expected from a working network engineer.</p></div>
+        <div className="section-heading"><p className="eyebrow">How every lesson works</p><h2>Understand. Try. Check. Repeat.</h2><p>Start with something familiar, learn the new words, and see a worked example before trying it yourself. There is no deadline for understanding an idea.</p></div>
         <div className="ccna-method-grid">
-          <article><BookOpenCheck aria-hidden="true" /><strong>Plain-English model</strong><p>New terms are defined before the technical detail, with one mental model and one real business situation.</p></article>
-          <article><FlaskConical aria-hidden="true" /><strong>Reproducible lab</strong><p>Build a compact GNS3 topology, enter commands deliberately, and compare the expected state with evidence.</p></article>
-          <article><ShieldCheck aria-hidden="true" /><strong>Verification first</strong><p>Every change includes show commands, success criteria, likely failure modes, and a cleanup path.</p></article>
-          <article><CalendarDays aria-hidden="true" /><strong>Daily recall</strong><p>Original practice questions and a scored quiz turn passive reading into retrievable knowledge.</p></article>
+          <article><BookOpenCheck aria-hidden="true" /><strong>Everyday explanations</strong><p>Start with a familiar situation. Learn what the network does and where the comparison stops being accurate.</p></article>
+          <article><FlaskConical aria-hidden="true" /><strong>One action at a time</strong><p>See where to click, what to type and what each command means. Practice only on the course&apos;s safe test network.</p></article>
+          <article><ShieldCheck aria-hidden="true" /><strong>Check what happened</strong><p>Compare your result with the expected result. Follow the checks when something goes wrong, then try again.</p></article>
+          <article><CalendarDays aria-hidden="true" /><strong>Practice with feedback</strong><p>Use a hint when you need one. Answer original questions and take a quiz with explanations, not just a score.</p></article>
         </div>
       </section>
 
       <section className="section ccna-syllabus-section" id="syllabus">
-        <div className="section-heading"><p className="eyebrow">Complete syllabus</p><h2>{ccnaCourseFacts.weeks} weeks. {ccnaCourseFacts.weekdayLessons} focused lessons. One connected skill set.</h2><p>The sequence moves from packet behavior into switching, routing, services, security, automation, and a full recovery capstone.</p></div>
+        <div className="section-heading"><p className="eyebrow">Complete syllabus</p><h2>{ccnaCourseFacts.weekdayLessons} lessons, at your pace.</h2><p>New lessons are scheduled Monday to Friday over {ccnaCourseFacts.weeks} weeks. That is our publication schedule, not a time limit for you. Start with the beginner guide and work through the lessons in order.</p></div>
         <div className="ccna-module-list">
           {ccnaModules.map((module, moduleIndex) => (
             <section className="ccna-module" key={module.id}>

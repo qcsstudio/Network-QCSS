@@ -32,6 +32,7 @@ export async function GET() {
     "",
     "## CCNA 200-301 Learning Course",
     `- Course syllabus and learning path: ${siteConfig.url}/courses/ccna`,
+    `- Start from zero: ${siteConfig.url}/courses/ccna/start-here - Computer basics, clicking, typing, files, networks and a safe first practice for learners without prior technical knowledge.`,
     `- The controlled curriculum contains ${ccnaCurriculum.length} weekday topics with plain-English teaching, real-life scenarios, GNS3 labs, practice questions, and scored quizzes.`,
     ...ccnaLessons.map((lesson) => `- Day ${lesson.sequence}, ${lesson.title}: ${siteConfig.url}/courses/ccna/lessons/${lesson.slug} - ${lesson.content?.plainAnswer || lesson.moduleTitle}`),
     "",

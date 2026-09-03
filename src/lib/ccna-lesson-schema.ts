@@ -18,8 +18,26 @@ const labStepSchema = z.object({
   title: z.string().min(4).max(120),
   instruction: z.string().min(70).max(900),
   commands: z.array(z.string().min(1).max(800)).max(12),
+  commandExplanations: z.array(z.string().min(20).max(600)).max(12).optional(),
   expectedResult: z.string().min(30).max(700),
   why: z.string().min(40).max(600)
+});
+
+const beginnerGuideSchema = z.object({
+  startingPoint: z.string().min(70).max(600),
+  whyItMatters: z.string().min(70).max(500),
+  everydayComparison: z.object({
+    familiarSituation: z.string().min(70).max(600),
+    networkMeaning: z.string().min(70).max(600),
+    whereItStops: z.string().min(50).max(400)
+  }),
+  walkthrough: z.array(z.object({
+    action: z.string().min(20).max(250),
+    whatHappens: z.string().min(50).max(500),
+    why: z.string().min(40).max(400)
+  })).min(3).max(6),
+  firstPractice: z.object({ task: z.string().min(70).max(600), expected: z.string().min(40).max(400), hint: z.string().min(40).max(400) }),
+  checkUnderstanding: z.object({ question: z.string().min(20).max(300), hint: z.string().min(30).max(400), answer: z.string().min(60).max(600) })
 });
 
 const questionSchema = z.object({
@@ -36,6 +54,7 @@ const quizSchema = z.object({
 });
 
 export const ccnaLessonContentSchema = z.object({
+  beginnerGuide: beginnerGuideSchema.optional(),
   metaTitle: z.string().min(20).max(68),
   metaDescription: z.string().min(80).max(165),
   plainAnswer: z.string().min(120).max(700),
@@ -64,7 +83,7 @@ export const ccnaLessonContentSchema = z.object({
   }),
   practiceQuestions: z.array(questionSchema).min(6).max(10),
   quiz: z.array(quizSchema).min(5).max(8),
-  glossary: z.array(z.object({ term: z.string().min(2).max(100), meaning: z.string().min(30).max(500) })).min(5).max(12),
+  glossary: z.array(z.object({ term: z.string().min(2).max(100), meaning: z.string().min(30).max(500) })).min(5).max(24),
   takeaways: z.array(z.string().min(20).max(360)).min(5).max(8),
   sources: z.array(sourceSchema).min(3).max(10)
 });
@@ -72,7 +91,12 @@ export const ccnaLessonContentSchema = z.object({
 export type CcnaLessonContent = z.infer<typeof ccnaLessonContentSchema>;
 
 export function ccnaOpenAIResponseSchema(allowedSourceUrls?: string[]) {
-  const schema = z.toJSONSchema(ccnaLessonContentSchema, {
+  // Older saved lessons remain readable; every new generation must include beginner support.
+  const generationSchema = ccnaLessonContentSchema.extend({
+    beginnerGuide: beginnerGuideSchema,
+    lab: ccnaLessonContentSchema.shape.lab.extend({ steps: z.array(labStepSchema.required({ commandExplanations: true })).min(7).max(14) })
+  });
+  const schema = z.toJSONSchema(generationSchema, {
     target: "draft-7",
     override: ({ jsonSchema }) => {
       // OpenAI does not accept JSON Schema's uri format; Zod still validates URLs after generation.
@@ -107,6 +131,10 @@ function usefulWords(content: CcnaLessonContent) {
 
 export function evaluateCcnaLessonQuality(content: CcnaLessonContent) {
   const issues: string[] = [];
+  if (!content.beginnerGuide) issues.push("Add the zero-background learning guide: a familiar example, explained steps, safe first practice and a hint-led understanding check.");
+  if (content.lab.steps.some((step) => step.commands.length && step.commandExplanations?.length !== step.commands.length)) {
+    issues.push("Explain every command line in plain English, in the same order as the commands, including what its values mean.");
+  }
   const words = usefulWords(content);
   if (words < 1_500) issues.push("Teach the topic with at least 1,500 useful words across explanation, scenario, lab, and assessment.");
   const sourceSet = new Set(content.sources.map((source) => source.url));
