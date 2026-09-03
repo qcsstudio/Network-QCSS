@@ -192,6 +192,7 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
       attempts: { increment: 1 },
       generationStartedAt: new Date(),
       lastError: null,
+      qualityScore: null,
       status: "generating"
     }
   });
