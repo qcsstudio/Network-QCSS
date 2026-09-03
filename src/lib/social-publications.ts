@@ -266,6 +266,15 @@ export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revis
 export async function queueLinkedInForCcnaLesson(lesson: CcnaLessonRecord) {
   if (!lesson.content || lesson.status !== "published") throw new Error("Only a complete published CCNA lesson can enter distribution.");
   const revision = lesson.updatedAt;
+  const published = await getPrismaClient().socialPublication.findFirst({
+    where: { channel: "linkedin", contentType: "ccna_lesson", contentId: lesson.id, status: "published" },
+    orderBy: { publishedAt: "desc" }
+  });
+  if (published) {
+    if (published.contentRevision === revision) return published;
+    await refreshLinkedInPublication(published.id, true);
+    return getPrismaClient().socialPublication.update({ where: { id: published.id }, data: { contentRevision: revision } });
+  }
   const storySpine = ccnaStorySpine(lesson);
   return enqueue({
     contentType: "ccna_lesson",
@@ -446,6 +455,10 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
       const publicationLineage = lineageFromMetadata(publicationMetadata);
       const generatedImage = job.contentType === "ccna_lesson" ? null : await ensureEditorialImageForPublication(job);
       if (job.contentType === "ccna_lesson") {
+        const lesson = await getCcnaLessonById(job.contentId);
+        if (lesson?.status !== "published" || lesson.updatedAt !== job.contentRevision) {
+          throw new Error("LinkedIn delivery was held because the CCNA lesson is unpublished or its reviewed revision has changed.");
+        }
         if (!publicationLineage) throw new Error("LinkedIn delivery was held because the CCNA lesson lineage is missing.");
       } else {
         if (!generatedImage?.generatedAt) throw new Error(editorialImageWaitMessage);
@@ -570,7 +583,7 @@ async function currentPublicationMaterial(job: {
   }
   if (job.contentType === "ccna_lesson") {
     const lesson = await getCcnaLessonById(job.contentId);
-    if (!lesson?.content) throw new Error("The CCNA lesson revision is unavailable.");
+    if (!lesson?.content || lesson.status !== "published") throw new Error("The published CCNA lesson revision is unavailable.");
     const commentary = commentaryOverride?.trim() || buildCcnaLinkedInCommentary(lesson);
     const storySpine = ccnaStorySpine(lesson);
     return {
@@ -582,8 +595,8 @@ async function currentPublicationMaterial(job: {
         generatedAt: new Date().toISOString()
       } as Prisma.InputJsonValue,
       imageAlt: `QCS CCNA Daily lesson ${lesson.sequence}: ${lesson.title}`,
-      imageUrl: `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}/social-image?v=${encodeURIComponent(job.contentRevision)}`,
-      lineage: createEditorialLineage({ contentType: "ccna_lesson", contentId: lesson.id, contentRevision: job.contentRevision, storySpine }),
+      imageUrl: `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}/social-image?v=${encodeURIComponent(lesson.updatedAt)}`,
+      lineage: createEditorialLineage({ contentType: "ccna_lesson", contentId: lesson.id, contentRevision: lesson.updatedAt, storySpine }),
       sourceUrl: `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}`
     };
   }

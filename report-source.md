@@ -32,6 +32,10 @@ A lesson cannot auto-publish unless it contains at least 1,500 useful words, fiv
 
 These checks reject thin or structurally incomplete lessons and constrain the agent to traceable sources. They do not prove that every explanation is factually perfect or that a GNS3 lab has been executed. Commands and platform-specific behavior must still be verified in the stated, licensed lab environment; learners must not treat the material as production change approval.
 
+Production launch review exposed a weak draft that passed structural checks but contained serialized text, filler lab steps, and ambiguous quiz answers. Policy v2 now separates three focused live-web searches from structured writing, rejects those mechanical defects, and requires a separate technical instructor review. The reviewer checks topic boundaries, exact topology/addressing/commands, supporting citations, and single-answer quiz validity. One bounded repair pass is allowed; unresolved defects are held, not automatically approved. Manual publication also requires a successful independent review trace.
+
+The direct OpenAI writer/research model defaults to `gpt-4.1-mini`; the independent reviewer and any repair pass default to `gpt-4.1` (`CCNA_REVIEW_MODEL`). No Vercel AI Gateway is used. A corrected course edition refreshes its existing LinkedIn entry rather than accumulating duplicate daily posts; replacement media requires a replacement LinkedIn post because the existing post's uploaded image cannot be edited in place.
+
 ## Distribution Model
 
 The QCS lesson page is the canonical source. After a lesson passes the gate, the system publishes it on the website, creates a contextual 1920 by 1080 QCS visual, and queues a LinkedIn post with presentation spacing, three actions, an explicit verification step, the canonical lesson URL, and five focused hashtags.

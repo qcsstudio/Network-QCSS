@@ -244,6 +244,10 @@ export async function publishCcnaLesson(id: string, actor: string) {
   if (!parsed.success) throw new Error("Generate a complete structured lesson before publishing.");
   const quality = evaluateCcnaLessonQuality(parsed.data);
   if (!quality.ready) throw new Error(`CCNA lesson held by quality gate: ${quality.issues.join(" ")}`);
+  const trace = existing.generationTrace as { editorialReview?: { passed?: boolean; issues?: unknown[] } } | null;
+  if (!trace?.editorialReview?.passed || !Array.isArray(trace.editorialReview.issues) || trace.editorialReview.issues.length) {
+    throw new Error("Regenerate this lesson to complete its independent technical and teaching review before publication.");
+  }
   const record = await prisma.ccnaLesson.update({
     where: { id },
     data: {

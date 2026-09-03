@@ -111,6 +111,18 @@ test("a complete researched lesson clears the publishing gate", () => {
   assert.ok(quality.usefulWords >= 1_500);
 });
 
+test("the CCNA gate rejects serialized prose and duplicated filler lab steps", () => {
+  const content = lessonContent();
+  content.takeaways[0] = "sources':[{'url':'https://www.cisco.com','supports':'internal generation artifact'}]";
+  content.lab.steps[1].title = content.lab.steps[0].title;
+  content.lab.steps[2].title = "Glossary";
+  const quality = evaluateCcnaLessonQuality(content);
+  assert.equal(quality.ready, false);
+  assert.ok(quality.issues.some((issue) => issue.includes("serialized data")));
+  assert.ok(quality.issues.some((issue) => issue.includes("duplicated steps")));
+  assert.ok(quality.issues.some((issue) => issue.includes("repeat article sections")));
+});
+
 test("CCNA LinkedIn commentary preserves structure, link, and five hashtags", async () => {
   process.env.NEXT_PUBLIC_SITE_URL = "https://www.qcsstudio.com";
   const { buildCcnaLinkedInCommentary } = await import("../src/lib/social-publications.ts");

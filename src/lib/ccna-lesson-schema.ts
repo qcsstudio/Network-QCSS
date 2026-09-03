@@ -121,6 +121,20 @@ export function evaluateCcnaLessonQuality(content: CcnaLessonContent) {
     issues.push("Include the required practice set and scored quiz.");
   }
   if (/\.{3}|…/.test(JSON.stringify(content))) issues.push("Remove clipped sentences and ellipses.");
+  const prose = [content.plainAnswer, content.learnerOutcome, ...content.takeaways, ...content.sections.flatMap((section) => [section.explanation, section.example, ...section.keyPoints])].join("\n");
+  if (/["'](?:url|supports|sources|sourceUrls|label)["']\s*:|needs_search_refs|update_bibliography|\*\*(?:Prerequisites|Objectives|Learner Outcome)/i.test(prose)) {
+    issues.push("Remove serialized data, generation instructions, and misplaced section headings from the teaching prose.");
+  }
+  const normalized = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (new Set(content.lab.steps.map((step) => normalized(step.title))).size !== content.lab.steps.length) {
+    issues.push("Every lab step must have a distinct operational purpose; remove duplicated steps.");
+  }
+  if (content.lab.steps.some((step) => /^(sources|glossary|takeaways|practice questions|licensing note|quiz)\b/i.test(step.title))) {
+    issues.push("Lab steps must build, observe, test, troubleshoot, or clean up the topology, not repeat article sections.");
+  }
+  if (new Set(content.quiz.map((question) => normalized(question.question))).size !== content.quiz.length || content.quiz.some((question) => new Set(question.options.map(normalized)).size !== 4)) {
+    issues.push("Use distinct quiz questions with four distinct options each.");
+  }
   const score = Math.max(0, 100 - issues.length * 12);
   return { issues, score, usefulWords: words, ready: issues.length === 0 && score >= 88 };
 }
