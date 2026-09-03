@@ -98,6 +98,7 @@ export default async function CcnaLessonPage({ params }: PageProps) {
               <p>{section.explanation}</p>
               <aside><Lightbulb aria-hidden="true" size={20} /><div><strong>Put it into a real situation</strong><p>{section.example}</p></div></aside>
               <ul>{section.keyPoints.map((point) => <li key={point}><CheckCircle2 aria-hidden="true" size={17} />{point}</li>)}</ul>
+              <div className="ccna-section-sources"><strong>References</strong>{section.sourceUrls.map((url) => <a href={url} key={url} rel="noreferrer" target="_blank">{content.sources.find((source) => source.url === url)?.label || new URL(url).hostname}<ExternalLink aria-hidden="true" size={14} /></a>)}</div>
             </section>
           ))}
 
