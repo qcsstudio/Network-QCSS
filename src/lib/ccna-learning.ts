@@ -3,6 +3,7 @@ import { ccnaCurriculum, ccnaTopicBySlug } from "@/lib/ccna-curriculum";
 import { generateResearchedCcnaLesson } from "@/lib/ccna-content-agent";
 import { ccnaLessonContentSchema, evaluateCcnaLessonQuality, type CcnaLessonContent } from "@/lib/ccna-lesson-schema";
 import { getPrismaClient } from "@/lib/prisma";
+import { visualStoryForLesson } from "@/lib/ccna-visual-story";
 
 export type CcnaLessonStatus = "scheduled" | "generating" | "retry" | "needs_review" | "draft" | "published" | "skipped";
 
@@ -199,7 +200,12 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
   if (!claimed.count) throw new Error("This CCNA lesson is already being generated.");
 
   try {
-    const generated = await generateResearchedCcnaLesson(topic);
+    const recent = await prisma.ccnaLesson.findMany({ where: { status: "published", id: { not: id } }, orderBy: { publishedAt: "desc" }, take: 8 });
+    const recentVisuals = recent.flatMap((record) => {
+      const story = visualStoryForLesson(mapLesson(record));
+      return story ? [`${record.title}: ${story.conceptSelection.candidates[story.conceptSelection.selectedIndex].scene}`] : [];
+    });
+    const generated = await generateResearchedCcnaLesson(topic, recentVisuals);
     const nextStatus: CcnaLessonStatus = generated.quality.ready && publishWhenReady ? "published" : generated.quality.ready ? "draft" : "needs_review";
     const sourceValue = generated.content.sources.map((source) => ({ label: source.label, url: source.url, supports: source.supports }));
     const record = await prisma.ccnaLesson.update({

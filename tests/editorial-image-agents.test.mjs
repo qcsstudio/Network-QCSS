@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { firstNetworkVisualStory } from "../src/lib/ccna-visual-story.ts";
 import {
   buildImageRenderPrompt,
   normalizeVisualQaScores,
@@ -31,6 +32,13 @@ test("render prompt preserves article facts and prohibits generated branding or 
   assert.match(prompt, /RPKI origin ASN/i);
   assert.match(prompt, /exchange boundary/i);
   assert.match(prompt, /no visible words, letters, numbers, logos/i);
+});
+
+test("the selected concept and its teaching rationale reach the image producer", () => {
+  const conceptSelection = firstNetworkVisualStory.conceptSelection;
+  const prompt = buildImageRenderPrompt("A first local network.", { ...direction, conceptSelection });
+  assert.ok(prompt.includes(conceptSelection.candidates[conceptSelection.selectedIndex].scene));
+  assert.ok(prompt.includes(conceptSelection.selectionReason));
 });
 
 test("visual QA uses blocking violations and hard score thresholds as the authority", () => {

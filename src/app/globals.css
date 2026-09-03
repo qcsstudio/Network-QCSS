@@ -11939,3 +11939,42 @@ body:has(.portal-access-page, .portal-page, .portal-report-page, .admin-page, .a
   .ccna-practice-message-path { grid-template-columns: 70px 20px minmax(0, 1fr); gap: 10px; }
   .ccna-practice-input-row .button { font-size: 14px; padding-inline: 8px; }
 }
+
+.ccna-lesson-article > .ccna-visual-explainer { padding: 32px 24px; border: 0; border-bottom: 1px solid #d4dee2; border-radius: 0; scroll-margin-top: 140px; }
+.ccna-visual-explainer > header h2 { font-size: 32px; line-height: 1.2; margin: 10px 0 16px; }
+.ccna-visual-explainer > header p { max-width: 68ch; }
+.ccna-visual-artwork { position: relative; margin: 24px auto; max-width: 800px; }
+.ccna-visual-artwork > img:first-child { display: block; width: 100%; height: auto; aspect-ratio: 1672 / 941; object-fit: contain; }
+.ccna-visual-artwork .ccna-visual-brand { position: absolute; top: 16px; left: 16px; width: 142px; height: auto; }
+.ccna-visual-artwork figcaption { padding: 12px 0; font-size: 15px; line-height: 1.6; color: #425564; }
+.ccna-visual-stage-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid #b8cbd0; margin-top: 24px; gap: 6px; }
+.ccna-visual-stage-nav button { display: flex; align-items: center; justify-content: flex-start; gap: 10px; background: transparent; color: #425564; border: 0; border-bottom: 3px solid transparent; border-radius: 0; min-height: 72px; padding: 12px 8px; font: inherit; font-size: 16px; font-weight: 650; text-align: left; line-height: 1.4; cursor: pointer; overflow-wrap: anywhere; }
+.ccna-visual-stage-nav button span { flex: 0 0 28px; font-weight: 700; color: #08777b; font-size: 22px; }
+.ccna-visual-stage-nav button[aria-pressed="true"] { color: #075e62; border-bottom-color: #08777b; background: #edf7f5; }
+.ccna-visual-stage { background: #fafbfc; padding: 16px 24px 24px; }
+.ccna-visual-stage svg { width: 100%; height: auto; display: block; }
+.ccna-diagram-mobile { display: none; }
+.ccna-diagram-desktop[data-layout="layers"] { max-width: 360px; margin: auto; }
+.ccna-visual-stage-copy { min-height: 182px; border-top: 1px solid #d4dee2; padding-top: 20px; }
+.ccna-visual-stage-copy > span { color: #08777b; font-size: 14px; font-weight: 700; }
+.ccna-visual-stage-copy h3 { font-size: 22px; margin: 8px 0 12px; line-height: 1.35; }
+.ccna-visual-stage-copy p { margin: 0; font-size: 17px; line-height: 1.7; }
+.ccna-visual-controls { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 0; }
+.ccna-visual-controls button { display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid #9eafb8; border-radius: 6px; background: #fff; color: #075e62; cursor: pointer; }
+.ccna-visual-controls button:disabled { opacity: .45; cursor: default; }
+.ccna-visual-explainer button:focus-visible { outline: 3px solid #3568cf; outline-offset: 3px; }
+.ccna-visual-boundary { font-size: 16px; line-height: 1.65; color: #425564; }
+.ccna-visual-transcript { border-top: 1px solid #d4dee2; padding: 16px 0; }
+.ccna-visual-transcript summary { cursor: pointer; font-size: 16px; font-weight: 650; }
+.ccna-visual-transcript li { padding: 12px 0; }
+.ccna-visual-transcript a { margin-right: 12px; font-size: 15px; text-decoration: underline; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .ccna-visual-explainer > header h2 { font-size: 27px; }
+  .ccna-visual-stage-nav button { flex-direction: column; align-items: flex-start; gap: 4px; min-height: 104px; font-size: 14px; }
+  .ccna-visual-stage-nav button span { flex-basis: auto; font-size: 19px; }
+  .ccna-visual-stage { padding: 12px 12px 20px; }
+  .ccna-diagram-desktop { display: none; }
+  .ccna-diagram-mobile { display: block; max-width: 360px; margin: auto; }
+  .ccna-visual-stage-copy { min-height: 264px; }
+  .ccna-visual-artwork .ccna-visual-brand { width: 104px; left: 10px; top: 10px; }
+}

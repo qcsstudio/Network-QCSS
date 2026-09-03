@@ -5,6 +5,8 @@ import { ArrowLeft, ArrowRight, CheckCircle2, ExternalLink, FlaskConical, Lightb
 import { CcnaProgress } from "@/components/ccna-progress";
 import { CcnaQuiz } from "@/components/ccna-quiz";
 import { CcnaBeginnerGuide } from "@/components/ccna-beginner-guide";
+import { CcnaVisualExplainer } from "@/components/ccna-visual-explainer";
+import { firstNetworkArtwork, visualStoryForLesson } from "@/lib/ccna-visual-story";
 import { StructuredData } from "@/components/structured-data";
 import { getPublishedCcnaLessonBySlug, getPublishedCcnaLessons } from "@/lib/ccna-learning";
 import { siteConfig } from "@/lib/content";
@@ -37,6 +39,7 @@ export default async function CcnaLessonPage({ params }: PageProps) {
   const previous = index > 0 ? lessons[index - 1] : null;
   const next = index >= 0 ? lessons[index + 1] : null;
   const content = lesson.content;
+  const visualStory = visualStoryForLesson(lesson);
   const canonical = `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}`;
 
   return (
@@ -90,6 +93,7 @@ export default async function CcnaLessonPage({ params }: PageProps) {
 
       <div className="ccna-lesson-layout">
         <article className="ccna-lesson-article">
+          {visualStory ? <CcnaVisualExplainer story={visualStory} artwork={firstNetworkArtwork(lesson)} /> : null}
           {content.beginnerGuide ? <CcnaBeginnerGuide guide={content.beginnerGuide} /> : null}
           <section className="ccna-answer-block"><Lightbulb aria-hidden="true" size={24} /><div><p className="eyebrow">Short answer</p><h2>What should you understand today?</h2><p>{content.plainAnswer}</p></div></section>
 
@@ -129,7 +133,7 @@ export default async function CcnaLessonPage({ params }: PageProps) {
         </article>
 
         <aside className="ccna-lesson-sidebar">
-          <nav aria-label="Lesson contents"><strong>In this lesson</strong>{content.beginnerGuide ? <a href="#start-with-an-example">Start with an example</a> : null}<a href="#new-words">New words</a><a href="#real-world-scenario">Real-life example</a><a href="#gns3-lab">Practice network</a><a href="#practice-questions">Practice questions</a><a href="#lesson-quiz-title">Quiz</a></nav>
+          <nav aria-label="Lesson contents"><strong>In this lesson</strong>{visualStory ? <a href="#visual-walkthrough">See the idea</a> : null}{content.beginnerGuide ? <a href="#start-with-an-example">Start with an example</a> : null}<a href="#new-words">New words</a><a href="#real-world-scenario">Real-life example</a><a href="#gns3-lab">Practice network</a><a href="#practice-questions">Practice questions</a><a href="#lesson-quiz-title">Quiz</a></nav>
           <section><strong>Sources checked</strong>{content.sources.map((source) => <a href={source.url} key={source.url} rel="noreferrer" target="_blank">{source.label}<ExternalLink aria-hidden="true" size={14} /></a>)}</section>
         </aside>
       </div>

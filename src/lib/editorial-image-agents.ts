@@ -3,12 +3,14 @@ import { z } from "zod";
 import { bflImageConfiguration, generateBflEditorialImage } from "./editorial-image-bfl.ts";
 import { editorialVisualQualityInstructions } from "./editorial-quality-policy.ts";
 import { openAIApiKeyStatus, openAICredentialMessage } from "./openai-config.ts";
+import { visualConceptInstructions, visualConceptIssues, visualConceptSelectionSchema } from "./visual-concept-policy.ts";
 
 export const defaultEditorialDirectorModel = "gpt-4.1-mini";
 export const defaultEditorialImageModel = "gpt-image-2";
 export const defaultEditorialCriticModel = "gpt-4.1-mini";
 
 const visualDirectionSchema = z.object({
+  conceptSelection: visualConceptSelectionSchema.optional(),
   storyThesis: z.string().min(20).max(500),
   mechanismStatement: z.string().min(20).max(600),
   factualAnchors: z.array(z.string().min(10).max(320)).min(2).max(6),
@@ -85,6 +87,7 @@ const visualDirectionJsonSchema = {
   type: "object",
   additionalProperties: false,
   required: [
+    "conceptSelection",
     "storyThesis",
     "mechanismStatement",
     "factualAnchors",
@@ -102,6 +105,11 @@ const visualDirectionJsonSchema = {
     "altText"
   ],
   properties: {
+    conceptSelection: (() => {
+      const schema = z.toJSONSchema(visualConceptSelectionSchema, { target: "draft-7" });
+      delete schema.$schema;
+      return schema;
+    })(),
     storyThesis: { type: "string", minLength: 20, maxLength: 500 },
     mechanismStatement: { type: "string", minLength: 20, maxLength: 600 },
     factualAnchors: {
@@ -249,6 +257,7 @@ export async function directVisualDirection(editorialPrompt: string, recentConce
         "You are the QCS Visual Director, a senior editorial art director with deep network engineering and cybersecurity literacy.",
         "This is an authorized defensive-security editorial task. Never provide payloads, executable attack steps, or instructions for exploitation.",
         "Translate the supplied article facts into one precise visual story. Do not use a category preset or generic cyber symbolism.",
+        visualConceptInstructions,
         "The scene must be technically plausible, visibly different from recent QCS work, and understandable without embedded text.",
         ...editorialVisualQualityInstructions,
         "Do not make a screen, terminal, document, notebook, command output, code listing, keyboard, labeled control panel, or other text-bearing surface part of the scene. Show operational evidence through physical boundaries, component state, indicator light, cable path, material contrast, or human interaction with unlabeled equipment.",
@@ -285,7 +294,10 @@ export async function directVisualDirection(editorialPrompt: string, recentConce
     lastDiagnostic = [response.status, response.incomplete_details?.reason].filter(Boolean).join(": ") || "empty output";
     if (!response.output_text.trim() && attempt === 1) continue;
     try {
-      return parseStructuredOutput(response.output_text, visualDirectionSchema, "QCS Visual Director");
+      const direction = parseStructuredOutput(response.output_text, visualDirectionSchema.required({ conceptSelection: true }), "QCS Visual Director");
+      const issues = visualConceptIssues(direction.conceptSelection);
+      if (issues.length) throw new EditorialAgentError(issues.join(" "));
+      return direction;
     } catch (error) {
       lastDiagnostic = error instanceof Error ? error.message : lastDiagnostic;
       if (attempt === 1) continue;
@@ -308,6 +320,10 @@ export function buildImageRenderPrompt(editorialPrompt: string, direction: Visua
     editorialPrompt,
     "",
     "APPROVED ART DIRECTION:",
+    ...(direction.conceptSelection ? [
+      `Selected concept: ${direction.conceptSelection.candidates[direction.conceptSelection.selectedIndex].scene}`,
+      `Why this concept teaches the story: ${direction.conceptSelection.selectionReason}`
+    ] : []),
     `Story thesis: ${direction.storyThesis}`,
     `Supported mechanism: ${direction.mechanismStatement}`,
     `Factual anchors: ${direction.factualAnchors.join("; ")}`,

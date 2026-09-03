@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ccnaVisualStorySchema, ccnaVisualStoryIssues } from "./ccna-visual-story.ts";
 
 const sourceSchema = z.object({
   label: z.string().min(3).max(180),
@@ -54,6 +55,7 @@ const quizSchema = z.object({
 });
 
 export const ccnaLessonContentSchema = z.object({
+  visualStory: ccnaVisualStorySchema.optional(),
   beginnerGuide: beginnerGuideSchema.optional(),
   metaTitle: z.string().min(20).max(68),
   metaDescription: z.string().min(80).max(165),
@@ -93,6 +95,7 @@ export type CcnaLessonContent = z.infer<typeof ccnaLessonContentSchema>;
 export function ccnaOpenAIResponseSchema(allowedSourceUrls?: string[]) {
   // Older saved lessons remain readable; every new generation must include beginner support.
   const generationSchema = ccnaLessonContentSchema.extend({
+    visualStory: ccnaVisualStorySchema,
     beginnerGuide: beginnerGuideSchema,
     lab: ccnaLessonContentSchema.shape.lab.extend({ steps: z.array(labStepSchema.required({ commandExplanations: true })).min(7).max(14) })
   });
@@ -131,6 +134,7 @@ function usefulWords(content: CcnaLessonContent) {
 
 export function evaluateCcnaLessonQuality(content: CcnaLessonContent) {
   const issues: string[] = [];
+  if (content.visualStory) issues.push(...ccnaVisualStoryIssues(content.visualStory, content.sources.map((source) => source.url)));
   if (!content.beginnerGuide) issues.push("Add the zero-background learning guide: a familiar example, explained steps, safe first practice and a hint-led understanding check.");
   if (content.lab.steps.some((step) => step.commands.length && step.commandExplanations?.length !== step.commands.length)) {
     issues.push("Explain every command line in plain English, in the same order as the commands, including what its values mean.");

@@ -83,7 +83,8 @@ test("version-three article images follow the locked establish-explain-resolve c
   assert.match(context, /Visual frame 1 - establish/);
   assert.match(context, /Visual frame 3 - resolve/);
   assert.match(context, /must remain visually subordinate/);
-  assert.doesNotMatch(context, /This body must not become the visual subject/);
+  assert.match(context, /This body must not become the visual subject/);
+  assert.match(context, /must not override the locked focal subject/);
 });
 
 test("security advisory context preserves product, exploit, fix, and action evidence", () => {
