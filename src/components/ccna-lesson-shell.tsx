@@ -12,14 +12,27 @@ type CcnaLessonShellProps = {
 
 export function CcnaLessonShell({ children, outline, sources }: CcnaLessonShellProps) {
   const [isOutlineOpen, setIsOutlineOpen] = useState(true);
+  const initialAutoCloseTimerRef = useRef<number | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const restoreButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    initialAutoCloseTimerRef.current = window.setTimeout(() => {
+      initialAutoCloseTimerRef.current = null;
+      setIsOutlineOpen(false);
+    }, 5000);
+
+    return () => {
+      if (initialAutoCloseTimerRef.current !== null) window.clearTimeout(initialAutoCloseTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOutlineOpen) return;
 
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
+      cancelInitialAutoClose();
       setIsOutlineOpen(false);
       window.setTimeout(() => restoreButtonRef.current?.focus(), 0);
     }
@@ -28,19 +41,30 @@ export function CcnaLessonShell({ children, outline, sources }: CcnaLessonShellP
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [isOutlineOpen]);
 
+  function cancelInitialAutoClose() {
+    if (initialAutoCloseTimerRef.current === null) return;
+    window.clearTimeout(initialAutoCloseTimerRef.current);
+    initialAutoCloseTimerRef.current = null;
+  }
+
   function closeOutline() {
+    cancelInitialAutoClose();
     setIsOutlineOpen(false);
     window.setTimeout(() => restoreButtonRef.current?.focus(), 0);
   }
 
   function openOutline() {
+    cancelInitialAutoClose();
     setIsOutlineOpen(true);
     window.setTimeout(() => closeButtonRef.current?.focus(), 0);
   }
 
   function closeAfterNavigation(event: MouseEvent<HTMLElement>) {
     const target = event.target;
-    if (target instanceof Element && target.closest('a[href^="#"]')) setIsOutlineOpen(false);
+    if (target instanceof Element && target.closest('a[href^="#"]')) {
+      cancelInitialAutoClose();
+      setIsOutlineOpen(false);
+    }
   }
 
   return (
