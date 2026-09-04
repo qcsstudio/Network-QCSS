@@ -25,6 +25,9 @@ test("new generation requires the visual plan without breaking stored legacy les
   assert.deepEqual(schema.properties.visualStory.properties.stages.items.properties.sourceUrls.items.enum, sources);
   assert.equal(schema.properties.visualStory.properties.conceptSelection.properties.candidates.minItems, 3);
   assert.equal(schema.properties.visualStory.properties.nodes.maxItems, 5);
+  assert.equal(schema.properties.visualStory.properties.altText.maxLength, ccnaVisualTextBudgets.altText);
+  assert.equal(schema.properties.visualStory.properties.boundary.maxLength, ccnaVisualTextBudgets.boundary);
+  assert.equal(schema.properties.visualStory.properties.nodes.items.properties.detail.maxLength, ccnaVisualTextBudgets.nodeDetail);
 });
 
 test("visual gate rejects repeated concepts, dangling links, and unmapped citations", () => {

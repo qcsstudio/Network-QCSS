@@ -307,37 +307,24 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
   }
   let content = await writeLesson();
   let quality = evaluateGeneratedLesson(topic, content);
-  let review: { passed: boolean; issues: string[] } | null = null;
+  let review = await reviewLesson(content);
   let repairPasses = 0;
   const maxRepairPasses = 2;
 
   while (true) {
-    if (!quality.ready) {
-      if (repairPasses >= maxRepairPasses) break;
-      content = await writeLesson([...new Set(quality.issues)].join("\n"));
-      quality = evaluateGeneratedLesson(topic, content);
-      review = null;
-      repairPasses += 1;
-      continue;
-    }
-
-    review = await reviewLesson(content);
-    if (review.passed && review.issues.length === 0) break;
+    const repairIssues = [...new Set([...quality.issues, ...review.issues])];
+    if (quality.ready && review.passed && repairIssues.length === 0) break;
     if (repairPasses >= maxRepairPasses) break;
-    content = await writeLesson([...new Set(review.issues)].join("\n"));
+    content = await writeLesson(repairIssues.join("\n"));
     quality = evaluateGeneratedLesson(topic, content);
-    review = null;
+    review = await reviewLesson(content);
     repairPasses += 1;
   }
 
-  const reviewWasRun = review !== null;
-  const finalReview = review || { passed: false, issues: [] };
-  const issues = [...new Set([...quality.issues, ...finalReview.issues])];
-  if (quality.ready && !reviewWasRun) {
-    issues.push("Complete independent technical review before publication.");
-  } else if (reviewWasRun && !finalReview.passed && !finalReview.issues.length) {
+  const issues = [...new Set([...quality.issues, ...review.issues])];
+  if (!review.passed && !review.issues.length) {
     issues.push("Independent editorial review did not approve this lesson.");
   }
-  quality = { ...quality, issues, ready: quality.ready && finalReview.passed && issues.length === 0, score: Math.max(0, 100 - issues.length * 12) };
-  return { content, quality, trace: { provider: config.provider, model: config.model, researchModel, reviewModel: env("CCNA_REVIEW_MODEL") || "gpt-4.1", generatedAt: new Date().toISOString(), durationMs: Date.now() - startedAt, policyVersion: ccnaTeachingPolicyVersion, visualPolicyVersion: 1, searchQueries: [...actualQueries], discoveredSources: [...discovered], editorialReview: finalReview, reviewWasRun, repaired: repairPasses > 0, repairPasses, quality } };
+  quality = { ...quality, issues, ready: quality.ready && review.passed && issues.length === 0, score: Math.max(0, 100 - issues.length * 12) };
+  return { content, quality, trace: { provider: config.provider, model: config.model, researchModel, reviewModel: env("CCNA_REVIEW_MODEL") || "gpt-4.1", generatedAt: new Date().toISOString(), durationMs: Date.now() - startedAt, policyVersion: ccnaTeachingPolicyVersion, visualPolicyVersion: 1, searchQueries: [...actualQueries], discoveredSources: [...discovered], editorialReview: review, reviewWasRun: true, repaired: repairPasses > 0, repairPasses, quality } };
 }

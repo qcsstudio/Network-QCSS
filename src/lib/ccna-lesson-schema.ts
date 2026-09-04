@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ccnaVisualStorySchema, ccnaVisualStoryIssues } from "./ccna-visual-story.ts";
+import { ccnaVisualGenerationSchema, ccnaVisualStorySchema, ccnaVisualStoryIssues } from "./ccna-visual-story.ts";
 
 const sourceSchema = z.object({
   label: z.string().min(3).max(180),
@@ -95,7 +95,7 @@ export type CcnaLessonContent = z.infer<typeof ccnaLessonContentSchema>;
 export function ccnaOpenAIResponseSchema(allowedSourceUrls?: string[]) {
   // Older saved lessons remain readable; every new generation must include beginner support.
   const generationSchema = ccnaLessonContentSchema.extend({
-    visualStory: ccnaVisualStorySchema,
+    visualStory: ccnaVisualGenerationSchema,
     beginnerGuide: beginnerGuideSchema,
     lab: ccnaLessonContentSchema.shape.lab.extend({ steps: z.array(labStepSchema.required({ commandExplanations: true })).min(7).max(14) })
   });

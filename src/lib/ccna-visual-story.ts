@@ -5,6 +5,13 @@ const id = z.string().regex(/^[a-z][a-z0-9-]{0,19}$/);
 export const ccnaVisualFieldLimits = { altText: 300, boundary: 300, nodeDetail: 34 } as const;
 export const ccnaVisualTextBudgets = { altText: 220, boundary: 240, nodeDetail: 28 } as const;
 
+const ccnaVisualNodeSchema = z.object({
+  id,
+  kind: z.enum(["computer", "switch", "router", "server", "packet", "address", "record", "cloud", "boundary"]),
+  label: z.string().min(2).max(24),
+  detail: z.string().max(ccnaVisualFieldLimits.nodeDetail)
+});
+
 export const ccnaVisualStorySchema = z.object({
   conceptSelection: visualConceptSelectionSchema,
   title: z.string().min(8).max(65),
@@ -12,12 +19,7 @@ export const ccnaVisualStorySchema = z.object({
   altText: z.string().min(40).max(ccnaVisualFieldLimits.altText),
   boundary: z.string().min(40).max(ccnaVisualFieldLimits.boundary),
   layout: z.enum(["sequence", "comparison", "layers"]),
-  nodes: z.array(z.object({
-    id,
-    kind: z.enum(["computer", "switch", "router", "server", "packet", "address", "record", "cloud", "boundary"]),
-    label: z.string().min(2).max(24),
-    detail: z.string().max(ccnaVisualFieldLimits.nodeDetail)
-  })).min(2).max(5),
+  nodes: z.array(ccnaVisualNodeSchema).min(2).max(5),
   connections: z.array(z.object({ id, from: id, to: id })).max(5),
   stages: z.array(z.object({
     title: z.string().min(4).max(32),
@@ -27,6 +29,12 @@ export const ccnaVisualStorySchema = z.object({
     direction: z.enum(["forward", "reverse", "none"]),
     sourceUrls: z.array(z.string().url()).min(1).max(3)
   })).length(3)
+});
+
+export const ccnaVisualGenerationSchema = ccnaVisualStorySchema.extend({
+  altText: z.string().min(40).max(ccnaVisualTextBudgets.altText),
+  boundary: z.string().min(40).max(ccnaVisualTextBudgets.boundary),
+  nodes: z.array(ccnaVisualNodeSchema.extend({ detail: z.string().max(ccnaVisualTextBudgets.nodeDetail) })).min(2).max(5)
 });
 
 export type CcnaVisualStory = z.infer<typeof ccnaVisualStorySchema>;
