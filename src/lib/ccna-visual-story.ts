@@ -14,7 +14,7 @@ export const ccnaVisualStorySchema = z.object({
     kind: z.enum(["computer", "switch", "router", "server", "packet", "address", "record", "cloud", "boundary"]),
     label: z.string().min(2).max(24),
     detail: z.string().max(34)
-  })).min(2).max(4),
+  })).min(2).max(5),
   connections: z.array(z.object({ id, from: id, to: id })).max(5),
   stages: z.array(z.object({
     title: z.string().min(4).max(32),
@@ -38,12 +38,15 @@ export function ccnaVisualStoryIssues(story: CcnaVisualStory, sources: string[])
   if (story.stages.some((stage) => stage.sourceUrls.some((url) => !sources.includes(url)))) issues.push("Cite verified lesson bibliography sources for every visual stage.");
   if (new Set(story.stages.map((stage) => stage.title.toLowerCase())).size !== 3) issues.push("Each visual stage must explain a different step.");
   if ([story.title, ...story.nodes.flatMap((node) => [node.label, node.detail])].some((value) => /\S{25}/.test(value))) issues.push("Shorten unbroken visual labels so they remain legible without clipping.");
+  if (!/[.!?]$/.test(story.altText.trim()) || !/[.!?]$/.test(story.boundary.trim()) || story.altText.length >= 295 || story.boundary.length >= 295 || story.nodes.some((node) => node.detail.length >= 33)) {
+    issues.push("Use complete, concise visual text; do not truncate alt text, boundaries, or node details to their field limits.");
+  }
   return issues;
 }
 
 export const ccnaVisualWritingInstructions = [
   "visualStory is a required teaching diagram, not decorative artwork. Choose one specific relationship from the completed lesson and explain it in three stages. Keep exact labels short and write a meaningful altText and a boundary stating what this simplified model does NOT prove.",
-  "Use two to four stable nodes and up to five explicitly named connections. Node order controls placement: sequence runs left to right; comparison is a two-column grid; layers runs top to bottom. Select a layout because it explains the subject, not to vary colours. A node may be a device, an address group, a packet, a record, or a conceptual boundary; its label must name the actual thing it represents.",
+  "Use two to five stable nodes and up to five explicitly named connections. Node order controls placement: sequence runs left to right; comparison is a two-column grid; layers runs top to bottom. Select a layout because it explains the subject, not to vary colours. A node may be a device, an address group, a packet, a record, or a conceptual boundary; its label must name the actual thing it represents. Keep node detail below 33 characters and finish altText and boundary as complete sentences well below their maximum lengths; never cut a word or sentence to fit a field.",
   "Connections have from/to identifiers; each stage highlights existing nodes/connections. forward follows from-to, reverse follows to-from, none means an undirected relationship. Do not add links that the lesson does not establish. In a layered or conceptual model, the boundary must say this is not a physical wiring diagram.",
   "Cite bibliography URLs that support each visual stage. The independent instructor reviews all labels, arrow direction, topology, address examples and explanation boundaries against the researched lesson. Do not imply that VLAN separation is encryption, DNS queries carry web pages, RPKI proves the whole AS path, or a ping proves application health."
 ].join(" ");

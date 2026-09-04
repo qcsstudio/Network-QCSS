@@ -134,6 +134,50 @@ export function ccnaContentAgentConfiguration() {
   };
 }
 
+function normalizedTerm(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+export function ccnaTopicSpecificIssues(topic: CcnaCurriculumTopic, content: CcnaLessonContent) {
+  if (topic.sequence !== 2) return [];
+  const issues: string[] = [];
+  const story = content.visualStory;
+  const expectedLabels = ["EndpointA", "Switch1", "Router1", "Switch2", "EndpointB"];
+  const nodesByLabel = new Map((story?.nodes || []).map((node) => [normalizedTerm(node.label), node.id]));
+  const expectedNodeIds = expectedLabels.map((label) => nodesByLabel.get(normalizedTerm(label)));
+
+  if (!story || expectedNodeIds.some((id) => !id) || story.nodes.length !== 5) {
+    issues.push("Day 2 visual must contain exactly EndpointA, Switch1, Router1, Switch2, and EndpointB as five declared nodes.");
+  } else {
+    const expectedEdges = expectedNodeIds.slice(0, -1).map((from, index) => [from, expectedNodeIds[index + 1]] as const);
+    const matchedEdges = expectedEdges.map(([from, to]) => story.connections.find((edge) => edge.from === from && edge.to === to));
+    if (matchedEdges.some((edge) => !edge)) issues.push("Day 2 visual must connect EndpointA to Switch1 to Router1 to Switch2 to EndpointB in order.");
+    const finalStage = story.stages.at(-1);
+    const endpointB = expectedNodeIds.at(-1);
+    const finalEdge = matchedEdges.at(-1)?.id;
+    if (!finalStage || !endpointB || !finalStage.activeNodes.includes(endpointB) || !finalEdge || !finalStage.activeConnections.includes(finalEdge)) {
+      issues.push("Day 2 final visual stage must show Switch2 forwarding to EndpointB as the completed packet journey.");
+    }
+    if (!/EndpointB/i.test(story.altText)) issues.push("Day 2 visual alt text must name EndpointB as the final recipient.");
+  }
+
+  const glossary = new Set(content.glossary.map((item) => normalizedTerm(item.term)));
+  for (const term of ["frame", "segment", "default gateway", "VPCS"]) {
+    if (!glossary.has(normalizedTerm(term))) issues.push(`Define ${term} in the Day 2 glossary and in the teaching text before first use.`);
+  }
+  if (content.lab.steps.some((step) => step.commands.length > 0 && !/console/i.test(step.instruction))) {
+    issues.push("Every Day 2 command step must tell a beginner how to open the named device console before typing the command.");
+  }
+  return issues;
+}
+
+function evaluateGeneratedLesson(topic: CcnaCurriculumTopic, content: CcnaLessonContent) {
+  const base = evaluateCcnaLessonQuality(content);
+  const issues = [...new Set([...base.issues, ...ccnaTopicSpecificIssues(topic, content)])];
+  const score = Math.max(0, 100 - issues.length * 12);
+  return { ...base, issues, score, ready: issues.length === 0 && score >= 88 };
+}
+
 export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, recentVisuals: string[] = []) {
   const config = ccnaContentAgentConfiguration();
   const startedAt = Date.now();
@@ -178,7 +222,9 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
           "Use one reproducible GNS3 lab path only: EndpointA - Switch1 - Router1 - Switch2 - EndpointB. Use two built-in VPCS nodes, two built-in Ethernet switches in their default access mode, and one appropriately licensed Cisco router image. Wireless radio behavior and firewall policy are separate, clearly labelled observation or paper exercises; do not invent an access-point appliance, SSID, radio, roaming, spectrum, or firewall result in GNS3.",
           "Use this complete address plan: EndpointA 10.1.1.10/24 with gateway 10.1.1.1; Router1 first LAN interface 10.1.1.1/24; Router1 second LAN interface 10.1.2.1/24; EndpointB 10.1.2.10/24 with gateway 10.1.2.1. Name every cable endpoint, note that actual router interface names vary by image, and keep each command on its named console.",
           "Introduce port, network segment, MAC address, IP address, default gateway, and forwarding table before relying on those terms. Include one reversible wrong-gateway fault on EndpointB, show the failed cross-subnet test, restore 10.1.2.1, and repeat the same verification. Explain that an access point bridges wireless clients onto a wired LAN at Layer 2 while a router moves packets between IP networks; the paper exercise cannot verify 802.11 behavior.",
-          "The visual may teach one specific relationship with at most four declared nodes; it does not need to contain every lab device. Every connection endpoint, active node, and active connection must exactly match a declared identifier."
+          "The visual must mirror the complete live-lab packet path with exactly five declared nodes in this order: EndpointA, Switch1, Router1, Switch2, EndpointB. Add exactly four forward connections between adjacent nodes. Stage 1 highlights EndpointA to Switch1; Stage 2 highlights Switch1 to Router1; Stage 3 highlights Router1 to Switch2 to EndpointB and both final connections. The alt text must end at EndpointB. Its boundary must explicitly say the access point and firewall are omitted because this diagram follows the reproducible wired lab; those roles are compared separately and are not being simulated.",
+          "Before first use in the teaching body, define frame as a Layer 2 unit with local MAC addressing, packet as a Layer 3 unit with IP addressing, segment as devices that can communicate at Layer 2 without crossing a router, and default gateway as the router address an endpoint uses for another IP network. Include Frame, Segment, Default gateway, and VPCS as glossary terms.",
+          "For every lab step containing a command, explicitly tell the learner how to open the correct console in GNS3 before typing. For VPCS, name EndpointA or EndpointB and say to right-click it and choose Console. For Router1, say to right-click Router1 and choose Console. Do not rely on Day 1 memory for these UI actions."
         ].join(" ")
       : `TOPIC BOUNDARY: Teach only ${topic.title}; use the smallest topology that proves ${topic.objective}. State every prerequisite. If GNS3 cannot reproduce a radio, cloud service, or platform feature, provide an explicitly labeled observation or paper exercise and a practical alternative instead of invented emulator behavior.`;
   const brief = [
@@ -226,10 +272,10 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     const response = await client.responses.create({
       model: env("CCNA_REVIEW_MODEL") || "gpt-4.1",
       store: false,
-      instructions: "Act as an independent Cisco instructor and technical editor. Review the supplied lesson against the source evidence and topic boundary. Reject factual errors, incomplete or contradictory lab topology/configuration, unsupported commands, ambiguous quiz answers, misleading exam-version claims, unintroduced advanced scope, repeated filler, and serialized data in prose. Check that each command block belongs to one named console and peer tests do not ping the device's own address. Do not confuse features unused in this lab with features unsupported by the emulator; GNS3's built-in switch has VLAN port modes. Licensing must not imply unrestricted export of Cisco images. Passing schema or word counts does not prove quality. Report only concrete actionable defects, not stylistic preferences. No requirement to run real hardware. Return passed=true only if issues is empty. " + ccnaBeginnerReviewPolicy,
+      instructions: "Act as an independent Cisco instructor and technical editor. Review the supplied lesson against the source evidence and topic boundary. Reject factual errors, incomplete or contradictory lab topology/configuration, unsupported commands, ambiguous quiz answers, misleading exam-version claims, unintroduced advanced scope, repeated filler, and serialized data in prose. Check that each command block belongs to one named console and peer tests do not ping the device's own address. Do not confuse features unused in this lab with features unsupported by the emulator; GNS3's built-in switch has VLAN port modes. Licensing must not imply unrestricted export of Cisco images. Passing schema or word counts does not prove quality. Report only concrete actionable defects, not stylistic preferences. Omit praise, correct observations, summaries, and statements that require no change from issues. Combine related defects into one concise repair instruction and return no more than ten issues. No requirement to run real hardware. Return passed=true only if issues is empty. " + ccnaBeginnerReviewPolicy,
       input: `${brief}\n\nVISUAL REVIEW: Check visualStory against the lesson and evidence. Verify every node label, direction, address and cited source, that each of the three stages teaches a different point, and that its boundary prevents a misleading literal interpretation. Reject concept repetition or unsupported connections.\n\nLESSON TO REVIEW:\n${JSON.stringify(content)}`,
       max_output_tokens: 1_600,
-      text: { format: { type: "json_schema", name: "ccna_technical_review", strict: true, schema: { type: "object", additionalProperties: false, properties: { passed: { type: "boolean" }, issues: { type: "array", items: { type: "string" } } }, required: ["passed", "issues"] } } }
+      text: { format: { type: "json_schema", name: "ccna_technical_review", strict: true, schema: { type: "object", additionalProperties: false, properties: { passed: { type: "boolean" }, issues: { type: "array", maxItems: 10, items: { type: "string", minLength: 20, maxLength: 500 } } }, required: ["passed", "issues"] } } }
     });
     if (response.status === "incomplete") throw new Error("The independent CCNA editorial review did not finish.");
     const review = JSON.parse(response.output_text) as { passed: boolean; issues: string[] };
@@ -237,7 +283,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     return review;
   }
   let content = await writeLesson();
-  let quality = evaluateCcnaLessonQuality(content);
+  let quality = evaluateGeneratedLesson(topic, content);
   let review: { passed: boolean; issues: string[] } | null = null;
   let repairPasses = 0;
   const maxRepairPasses = 2;
@@ -246,7 +292,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     if (!quality.ready) {
       if (repairPasses >= maxRepairPasses) break;
       content = await writeLesson([...new Set(quality.issues)].join("\n"));
-      quality = evaluateCcnaLessonQuality(content);
+      quality = evaluateGeneratedLesson(topic, content);
       review = null;
       repairPasses += 1;
       continue;
@@ -256,7 +302,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     if (review.passed && review.issues.length === 0) break;
     if (repairPasses >= maxRepairPasses) break;
     content = await writeLesson([...new Set(review.issues)].join("\n"));
-    quality = evaluateCcnaLessonQuality(content);
+    quality = evaluateGeneratedLesson(topic, content);
     review = null;
     repairPasses += 1;
   }

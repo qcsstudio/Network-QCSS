@@ -82,6 +82,17 @@ test("verified visual citations are reconciled without accepting invented URLs",
   assert.throws(() => reconcileCcnaLessonSources(content, discovered), /unverified source URL/);
 });
 
+test("Day 2 generation gate requires a complete five-device path and beginner definitions", async () => {
+  const { ccnaTopicSpecificIssues } = await import("../src/lib/ccna-content-agent.ts");
+  const content = lessonContent();
+  const issues = ccnaTopicSpecificIssues(ccnaCurriculum[1], content);
+  assert.ok(issues.some((issue) => issue.includes("exactly EndpointA")));
+  assert.ok(issues.some((issue) => issue.includes("Define frame")));
+  assert.ok(issues.some((issue) => issue.includes("Define segment")));
+  assert.ok(issues.some((issue) => issue.includes("Define default gateway")));
+  assert.ok(issues.some((issue) => issue.includes("Define VPCS")));
+});
+
 const sources = [
   { label: "Cisco CCNA exam", url: "https://www.cisco.com/site/us/en/learn/training-certifications/exams/ccna.html", supports: "The current CCNA exam version, duration, and official learning scope." },
   { label: "Cisco learning content", url: "https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301-CCNA-v1.1.pdf", supports: "The current exam blueprint mapping used by this lesson." },
