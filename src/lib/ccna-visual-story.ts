@@ -2,18 +2,21 @@ import { z } from "zod";
 import { visualConceptIssues, visualConceptSelectionSchema } from "./visual-concept-policy.ts";
 
 const id = z.string().regex(/^[a-z][a-z0-9-]{0,19}$/);
+export const ccnaVisualFieldLimits = { altText: 300, boundary: 300, nodeDetail: 34 } as const;
+export const ccnaVisualTextBudgets = { altText: 220, boundary: 240, nodeDetail: 28 } as const;
+
 export const ccnaVisualStorySchema = z.object({
   conceptSelection: visualConceptSelectionSchema,
   title: z.string().min(8).max(65),
   takeaway: z.string().min(30).max(180),
-  altText: z.string().min(40).max(300),
-  boundary: z.string().min(40).max(300),
+  altText: z.string().min(40).max(ccnaVisualFieldLimits.altText),
+  boundary: z.string().min(40).max(ccnaVisualFieldLimits.boundary),
   layout: z.enum(["sequence", "comparison", "layers"]),
   nodes: z.array(z.object({
     id,
     kind: z.enum(["computer", "switch", "router", "server", "packet", "address", "record", "cloud", "boundary"]),
     label: z.string().min(2).max(24),
-    detail: z.string().max(34)
+    detail: z.string().max(ccnaVisualFieldLimits.nodeDetail)
   })).min(2).max(5),
   connections: z.array(z.object({ id, from: id, to: id })).max(5),
   stages: z.array(z.object({
@@ -28,6 +31,19 @@ export const ccnaVisualStorySchema = z.object({
 
 export type CcnaVisualStory = z.infer<typeof ccnaVisualStorySchema>;
 
+const danglingSentenceEnding = /\b(?:a|an|and|or|the)[.!?]?$/i;
+const danglingNodeEnding = /\b(?:a|an|and|as|at|between|by|for|from|in|into|of|on|or|the|through|to|toward|with)$/i;
+
+function isCompleteVisualSentence(value: string) {
+  const text = value.trim();
+  return /[.!?]$/.test(text) && !danglingSentenceEnding.test(text);
+}
+
+function isCompleteNodeDetail(value: string) {
+  const text = value.trim();
+  return text.length > 0 && !/[,;:\-]$/.test(text) && !danglingNodeEnding.test(text);
+}
+
 export function ccnaVisualStoryIssues(story: CcnaVisualStory, sources: string[]) {
   const issues = visualConceptIssues(story.conceptSelection);
   const nodes = new Set(story.nodes.map((node) => node.id));
@@ -38,16 +54,24 @@ export function ccnaVisualStoryIssues(story: CcnaVisualStory, sources: string[])
   if (story.stages.some((stage) => stage.sourceUrls.some((url) => !sources.includes(url)))) issues.push("Cite verified lesson bibliography sources for every visual stage.");
   if (new Set(story.stages.map((stage) => stage.title.toLowerCase())).size !== 3) issues.push("Each visual stage must explain a different step.");
   if ([story.title, ...story.nodes.flatMap((node) => [node.label, node.detail])].some((value) => /\S{25}/.test(value))) issues.push("Shorten unbroken visual labels so they remain legible without clipping.");
-  if (!/[.!?]$/.test(story.altText.trim()) || !/[.!?]$/.test(story.boundary.trim()) || story.altText.length >= 295 || story.boundary.length >= 295 || story.nodes.some((node) => node.detail.length >= 33)) {
-    issues.push("Use complete, concise visual text; do not truncate alt text, boundaries, or node details to their field limits.");
+  if (!isCompleteVisualSentence(story.altText) || story.altText.length > ccnaVisualTextBudgets.altText) {
+    issues.push(`Rewrite visual alt text as one or two complete sentences within ${ccnaVisualTextBudgets.altText} characters; current length is ${story.altText.length}. Name the full path and destination without clipping.`);
+  }
+  if (!isCompleteVisualSentence(story.boundary) || story.boundary.length > ccnaVisualTextBudgets.boundary) {
+    issues.push(`Rewrite the visual boundary as one or two complete sentences within ${ccnaVisualTextBudgets.boundary} characters; current length is ${story.boundary.length}. State what the diagram omits and why without clipping.`);
+  }
+  const incompleteNodeDetails = story.nodes.filter((node) => node.detail.length > ccnaVisualTextBudgets.nodeDetail || !isCompleteNodeDetail(node.detail));
+  if (incompleteNodeDetails.length) {
+    issues.push(`Rewrite node details as complete phrases of no more than ${ccnaVisualTextBudgets.nodeDetail} characters for: ${incompleteNodeDetails.map((node) => node.label).join(", ")}. Move supporting explanation into the visual stages instead of cutting text.`);
   }
   return issues;
 }
 
 export const ccnaVisualWritingInstructions = [
   "visualStory is a required teaching diagram, not decorative artwork. Choose one specific relationship from the completed lesson and explain it in three stages. Keep exact labels short and write a meaningful altText and a boundary stating what this simplified model does NOT prove.",
-  "Use two to five stable nodes and up to five explicitly named connections. Node order controls placement: sequence runs left to right; comparison is a two-column grid; layers runs top to bottom. Select a layout because it explains the subject, not to vary colours. A node may be a device, an address group, a packet, a record, or a conceptual boundary; its label must name the actual thing it represents. Keep node detail below 33 characters and finish altText and boundary as complete sentences well below their maximum lengths; never cut a word or sentence to fit a field.",
+  `Use two to five stable nodes and up to five explicitly named connections. Node order controls placement: sequence runs left to right; comparison is a two-column grid; layers runs top to bottom. Select a layout because it explains the subject, not to vary colours. A node may be a device, an address group, a packet, a record, or a conceptual boundary; its label must name the actual thing it represents. Write altText as one or two complete sentences of 90-${ccnaVisualTextBudgets.altText} characters, boundary as one or two complete sentences of 90-${ccnaVisualTextBudgets.boundary} characters, and every node detail as a complete 8-${ccnaVisualTextBudgets.nodeDetail}-character phrase. These are composition budgets, not truncation targets. Move extra facts into stage explanations; never cut a word or sentence to fit a field.`,
   "Connections have from/to identifiers; each stage highlights existing nodes/connections. forward follows from-to, reverse follows to-from, none means an undirected relationship. Do not add links that the lesson does not establish. In a layered or conceptual model, the boundary must say this is not a physical wiring diagram.",
+  `Before returning the visual, count every text field and rewrite any alt text over ${ccnaVisualTextBudgets.altText} characters, boundary over ${ccnaVisualTextBudgets.boundary} characters, or node detail over ${ccnaVisualTextBudgets.nodeDetail} characters as complete shorter wording. Do not slice or truncate strings.`,
   "Cite bibliography URLs that support each visual stage. The independent instructor reviews all labels, arrow direction, topology, address examples and explanation boundaries against the researched lesson. Do not imply that VLAN separation is encryption, DNS queries carry web pages, RPKI proves the whole AS path, or a ping proves application health."
 ].join(" ");
 

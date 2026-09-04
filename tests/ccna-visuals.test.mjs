@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import sharp from "sharp";
 import { ccnaOpenAIResponseSchema } from "../src/lib/ccna-lesson-schema.ts";
-import { ccnaVisualStorySchema, ccnaVisualStoryIssues, firstNetworkVisualStory, visualStoryForLesson, firstNetworkArtwork } from "../src/lib/ccna-visual-story.ts";
+import { ccnaVisualFieldLimits, ccnaVisualStorySchema, ccnaVisualStoryIssues, ccnaVisualTextBudgets, firstNetworkVisualStory, visualStoryForLesson, firstNetworkArtwork } from "../src/lib/ccna-visual-story.ts";
 import { visualConceptIssues } from "../src/lib/visual-concept-policy.ts";
 import { contrastRatio } from "../src/lib/editorial-quality-policy.ts";
 
@@ -61,9 +61,31 @@ test("saved lesson-specific plans take precedence over the first-lesson fallback
 test("technical labels stay bounded and essential text meets contrast requirements", () => {
   for (const node of firstNetworkVisualStory.nodes) {
     assert.ok(node.label.length <= 24);
-    assert.ok(node.detail.length <= 34);
+    assert.ok(node.detail.length <= ccnaVisualTextBudgets.nodeDetail);
   }
+  assert.ok(firstNetworkVisualStory.altText.length <= ccnaVisualTextBudgets.altText);
+  assert.ok(firstNetworkVisualStory.boundary.length <= ccnaVisualTextBudgets.boundary);
+  assert.ok(ccnaVisualTextBudgets.altText < ccnaVisualFieldLimits.altText);
+  assert.ok(ccnaVisualTextBudgets.boundary < ccnaVisualFieldLimits.boundary);
+  assert.ok(ccnaVisualTextBudgets.nodeDetail < ccnaVisualFieldLimits.nodeDetail);
   for (const foreground of ["#182332", "#425564", "#08777b", "#b03363"]) assert.ok(contrastRatio(foreground, "#fafbfc") >= 4.5);
+});
+
+test("visual copy gate identifies overlong and unfinished fields precisely", () => {
+  const story = structuredClone(firstNetworkVisualStory);
+  story.altText = "A packet crosses the complete path from EndpointA through every named forwarding device before reaching EndpointB. The diagram names the source, each transit device, every connection, and the final destination. The complete route remains visible for a beginner reader.";
+  story.boundary = "This diagram shows the reproducible wired path but does not represent";
+  story.nodes[0].detail = "Forwards toward final endpoint";
+  const issues = ccnaVisualStoryIssues(story, sources);
+  assert.ok(issues.some((issue) => issue.includes(`alt text`) && issue.includes(`${ccnaVisualTextBudgets.altText} characters`)));
+  assert.ok(issues.some((issue) => issue.includes("visual boundary") && issue.includes("without clipping")));
+  assert.ok(issues.some((issue) => issue.includes("PC1") && issue.includes(`${ccnaVisualTextBudgets.nodeDetail} characters`)));
+});
+
+test("visual completion checks allow natural sentence endings", () => {
+  const story = structuredClone(firstNetworkVisualStory);
+  story.altText = "The diagram shows the local connection and where the gateway is.";
+  assert.deepEqual(ccnaVisualStoryIssues(story, sources), []);
 });
 
 test("course artwork provides genuine 2x source pixels at its 800px maximum display width", async () => {
