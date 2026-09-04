@@ -68,6 +68,29 @@ function parseContent(value: string) {
   }
 }
 
+function replacePresentationEllipses(value: string) {
+  return value.replace(/\.{3,}|…/g, (match, offset: number, text: string) => {
+    const after = text.slice(offset + match.length);
+    if (/^['"]/.test(after)) return " [variable value]";
+    if (/^\s*[A-Za-z0-9]/.test(after)) return ";";
+    return ".";
+  });
+}
+
+export function normalizeCcnaPresentationEllipses(content: CcnaLessonContent) {
+  function visit(value: unknown, path: string[] = []): unknown {
+    if (typeof value === "string") {
+      return path.at(-1) === "commands" ? value : replacePresentationEllipses(value);
+    }
+    if (Array.isArray(value)) return value.map((item) => visit(item, path));
+    if (value && typeof value === "object") {
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, visit(item, [...path, key])]));
+    }
+    return value;
+  }
+  return ccnaLessonContentSchema.parse(visit(content));
+}
+
 function canonicalSourceUrl(value: string) {
   const url = new URL(value);
   url.hash = "";
@@ -245,7 +268,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     visualConceptInstructions,
     ccnaVisualWritingInstructions,
     "Use 5-6 substantial teaching sections, 7-9 real operational lab steps, 6 original practice questions, 5 original multiple-choice quiz questions, and 5-7 takeaways. Aim for 1,800-2,400 useful words. Do not fill arrays to their maximum or repeat generic material to meet length.",
-    "Each string must be finished natural-language prose, never nested serialized JSON, internal notes, placeholders, dangling sentences, or another field's headings. The short answer answers the actual topic in 2-3 complete sentences.",
+    "Each string must be finished natural-language prose, never nested serialized JSON, internal notes, placeholders, dangling sentences, or another field's headings. Never use three dots or a Unicode ellipsis. Write a complete sentence; for variable command output, use a descriptive bracketed value such as [destination address]. The short answer answers the actual topic in 2-3 complete sentences.",
     "Define new terms before using them. Develop a mental model, a worked example, verification reasoning and a realistic fault. Distinguish what an observation proves from what it cannot prove.",
     "The lab must be exactly reproducible: named devices and cable endpoints, prerequisites, exact addresses with prefix or mask and default gateways where required, command mode/context, expected observations, deliberate reversible fault, recovery and cleanup. Never claim the lab has been executed when it has not. Licensing notes, quiz, glossary and sources are NOT lab steps.",
     "Treat commands and commandExplanations as paired arrays. They must have exactly the same length, and item N must explain command N, its keywords, values, console, and effect in plain English. Use an empty explanation array when the command array is empty. Put one executable command in each command item rather than a multi-command block.",
@@ -266,7 +289,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     text: { format: { type: "json_schema", name: "qcs_ccna_daily_lesson", strict: true, schema } }
     });
     if (response.status === "incomplete") throw new Error(`The CCNA teaching response was incomplete: ${response.incomplete_details?.reason || "unknown reason"}.`);
-    return reconcileCcnaLessonSources(parseContent(response.output_text), [...discovered]);
+    return normalizeCcnaPresentationEllipses(reconcileCcnaLessonSources(parseContent(response.output_text), [...discovered]));
   }
   async function reviewLesson(content: CcnaLessonContent) {
     const response = await client.responses.create({
@@ -307,9 +330,14 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     repairPasses += 1;
   }
 
-  const finalReview = review || { passed: false, issues: ["The latest repaired lesson has not passed independent technical review."] };
+  const reviewWasRun = review !== null;
+  const finalReview = review || { passed: false, issues: [] };
   const issues = [...new Set([...quality.issues, ...finalReview.issues])];
-  if (!finalReview.passed && !finalReview.issues.length) issues.push("Independent editorial review did not approve this lesson.");
+  if (quality.ready && !reviewWasRun) {
+    issues.push("Complete independent technical review before publication.");
+  } else if (reviewWasRun && !finalReview.passed && !finalReview.issues.length) {
+    issues.push("Independent editorial review did not approve this lesson.");
+  }
   quality = { ...quality, issues, ready: quality.ready && finalReview.passed && issues.length === 0, score: Math.max(0, 100 - issues.length * 12) };
-  return { content, quality, trace: { provider: config.provider, model: config.model, researchModel, reviewModel: env("CCNA_REVIEW_MODEL") || "gpt-4.1", generatedAt: new Date().toISOString(), durationMs: Date.now() - startedAt, policyVersion: ccnaTeachingPolicyVersion, visualPolicyVersion: 1, searchQueries: [...actualQueries], discoveredSources: [...discovered], editorialReview: finalReview, repaired: repairPasses > 0, repairPasses, quality } };
+  return { content, quality, trace: { provider: config.provider, model: config.model, researchModel, reviewModel: env("CCNA_REVIEW_MODEL") || "gpt-4.1", generatedAt: new Date().toISOString(), durationMs: Date.now() - startedAt, policyVersion: ccnaTeachingPolicyVersion, visualPolicyVersion: 1, searchQueries: [...actualQueries], discoveredSources: [...discovered], editorialReview: finalReview, reviewWasRun, repaired: repairPasses > 0, repairPasses, quality } };
 }

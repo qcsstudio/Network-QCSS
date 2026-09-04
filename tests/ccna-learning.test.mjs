@@ -93,6 +93,26 @@ test("Day 2 generation gate requires a complete five-device path and beginner de
   assert.ok(issues.some((issue) => issue.includes("Define VPCS")));
 });
 
+test("presentation ellipses are normalized before the lesson quality gate", async () => {
+  const { normalizeCcnaPresentationEllipses } = await import("../src/lib/ccna-content-agent.ts");
+  const content = lessonContent();
+  content.lab.steps[0].expectedResult = "The console shows '64 bytes from...' replies before the learner records the result.";
+  content.sections[0].example = `${content.sections[0].example} The learner's task is simple: first observe… then explain the evidence.`;
+  const normalized = normalizeCcnaPresentationEllipses(content);
+  assert.doesNotMatch(JSON.stringify(normalized), /\.{3}|…/);
+  assert.match(normalized.lab.steps[0].expectedResult, /64 bytes from \[variable value\]/);
+  assert.match(normalized.sections[0].example, /first observe; then explain/i);
+});
+
+test("incomplete executable commands remain visible to the quality gate", async () => {
+  const { normalizeCcnaPresentationEllipses } = await import("../src/lib/ccna-content-agent.ts");
+  const content = lessonContent();
+  content.lab.steps[0].commands[0] = "ping ...";
+  const normalized = normalizeCcnaPresentationEllipses(content);
+  assert.equal(normalized.lab.steps[0].commands[0], "ping ...");
+  assert.ok(evaluateCcnaLessonQuality(normalized).issues.includes("Remove clipped sentences and ellipses."));
+});
+
 const sources = [
   { label: "Cisco CCNA exam", url: "https://www.cisco.com/site/us/en/learn/training-certifications/exams/ccna.html", supports: "The current CCNA exam version, duration, and official learning scope." },
   { label: "Cisco learning content", url: "https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301-CCNA-v1.1.pdf", supports: "The current exam blueprint mapping used by this lesson." },
