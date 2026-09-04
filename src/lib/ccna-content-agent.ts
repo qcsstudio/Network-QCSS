@@ -90,37 +90,35 @@ export function reconcileCcnaLessonSources(content: CcnaLessonContent, discovere
     }
   }
 
+  function resolveVerifiedSource(sourceUrl: string, supports: string) {
+    if (!isTrustedSource(sourceUrl)) throw new Error(`The CCNA lesson cited an untrusted source URL: ${sourceUrl}`);
+    const canonical = canonicalSourceUrl(sourceUrl);
+    const verifiedUrl = acceptedByCanonical.get(canonical);
+    if (!verifiedUrl) throw new Error(`The CCNA lesson cited an unverified source URL: ${sourceUrl}`);
+    const existing = bibliographyByCanonical.get(canonical);
+    if (existing) return existing.url;
+    if (bibliography.length >= 10) throw new Error("The CCNA lesson used more than ten authoritative sources; consolidate its citations before publishing.");
+    const official = ccnaOfficialSources.find((source) => canonicalSourceUrl(source.url) === canonical);
+    const source = {
+      label: official?.label || `Technical source: ${new URL(verifiedUrl).hostname.replace(/^www\./, "")}`,
+      url: verifiedUrl,
+      supports
+    };
+    bibliography.push(source);
+    bibliographyByCanonical.set(canonical, source);
+    return verifiedUrl;
+  }
+
   const sections = content.sections.map((section) => ({
     ...section,
-    sourceUrls: section.sourceUrls.map((sourceUrl) => {
-      if (!isTrustedSource(sourceUrl)) throw new Error(`The CCNA lesson cited an untrusted source URL: ${sourceUrl}`);
-      const canonical = canonicalSourceUrl(sourceUrl);
-      const verifiedUrl = acceptedByCanonical.get(canonical);
-      if (!verifiedUrl) throw new Error(`The CCNA lesson cited an unverified source URL: ${sourceUrl}`);
-      const existing = bibliographyByCanonical.get(canonical);
-      if (existing) return existing.url;
-      if (bibliography.length >= 10) throw new Error("The CCNA lesson used more than ten authoritative sources; consolidate its citations before publishing.");
-      const official = ccnaOfficialSources.find((source) => canonicalSourceUrl(source.url) === canonical);
-      const source = {
-        label: official?.label || `Technical source: ${new URL(verifiedUrl).hostname.replace(/^www\./, "")}`,
-        url: verifiedUrl,
-        supports: `Primary evidence for the lesson section titled \"${section.heading}\".`
-      };
-      bibliography.push(source);
-      bibliographyByCanonical.set(canonical, source);
-      return verifiedUrl;
-    })
+    sourceUrls: section.sourceUrls.map((sourceUrl) => resolveVerifiedSource(sourceUrl, `Primary evidence for the lesson section titled \"${section.heading}\".`))
   }));
 
   const visualStory = content.visualStory ? {
     ...content.visualStory,
     stages: content.visualStory.stages.map((stage) => ({
       ...stage,
-      sourceUrls: stage.sourceUrls.map((url) => {
-        const source = bibliographyByCanonical.get(canonicalSourceUrl(url));
-        if (!source) throw new Error(`The CCNA visual cited a source outside the verified bibliography: ${url}`);
-        return source.url;
-      })
+      sourceUrls: stage.sourceUrls.map((url) => resolveVerifiedSource(url, `Primary evidence for the visual stage titled \"${stage.title}\".`))
     }))
   } : undefined;
   return ccnaLessonContentSchema.parse({ ...content, sections, visualStory, sources: bibliography });
@@ -174,7 +172,15 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
   const schema = ccnaOpenAIResponseSchema([...ccnaOfficialSources.map((source) => source.url), ...discovered]);
   const topicBoundary = topic.sequence === 1
     ? "DAY ONE BOUNDARY: This is a study-method and first-observation lesson, not VLAN/OSPF configuration. Use exactly two built-in GNS3 VPCS nodes and one built-in Ethernet switch on one subnet. Supply the exact cable endpoints, IP/mask plan, VPCS ip/show ip/ping/save commands, a single reversible wrong-IP fault, and an isolated lab cleanup. No Cisco image is needed for this first lab. Explain licensing only as a boundary for later Cisco labs. Do not test unintroduced routing protocols, VLANs, or ACLs. Do not describe CCNA v1.1 as theory-only; it already includes configuration and verification."
-    : `TOPIC BOUNDARY: Teach only ${topic.title}; use the smallest topology that proves ${topic.objective}. State every prerequisite. If GNS3 cannot reproduce a radio, cloud service, or platform feature, provide an explicitly labeled observation or paper exercise and a practical alternative instead of invented emulator behavior.`;
+    : topic.sequence === 2
+      ? [
+          "DAY TWO BOUNDARY: This lesson explains the distinct jobs of endpoints, switches, routers, firewalls, and wireless access points. Do not combine a router and firewall into one named device or imply that every router contains a firewall.",
+          "Use one reproducible GNS3 lab path only: EndpointA - Switch1 - Router1 - Switch2 - EndpointB. Use two built-in VPCS nodes, two built-in Ethernet switches in their default access mode, and one appropriately licensed Cisco router image. Wireless radio behavior and firewall policy are separate, clearly labelled observation or paper exercises; do not invent an access-point appliance, SSID, radio, roaming, spectrum, or firewall result in GNS3.",
+          "Use this complete address plan: EndpointA 10.1.1.10/24 with gateway 10.1.1.1; Router1 first LAN interface 10.1.1.1/24; Router1 second LAN interface 10.1.2.1/24; EndpointB 10.1.2.10/24 with gateway 10.1.2.1. Name every cable endpoint, note that actual router interface names vary by image, and keep each command on its named console.",
+          "Introduce port, network segment, MAC address, IP address, default gateway, and forwarding table before relying on those terms. Include one reversible wrong-gateway fault on EndpointB, show the failed cross-subnet test, restore 10.1.2.1, and repeat the same verification. Explain that an access point bridges wireless clients onto a wired LAN at Layer 2 while a router moves packets between IP networks; the paper exercise cannot verify 802.11 behavior.",
+          "The visual may teach one specific relationship with at most four declared nodes; it does not need to contain every lab device. Every connection endpoint, active node, and active connection must exactly match a declared identifier."
+        ].join(" ")
+      : `TOPIC BOUNDARY: Teach only ${topic.title}; use the smallest topology that proves ${topic.objective}. State every prerequisite. If GNS3 cannot reproduce a radio, cloud service, or platform feature, provide an explicitly labeled observation or paper exercise and a practical alternative instead of invented emulator behavior.`;
   const brief = [
     `AS OF: ${new Date().toISOString().slice(0, 10)}`,
     `DAY ${topic.sequence} / MODULE ${topic.moduleTitle} / TOPIC ${topic.title}`,
@@ -196,9 +202,11 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     "Each string must be finished natural-language prose, never nested serialized JSON, internal notes, placeholders, dangling sentences, or another field's headings. The short answer answers the actual topic in 2-3 complete sentences.",
     "Define new terms before using them. Develop a mental model, a worked example, verification reasoning and a realistic fault. Distinguish what an observation proves from what it cannot prove.",
     "The lab must be exactly reproducible: named devices and cable endpoints, prerequisites, exact addresses with prefix or mask and default gateways where required, command mode/context, expected observations, deliberate reversible fault, recovery and cleanup. Never claim the lab has been executed when it has not. Licensing notes, quiz, glossary and sources are NOT lab steps.",
+    "Treat commands and commandExplanations as paired arrays. They must have exactly the same length, and item N must explain command N, its keywords, values, console, and effect in plain English. Use an empty explanation array when the command array is empty. Put one executable command in each command item rather than a multi-command block.",
     "Check the topology against every command and IP address. Include only commands supported by the specified appliance. Do not imply VLANs encrypt traffic or guarantee security. Do not say a successful ping proves application performance.",
     "The GNS3 built-in Ethernet switch supports Access, Dot1Q and QinQ port modes; not using VLAN features in a beginner lab does NOT mean the switch lacks them. Use its default shared access segment for the first lab. GNS3 links are created by selecting endpoints, not Packet Tracer cable-type menus. Each lab step's commands must run on the same named device; split a step when changing consoles. A self-ping is not evidence of peer connectivity. Do not assume owning hardware or a CML license permits using every Cisco image outside its licensed platform.",
     "Every teaching section cites bibliography URLs that actually support its claims. An exam overview supports exam scope, not specific CLI commands. Use exact supplied or researched URLs, no invented links. Separate QCS study advice from vendor facts.",
+    "Before returning JSON, validate visualStory mechanically: every node and connection id is unique; every connection from/to value names two different declared nodes; every activeNodes value names a declared node; every activeConnections value names a declared connection; and every visual source URL appears in sources. Never refer to an omitted fifth node.",
     "Every quiz has exactly ONE correct option. All distractors must be clearly incorrect under the stated conditions, with no overlapping answers. Avoid duplicate questions and exam dumps. Explain the reasoning for the correct answer and the main misconception.",
     "The licensing note states GNS3 does not provide Cisco images, learners must use appropriately licensed images for Cisco appliances, and Cisco Modeling Labs is an official alternative; built-in VPCS labs need no Cisco image."
   ].join(" ");
@@ -230,16 +238,32 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
   }
   let content = await writeLesson();
   let quality = evaluateCcnaLessonQuality(content);
-  let review = await reviewLesson(content);
-  let repaired = false;
-  if (!quality.ready || !review.passed || review.issues.length) {
-    content = await writeLesson([...quality.issues, ...review.issues].join("\n"));
-    quality = evaluateCcnaLessonQuality(content);
+  let review: { passed: boolean; issues: string[] } | null = null;
+  let repairPasses = 0;
+  const maxRepairPasses = 2;
+
+  while (true) {
+    if (!quality.ready) {
+      if (repairPasses >= maxRepairPasses) break;
+      content = await writeLesson([...new Set(quality.issues)].join("\n"));
+      quality = evaluateCcnaLessonQuality(content);
+      review = null;
+      repairPasses += 1;
+      continue;
+    }
+
     review = await reviewLesson(content);
-    repaired = true;
+    if (review.passed && review.issues.length === 0) break;
+    if (repairPasses >= maxRepairPasses) break;
+    content = await writeLesson([...new Set(review.issues)].join("\n"));
+    quality = evaluateCcnaLessonQuality(content);
+    review = null;
+    repairPasses += 1;
   }
-  const issues = [...quality.issues, ...review.issues];
-  if (!review.passed && !review.issues.length) issues.push("Independent editorial review did not approve this lesson.");
-  quality = { ...quality, issues, ready: quality.ready && review.passed && issues.length === 0, score: Math.max(0, 100 - issues.length * 12) };
-  return { content, quality, trace: { provider: config.provider, model: config.model, researchModel, reviewModel: env("CCNA_REVIEW_MODEL") || "gpt-4.1", generatedAt: new Date().toISOString(), durationMs: Date.now() - startedAt, policyVersion: ccnaTeachingPolicyVersion, visualPolicyVersion: 1, searchQueries: [...actualQueries], discoveredSources: [...discovered], editorialReview: review, repaired, quality } };
+
+  const finalReview = review || { passed: false, issues: ["The latest repaired lesson has not passed independent technical review."] };
+  const issues = [...new Set([...quality.issues, ...finalReview.issues])];
+  if (!finalReview.passed && !finalReview.issues.length) issues.push("Independent editorial review did not approve this lesson.");
+  quality = { ...quality, issues, ready: quality.ready && finalReview.passed && issues.length === 0, score: Math.max(0, 100 - issues.length * 12) };
+  return { content, quality, trace: { provider: config.provider, model: config.model, researchModel, reviewModel: env("CCNA_REVIEW_MODEL") || "gpt-4.1", generatedAt: new Date().toISOString(), durationMs: Date.now() - startedAt, policyVersion: ccnaTeachingPolicyVersion, visualPolicyVersion: 1, searchQueries: [...actualQueries], discoveredSources: [...discovered], editorialReview: finalReview, repaired: repairPasses > 0, repairPasses, quality } };
 }

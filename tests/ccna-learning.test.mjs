@@ -38,6 +38,50 @@ test("verified section citations are reconciled into the lesson bibliography", a
   assert.throws(() => reconcileCcnaLessonSources(content, discovered), /unverified source URL/);
 });
 
+test("verified visual citations are reconciled without accepting invented URLs", async () => {
+  const { reconcileCcnaLessonSources } = await import("../src/lib/ccna-content-agent.ts");
+  const content = lessonContent();
+  const verified = "https://www.rfc-editor.org/rfc/rfc8200.html";
+  const discovered = [...content.sources.map((source) => source.url), verified];
+  content.visualStory = {
+    conceptSelection: {
+      candidates: [
+        { name: "Packet path", scene: "A packet moves from one endpoint through a router to another endpoint.", teachingValue: "Shows where the router changes the forwarding decision.", limitation: "Does not show every Ethernet operation." },
+        { name: "Address layers", scene: "Two address labels sit above a small routed path.", teachingValue: "Separates local and routed address decisions.", limitation: "Does not model physical cabling." },
+        { name: "Device roles", scene: "Three device roles appear beside one traffic path.", teachingValue: "Connects each device to one forwarding responsibility.", limitation: "Does not represent vendor implementation details." }
+      ],
+      selectedIndex: 0,
+      selectionReason: "The packet path most directly supports the lesson's forwarding explanation."
+    },
+    title: "A packet crosses one router",
+    takeaway: "The endpoint sends the packet to a router when the destination is on another network.",
+    altText: "A source endpoint connects to a router, which forwards a packet toward a destination endpoint on another network.",
+    boundary: "This conceptual path omits Ethernet address discovery, queueing, and the detailed forwarding-table lookup.",
+    layout: "sequence",
+    nodes: [
+      { id: "source", kind: "computer", label: "Source", detail: "Sends the packet" },
+      { id: "router", kind: "router", label: "Router", detail: "Chooses the next network" },
+      { id: "target", kind: "server", label: "Destination", detail: "Receives the packet" }
+    ],
+    connections: [
+      { id: "to-router", from: "source", to: "router" },
+      { id: "to-target", from: "router", to: "target" }
+    ],
+    stages: [
+      { title: "Send locally", explanation: "The source prepares the packet for a destination outside its local network and sends it toward the router.", activeNodes: ["source", "router"], activeConnections: ["to-router"], direction: "forward", sourceUrls: [`${verified}#section-3`] },
+      { title: "Choose the route", explanation: "The router reads the destination network and selects the appropriate next forwarding action.", activeNodes: ["router"], activeConnections: [], direction: "none", sourceUrls: [verified] },
+      { title: "Reach the target", explanation: "The router forwards the packet toward the destination network, where the target can receive it.", activeNodes: ["router", "target"], activeConnections: ["to-target"], direction: "forward", sourceUrls: [verified] }
+    ]
+  };
+
+  const reconciled = reconcileCcnaLessonSources(content, discovered);
+  assert.ok(reconciled.sources.some((source) => source.url === verified));
+  assert.ok(reconciled.visualStory.stages.every((stage) => stage.sourceUrls[0] === verified));
+
+  content.visualStory.stages[0].sourceUrls = ["https://www.cisco.com/invented-visual-source"];
+  assert.throws(() => reconcileCcnaLessonSources(content, discovered), /unverified source URL/);
+});
+
 const sources = [
   { label: "Cisco CCNA exam", url: "https://www.cisco.com/site/us/en/learn/training-certifications/exams/ccna.html", supports: "The current CCNA exam version, duration, and official learning scope." },
   { label: "Cisco learning content", url: "https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301-CCNA-v1.1.pdf", supports: "The current exam blueprint mapping used by this lesson." },
