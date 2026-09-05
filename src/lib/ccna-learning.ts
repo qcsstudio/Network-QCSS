@@ -1,6 +1,7 @@
 import { Prisma, type CcnaLesson } from "@prisma/client";
 import { ccnaCurriculum, ccnaTopicBySlug } from "@/lib/ccna-curriculum";
 import { evaluateCcnaLessonForTopic, generateResearchedCcnaLesson } from "@/lib/ccna-content-agent";
+import { CcnaGenerationValidationError, ccnaReviewedRevisionIssues } from "@/lib/ccna-generation-pipeline";
 import { ccnaLessonContentSchema, type CcnaLessonContent } from "@/lib/ccna-lesson-schema";
 import { getPrismaClient } from "@/lib/prisma";
 import { visualStoryForLesson } from "@/lib/ccna-visual-story";
@@ -228,13 +229,15 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
     return mapLesson(record);
   } catch (error) {
     const current = await prisma.ccnaLesson.findUniqueOrThrow({ where: { id } });
-    const retry = current.attempts < 3;
-    const message = error instanceof Error ? error.message.slice(0, 1_800) : "Unknown CCNA lesson generation error";
+    const validationFailure = error instanceof CcnaGenerationValidationError;
+    const retry = !validationFailure && current.attempts < 3;
+    const message = error instanceof Error ? error.message : "Unknown CCNA lesson generation error";
     await prisma.ccnaLesson.update({
       where: { id },
       data: {
         generationStartedAt: null,
         lastError: message,
+        ...(validationFailure ? { generationTrace: { validationPolicyVersion: 1, validationPasses: error.passes, editorialReview: { passed: false, issues: error.issues }, reviewWasRun: error.passes.some((pass) => pass.reviewWasRun) } as unknown as Prisma.InputJsonValue } : {}),
         nextAttemptAt: new Date(Date.now() + Math.max(10, current.attempts * 10) * 60_000),
         status: retry ? "retry" : "needs_review"
       }
@@ -252,11 +255,8 @@ export async function publishCcnaLesson(id: string, actor: string) {
   const parsed = ccnaLessonContentSchema.safeParse(existing.content);
   if (!parsed.success) throw new Error("Generate a complete structured lesson before publishing.");
   const quality = evaluateCcnaLessonForTopic(topic, parsed.data);
-  if (!quality.ready) throw new Error(`CCNA lesson held by quality gate: ${quality.issues.join(" ")}`);
-  const trace = existing.generationTrace as { editorialReview?: { passed?: boolean; issues?: unknown[] } } | null;
-  if (!trace?.editorialReview?.passed || !Array.isArray(trace.editorialReview.issues) || trace.editorialReview.issues.length) {
-    throw new Error("Regenerate this lesson to complete its independent technical and teaching review before publication.");
-  }
+  const issues = [...quality.issues, ...ccnaReviewedRevisionIssues(parsed.data, existing.generationTrace)];
+  if (issues.length) throw new Error(`CCNA lesson held by quality gate: ${issues.join(" ")}`);
   const record = await prisma.ccnaLesson.update({
     where: { id },
     data: {

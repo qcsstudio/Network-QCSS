@@ -33,6 +33,16 @@ export const ccnaVisualStorySchema = z.object({
 
 export type CcnaVisualStory = z.infer<typeof ccnaVisualStorySchema>;
 
+export const ccnaVisualGenerationSchema = ccnaVisualStorySchema.extend({
+  altText: z.string().min(40).max(ccnaVisualTextBudgets.altText),
+  boundary: z.string().min(40).max(ccnaVisualTextBudgets.boundary),
+  nodes: z.array(ccnaVisualNodeSchema.extend({ detail: z.string().min(1).max(ccnaVisualTextBudgets.nodeDetail) })).min(2).max(5),
+  stages: z.array(ccnaVisualStorySchema.shape.stages.element.extend({
+    title: z.string().min(4).max(ccnaVisualTextBudgets.stageTitle),
+    explanation: z.string().min(40).max(ccnaVisualTextBudgets.stageExplanation)
+  })).length(3)
+});
+
 const danglingSentenceEnding = /\b(?:a|an|and|or|the)[.!?]?$/i;
 const danglingNodeEnding = /\b(?:a|an|and|as|at|between|by|for|from|in|into|of|on|or|the|through|to|toward|with)$/i;
 
@@ -81,7 +91,7 @@ export const ccnaVisualWritingInstructions = [
   "visualStory is a required teaching diagram, not decorative artwork. Choose one specific relationship from the completed lesson and explain it in three stages. Keep exact labels short and write a meaningful altText and a boundary stating what this simplified model does NOT prove.",
   `Use two to five stable nodes and up to five explicitly named connections. Node order controls placement: sequence runs left to right; comparison is a two-column grid; layers runs top to bottom. Select a layout because it explains the subject, not to vary colours. A node may be a device, an address group, a packet, a record, or a conceptual boundary; its label must name the actual thing it represents. Write altText as one or two complete sentences of 90-${ccnaVisualTextBudgets.altText} characters, boundary as one or two complete sentences of 90-${ccnaVisualTextBudgets.boundary} characters, every node detail as a complete 8-${ccnaVisualTextBudgets.nodeDetail}-character phrase, every stage title within ${ccnaVisualTextBudgets.stageTitle} characters, and every stage explanation within ${ccnaVisualTextBudgets.stageExplanation} characters. These are composition budgets, not truncation targets. Move extra facts into the lesson; never cut a word or sentence to fit a field.`,
   "Connections have from/to identifiers; each stage highlights existing nodes/connections. forward follows from-to, reverse follows to-from, none means an undirected relationship. Do not add links that the lesson does not establish. In a layered or conceptual model, the boundary must say this is not a physical wiring diagram.",
-  `Before returning the visual, count every text field and rewrite any text over its composition budget as complete shorter wording. The JSON schema has wider safety ceilings so it must never be used as a truncation target. Do not slice or truncate strings.`,
+  "Before returning the visual, count every text field and rewrite any text over its composition budget as complete shorter wording. The generation schema and approval checks use the same budgets. Do not slice or truncate strings.",
   "Cite bibliography URLs that support each visual stage. The independent instructor reviews all labels, arrow direction, topology, address examples and explanation boundaries against the researched lesson. Do not imply that VLAN separation is encryption, DNS queries carry web pages, RPKI proves the whole AS path, or a ping proves application health."
 ].join(" ");
 

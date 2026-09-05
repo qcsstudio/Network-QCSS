@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { ccnaVisualStorySchema, ccnaVisualStoryIssues } from "./ccna-visual-story.ts";
+import { ccnaVisualStorySchema, ccnaVisualStoryIssues, ccnaVisualGenerationSchema } from "./ccna-visual-story.ts";
+import { canonicalCcnaSourceUrl, ccnaSourceLimit, isTrustedCcnaSource } from "./ccna-citations.ts";
 
 const sourceSchema = z.object({
   label: z.string().min(3).max(180),
@@ -87,19 +88,22 @@ export const ccnaLessonContentSchema = z.object({
   quiz: z.array(quizSchema).min(5).max(8),
   glossary: z.array(z.object({ term: z.string().min(2).max(100), meaning: z.string().min(30).max(500) })).min(5).max(24),
   takeaways: z.array(z.string().min(20).max(360)).min(5).max(8),
-  sources: z.array(sourceSchema).min(3).max(10)
+  sources: z.array(sourceSchema).min(3).max(ccnaSourceLimit)
 });
 
 export type CcnaLessonContent = z.infer<typeof ccnaLessonContentSchema>;
 
+export const ccnaReviewableLessonSchema = ccnaLessonContentSchema.extend({
+  visualStory: ccnaVisualStorySchema,
+  beginnerGuide: beginnerGuideSchema,
+  lab: ccnaLessonContentSchema.shape.lab.extend({ steps: z.array(labStepSchema.required({ commandExplanations: true })).min(7).max(14) })
+});
+
+export const ccnaGeneratedLessonSchema = ccnaReviewableLessonSchema.extend({ visualStory: ccnaVisualGenerationSchema });
+
 export function ccnaOpenAIResponseSchema(allowedSourceUrls?: string[]) {
   // Older saved lessons remain readable; every new generation must include beginner support.
-  const generationSchema = ccnaLessonContentSchema.extend({
-    visualStory: ccnaVisualStorySchema,
-    beginnerGuide: beginnerGuideSchema,
-    lab: ccnaLessonContentSchema.shape.lab.extend({ steps: z.array(labStepSchema.required({ commandExplanations: true })).min(7).max(14) })
-  });
-  const schema = z.toJSONSchema(generationSchema, {
+  const schema = z.toJSONSchema(ccnaGeneratedLessonSchema, {
     target: "draft-7",
     override: ({ jsonSchema }) => {
       // OpenAI does not accept JSON Schema's uri format; Zod still validates URLs after generation.
@@ -141,10 +145,12 @@ export function evaluateCcnaLessonQuality(content: CcnaLessonContent) {
   }
   const words = usefulWords(content);
   if (words < 1_500) issues.push("Teach the topic with at least 1,500 useful words across explanation, scenario, lab, and assessment.");
-  const sourceSet = new Set(content.sources.map((source) => source.url));
+  const sourceSet = new Set(content.sources.map((source) => canonicalCcnaSourceUrl(source.url)));
   if (sourceSet.size < 3) issues.push("Use at least three distinct authoritative sources.");
-  if (content.sections.some((section) => !section.sourceUrls.some((url) => sourceSet.has(url)))) {
-    issues.push("Map every teaching section to at least one source listed in the lesson bibliography.");
+  if (content.sources.some((source) => !isTrustedCcnaSource(source.url))) issues.push("Use HTTPS primary-source URLs from the trusted CCNA research sources.");
+  if (sourceSet.size !== content.sources.length || sourceSet.size > ccnaSourceLimit) issues.push(`Consolidate duplicate citations into a bibliography of no more than ${ccnaSourceLimit} distinct sources.`);
+  if (content.sections.some((section) => !section.sourceUrls.length || section.sourceUrls.some((url) => !sourceSet.has(canonicalCcnaSourceUrl(url))))) {
+    issues.push("Map every citation in every teaching section to a source listed in the lesson bibliography.");
   }
   if (content.lab.steps.length < 7 || content.lab.verification.length < 4 || content.lab.troubleshooting.length < 3) {
     issues.push("Include a complete lab build, verification path, and troubleshooting path.");

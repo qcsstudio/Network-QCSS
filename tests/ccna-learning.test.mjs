@@ -22,6 +22,189 @@ test("generation citation fields accept only exact verified URLs", () => {
   assert.deepEqual(schema.properties.sections.items.properties.sourceUrls.items.enum, urls);
 });
 
+test("generation visual limits match the publishing composition budgets", async () => {
+  const { ccnaVisualTextBudgets } = await import("../src/lib/ccna-visual-story.ts");
+  const visual = ccnaOpenAIResponseSchema().properties.visualStory.properties;
+  assert.equal(visual.altText.maxLength, ccnaVisualTextBudgets.altText);
+  assert.equal(visual.boundary.maxLength, ccnaVisualTextBudgets.boundary);
+  assert.equal(visual.nodes.items.properties.detail.maxLength, ccnaVisualTextBudgets.nodeDetail);
+  assert.equal(visual.stages.items.properties.title.maxLength, ccnaVisualTextBudgets.stageTitle);
+  assert.equal(visual.stages.items.properties.explanation.maxLength, ccnaVisualTextBudgets.stageExplanation);
+});
+
+function generationFixture() {
+  const content = lessonContent();
+  content.visualStory = structuredClone(firstNetworkVisualStory);
+  for (const url of new Set(content.visualStory.stages.flatMap((stage) => stage.sourceUrls))) {
+    if (!content.sources.some((source) => source.url === url)) content.sources.push({ label: "GNS3 primary documentation", url, supports: "Primary documentation for the GNS3 devices and commands in this lesson." });
+  }
+  return content;
+}
+
+test("a full bibliography makes room for cited visual evidence without losing citations", async () => {
+  const { consolidateCcnaCitations } = await import("../src/lib/ccna-citations.ts");
+  const content = generationFixture();
+  const visualUrls = new Set(content.visualStory.stages.flatMap((stage) => stage.sourceUrls));
+  content.sources = content.sources.filter((source) => !visualUrls.has(source.url));
+  while (content.sources.length < 10) content.sources.push({ label: "Unused research reference", url: `https://www.cisco.com/research-${content.sources.length}`, supports: "Background research not directly cited by the completed lesson sections." });
+  const before = structuredClone(content);
+  const allowed = [...content.sources.map((source) => source.url), ...visualUrls];
+  const result = consolidateCcnaCitations(content, allowed);
+  assert.deepEqual(result.issues, []);
+  assert.equal(result.candidate.sources.length, 10);
+  const bibliography = new Set(result.candidate.sources.map((source) => source.url));
+  assert.ok([...visualUrls, ...content.sections.flatMap((section) => section.sourceUrls)].every((url) => bibliography.has(url)));
+  assert.deepEqual(content, before);
+  assert.deepEqual(consolidateCcnaCitations(result.candidate, allowed), result);
+});
+
+test("canonical citation duplicates share one bibliography entry", async () => {
+  const { consolidateCcnaCitations } = await import("../src/lib/ccna-citations.ts");
+  const content = generationFixture();
+  const url = content.sources[0].url;
+  content.sources.push({ ...content.sources[0], url: `${url}/?utm_source=feed#overview` });
+  content.sections[0].sourceUrls = [url, `${url}#details`];
+  const result = consolidateCcnaCitations(content, content.sources.map((source) => source.url));
+  assert.deepEqual(result.issues, []);
+  assert.equal(result.candidate.sources.length, content.sources.length - 1);
+  assert.deepEqual(result.candidate.sections[0].sourceUrls, [url]);
+});
+
+test("eleven genuinely cited sources are retained and sent for repair", async () => {
+  const { consolidateCcnaCitations } = await import("../src/lib/ccna-citations.ts");
+  const content = generationFixture();
+  const urls = Array.from({ length: 11 }, (_, index) => `https://www.cisco.com/verified-${index}`);
+  content.sources = urls.slice(0, 10).map((url) => ({ ...content.sources[0], url }));
+  content.sections.forEach((section, index) => { section.sourceUrls = urls.slice(index * 3, index * 3 + 3); });
+  content.sections[4].sourceUrls = [urls[0]];
+  content.visualStory.stages.forEach((stage) => { stage.sourceUrls = [urls[10]]; });
+  const result = consolidateCcnaCitations(content, urls);
+  assert.equal(result.candidate.sources.length, 11);
+  assert.match(result.issues.join(" "), /11 distinct sources/);
+  assert.ok(urls.every((url) => result.candidate.sources.some((source) => source.url === url)));
+});
+
+test("untrusted and unverified citations are reported together, not substituted", async () => {
+  const { consolidateCcnaCitations } = await import("../src/lib/ccna-citations.ts");
+  const content = generationFixture();
+  content.sections[0].sourceUrls = ["https://cisco.com.example.org/fake", "https://www.cisco.com/unseen", "http://www.cisco.com/insecure", "https://user:pass@www.cisco.com/secret"];
+  const result = consolidateCcnaCitations(content, content.sources.map((source) => source.url));
+  assert.equal(result.issues.length, 4);
+  assert.deepEqual(result.candidate.sections[0].sourceUrls, content.sections[0].sourceUrls);
+});
+
+async function pipelineOptions(content) {
+  const { inspectCcnaLessonCandidate } = await import("../src/lib/ccna-generation-pipeline.ts");
+  return {
+    inspect: (text) => inspectCcnaLessonCandidate(text, { allowedSources: content.sources.map((source) => source.url), prepare: (draft) => draft, evaluate: evaluateCcnaLessonQuality }),
+    review: async () => ({ passed: true, issues: [] })
+  };
+}
+
+test("one repair receives all schema, citation and technical findings plus the actual draft", async () => {
+  const { runCcnaGenerationPipeline, ccnaContentDigest } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const valid = generationFixture();
+  const broken = structuredClone(valid);
+  broken.metaTitle = "Short";
+  broken.visualStory.nodes[0].detail = "A node detail that exceeds its composition limit";
+  broken.sections[0].sourceUrls.push("https://www.cisco.com/unverified");
+  let writes = 0;
+  let reviews = 0;
+  const result = await runCcnaGenerationPipeline({
+    ...await pipelineOptions(valid),
+    write: async (repair) => {
+      writes += 1;
+      if (writes === 1) return JSON.stringify(broken);
+      assert.equal(repair.candidate.metaTitle, "Short");
+      assert.ok(repair.issues.some((issue) => issue.includes("metaTitle")));
+      assert.ok(repair.issues.some((issue) => issue.includes("nodes.0.detail")));
+      assert.ok(repair.issues.some((issue) => issue.includes("unverified source")));
+      assert.ok(repair.issues.some((issue) => issue.includes("return path")));
+      return JSON.stringify(valid);
+    },
+    review: async (draft) => {
+      reviews += 1;
+      if (reviews === 1) {
+        assert.equal(draft.metaTitle, "Short");
+        return { passed: false, issues: ["Explain the return path before testing cross-subnet connectivity."] };
+      }
+      assert.equal(draft.metaTitle, valid.metaTitle);
+      return { passed: true, issues: [] };
+    }
+  });
+  assert.equal(result.quality.ready, true, result.quality.issues.join(" "));
+  assert.equal(writes, 2);
+  assert.equal(reviews, 2);
+  assert.equal(result.repairPasses, 1);
+  assert.equal(result.reviewedContentDigest, ccnaContentDigest(result.content));
+});
+
+test("invalid JSON is repaired within the same bounded generation job", async () => {
+  const { runCcnaGenerationPipeline } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const valid = generationFixture();
+  let calls = 0;
+  const result = await runCcnaGenerationPipeline({ ...await pipelineOptions(valid), write: async (repair) => {
+    calls += 1;
+    if (calls === 1) return '{"metaTitle":';
+    assert.equal(repair.candidate, '{"metaTitle":');
+    assert.match(repair.issues.join(" "), /valid lesson JSON/);
+    return JSON.stringify(valid);
+  } });
+  assert.equal(result.quality.ready, true);
+  assert.equal(calls, 2);
+});
+
+test("a reviewable visual length error does not hide command or teaching failures", async () => {
+  const content = generationFixture();
+  content.visualStory.altText = "This sentence describes the complete visible packet path for a beginning learner. ".repeat(3).trim();
+  content.lab.steps[0].commandExplanations = [];
+  const options = await pipelineOptions(content);
+  const result = options.inspect(JSON.stringify(content));
+  assert.equal(result.content, null);
+  assert.ok(result.quality.usefulWords > 1500);
+  assert.ok(result.quality.issues.some((issue) => issue.includes("visualStory.altText")));
+  assert.ok(result.quality.issues.some((issue) => issue.includes("Explain every command line")));
+});
+
+test("invalid or contradictory review cannot approve a lesson or retry without a limit", async () => {
+  const { runCcnaGenerationPipeline, ccnaReviewedRevisionIssues } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const valid = generationFixture();
+  let writes = 0;
+  const result = await runCcnaGenerationPipeline({ ...await pipelineOptions(valid), write: async () => { writes += 1; return JSON.stringify(valid); }, review: async () => ({ passed: true, issues: ["The final destination is missing from this network diagram."] }) });
+  assert.equal(writes, 3);
+  assert.equal(result.quality.ready, false);
+  assert.equal(result.passes.length, 3);
+  assert.ok(ccnaReviewedRevisionIssues(result.content, { editorialReview: result.review, reviewedContentDigest: result.reviewedContentDigest }).length > 0);
+});
+
+test("unrepairable schema errors preserve all diagnostics after exactly two repairs", async () => {
+  const { runCcnaGenerationPipeline, CcnaGenerationValidationError } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const valid = generationFixture();
+  const broken = { ...valid, metaTitle: "bad", metaDescription: "bad" };
+  const options = await pipelineOptions(valid);
+  let writes = 0;
+  await assert.rejects(() => runCcnaGenerationPipeline({ ...options, write: async () => { writes += 1; return JSON.stringify(broken); } }), (error) => {
+    assert.ok(error instanceof CcnaGenerationValidationError);
+    assert.equal(error.passes.length, 3);
+    assert.match(error.message, /metaTitle/);
+    assert.match(error.message, /metaDescription/);
+    return true;
+  });
+  assert.equal(writes, 3);
+});
+
+test("a passing review is valid only for the exact saved lesson revision", async () => {
+  const { runCcnaGenerationPipeline, ccnaReviewedRevisionIssues } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const valid = generationFixture();
+  let writes = 0;
+  const result = await runCcnaGenerationPipeline({ ...await pipelineOptions(valid), write: async () => { writes += 1; return JSON.stringify(valid); } });
+  assert.equal(writes, 1);
+  const trace = { editorialReview: result.review, reviewedContentDigest: result.reviewedContentDigest };
+  assert.deepEqual(ccnaReviewedRevisionIssues(result.content, trace), []);
+  result.content.sections[0].explanation += " The content changed after technical review.";
+  assert.match(ccnaReviewedRevisionIssues(result.content, trace).join(" "), /exact saved content/);
+});
+
 test("verified section citations are reconciled into the lesson bibliography", async () => {
   const { reconcileCcnaLessonSources } = await import("../src/lib/ccna-content-agent.ts");
   const content = lessonContent();
@@ -123,6 +306,49 @@ test("Day 2 contract supplies the complete reviewed visual without clipping", as
 
   repaired.visualStory.stages[2].title = "Router1 to Switch2 and 2";
   assert.ok(ccnaTopicSpecificIssues(ccnaCurriculum[1], repaired).some((issue) => issue.includes("reviewed Day 2 stage titles")));
+});
+
+test("Day 2 gates accept separate console actions for the fault, failed test, repair and retest", async () => {
+  const { applyCcnaTopicContract, ccnaTopicSpecificIssues, evaluateCcnaLessonForTopic } = await import("../src/lib/ccna-content-agent.ts");
+  const { inspectCcnaLessonCandidate, runCcnaGenerationPipeline } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const { ccnaOfficialSources } = await import("../src/lib/ccna-curriculum.ts");
+  const content = generationFixture();
+  content.sections[1].heading = "Access points and firewalls";
+  content.sections[1].example += " An access point and firewall are separate roles, compared here without claiming this lab simulates either one.";
+  for (const term of ["Frame", "Segment", "Default gateway", "VPCS"]) content.glossary.push({ term, meaning: `The ${term} concept is introduced in the first section before the learner uses it to explain a device action.` });
+  const makeStep = (node, title, commands, expectedResult) => ({ ...content.lab.steps[0], title, commands, commandExplanations: commands.map((command) => `In the ${node} console, enter ${command} and press Enter to perform this isolated lab action.`), instruction: `In GNS3, right-click ${node} and choose Console before typing. Enter each command on its own line and press Enter, then compare the displayed result.`, expectedResult });
+  content.lab.steps = [
+    makeStep("Router1", "Read the actual interface names", ["show ip interface brief"], "Both cabled interfaces appear in the router's short interface summary."),
+    makeStep("Router1", "Configure the first local interface", ["enable", "configure terminal", "interface GigabitEthernet0/0", "ip address 10.1.1.1 255.255.255.0", "no shutdown", "end"], "The first local interface has the planned 10.1.1.1 address and is enabled."),
+    makeStep("Router1", "Configure the second local interface", ["configure terminal", "interface GigabitEthernet0/1", "ip address 10.1.2.1 255.255.255.0", "no shutdown", "end"], "The second local interface has the planned 10.1.2.1 address and is enabled."),
+    makeStep("EndpointA", "Address EndpointA", ["ip 10.1.1.10/24 10.1.1.1", "show ip"], "EndpointA shows its planned address, prefix length and local gateway."),
+    makeStep("EndpointB", "Address EndpointB", ["ip 10.1.2.10/24 10.1.2.1", "show ip"], "EndpointB shows its planned address, prefix length and local gateway."),
+    makeStep("EndpointA", "Test the working packet path", ["ping 10.1.2.10"], "Replies from EndpointB confirm this request-and-reply path works."),
+    makeStep("EndpointB", "Introduce the wrong gateway", ["ip 10.1.2.10/24 10.1.2.254", "show ip"], "EndpointB shows the deliberately incorrect gateway address in this isolated lab."),
+    makeStep("EndpointA", "Observe the failed return path", ["ping 10.1.2.10"], "The test fails with no replies because EndpointB has no valid return path to the source network."),
+    makeStep("EndpointB", "Restore the original gateway", ["ip 10.1.2.10/24 10.1.2.1", "save"], "EndpointB uses the real router interface as its gateway again."),
+    makeStep("EndpointA", "Repeat the same peer test", ["ping 10.1.2.10"], "Replies from EndpointB confirm recovery of the tested return path.")
+  ];
+  const normalized = applyCcnaTopicContract(ccnaCurriculum[1], content);
+  assert.deepEqual(ccnaTopicSpecificIssues(ccnaCurriculum[1], normalized), []);
+  const options = { allowedSources: [...content.sources.map((source) => source.url), ...ccnaOfficialSources.map((source) => source.url)], prepare: (draft) => applyCcnaTopicContract(ccnaCurriculum[1], draft), evaluate: (draft) => evaluateCcnaLessonForTopic(ccnaCurriculum[1], draft) };
+  const result = await runCcnaGenerationPipeline({ write: async () => JSON.stringify(normalized), inspect: (text) => inspectCcnaLessonCandidate(text, options), review: async () => ({ passed: true, issues: [] }) });
+  assert.equal(result.quality.ready, true, result.quality.issues.join(" "));
+  assert.equal(result.repairPasses, 0);
+
+  normalized.lab.steps[7].commands = ["ping 10.1.1.10"];
+  assert.ok(ccnaTopicSpecificIssues(ccnaCurriculum[1], normalized).some((issue) => issue.includes("wrong-gateway verification")), "A self-ping must not satisfy the cross-subnet failure check.");
+});
+
+test("Day 2 normalization does not discard existing setup or teaching points to fit limits", async () => {
+  const { applyCcnaTopicContract } = await import("../src/lib/ccna-content-agent.ts");
+  const content = generationFixture();
+  content.sections[1].example += " An access point and firewall are separate roles for this comparison.";
+  content.sections[1].keyPoints = Array.from({ length: 6 }, (_, index) => `Retain necessary technical explanation number ${index + 1} for the learner.`);
+  content.lab.setup = Array.from({ length: 8 }, (_, index) => `Retain necessary setup instruction number ${index + 1} for this isolated lab.`);
+  const result = applyCcnaTopicContract(ccnaCurriculum[1], content);
+  assert.deepEqual(result.sections[1].keyPoints, content.sections[1].keyPoints);
+  assert.deepEqual(result.lab.setup, content.lab.setup);
 });
 
 test("presentation ellipses are normalized before the lesson quality gate", async () => {
