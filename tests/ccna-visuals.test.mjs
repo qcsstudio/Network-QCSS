@@ -25,9 +25,11 @@ test("new generation requires the visual plan without breaking stored legacy les
   assert.deepEqual(schema.properties.visualStory.properties.stages.items.properties.sourceUrls.items.enum, sources);
   assert.equal(schema.properties.visualStory.properties.conceptSelection.properties.candidates.minItems, 3);
   assert.equal(schema.properties.visualStory.properties.nodes.maxItems, 5);
-  assert.equal(schema.properties.visualStory.properties.altText.maxLength, ccnaVisualTextBudgets.altText);
-  assert.equal(schema.properties.visualStory.properties.boundary.maxLength, ccnaVisualTextBudgets.boundary);
-  assert.equal(schema.properties.visualStory.properties.nodes.items.properties.detail.maxLength, ccnaVisualTextBudgets.nodeDetail);
+  assert.equal(schema.properties.visualStory.properties.altText.maxLength, ccnaVisualFieldLimits.altText);
+  assert.equal(schema.properties.visualStory.properties.boundary.maxLength, ccnaVisualFieldLimits.boundary);
+  assert.equal(schema.properties.visualStory.properties.nodes.items.properties.detail.maxLength, ccnaVisualFieldLimits.nodeDetail);
+  assert.equal(schema.properties.visualStory.properties.stages.items.properties.title.maxLength, ccnaVisualFieldLimits.stageTitle);
+  assert.equal(schema.properties.visualStory.properties.stages.items.properties.explanation.maxLength, ccnaVisualFieldLimits.stageExplanation);
 });
 
 test("visual gate rejects repeated concepts, dangling links, and unmapped citations", () => {
@@ -71,6 +73,8 @@ test("technical labels stay bounded and essential text meets contrast requiremen
   assert.ok(ccnaVisualTextBudgets.altText < ccnaVisualFieldLimits.altText);
   assert.ok(ccnaVisualTextBudgets.boundary < ccnaVisualFieldLimits.boundary);
   assert.ok(ccnaVisualTextBudgets.nodeDetail < ccnaVisualFieldLimits.nodeDetail);
+  assert.ok(ccnaVisualTextBudgets.stageTitle < ccnaVisualFieldLimits.stageTitle);
+  assert.ok(ccnaVisualTextBudgets.stageExplanation < ccnaVisualFieldLimits.stageExplanation);
   for (const foreground of ["#182332", "#425564", "#08777b", "#b03363"]) assert.ok(contrastRatio(foreground, "#fafbfc") >= 4.5);
 });
 
@@ -79,10 +83,14 @@ test("visual copy gate identifies overlong and unfinished fields precisely", () 
   story.altText = "A packet crosses the complete path from EndpointA through every named forwarding device before reaching EndpointB. The diagram names the source, each transit device, every connection, and the final destination. The complete route remains visible for a beginner reader.";
   story.boundary = "This diagram shows the reproducible wired path but does not represent";
   story.nodes[0].detail = "Forwards toward final endpoint";
+  story.stages[2].title = "Router1 to Switch2 and the";
+  story.stages[2].explanation = "Switch2 then delivers the frame...";
   const issues = ccnaVisualStoryIssues(story, sources);
   assert.ok(issues.some((issue) => issue.includes(`alt text`) && issue.includes(`${ccnaVisualTextBudgets.altText} characters`)));
   assert.ok(issues.some((issue) => issue.includes("visual boundary") && issue.includes("without clipping")));
   assert.ok(issues.some((issue) => issue.includes("PC1") && issue.includes(`${ccnaVisualTextBudgets.nodeDetail} characters`)));
+  assert.ok(issues.some((issue) => issue.includes("stage titles") && issue.includes(`${ccnaVisualTextBudgets.stageTitle} characters`)));
+  assert.ok(issues.some((issue) => issue.includes("stage explanations") && issue.includes(`${ccnaVisualTextBudgets.stageExplanation} characters`)));
 });
 
 test("visual completion checks allow natural sentence endings", () => {

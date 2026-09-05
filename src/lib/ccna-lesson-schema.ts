@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ccnaVisualGenerationSchema, ccnaVisualStorySchema, ccnaVisualStoryIssues } from "./ccna-visual-story.ts";
+import { ccnaVisualStorySchema, ccnaVisualStoryIssues } from "./ccna-visual-story.ts";
 
 const sourceSchema = z.object({
   label: z.string().min(3).max(180),
@@ -95,7 +95,7 @@ export type CcnaLessonContent = z.infer<typeof ccnaLessonContentSchema>;
 export function ccnaOpenAIResponseSchema(allowedSourceUrls?: string[]) {
   // Older saved lessons remain readable; every new generation must include beginner support.
   const generationSchema = ccnaLessonContentSchema.extend({
-    visualStory: ccnaVisualGenerationSchema,
+    visualStory: ccnaVisualStorySchema,
     beginnerGuide: beginnerGuideSchema,
     lab: ccnaLessonContentSchema.shape.lab.extend({ steps: z.array(labStepSchema.required({ commandExplanations: true })).min(7).max(14) })
   });
@@ -149,8 +149,8 @@ export function evaluateCcnaLessonQuality(content: CcnaLessonContent) {
   if (content.lab.steps.length < 7 || content.lab.verification.length < 4 || content.lab.troubleshooting.length < 3) {
     issues.push("Include a complete lab build, verification path, and troubleshooting path.");
   }
-  if (!/GNS3|Cisco Modeling Labs|CML/i.test(content.lab.licensingNote) || !/licen[cs]/i.test(content.lab.licensingNote)) {
-    issues.push("Explain that learners must use properly licensed Cisco images in GNS3 or use Cisco Modeling Labs.");
+  if (!/GNS3 does not provide Cisco (?:software )?images/i.test(content.lab.licensingNote) || !/(?:license|entitlement).*(?:permit|allow)|properly licensed/i.test(content.lab.licensingNote) || !/(?:do not|must not|may not) (?:share|redistribute)|not (?:be )?(?:shared|redistributed)/i.test(content.lab.licensingNote) || !/Cisco Modeling Labs|\bCML\b/i.test(content.lab.licensingNote)) {
+    issues.push("State the verified Cisco-image boundary: GNS3 supplies no Cisco images; use them only when the applicable license permits it; never share or redistribute image files; use Cisco Modeling Labs as the official alternative.");
   }
   if (content.practiceQuestions.length < 6 || content.quiz.length < 5) {
     issues.push("Include the required practice set and scored quiz.");

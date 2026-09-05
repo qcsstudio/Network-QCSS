@@ -4,6 +4,7 @@ import { ccnaCurriculum, ccnaModules } from "../src/lib/ccna-curriculum.ts";
 import { ccnaLessonContentSchema, ccnaOpenAIResponseSchema, evaluateCcnaLessonQuality } from "../src/lib/ccna-lesson-schema.ts";
 import { ccnaFoundationQuiz, ccnaFoundationUnits, ccnaFoundationSources } from "../src/lib/ccna-foundations.ts";
 import { ccnaBeginnerWritingPolicy, ccnaBeginnerReviewPolicy, ccnaTeachingPolicyVersion } from "../src/lib/ccna-teaching-policy.ts";
+import { ccnaVisualStoryIssues, firstNetworkVisualStory } from "../src/lib/ccna-visual-story.ts";
 
 test("OpenAI schema omits unsupported URI format while runtime URL validation stays strict", () => {
   const schema = ccnaOpenAIResponseSchema();
@@ -93,15 +94,47 @@ test("Day 2 generation gate requires a complete five-device path and beginner de
   assert.ok(issues.some((issue) => issue.includes("Define VPCS")));
 });
 
+test("Day 2 contract supplies the complete reviewed visual without clipping", async () => {
+  const { applyCcnaTopicContract, ccnaTopicSpecificIssues } = await import("../src/lib/ccna-content-agent.ts");
+  const content = lessonContent();
+  content.sections[1].heading = "Access points and firewalls";
+  content.sections[1].example = `${content.sections[1].example} An access point and firewall are compared here as separate network roles.`;
+  content.visualStory = structuredClone(firstNetworkVisualStory);
+  for (const url of new Set(firstNetworkVisualStory.stages.flatMap((stage) => stage.sourceUrls))) {
+    if (!content.sources.some((source) => source.url === url)) {
+      content.sources.push({ label: `Verified GNS3 source ${content.sources.length + 1}`, url, supports: "The documented GNS3 device and topology behavior used by the lesson visual." });
+    }
+  }
+  const repaired = applyCcnaTopicContract(ccnaCurriculum[1], content);
+  assert.deepEqual(repaired.visualStory.nodes.map((node) => [node.label, node.detail]), [
+    ["EndpointA", "Sends the packet"],
+    ["Switch1", "Forwards local frames"],
+    ["Router1", "Routes between networks"],
+    ["Switch2", "Forwards final frames"],
+    ["EndpointB", "Receives the packet"]
+  ]);
+  assert.deepEqual(repaired.visualStory.stages.map((stage) => stage.title), ["EndpointA to Switch1", "Switch1 to Router1", "Router1 to EndpointB"]);
+  assert.deepEqual(repaired.visualStory.stages.at(-1).activeNodes, ["router-1", "switch-2", "endpoint-b"]);
+  assert.deepEqual(ccnaVisualStoryIssues(repaired.visualStory, repaired.sources.map((source) => source.url)), []);
+  assert.match(repaired.sections[0].explanation, /^A network segment is/);
+  assert.ok(repaired.sections.some((section) => section.keyPoints.some((point) => point.startsWith("Lab boundary:"))));
+  assert.ok(repaired.lab.steps.every((step) => !step.commands.length || /right-click Router1 and choose Console before typing/i.test(step.instruction)));
+  assert.match(repaired.lab.licensingNote, /do not share or redistribute Cisco image files/i);
+
+  repaired.visualStory.stages[2].title = "Router1 to Switch2 and 2";
+  assert.ok(ccnaTopicSpecificIssues(ccnaCurriculum[1], repaired).some((issue) => issue.includes("reviewed Day 2 stage titles")));
+});
+
 test("presentation ellipses are normalized before the lesson quality gate", async () => {
   const { normalizeCcnaPresentationEllipses } = await import("../src/lib/ccna-content-agent.ts");
   const content = lessonContent();
   content.lab.steps[0].expectedResult = "The console shows '64 bytes from...' replies before the learner records the result.";
   content.sections[0].example = `${content.sections[0].example} The learner's task is simple: first observe… then explain the evidence.`;
   const normalized = normalizeCcnaPresentationEllipses(content);
-  assert.doesNotMatch(JSON.stringify(normalized), /\.{3}|…/);
+  assert.doesNotMatch(normalized.lab.steps[0].expectedResult, /\.{3}|…/);
   assert.match(normalized.lab.steps[0].expectedResult, /64 bytes from \[variable value\]/);
-  assert.match(normalized.sections[0].example, /first observe; then explain/i);
+  assert.match(normalized.sections[0].example, /first observe… then explain/i);
+  assert.ok(evaluateCcnaLessonQuality(normalized).issues.includes("Remove clipped sentences and ellipses."));
 });
 
 test("incomplete executable commands remain visible to the quality gate", async () => {
@@ -174,7 +207,7 @@ function lessonContent() {
       verification: Array.from({ length: 4 }, (_, index) => `Verification ${index + 1} confirms the running interface, address, forwarding, or reachability state and records the evidence used to reach the conclusion.`),
       troubleshooting: Array.from({ length: 3 }, (_, index) => `Troubleshooting check ${index + 1} compares intended and observed state, changes only the failed dependency, and repeats the same verification command afterward.`),
       cleanup: ["Save the final command evidence outside the lab project.", "Stop all nodes and remove temporary failure conditions."],
-      licensingNote: "GNS3 does not provide Cisco images. Learners must use Cisco software images they are properly licensed to use, or use Cisco Modeling Labs as the official Cisco alternative."
+      licensingNote: "GNS3 does not provide Cisco software images. Use Cisco image files only when the applicable license permits it, and do not share or redistribute those files. Use Cisco Modeling Labs as the official Cisco alternative."
     },
     practiceQuestions: Array.from({ length: 6 }, (_, index) => ({
       question: `Which evidence should a learner collect for practice situation ${index + 1}?`,
@@ -303,6 +336,14 @@ test("a missing command explanation holds the lesson instead of silently publish
   assert.equal(evaluateCcnaLessonQuality(content).ready, false);
   content.lab.steps[0].commandExplanations.push("show version displays the router software version and platform details without changing its settings. Press Enter after typing it in the router console.");
   assert.equal(evaluateCcnaLessonQuality(content).ready, true);
+});
+
+test("the licensing gate rejects vague Cisco image guidance", () => {
+  const content = lessonContent();
+  content.lab.licensingNote = "Use properly licensed Cisco images in GNS3, or use Cisco Modeling Labs when you need an official Cisco lab environment for this exercise.";
+  const quality = evaluateCcnaLessonQuality(content);
+  assert.equal(quality.ready, false);
+  assert.ok(quality.issues.some((issue) => issue.includes("never share or redistribute")));
 });
 
 test("computer basics form an unnumbered prerequisite path without changing the 60 topics", () => {

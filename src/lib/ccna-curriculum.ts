@@ -205,6 +205,10 @@ export const ccnaOfficialSources = [
   {
     label: "GNS3 Cisco image licensing guidance",
     url: "https://docs.gns3.com/docs/troubleshooting-faq/where-do-i-get-ios-images"
+  },
+  {
+    label: "Cisco Modeling Labs VM image licensing boundary",
+    url: "https://developer.cisco.com/docs/modeling-labs/vm-images-for-cml-labs/"
   }
 ] as const;
 

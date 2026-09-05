@@ -1,7 +1,7 @@
 import { Prisma, type CcnaLesson } from "@prisma/client";
 import { ccnaCurriculum, ccnaTopicBySlug } from "@/lib/ccna-curriculum";
-import { generateResearchedCcnaLesson } from "@/lib/ccna-content-agent";
-import { ccnaLessonContentSchema, evaluateCcnaLessonQuality, type CcnaLessonContent } from "@/lib/ccna-lesson-schema";
+import { evaluateCcnaLessonForTopic, generateResearchedCcnaLesson } from "@/lib/ccna-content-agent";
+import { ccnaLessonContentSchema, type CcnaLessonContent } from "@/lib/ccna-lesson-schema";
 import { getPrismaClient } from "@/lib/prisma";
 import { visualStoryForLesson } from "@/lib/ccna-visual-story";
 
@@ -247,9 +247,11 @@ export async function publishCcnaLesson(id: string, actor: string) {
   const prisma = getPrismaClient();
   const existing = await prisma.ccnaLesson.findUnique({ where: { id } });
   if (!existing) throw new Error("CCNA lesson not found.");
+  const topic = ccnaTopicBySlug(existing.slug);
+  if (!topic) throw new Error("This lesson is not mapped to the controlled CCNA curriculum.");
   const parsed = ccnaLessonContentSchema.safeParse(existing.content);
   if (!parsed.success) throw new Error("Generate a complete structured lesson before publishing.");
-  const quality = evaluateCcnaLessonQuality(parsed.data);
+  const quality = evaluateCcnaLessonForTopic(topic, parsed.data);
   if (!quality.ready) throw new Error(`CCNA lesson held by quality gate: ${quality.issues.join(" ")}`);
   const trace = existing.generationTrace as { editorialReview?: { passed?: boolean; issues?: unknown[] } } | null;
   if (!trace?.editorialReview?.passed || !Array.isArray(trace.editorialReview.issues) || trace.editorialReview.issues.length) {

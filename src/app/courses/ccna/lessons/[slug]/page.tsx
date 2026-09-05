@@ -104,15 +104,20 @@ export default async function CcnaLessonPage({ params }: PageProps) {
 
           <section className="ccna-early-glossary" id="new-words"><h2>Words you will meet</h2><p>Open a word when you need its meaning. You do not need to memorize the whole list before reading.</p><div>{content.glossary.map((item) => <details key={item.term}><summary>{item.term}</summary><p>{item.meaning}</p></details>)}</div></section>
 
-          {content.sections.map((section, sectionIndex) => (
-            <section className="ccna-teaching-section" key={section.heading}>
-              <header><span>{String(sectionIndex + 1).padStart(2, "0")}</span><h2>{section.heading}</h2></header>
-              {section.explanation.split(/\n\n+/).map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}
-              <aside><Lightbulb aria-hidden="true" size={20} /><div><strong>Put it into a real situation</strong><p>{section.example}</p></div></aside>
-              <ul>{section.keyPoints.map((point) => <li key={point}><CheckCircle2 aria-hidden="true" size={17} />{point}</li>)}</ul>
-              <div className="ccna-section-sources"><strong>References</strong>{section.sourceUrls.map((url) => <a href={url} key={url} rel="noreferrer" target="_blank">{content.sources.find((source) => source.url === url)?.label || new URL(url).hostname}<ExternalLink aria-hidden="true" size={14} /></a>)}</div>
-            </section>
-          ))}
+          {content.sections.map((section, sectionIndex) => {
+            const labBoundary = section.keyPoints.find((point) => /^Lab boundary:/i.test(point));
+            const keyPoints = section.keyPoints.filter((point) => point !== labBoundary);
+            return (
+              <section className="ccna-teaching-section" key={section.heading}>
+                <header><span>{String(sectionIndex + 1).padStart(2, "0")}</span><h2>{section.heading}</h2></header>
+                {labBoundary ? <aside className="ccna-lab-boundary-note"><ShieldCheck aria-hidden="true" size={20} /><div><strong>Lab boundary</strong><p>{labBoundary.replace(/^Lab boundary:\s*/i, "")}</p></div></aside> : null}
+                {section.explanation.split(/\n\n+/).map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}
+                <aside><Lightbulb aria-hidden="true" size={20} /><div><strong>Put it into a real situation</strong><p>{section.example}</p></div></aside>
+                <ul>{keyPoints.map((point) => <li key={point}><CheckCircle2 aria-hidden="true" size={17} />{point}</li>)}</ul>
+                <div className="ccna-section-sources"><strong>References</strong>{section.sourceUrls.map((url) => <a href={url} key={url} rel="noreferrer" target="_blank">{content.sources.find((source) => source.url === url)?.label || new URL(url).hostname}<ExternalLink aria-hidden="true" size={14} /></a>)}</div>
+              </section>
+            );
+          })}
 
           <section className="ccna-scenario-section" id="real-world-scenario"><div className="ccna-section-icon"><Network aria-hidden="true" /></div><p className="eyebrow">Real-world walkthrough</p><h2>{content.realWorldScenario.title}</h2><p>{content.realWorldScenario.situation}</p><ol>{content.realWorldScenario.walkthrough.map((step) => <li key={step}>{step}</li>)}</ol><strong>{content.realWorldScenario.takeaway}</strong></section>
 

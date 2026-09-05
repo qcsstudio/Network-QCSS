@@ -8975,6 +8975,8 @@ td span {
 .ccna-teaching-section > aside { display: grid; grid-template-columns: 28px 1fr; gap: 14px; margin: 26px 0; padding: 22px; border-left: 3px solid #2f9fb8; background: #f2f8fa; }
 .ccna-teaching-section > aside svg { color: #2f9fb8; }
 .ccna-teaching-section > aside p { margin: 5px 0 0; }
+.ccna-teaching-section > .ccna-lab-boundary-note { margin: 18px 0 24px; border-left-color: #d86e25; background: #fbf6f1; }
+.ccna-teaching-section > .ccna-lab-boundary-note svg { color: #d86e25; }
 .ccna-teaching-section > ul { display: grid; gap: 10px; padding: 0; list-style: none; }
 .ccna-teaching-section > ul li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; }
 .ccna-teaching-section > ul svg { margin-top: 6px; color: #14875a; }
