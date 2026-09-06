@@ -31,6 +31,23 @@ Authentication, billing/quota failures and ambiguous network failures are not re
 
 Official reference: [OpenAI rate-limit handling](https://developers.openai.com/api/docs/guides/rate-limits).
 
+## Day 2 wired-lab contract
+
+The writer, repair prompt and independent reviewer receive one shared fault-test instruction. Day 2 requests 10-12 lab steps, rather than the general 7-9, so router setup and the four fault/recovery actions can stay on separate, named consoles.
+
+1. Keep 10.1.2.254 unused in the isolated lab. On EndpointB, enter `ip 10.1.2.10/24 10.1.2.254`, then `show ip`.
+2. On EndpointA, enter `ping 10.1.2.10`. Expect failure with no echo replies because EndpointB's return path is broken. One-way delivery or a fresh ARP cache is not successful request-and-reply connectivity.
+3. On EndpointB, restore `ip 10.1.2.10/24 10.1.2.1`, then `show ip`.
+4. On EndpointA, repeat `ping 10.1.2.10` and expect replies. Repeat the explicit GNS3 console-opening instruction at each step.
+
+The gate follows command order and console ownership. A self-ping, reversed test, early restoration, wrong restored gateway, intervening fault, missing retest, or negative recovery result does not pass. Supporting walkthroughs, verification, troubleshooting and answer explanations are also checked for known wrong-gateway/ARP success claims; independent review remains responsible for semantic correctness beyond these deterministic checks. This contract describes expected observations, not an executed lab.
+
+The normalized visual alt text is: "A packet travels from EndpointA through Switch1, Router1 and Switch2 to EndpointB. The diagram ends at EndpointB." It is 113 characters, within the 200-character budget.
+
+Both the visual boundary and each access-point or firewall comparison callout use the same complete, 208-character text: "Lab boundary: The access point and firewall are omitted from every hands-on and diagram step in this wired GNS3 lab. Wireless radio behavior and firewall policy are conceptual comparisons only, not simulated." Normalization cannot overwrite this with earlier ambiguous wording. Existing teaching points are preserved; a full field must be rewritten through the bounded repair workflow, never clipped or silently discarded.
+
+Technical reference: [RFC 1122, local/remote routing and gateway selection](https://www.rfc-editor.org/rfc/rfc1122.html#section-3.3.1.1). A destination on another IP network requires gateway routing for the reply as well as the request.
+
 ## Regression coverage
 
 Run `npm run test:ccna`, `npm run typecheck`, lint and the production build when changing these contracts. Tests cover citation-budget boundaries, canonical duplicates, untrusted URLs, combined schema/technical failures, malformed JSON, contradictory reviews, bounded repairs, changed-content approval, Day 2 console-separated fault recovery, visual limits and existing course/social behavior.

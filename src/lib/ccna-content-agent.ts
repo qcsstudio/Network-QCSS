@@ -96,7 +96,15 @@ const dayTwoDefinitions = [
   { pattern: /\ban IP packet (?:is|means)\b/i, text: "An IP packet is the Layer 3 unit that carries source and destination IP addresses." },
   { pattern: /\ba default gateway (?:is|means)\b/i, text: "A default gateway is the router address an endpoint uses to reach another IP network." }
 ] as const;
-const dayTwoLabBoundary = "Lab boundary: The access point and firewall are omitted from every hands-on and diagram step. This reproducible GNS3 path does not test wireless radio behavior or firewall policy; those roles are compared only as concepts.";
+const dayTwoLabBoundary = "Lab boundary: The access point and firewall are omitted from every hands-on and diagram step in this wired GNS3 lab. Wireless radio behavior and firewall policy are conceptual comparisons only, not simulated.";
+const dayTwoAltText = "A packet travels from EndpointA through Switch1, Router1 and Switch2 to EndpointB. The diagram ends at EndpointB.";
+const dayTwoGatewayInstructions = [
+  "WRONG-GATEWAY EXPERIMENT: Keep 10.1.2.254 unused in this isolated lab; it is not another router. First verify that EndpointA can ping EndpointB with both correct gateways. Then use these four ordered, separate console steps; never merge commands belonging to different nodes.",
+  "1. In GNS3, right-click EndpointB and choose Console before typing. Run ip 10.1.2.10/24 10.1.2.254, then show ip. Expect EndpointB to display the deliberately wrong gateway 10.1.2.254.",
+  "2. In GNS3, right-click EndpointA and choose Console before typing. Run ping 10.1.2.10. Expect the cross-subnet ping to fail with no echo replies: EndpointB's return path to EndpointA is broken because its gateway is wrong. Receiving an echo request is not a successful ping. Do not suggest that a fresh ARP cache, cached addresses or one-way delivery make this test succeed.",
+  "3. In GNS3, right-click EndpointB and choose Console before typing. Run ip 10.1.2.10/24 10.1.2.1, then show ip. Expect the gateway to be restored to Router1's real local interface, 10.1.2.1.",
+  "4. In GNS3, right-click EndpointA and choose Console before typing. Repeat ping 10.1.2.10. Expect echo replies from EndpointB; this confirms recovery of this request-and-reply path, not application health. Keep verification, troubleshooting, walkthroughs and quiz explanations consistent with these results."
+].join(" ");
 const dayTwoInterfaceMapping = "Interface mapping example: run show ip interface brief, then map the interface cabled to Switch1 as LAN1 and the interface cabled to Switch2 as LAN2. If the router shows GigabitEthernet0/0/0 and GigabitEthernet0/0/1, use the first for 10.1.1.1/24 and the second for 10.1.2.1/24. Substitute the displayed names in every interface command.";
 const ccnaImageLicensingNote = "GNS3 does not provide Cisco software images. Use a Cisco image only when the applicable Cisco license or entitlement legally permits that use, and do not share or redistribute Cisco image files. Cisco CML reference-platform images are licensed for use within CML unless a separate license permits outside use. Cisco Modeling Labs is the official alternative; built-in VPCS and Ethernet switch nodes do not require a Cisco image.";
 
@@ -119,6 +127,47 @@ function dayTwoConsoleNode(step: CcnaLessonContent["lab"]["steps"][number]) {
   return titleNodes.length === 1 ? titleNodes[0] : null;
 }
 
+function dayTwoGatewayIssues(content: CcnaLessonContent) {
+  // Follow the actual command order, not just the presence of addresses in prose.
+  const events = content.lab.steps.flatMap((step, stepIndex) => {
+    const node = dayTwoConsoleNode(step);
+    return step.commands.flatMap((command) => {
+      const address = node === "EndpointB" ? /^ip\s+10\.1\.2\.10\/24\s+(\S+)\s*$/i.exec(command.trim()) : null;
+      if (address) return [{ step, stepIndex, kind: "gateway", gateway: address[1] }];
+      if (node === "EndpointA" && /^ping\s+10\.1\.2\.10(?:\s|$)/i.test(command.trim())) {
+        return [{ step, stepIndex, kind: "ping", gateway: "" }];
+      }
+      return [];
+    });
+  });
+  const faultIndex = events.findIndex((event) => event.kind === "gateway" && event.gateway === "10.1.2.254");
+  const restoreIndex = faultIndex < 0 ? -1 : events.findIndex((event, index) => index > faultIndex && event.kind === "gateway");
+  const failedTests = faultIndex < 0 || restoreIndex < 0 ? [] : events.slice(faultIndex + 1, restoreIndex).filter((event) => event.kind === "ping");
+  const retest = restoreIndex < 0 ? undefined : events[restoreIndex + 1];
+  const failure = /\bfail(?:s|ed)?\b|\btimeouts?\b|\btim(?:e|ed)[ -]?out\b|\b(?:no|zero) (?:echo )?repl(?:y|ies)\b|\bunreachable\b|\b(?:does|do|did) not (?:succeed|work|receive (?:echo )?replies)\b/i;
+  const success = /\brepl(?:y|ies)\b|\bsucceed(?:s|ed)?\b|\bsuccess(?:ful)?\b|\breachable\b/i;
+  const validFailure = (event: typeof events[number]) => failure.test(event.step.expectedResult)
+    && /return path/i.test(`${event.step.instruction} ${event.step.expectedResult} ${event.step.why}`)
+    && /broken|no valid|cannot|unable|wrong gateway|incorrect gateway/i.test(`${event.step.instruction} ${event.step.expectedResult} ${event.step.why}`);
+  const validSequence = failedTests.length > 0 && failedTests.every(validFailure)
+    && events[restoreIndex]?.gateway === "10.1.2.1"
+    && retest?.kind === "ping" && retest.stepIndex > events[restoreIndex].stepIndex
+    && success.test(retest.step.expectedResult) && !failure.test(retest.step.expectedResult);
+
+  const supportingText = [
+    ...content.sections.flatMap((section) => [section.explanation, section.example, ...section.keyPoints]),
+    ...content.lab.steps.flatMap((step) => [step.instruction, step.expectedResult, step.why, ...(step.commandExplanations || [])]),
+    ...content.lab.verification, ...content.lab.troubleshooting, ...content.realWorldScenario.walkthrough,
+    ...(content.beginnerGuide?.walkthrough.flatMap((step) => [step.action, step.whatHappens, step.why]) || []),
+    ...content.practiceQuestions.flatMap((question) => [question.answer, question.explanation]),
+    ...content.quiz.map((question) => question.explanation), ...content.takeaways
+  ];
+  const misleadingSuccess = supportingText.some((text) => /ARP|wrong gateway|incorrect gateway|10\.1\.2\.254/i.test(text)
+    && /\b(?:pings?|test|communication)\s+(?:may|might|could|should)\s+(?:(?:initially|still|sometimes)\s+)?(?:succeed|work|receive (?:echo )?replies)\b|\b(?:works?|succeeds?)\s+one[ -]way\b/i.test(text));
+  if (validSequence && !misleadingSuccess) return [];
+  return ["Make the wrong-gateway verification unambiguous in four separate console steps: set EndpointB to 10.1.2.254; from EndpointA, ping 10.1.2.10 and expect failure because EndpointB's return path is broken; restore EndpointB to 10.1.2.1; repeat the same ping from EndpointA and expect replies. Remove ARP-cache or one-way-success claims from the lesson and supporting explanations."];
+}
+
 export function applyCcnaTopicContract(topic: CcnaCurriculumTopic, content: CcnaLessonContent) {
   if (topic.sequence !== 2 || !content.visualStory) return content;
 
@@ -129,10 +178,11 @@ export function applyCcnaTopicContract(topic: CcnaCurriculumTopic, content: Ccna
   const missingDefinitions = dayTwoDefinitions.filter((definition) => !definition.pattern.test(sections[0].explanation));
   const opening = `${missingDefinitions.map((definition) => definition.text).join(" ")}\n\n${sections[0].explanation}`;
   if (missingDefinitions.length && opening.length <= 2_400) sections[0].explanation = opening;
-  const boundarySectionIndex = sections.findIndex((section) => /access point/i.test(`${section.heading} ${section.explanation} ${section.example} ${section.keyPoints.join(" ")}`) && /firewall/i.test(`${section.heading} ${section.explanation} ${section.example} ${section.keyPoints.join(" ")}`));
-  if (boundarySectionIndex >= 0) {
-    const boundaryPoints = sections[boundarySectionIndex].keyPoints.filter((point) => !/^Lab boundary:/i.test(point));
-    if (boundaryPoints.length < 6) sections[boundarySectionIndex].keyPoints = [dayTwoLabBoundary, ...boundaryPoints];
+  for (const section of sections) {
+    const boundaryPoints = section.keyPoints.filter((point) => !/^Lab boundary:/i.test(point));
+    if (/access points?|firewalls?/i.test(`${section.heading} ${section.explanation} ${section.example} ${boundaryPoints.join(" ")}`) || boundaryPoints.length !== section.keyPoints.length) {
+      if (boundaryPoints.length < 6) section.keyPoints = [dayTwoLabBoundary, ...boundaryPoints];
+    }
   }
 
   const existingSetup = content.lab.setup.filter((item) => !/Interface mapping example:/i.test(item));
@@ -168,8 +218,8 @@ export function applyCcnaTopicContract(topic: CcnaCurriculumTopic, content: Ccna
       },
       title: "One packet. Every wired step.",
       takeaway: "Switches forward local frames; Router1 routes the packet between networks; EndpointB receives it.",
-      altText: "EndpointA sends a packet through Switch1 to Router1. Router1 forwards it through Switch2, and EndpointB receives it on the destination network.",
-      boundary: "This diagram shows only the reproducible wired GNS3 path. It omits the access point and firewall because wireless behavior and firewall policy are explained separately, not simulated.",
+      altText: dayTwoAltText,
+      boundary: dayTwoLabBoundary,
       layout: "sequence",
       nodes: [
         { id: "endpoint-a", kind: "computer", label: "EndpointA", detail: "Sends the packet" },
@@ -215,7 +265,10 @@ export function ccnaTopicSpecificIssues(topic: CcnaCurriculumTopic, content: Ccn
     if (!finalStage || !endpointB || !finalStage.activeNodes.includes(endpointB) || !finalEdge || !finalStage.activeConnections.includes(finalEdge)) {
       issues.push("Day 2 final visual stage must show Switch2 forwarding to EndpointB as the completed packet journey.");
     }
-    if (!/EndpointB/i.test(story.altText)) issues.push("Day 2 visual alt text must name EndpointB as the final recipient.");
+    if (!/The diagram ends at EndpointB\.$/.test(story.altText.trim()) || expectedLabels.some((label) => !story.altText.includes(label))) {
+      issues.push(`Use this complete Day 2 visual alt text, naming the full path and its end: ${dayTwoAltText}`);
+    }
+    if (story.boundary !== dayTwoLabBoundary) issues.push(`Use this explicit wired-lab visual boundary: ${dayTwoLabBoundary}`);
     if (story.nodes.some((node, index) => node.label !== expectedLabels[index] || node.detail !== expectedDetails[index])) {
       issues.push("Use the reviewed Day 2 node labels and complete role descriptions without abbreviation or truncation.");
     }
@@ -245,24 +298,13 @@ export function ccnaTopicSpecificIssues(topic: CcnaCurriculumTopic, content: Ccn
   if (!/show ip interface brief/i.test(labText) || !/GigabitEthernet0\/0\/0/i.test(labText) || !/GigabitEthernet0\/0\/1/i.test(labText) || !/cabled to Switch1/i.test(labText) || !/cabled to Switch2/i.test(labText)) {
     issues.push("Add a concrete Router1 interface-mapping example: map the ports cabled to Switch1 and Switch2, including alternative names GigabitEthernet0/0/0 and GigabitEthernet0/0/1, then substitute the observed names in later commands.");
   }
-  const steps = content.lab.steps;
-  const faultIndex = steps.findIndex((step) => dayTwoConsoleNode(step) === "EndpointB" && step.commands.some((command) => /^ip\s+10\.1\.2\.10\/24\s+10\.1\.2\.254\s*$/i.test(command)));
-  const crossSubnetTest = (step: CcnaLessonContent["lab"]["steps"][number]) => {
-    const node = dayTwoConsoleNode(step);
-    return step.commands.some((command) => node === "EndpointA" ? /^ping\s+10\.1\.2\.10\b/i.test(command) : node === "EndpointB" && /^ping\s+10\.1\.1\.10\b/i.test(command));
-  };
-  const testIndex = faultIndex < 0 ? -1 : steps.findIndex((step, index) => index >= faultIndex && crossSubnetTest(step));
-  const failedTest = steps[testIndex];
-  const restoreIndex = testIndex < 0 ? -1 : steps.findIndex((step, index) => index > testIndex && dayTwoConsoleNode(step) === "EndpointB" && step.commands.some((command) => /^ip\s+10\.1\.2\.10\/24\s+10\.1\.2\.1\s*$/i.test(command)));
-  const hasVerifiedRecovery = restoreIndex >= 0 && steps.some((step, index) => index >= restoreIndex && crossSubnetTest(step) && /repl|succeed|success|reachable/i.test(step.expectedResult));
-  if (!failedTest || !/fail|timeout|no repl|unreachable/i.test(failedTest.expectedResult) || /may (?:initially )?succeed|ARP cache is fresh/i.test(failedTest.expectedResult) || !/return|bidirectional/i.test(failedTest.expectedResult) || !hasVerifiedRecovery) {
-    issues.push("Make the wrong-gateway verification unambiguous: use 10.1.2.254 on EndpointB, expect the cross-subnet ping to fail, explain that the return path is broken, restore 10.1.2.1, and retest. Do not suggest a fresh ARP cache makes this a success.");
-  }
+  issues.push(...dayTwoGatewayIssues(content));
   if (!/GNS3 does not provide Cisco software images/i.test(content.lab.licensingNote) || !/do not share or redistribute Cisco image files/i.test(content.lab.licensingNote) || !/licensed for use within CML/i.test(content.lab.licensingNote)) {
     issues.push("Use the verified Cisco-image licensing note: GNS3 provides no Cisco images; use only images permitted by the applicable license; do not share or redistribute them; CML reference images are for CML unless separately licensed.");
   }
-  if (!content.sections.some((section) => /access point/i.test(`${section.heading} ${section.explanation} ${section.example}`) && /firewall/i.test(`${section.heading} ${section.explanation} ${section.example}`) && section.keyPoints.some((point) => /^Lab boundary:/i.test(point) && /access point/i.test(point) && /firewall/i.test(point) && /omitted from every hands-on and diagram step/i.test(point)))) {
-    issues.push("Add a Lab boundary callout before the access-point and firewall comparison stating that both are omitted from every hands-on and diagram step because this GNS3 path does not test them.");
+  const comparisons = content.sections.filter((section) => /access points?|firewalls?/i.test(`${section.heading} ${section.explanation} ${section.example} ${section.keyPoints.join(" ")}`));
+  if (!comparisons.length || comparisons.some((section) => section.keyPoints.find((point) => /^Lab boundary:/i.test(point)) !== dayTwoLabBoundary)) {
+    issues.push(`Begin each access-point or firewall comparison with the same boxed callout as the visual: ${dayTwoLabBoundary}`);
   }
   return issues;
 }
@@ -283,7 +325,11 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     onRetry: (event) => console.info("CCNA provider request waiting for rate-limit capacity.", event)
   });
   const researchModel = env("CCNA_RESEARCH_MODEL") || "gpt-5-mini";
-  const researchQueries = [
+  const researchQueries = topic.sequence === 2 ? [
+    "Cisco Ethernet switch router wireless access point firewall distinct roles forwarding frames packets",
+    "GNS3 VPCS ip default gateway ping command two subnets router lab",
+    "RFC 1122 section 3.3.1.1 local remote gateway selection ICMP echo reply return path"
+  ] : [
     `${topic.title} ${topic.sequence === 1 ? "Cisco CCNA 200-301 v1.1 exam topics February 2027 v2.0" : "Cisco IOS XE configuration guide verification"}`,
     `${topic.sequence === 1 ? "GNS3 VPCS two PCs built-in Ethernet switch ping ip command getting started" : `${topic.title} GNS3 lab prerequisites troubleshooting`}`,
     `${topic.sequence === 1 ? "GNS3 VPCS show ip ping save commands Cisco images licensing" : `${topic.title} Cisco documentation common errors show commands`}`
@@ -321,11 +367,12 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
           "DAY TWO BOUNDARY: This lesson explains the distinct jobs of endpoints, switches, routers, firewalls, and wireless access points. Do not combine a router and firewall into one named device or imply that every router contains a firewall.",
           "Use one reproducible GNS3 lab path only: EndpointA - Switch1 - Router1 - Switch2 - EndpointB. Use two built-in VPCS nodes, two built-in Ethernet switches in their default access mode, and one appropriately licensed Cisco router image. Wireless radio behavior and firewall policy are separate, clearly labelled observation or paper exercises; do not invent an access-point appliance, SSID, radio, roaming, spectrum, or firewall result in GNS3.",
           "Use this complete address plan: EndpointA 10.1.1.10/24 with gateway 10.1.1.1; Router1 first LAN interface 10.1.1.1/24; Router1 second LAN interface 10.1.2.1/24; EndpointB 10.1.2.10/24 with gateway 10.1.2.1. Name every cable endpoint, note that actual router interface names vary by image, and keep each command on its named console.",
-          "Introduce port, network segment, MAC address, IP address, default gateway, and forwarding table before relying on those terms. Include one reversible wrong-gateway fault using 10.1.2.254 on EndpointB. Show that the cross-subnet ping fails because EndpointB has no valid return path; never describe a fresh ARP cache as success. Restore 10.1.2.1 and repeat the same verification. Explain that an access point bridges wireless clients onto a wired LAN at Layer 2 while a router moves packets between IP networks; the paper exercise cannot verify 802.11 behavior.",
-          "The visual must mirror the complete live-lab packet path with exactly five declared nodes in this order: EndpointA, Switch1, Router1, Switch2, EndpointB. Add exactly four forward connections between adjacent nodes. Stage 1 highlights EndpointA to Switch1; Stage 2 highlights Switch1 to Router1; Stage 3 highlights Router1 to Switch2 to EndpointB and both final connections. The alt text must end at EndpointB. Its boundary must explicitly say the access point and firewall are omitted because this diagram follows the reproducible wired lab; those roles are compared separately and are not being simulated.",
+          "Introduce port, network segment, MAC address, IP address, default gateway, and forwarding table before relying on those terms. Explain that an access point bridges wireless clients onto a wired LAN at Layer 2 while a router moves packets between IP networks; the paper exercise cannot verify 802.11 behavior.",
+          dayTwoGatewayInstructions,
+          `The visual must mirror the complete live-lab packet path with exactly five declared nodes in this order: EndpointA, Switch1, Router1, Switch2, EndpointB. Add exactly four forward connections between adjacent nodes. Stage 1 highlights EndpointA to Switch1; Stage 2 highlights Switch1 to Router1; Stage 3 highlights Router1 to Switch2 to EndpointB and both final connections. Use this exact alt text: ${dayTwoAltText} Use this exact visual boundary: ${dayTwoLabBoundary}`,
           "Before first use in the teaching body, define frame as a Layer 2 unit with local MAC addressing, packet as a Layer 3 unit with IP addressing, segment as devices that can communicate at Layer 2 without crossing a router, and default gateway as the router address an endpoint uses for another IP network. Include Frame, Segment, Default gateway, and VPCS as glossary terms.",
           "For every lab step containing a command, use this exact pattern for the correct device: right-click <node> and choose Console before typing. Repeat it when the learner returns to a console; do not rely on Day 1 memory. Include a concrete interface mapping example: after show ip interface brief, map the port cabled to Switch1 as LAN1 and the port cabled to Switch2 as LAN2. Show how GigabitEthernet0/0 and GigabitEthernet0/1 could instead appear as GigabitEthernet0/0/0 and GigabitEthernet0/0/1, and tell the learner to substitute the observed names.",
-          `Begin the access-point and firewall comparison with this key point so the page renders it as a boxed disclaimer: ${dayTwoLabBoundary}`
+          `Begin every section comparing access-point or firewall roles with this key point so the page renders it as a boxed disclaimer: ${dayTwoLabBoundary} Keep every supporting explanation consistent: these roles are conceptual comparisons, omitted from all diagram and hands-on steps, not simulated by this wired GNS3 lab.`
         ].join(" ")
       : `TOPIC BOUNDARY: Teach only ${topic.title}; use the smallest topology that proves ${topic.objective}. State every prerequisite. If GNS3 cannot reproduce a radio, cloud service, or platform feature, provide an explicitly labeled observation or paper exercise and a practical alternative instead of invented emulator behavior.`;
   const brief = [
@@ -345,7 +392,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     ccnaBeginnerWritingPolicy,
     visualConceptInstructions,
     ccnaVisualWritingInstructions,
-    "Use 5-6 substantial teaching sections, 7-9 real operational lab steps, 6 original practice questions, 5 original multiple-choice quiz questions, and 5-7 takeaways. Aim for 1,800-2,400 useful words. Do not fill arrays to their maximum or repeat generic material to meet length.",
+    `Use 5-6 substantial teaching sections, ${topic.sequence === 2 ? "10-12" : "7-9"} real operational lab steps, 6 original practice questions, 5 original multiple-choice quiz questions, and 5-7 takeaways. Aim for 1,800-2,400 useful words. Do not fill arrays to their maximum or repeat generic material to meet length.`,
     "Each string must be finished natural-language prose, never nested serialized JSON, internal notes, placeholders, dangling sentences, or another field's headings. Never use three dots or a Unicode ellipsis. Write a complete sentence; for variable command output, use a descriptive bracketed value such as [destination address]. The short answer answers the actual topic in 2-3 complete sentences.",
     "Define new terms before using them. Develop a mental model, a worked example, verification reasoning and a realistic fault. Distinguish what an observation proves from what it cannot prove.",
     "The lab must be exactly reproducible: named devices and cable endpoints, prerequisites, exact addresses with prefix or mask and default gateways where required, command mode/context, expected observations, deliberate reversible fault, recovery and cleanup. Never claim the lab has been executed when it has not. Licensing notes, quiz, glossary and sources are NOT lab steps.",

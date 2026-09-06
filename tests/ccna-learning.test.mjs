@@ -323,20 +323,22 @@ test("Day 2 contract supplies the complete reviewed visual without clipping", as
   ]);
   assert.deepEqual(repaired.visualStory.stages.map((stage) => stage.title), ["EndpointA to Switch1", "Switch1 to Router1", "Router1 to EndpointB"]);
   assert.deepEqual(repaired.visualStory.stages.at(-1).activeNodes, ["router-1", "switch-2", "endpoint-b"]);
+  assert.match(repaired.visualStory.altText, /EndpointA.*Switch1.*Router1.*Switch2.*EndpointB\. The diagram ends at EndpointB\.$/);
+  assert.match(repaired.visualStory.boundary, /omitted from every hands-on and diagram step in this wired GNS3 lab/);
+  assert.match(repaired.visualStory.boundary, /Wireless radio behavior and firewall policy are conceptual comparisons only, not simulated\.$/);
   assert.deepEqual(ccnaVisualStoryIssues(repaired.visualStory, repaired.sources.map((source) => source.url)), []);
   assert.match(repaired.sections[0].explanation, /^A network segment is/);
   assert.ok(repaired.sections.some((section) => section.keyPoints.some((point) => point.startsWith("Lab boundary:"))));
   assert.ok(repaired.lab.steps.every((step) => !step.commands.length || /right-click Router1 and choose Console before typing/i.test(step.instruction)));
   assert.match(repaired.lab.licensingNote, /do not share or redistribute Cisco image files/i);
+  assert.equal(repaired.sections[1].keyPoints[0], repaired.visualStory.boundary);
+  assert.deepEqual(applyCcnaTopicContract(ccnaCurriculum[1], repaired), repaired, "A repair pass must not regress the reviewed boundary or alt text.");
 
   repaired.visualStory.stages[2].title = "Router1 to Switch2 and 2";
   assert.ok(ccnaTopicSpecificIssues(ccnaCurriculum[1], repaired).some((issue) => issue.includes("reviewed Day 2 stage titles")));
 });
 
-test("Day 2 gates accept separate console actions for the fault, failed test, repair and retest", async () => {
-  const { applyCcnaTopicContract, ccnaTopicSpecificIssues, evaluateCcnaLessonForTopic } = await import("../src/lib/ccna-content-agent.ts");
-  const { inspectCcnaLessonCandidate, runCcnaGenerationPipeline } = await import("../src/lib/ccna-generation-pipeline.ts");
-  const { ccnaOfficialSources } = await import("../src/lib/ccna-curriculum.ts");
+function dayTwoLessonContent() {
   const content = generationFixture();
   content.sections[1].heading = "Access points and firewalls";
   content.sections[1].example += " An access point and firewall are separate roles, compared here without claiming this lab simulates either one.";
@@ -354,6 +356,14 @@ test("Day 2 gates accept separate console actions for the fault, failed test, re
     makeStep("EndpointB", "Restore the original gateway", ["ip 10.1.2.10/24 10.1.2.1", "save"], "EndpointB uses the real router interface as its gateway again."),
     makeStep("EndpointA", "Repeat the same peer test", ["ping 10.1.2.10"], "Replies from EndpointB confirm recovery of the tested return path.")
   ];
+  return content;
+}
+
+test("Day 2 gates accept separate console actions for the fault, failed test, repair and retest", async () => {
+  const { applyCcnaTopicContract, ccnaTopicSpecificIssues, evaluateCcnaLessonForTopic } = await import("../src/lib/ccna-content-agent.ts");
+  const { inspectCcnaLessonCandidate, runCcnaGenerationPipeline } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const { ccnaOfficialSources } = await import("../src/lib/ccna-curriculum.ts");
+  const content = dayTwoLessonContent();
   const normalized = applyCcnaTopicContract(ccnaCurriculum[1], content);
   assert.deepEqual(ccnaTopicSpecificIssues(ccnaCurriculum[1], normalized), []);
   const options = { allowedSources: [...content.sources.map((source) => source.url), ...ccnaOfficialSources.map((source) => source.url)], prepare: (draft) => applyCcnaTopicContract(ccnaCurriculum[1], draft), evaluate: (draft) => evaluateCcnaLessonForTopic(ccnaCurriculum[1], draft) };
@@ -363,6 +373,98 @@ test("Day 2 gates accept separate console actions for the fault, failed test, re
 
   normalized.lab.steps[7].commands = ["ping 10.1.1.10"];
   assert.ok(ccnaTopicSpecificIssues(ccnaCurriculum[1], normalized).some((issue) => issue.includes("wrong-gateway verification")), "A self-ping must not satisfy the cross-subnet failure check.");
+});
+
+test("Day 2 publication rejects ambiguous alt text and inconsistent boundary callouts together", async () => {
+  const { applyCcnaTopicContract, ccnaTopicSpecificIssues } = await import("../src/lib/ccna-content-agent.ts");
+  const content = dayTwoLessonContent();
+  content.sections[2].heading = "The access point role";
+  content.sections[3].heading = "The firewall role";
+  const prepared = applyCcnaTopicContract(ccnaCurriculum[1], content);
+  for (const index of [1, 2, 3]) assert.equal(prepared.sections[index].keyPoints[0], prepared.visualStory.boundary);
+  prepared.visualStory.altText = "EndpointA sends a packet through Switch1 to Router1. Router1 forwards it through Switch2, and EndpointB receives it on the destination network.";
+  prepared.visualStory.boundary = "This is only a conceptual diagram and leaves out some details about network devices.";
+  prepared.sections[2].keyPoints[0] = "Lab boundary: The access point is shown as a concept with some implementation details omitted.";
+  const issues = ccnaTopicSpecificIssues(ccnaCurriculum[1], prepared);
+  assert.ok(issues.some((issue) => issue.includes("The diagram ends at EndpointB.")));
+  assert.ok(issues.some((issue) => issue.includes("explicit wired-lab visual boundary")));
+  assert.ok(issues.some((issue) => issue.includes("same boxed callout")));
+  const repaired = applyCcnaTopicContract(ccnaCurriculum[1], prepared);
+  assert.deepEqual(ccnaTopicSpecificIssues(ccnaCurriculum[1], repaired), []);
+});
+
+const gatewayRegressions = [
+  ["missing fault", (content) => { content.lab.steps.splice(6, 1); }],
+  ["wrong fault address", (content) => { content.lab.steps[6].commands[0] = "ip 10.1.2.10/24 10.1.2.253"; }],
+  ["fault on the wrong console", (content) => { content.lab.steps[6].instruction = content.lab.steps[6].instruction.replace("EndpointB", "EndpointA"); }],
+  ["self-ping as failure evidence", (content) => { content.lab.steps[7].commands[0] = "ping 10.1.1.10"; }],
+  ["reversed ping rather than a broken return-path test", (content) => { content.lab.steps[7].instruction = content.lab.steps[7].instruction.replace("EndpointA", "EndpointB"); content.lab.steps[7].commands[0] = "ping 10.1.1.10"; }],
+  ["failure without the return-path explanation", (content) => { content.lab.steps[7].expectedResult = "The ping fails with no replies from EndpointB on this isolated network."; }],
+  ["cached-ARP success in the failed observation", (content) => { content.lab.steps[7].expectedResult += " Initial pings may succeed if the ARP cache is fresh."; }],
+  ["cached-ARP success in supporting prose", (content) => { content.sections[0].example += " With a fresh ARP cache, the ping may still succeed even with the wrong gateway."; }],
+  ["one-way success in the verification checklist", (content) => { content.lab.verification[0] = "With the wrong gateway, the ping should work one-way before the ARP cache expires."; }],
+  ["restoration before observing the failure", (content) => { [content.lab.steps[7], content.lab.steps[8]] = [content.lab.steps[8], content.lab.steps[7]]; }],
+  ["wrong restored gateway", (content) => { content.lab.steps[8].commands[0] = "ip 10.1.2.10/24 10.1.2.253"; }],
+  ["missing recovery test", (content) => { content.lab.steps.pop(); }],
+  ["recovery tested from the wrong console", (content) => { content.lab.steps[9].instruction = content.lab.steps[9].instruction.replace("EndpointA", "EndpointB"); content.lab.steps[9].commands[0] = "ping 10.1.1.10"; }],
+  ["unreachable mistaken for reachable", (content) => { content.lab.steps[9].expectedResult = "EndpointB remains unreachable after the gateway was restored."; }],
+  ["no replies mistaken for replies", (content) => { content.lab.steps[9].expectedResult = "There are no replies from EndpointB after the gateway was restored."; }],
+  ["negated success mistaken for recovery", (content) => { content.lab.steps[9].expectedResult = "The repeated cross-subnet ping does not succeed after restoration."; }],
+  ["fault reintroduced before the recovery test", (content) => { content.lab.steps.splice(9, 0, structuredClone(content.lab.steps[6])); }]
+];
+
+for (const [name, mutate] of gatewayRegressions) {
+  test(`Day 2 gateway gate rejects ${name}`, async () => {
+    const { applyCcnaTopicContract, ccnaTopicSpecificIssues } = await import("../src/lib/ccna-content-agent.ts");
+    const content = dayTwoLessonContent();
+    mutate(content);
+    const prepared = applyCcnaTopicContract(ccnaCurriculum[1], content);
+    assert.ok(ccnaTopicSpecificIssues(ccnaCurriculum[1], prepared).some((issue) => issue.includes("wrong-gateway verification")));
+  });
+}
+
+test("Day 2 accepts the return-path explanation beside the failed result without requiring duplicate prose", async () => {
+  const { applyCcnaTopicContract, ccnaTopicSpecificIssues } = await import("../src/lib/ccna-content-agent.ts");
+  const content = dayTwoLessonContent();
+  content.lab.steps[7].expectedResult = "The cross-subnet ping fails with no echo replies from EndpointB.";
+  content.lab.steps[7].why = "EndpointB's return path is broken because 10.1.2.254 is not a valid gateway in this isolated lab. A fresh ARP cache does not repair that path.";
+  const prepared = applyCcnaTopicContract(ccnaCurriculum[1], content);
+  assert.deepEqual(ccnaTopicSpecificIssues(ccnaCurriculum[1], prepared), []);
+});
+
+test("Day 2 combines gateway repairs and visual normalization before reviewing the final revision", async () => {
+  const { applyCcnaTopicContract, evaluateCcnaLessonForTopic } = await import("../src/lib/ccna-content-agent.ts");
+  const { inspectCcnaLessonCandidate, runCcnaGenerationPipeline, ccnaContentDigest } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const { ccnaOfficialSources } = await import("../src/lib/ccna-curriculum.ts");
+  const valid = dayTwoLessonContent();
+  const broken = structuredClone(valid);
+  broken.lab.steps[7].expectedResult += " Initial pings may succeed if the ARP cache is fresh.";
+  let writes = 0;
+  let reviews = 0;
+  const result = await runCcnaGenerationPipeline({
+    write: async (repair) => {
+      writes += 1;
+      if (!repair) return JSON.stringify(broken);
+      assert.match(repair.issues.join(" "), /wrong-gateway verification/);
+      assert.match(repair.candidate.visualStory.altText, /The diagram ends at EndpointB\.$/);
+      return JSON.stringify(valid);
+    },
+    inspect: (text) => inspectCcnaLessonCandidate(text, {
+      allowedSources: [...valid.sources.map((source) => source.url), ...ccnaOfficialSources.map((source) => source.url)],
+      prepare: (draft) => applyCcnaTopicContract(ccnaCurriculum[1], draft),
+      evaluate: (draft) => evaluateCcnaLessonForTopic(ccnaCurriculum[1], draft)
+    }),
+    review: async (draft) => {
+      reviews += 1;
+      assert.match(draft.visualStory.altText, /The diagram ends at EndpointB\.$/);
+      assert.equal(draft.visualStory.boundary, draft.sections[1].keyPoints[0]);
+      return { passed: true, issues: [] };
+    }
+  });
+  assert.equal(writes, 2, "A passing mock review cannot override the deterministic gateway failure.");
+  assert.equal(reviews, 2);
+  assert.equal(result.quality.ready, true, result.quality.issues.join(" "));
+  assert.equal(result.reviewedContentDigest, ccnaContentDigest(result.content));
 });
 
 test("Day 2 normalization does not discard existing setup or teaching points to fit limits", async () => {
