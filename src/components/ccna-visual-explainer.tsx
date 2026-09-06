@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { CcnaVisualDiagram } from "@/components/ccna-visual-diagram";
+import { CcnaLabBoundary } from "@/components/ccna-lab-boundary";
 import type { CcnaVisualStory } from "@/lib/ccna-visual-story";
 
 type Artwork = { src: string; width: number; height: number; alt: string };
@@ -31,7 +32,7 @@ export function CcnaVisualExplainer({ story, artwork }: { story: CcnaVisualStory
       <button type="button" aria-label="Restart visual explanation" title="Restart explanation" disabled={stageIndex === 0} onClick={() => setStageIndex(0)}><RotateCcw aria-hidden="true" /></button>
       <button type="button" aria-label="Next visual step" title="Next step" disabled={stageIndex === 2} onClick={() => setStageIndex((index) => index + 1)}><ArrowRight aria-hidden="true" /></button>
     </div>
-    <p className="ccna-visual-boundary"><strong>What this model leaves out:</strong> {story.boundary}</p>
+    {/^Lab boundary:/i.test(story.boundary) ? <CcnaLabBoundary boundary={story.boundary} /> : <p className="ccna-visual-boundary"><strong>What this model leaves out:</strong> {story.boundary}</p>}
     <details className="ccna-visual-transcript"><summary>Full visual explanation and references</summary><p>{story.altText}</p><ol>{story.stages.map((step) => <li key={step.title}><strong>{step.title}</strong><p>{step.explanation}</p>{step.sourceUrls.map((url) => <a key={url} href={url} rel="noreferrer" target="_blank">{new URL(url).hostname}</a>)}</li>)}</ol></details>
   </section>;
 }

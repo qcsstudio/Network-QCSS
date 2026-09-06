@@ -8,6 +8,7 @@ import { ccnaVisualWritingInstructions } from "@/lib/ccna-visual-story";
 import { canonicalCcnaSourceUrl, ccnaSourceLimit, ccnaTrustedSourceHosts, consolidateCcnaCitations, isTrustedCcnaSource } from "@/lib/ccna-citations";
 import { inspectCcnaLessonCandidate, runCcnaGenerationPipeline } from "@/lib/ccna-generation-pipeline";
 import { createCcnaRequestRunner } from "@/lib/ccna-openai-requests";
+import { ccnaSectionBoundary } from "@/lib/ccna-lesson-presentation";
 
 const allowedSourceHosts = ccnaTrustedSourceHosts;
 
@@ -90,13 +91,23 @@ function normalizedTerm(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-const dayTwoDefinitions = [
-  { pattern: /\ba network segment (?:is|means)\b/i, text: "A network segment is a group of devices that can communicate at Layer 2 without crossing a router." },
-  { pattern: /\ba frame (?:is|means)\b/i, text: "A frame is the Layer 2 unit that carries local MAC addresses." },
-  { pattern: /\ban IP packet (?:is|means)\b/i, text: "An IP packet is the Layer 3 unit that carries source and destination IP addresses." },
-  { pattern: /\ba default gateway (?:is|means)\b/i, text: "A default gateway is the router address an endpoint uses to reach another IP network." }
-] as const;
 const dayTwoLabBoundary = "Lab boundary: The access point and firewall are omitted from every hands-on and diagram step in this wired GNS3 lab. Wireless radio behavior and firewall policy are conceptual comparisons only, not simulated.";
+const dayTwoPrelude: NonNullable<CcnaLessonContent["teachingPrelude"]> = {
+  terms: [
+    { term: "Network interface", meaning: "A network interface is a device's connection to a network, such as the wired connection on a computer. A physical port is the socket where its cable plugs in." },
+    { term: "IP address", meaning: "An IP address is a numerical address assigned to a network interface. It identifies where data is sent from or delivered to across connected networks." },
+    { term: "MAC address", meaning: "A MAC address is the local delivery address used by an Ethernet network interface. It helps deliver data across one local network, rather than choosing a route between networks." },
+    { term: "Packet", meaning: "An IP packet is a unit of data with source and destination IP addresses. IP addressing and routing are called Layer 3 functions." },
+    { term: "Frame", meaning: "An Ethernet frame is the local-delivery wrapper around an IP packet. Its source and destination MAC addresses apply to one local network. Ethernet framing is a Layer 2 function." },
+    { term: "Router", meaning: "A router is a device that moves IP packets between networks. It uses the destination IP address to select a route and the connection through which to send the packet." },
+    { term: "Segment", meaning: "A network segment is a group of devices that can communicate locally without crossing a router. This lesson uses two separate wired local networks, also called LANs." },
+    { term: "Default gateway", meaning: "A default gateway is the local router address a computer uses to reach other networks when it has no more specific route. Replies also need a working route back to their sender." },
+    { term: "Console", meaning: "A console is a text window for one device where you type a command and read its response. Always check the device name before typing." },
+    { term: "VPCS", meaning: "VPCS means Virtual PC Simulator. It provides the two small practice computers in this GNS3 lab. It accepts basic network commands in a console, but is not a full desktop operating system." }
+  ],
+  explanation: "In this lab, EndpointA and EndpointB keep their source and destination IP addresses. Router1 removes the incoming Ethernet frame and creates a new one on its outgoing Ethernet interface. The new frame uses that interface's MAC address as its source and EndpointB's MAC address as its destination. Switch1 and Switch2 learn separate MAC-to-port tables on their own LANs; a switch does not share its table across Router1.",
+  labBoundary: dayTwoLabBoundary
+};
 const dayTwoAltText = "A packet travels from EndpointA through Switch1, Router1 and Switch2 to EndpointB. The diagram ends at EndpointB.";
 const dayTwoGatewayInstructions = [
   "WRONG-GATEWAY EXPERIMENT: Keep 10.1.2.254 unused in this isolated lab; it is not another router. First verify that EndpointA can ping EndpointB with both correct gateways. Then use these four ordered, separate console steps; never merge commands belonging to different nodes.",
@@ -108,13 +119,17 @@ const dayTwoGatewayInstructions = [
 const dayTwoInterfaceMapping = "Interface mapping example: run show ip interface brief, then map the interface cabled to Switch1 as LAN1 and the interface cabled to Switch2 as LAN2. If the router shows GigabitEthernet0/0/0 and GigabitEthernet0/0/1, use the first for 10.1.1.1/24 and the second for 10.1.2.1/24. Substitute the displayed names in every interface command.";
 const ccnaImageLicensingNote = "GNS3 does not provide Cisco software images. Use a Cisco image only when the applicable Cisco license or entitlement legally permits that use, and do not share or redistribute Cisco image files. Cisco CML reference-platform images are licensed for use within CML unless a separate license permits outside use. Cisco Modeling Labs is the official alternative; built-in VPCS and Ethernet switch nodes do not require a Cisco image.";
 
+function dayTwoEndpointAddress(command: string) {
+  const match = /^ip\s+(10\.1\.[12]\.10)(?:\/24|\s+255\.255\.255\.0)\s+(\S+)$/i.exec(command.trim());
+  return match ? { node: match[1] === "10.1.1.10" ? "EndpointA" : "EndpointB", gateway: match[2] } : null;
+}
+
 function dayTwoConsoleNode(step: CcnaLessonContent["lab"]["steps"][number]) {
   const commands = step.commands.join("\n");
-  const explicit = [...new Set([...step.instruction.matchAll(/right-click\s+(EndpointA|EndpointB|Router1)\s+and\s+choose\s+Console/gi)].map((match) => match[1].toLowerCase()))];
+  const explicit = [...new Set([...step.instruction.matchAll(/right-click\s+(EndpointA|EndpointB|Router1|Switch1|Switch2)\s+and\s+choose\s+Console/gi)].map((match) => match[1].toLowerCase()))];
   const commandNodes = [
     /^(?:enable|configure terminal|interface\s|ip address\s|no shutdown|end|show ip interface brief)\b/im.test(commands) ? "Router1" : null,
-    /^ip\s+10\.1\.1\.10\/24\b/im.test(commands) ? "EndpointA" : null,
-    /^ip\s+10\.1\.2\.10\/24\b/im.test(commands) ? "EndpointB" : null
+    ...new Set(step.commands.map(dayTwoEndpointAddress).flatMap((address) => address ? [address.node] : []))
   ].filter((node): node is string => !!node);
   if (explicit.length > 1 || commandNodes.length > 1) return null;
   if (explicit.length === 1) {
@@ -127,13 +142,29 @@ function dayTwoConsoleNode(step: CcnaLessonContent["lab"]["steps"][number]) {
   return titleNodes.length === 1 ? titleNodes[0] : null;
 }
 
+function dayTwoSwitchObservation(step: CcnaLessonContent["lab"]["steps"][number]) {
+  const node = /\bSwitch[12]\b/i.exec(step.title)?.[0] || /right-click\s+(Switch[12])\s+and\s+choose\s+Console/i.exec(step.instruction)?.[1];
+  const macTableCommand = /^show\s+mac(?:-|\s)address-table(?:\s+\S+)*$/i;
+  if (!node || !step.commands.some((command) => macTableCommand.test(command.trim()))
+    || !step.commands.every((command) => macTableCommand.test(command.trim()) || /^enable$/i.test(command.trim()))) return step;
+  const switchName = node.toLowerCase() === "switch1" ? "Switch1" : "Switch2";
+  const endpoint = switchName === "Switch1" ? "EndpointA" : "EndpointB";
+  return {
+    title: `Predict ${switchName}'s local forwarding`,
+    instruction: `In the GNS3 workspace, find ${switchName} and trace its cables to ${endpoint} and Router1. On paper, draw those two connections and label which neighbor connects to each port. Predict that ${switchName} learns a neighbor's source MAC address when a frame arrives on that port. Do not open a switch console or type Cisco commands.`,
+    commands: [], commandExplanations: [],
+    expectedResult: `Your paper drawing shows ${switchName}'s two neighbors and separate local port mappings. This is a prediction, not observed MAC-table output from the built-in switch.`,
+    why: "The built-in Ethernet switch is not a Cisco IOS switch. This wired lab does not require a switch CLI or a live MAC-table display. Each switch learns from frames arriving on its own ports."
+  };
+}
+
 function dayTwoGatewayIssues(content: CcnaLessonContent) {
   // Follow the actual command order, not just the presence of addresses in prose.
   const events = content.lab.steps.flatMap((step, stepIndex) => {
     const node = dayTwoConsoleNode(step);
     return step.commands.flatMap((command) => {
-      const address = node === "EndpointB" ? /^ip\s+10\.1\.2\.10\/24\s+(\S+)\s*$/i.exec(command.trim()) : null;
-      if (address) return [{ step, stepIndex, kind: "gateway", gateway: address[1] }];
+      const address = dayTwoEndpointAddress(command);
+      if (node === "EndpointB" && address?.node === "EndpointB") return [{ step, stepIndex, kind: "gateway", gateway: address.gateway }];
       if (node === "EndpointA" && /^ping\s+10\.1\.2\.10(?:\s|$)/i.test(command.trim())) {
         return [{ step, stepIndex, kind: "ping", gateway: "" }];
       }
@@ -147,7 +178,7 @@ function dayTwoGatewayIssues(content: CcnaLessonContent) {
   const failure = /\bfail(?:s|ed)?\b|\btimeouts?\b|\btim(?:e|ed)[ -]?out\b|\b(?:no|zero) (?:echo )?repl(?:y|ies)\b|\bunreachable\b|\b(?:does|do|did) not (?:succeed|work|receive (?:echo )?replies)\b/i;
   const success = /\brepl(?:y|ies)\b|\bsucceed(?:s|ed)?\b|\bsuccess(?:ful)?\b|\breachable\b/i;
   const validFailure = (event: typeof events[number]) => failure.test(event.step.expectedResult)
-    && /return path/i.test(`${event.step.instruction} ${event.step.expectedResult} ${event.step.why}`)
+    && /(?:return|reply) (?:path|packet)|cannot reply/i.test(`${event.step.instruction} ${event.step.expectedResult} ${event.step.why}`)
     && /broken|no valid|cannot|unable|wrong gateway|incorrect gateway/i.test(`${event.step.instruction} ${event.step.expectedResult} ${event.step.why}`);
   const validSequence = failedTests.length > 0 && failedTests.every(validFailure)
     && events[restoreIndex]?.gateway === "10.1.2.1"
@@ -175,19 +206,13 @@ export function applyCcnaTopicContract(topic: CcnaCurriculumTopic, content: Ccna
   const fallbackVisualSource = visualSources.flat().find((url) => content.sources.some((source) => source.url === url)) || content.sources[0].url;
   const stageSources = visualSources.map((urls) => urls.length ? urls : [fallbackVisualSource]);
   const sections = content.sections.map((section) => ({ ...section, keyPoints: [...section.keyPoints] }));
-  const missingDefinitions = dayTwoDefinitions.filter((definition) => !definition.pattern.test(sections[0].explanation));
-  const opening = `${missingDefinitions.map((definition) => definition.text).join(" ")}\n\n${sections[0].explanation}`;
-  if (missingDefinitions.length && opening.length <= 2_400) sections[0].explanation = opening;
   for (const section of sections) {
-    const boundaryPoints = section.keyPoints.filter((point) => !/^Lab boundary:/i.test(point));
-    if (/access points?|firewalls?/i.test(`${section.heading} ${section.explanation} ${section.example} ${boundaryPoints.join(" ")}`) || boundaryPoints.length !== section.keyPoints.length) {
-      if (boundaryPoints.length < 6) section.keyPoints = [dayTwoLabBoundary, ...boundaryPoints];
-    }
+    section.keyPoints = section.keyPoints.map((point) => /^Lab boundary:/i.test(point) ? dayTwoLabBoundary : point);
   }
 
   const existingSetup = content.lab.setup.filter((item) => !/Interface mapping example:/i.test(item));
   const setup = existingSetup.length < 8 ? [dayTwoInterfaceMapping, ...existingSetup] : content.lab.setup;
-  const steps = content.lab.steps.map((step) => {
+  const steps = content.lab.steps.map(dayTwoSwitchObservation).map((step) => {
     if (!step.commands.length) return step;
     const node = dayTwoConsoleNode(step);
     if (!node) return step;
@@ -203,6 +228,7 @@ export function applyCcnaTopicContract(topic: CcnaCurriculumTopic, content: Ccna
 
   return ccnaLessonContentSchema.required({ visualStory: true }).parse({
     ...content,
+    teachingPrelude: { ...dayTwoPrelude, terms: dayTwoPrelude.terms.map((term) => ({ ...term })) },
     sections,
     sources,
     lab: { ...content.lab, setup, steps, licensingNote: ccnaImageLicensingNote },
@@ -236,8 +262,8 @@ export function applyCcnaTopicContract(topic: CcnaCurriculumTopic, content: Ccna
       ],
       stages: [
         { title: "EndpointA to Switch1", explanation: "EndpointA places the packet inside a local Ethernet frame. Switch1 reads the destination MAC address and forwards the frame toward Router1.", activeNodes: ["endpoint-a", "switch-1"], activeConnections: ["a-to-s1"], direction: "forward", sourceUrls: stageSources[0] },
-        { title: "Switch1 to Router1", explanation: "Router1 removes the incoming Layer 2 frame, reads the destination IP address, selects the other network, and creates a new frame for Switch2.", activeNodes: ["switch-1", "router-1"], activeConnections: ["s1-to-r1"], direction: "forward", sourceUrls: stageSources[1] },
-        { title: "Router1 to EndpointB", explanation: "Router1 sends the new frame through Switch2. Switch2 forwards it on the destination segment, and EndpointB receives the enclosed IP packet.", activeNodes: ["router-1", "switch-2", "endpoint-b"], activeConnections: ["r1-to-s2", "s2-to-b"], direction: "forward", sourceUrls: stageSources[2] }
+        { title: "Switch1 to Router1", explanation: "Router1 removes the first LAN's frame and routes the IP packet. It creates a new frame on its outgoing Ethernet interface, using that interface's MAC as source and EndpointB's MAC as destination.", activeNodes: ["switch-1", "router-1"], activeConnections: ["s1-to-r1"], direction: "forward", sourceUrls: stageSources[1] },
+        { title: "Router1 to EndpointB", explanation: "Switch2 forwards the frame to EndpointB using its own local MAC table. The two switches learn independently on separate LANs; Router1 does not carry Switch1's table into Switch2. The diagram ends at EndpointB.", activeNodes: ["router-1", "switch-2", "endpoint-b"], activeConnections: ["r1-to-s2", "s2-to-b"], direction: "forward", sourceUrls: stageSources[2] }
       ]
     }
   });
@@ -281,13 +307,15 @@ export function ccnaTopicSpecificIssues(topic: CcnaCurriculumTopic, content: Ccn
   for (const term of ["frame", "segment", "default gateway", "VPCS"]) {
     if (!glossary.has(normalizedTerm(term))) issues.push(`Define ${term} in the Day 2 glossary and in the teaching text before first use.`);
   }
-  const openingExplanation = content.sections[0]?.explanation || "";
-  const missingOpeningDefinitions = dayTwoDefinitions.filter((definition) => !definition.pattern.test(openingExplanation));
-  if (missingOpeningDefinitions.length) {
-    issues.push(`Define these terms in the first Day 2 teaching section before using them elsewhere: ${missingOpeningDefinitions.map((definition) => definition.text.split(" is ")[0]).join(", ")}.`);
+  const prelude = content.teachingPrelude;
+  if (!prelude || prelude.explanation !== dayTwoPrelude.explanation || prelude.labBoundary !== dayTwoLabBoundary
+    || prelude.terms.length !== dayTwoPrelude.terms.length || prelude.terms.some((term, index) => term.term !== dayTwoPrelude.terms[index].term || term.meaning !== dayTwoPrelude.terms[index].meaning)) {
+    issues.push("Include the reviewed Day 2 teaching prelude before the visual, beginner guide and teaching body: define interfaces, IP and MAC addresses, packets, frames, routers, segments, gateways, consoles and VPCS, then explain the separate Ethernet frames and switch tables on the two LANs.");
   }
+  const unsupportedSwitchSteps = content.lab.steps.filter((step) => step.commands.length && (/\bSwitch[12]\b.*\bConsole\b/i.test(step.instruction) || step.commands.some((command) => /^show\s+mac(?:-|\s)address-table\b/i.test(command.trim()))));
+  if (unsupportedSwitchSteps.length) issues.push(`Replace unsupported built-in-switch CLI actions with a labelled paper or workspace observation, not a Cisco switch console: ${unsupportedSwitchSteps.map((step) => step.title).join(", ")}.`);
   const invalidConsoleSteps = content.lab.steps.filter((step) => {
-    if (!step.commands.length) return false;
+    if (!step.commands.length || unsupportedSwitchSteps.includes(step)) return false;
     const node = dayTwoConsoleNode(step);
     return !node || !new RegExp(`right-click\\s+${node}\\s+and\\s+choose\\s+Console\\s+before\\s+typing`, "i").test(step.instruction);
   });
@@ -302,8 +330,8 @@ export function ccnaTopicSpecificIssues(topic: CcnaCurriculumTopic, content: Ccn
   if (!/GNS3 does not provide Cisco software images/i.test(content.lab.licensingNote) || !/do not share or redistribute Cisco image files/i.test(content.lab.licensingNote) || !/licensed for use within CML/i.test(content.lab.licensingNote)) {
     issues.push("Use the verified Cisco-image licensing note: GNS3 provides no Cisco images; use only images permitted by the applicable license; do not share or redistribute them; CML reference images are for CML unless separately licensed.");
   }
-  const comparisons = content.sections.filter((section) => /access points?|firewalls?/i.test(`${section.heading} ${section.explanation} ${section.example} ${section.keyPoints.join(" ")}`));
-  if (!comparisons.length || comparisons.some((section) => section.keyPoints.find((point) => /^Lab boundary:/i.test(point)) !== dayTwoLabBoundary)) {
+  const comparisons = content.sections.filter((section) => /access[ -]points?|firewalls?/i.test(`${section.heading} ${section.explanation} ${section.example} ${section.keyPoints.join(" ")}`));
+  if (!comparisons.length || comparisons.some((section) => ccnaSectionBoundary(content, section) !== dayTwoLabBoundary)) {
     issues.push(`Begin each access-point or firewall comparison with the same boxed callout as the visual: ${dayTwoLabBoundary}`);
   }
   return issues;
@@ -366,13 +394,16 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
       ? [
           "DAY TWO BOUNDARY: This lesson explains the distinct jobs of endpoints, switches, routers, firewalls, and wireless access points. Do not combine a router and firewall into one named device or imply that every router contains a firewall.",
           "Use one reproducible GNS3 lab path only: EndpointA - Switch1 - Router1 - Switch2 - EndpointB. Use two built-in VPCS nodes, two built-in Ethernet switches in their default access mode, and one appropriately licensed Cisco router image. Wireless radio behavior and firewall policy are separate, clearly labelled observation or paper exercises; do not invent an access-point appliance, SSID, radio, roaming, spectrum, or firewall result in GNS3.",
+          "Switch1 and Switch2 are built-in Ethernet switches, NOT Cisco IOS switches. Do not request show mac address-table, enable, or other IOS commands on them, even conditionally as 'if supported'. A paper prediction of local MAC learning is acceptable, but never label it as observed table output. Only EndpointA, EndpointB and Router1 have command steps in this lab.",
+          "Every Router1 configuration block must show the complete mode transitions as commands, not just prose: enable, configure terminal, the named interface and its settings, then end before a show command. Do not assume an earlier step left the console in configuration mode. Show the initial EndpointA and EndpointB address commands explicitly before the baseline ping.",
+          `READING ORDER: The application supplies teachingPrelude before the visual and beginner guide, then the remaining teaching body. The same prelude is first in the native newsletter. Its definitions are direct teaching, not a collapsed glossary or boundary note. Review the prelude as part of the exact lesson. Do not add teachingPrelude to writer JSON; the application composes it before review. Prelude: ${JSON.stringify(dayTwoPrelude)}`,
           "Use this complete address plan: EndpointA 10.1.1.10/24 with gateway 10.1.1.1; Router1 first LAN interface 10.1.1.1/24; Router1 second LAN interface 10.1.2.1/24; EndpointB 10.1.2.10/24 with gateway 10.1.2.1. Name every cable endpoint, note that actual router interface names vary by image, and keep each command on its named console.",
           "Introduce port, network segment, MAC address, IP address, default gateway, and forwarding table before relying on those terms. Explain that an access point bridges wireless clients onto a wired LAN at Layer 2 while a router moves packets between IP networks; the paper exercise cannot verify 802.11 behavior.",
           dayTwoGatewayInstructions,
           `The visual must mirror the complete live-lab packet path with exactly five declared nodes in this order: EndpointA, Switch1, Router1, Switch2, EndpointB. Add exactly four forward connections between adjacent nodes. Stage 1 highlights EndpointA to Switch1; Stage 2 highlights Switch1 to Router1; Stage 3 highlights Router1 to Switch2 to EndpointB and both final connections. Use this exact alt text: ${dayTwoAltText} Use this exact visual boundary: ${dayTwoLabBoundary}`,
-          "Before first use in the teaching body, define frame as a Layer 2 unit with local MAC addressing, packet as a Layer 3 unit with IP addressing, segment as devices that can communicate at Layer 2 without crossing a router, and default gateway as the router address an endpoint uses for another IP network. Include Frame, Segment, Default gateway, and VPCS as glossary terms.",
+          "Build on the prelude's definitions without relying on other undefined vocabulary. Keep the glossary consistent. Explain that Router1 creates a new frame on the outgoing Ethernet interface: source MAC is that interface, destination MAC is EndpointB in this directly connected lab. Each switch maintains its own local MAC table; routing does not transfer a switch's learned table to the other LAN. Endpoint IP addresses remain the same in this no-NAT example, but do not claim every packet bit remains unchanged. Include Frame, Segment, Default gateway, and VPCS as glossary terms.",
           "For every lab step containing a command, use this exact pattern for the correct device: right-click <node> and choose Console before typing. Repeat it when the learner returns to a console; do not rely on Day 1 memory. Include a concrete interface mapping example: after show ip interface brief, map the port cabled to Switch1 as LAN1 and the port cabled to Switch2 as LAN2. Show how GigabitEthernet0/0 and GigabitEthernet0/1 could instead appear as GigabitEthernet0/0/0 and GigabitEthernet0/0/1, and tell the learner to substitute the observed names.",
-          `Begin every section comparing access-point or firewall roles with this key point so the page renders it as a boxed disclaimer: ${dayTwoLabBoundary} Keep every supporting explanation consistent: these roles are conceptual comparisons, omitted from all diagram and hands-on steps, not simulated by this wired GNS3 lab.`
+          `The renderer places teachingPrelude.labBoundary before each access-point or firewall comparison, separately from its key points. Do not spend a key-point slot on that callout. Keep every supporting explanation consistent with this boundary: ${dayTwoLabBoundary}`
         ].join(" ")
       : `TOPIC BOUNDARY: Teach only ${topic.title}; use the smallest topology that proves ${topic.objective}. State every prerequisite. If GNS3 cannot reproduce a radio, cloud service, or platform feature, provide an explicitly labeled observation or paper exercise and a practical alternative instead of invented emulator behavior.`;
   const brief = [
@@ -423,7 +454,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
       model,
       store: false,
       instructions: "Act as an independent Cisco instructor and technical editor. Review the supplied lesson against the source evidence and topic boundary. Reject factual errors, incomplete or contradictory lab topology/configuration, unsupported commands, ambiguous quiz answers, misleading exam-version claims, unintroduced advanced scope, repeated filler, serialized data in prose, and visual text that ends abruptly or appears cut to a field limit. Check that each command block belongs to one named console and peer tests do not ping the device's own address. Do not confuse features unused in this lab with features unsupported by the emulator; GNS3's built-in switch has VLAN port modes. Licensing must not imply unrestricted export of Cisco images. Passing schema or word counts does not prove quality. Report only concrete actionable defects, not stylistic preferences. Omit praise, correct observations, summaries, and statements that require no change from issues. Combine related defects into one concise repair instruction and return no more than ten issues. No requirement to run real hardware. Return passed=true only if issues is empty. " + ccnaBeginnerReviewPolicy,
-      input: `${brief}\n\nVISUAL REVIEW: Check visualStory against the lesson and evidence. Verify every node label, direction, address and cited source, that each of the three stages teaches a different point, and that its boundary prevents a misleading literal interpretation. Reject concept repetition or unsupported connections.\n\nLESSON TO REVIEW:\n${JSON.stringify(content)}`,
+      input: `${brief}\n\nVISUAL REVIEW: Check visualStory against the lesson and evidence. Verify every node label, direction, address and cited source, that each of the three stages teaches a different point, and that its boundary prevents a misleading literal interpretation. Reject concept repetition or unsupported connections.\n\nFEEDBACK FORMAT: Write each finding as a complete, concise repair instruction, preferably under 350 characters. The 500-character limit is not a truncation target. Never end a finding mid-word or mid-sentence.\n\nLESSON TO REVIEW:\n${JSON.stringify(content)}`,
       max_output_tokens: 1_600,
       text: { format: { type: "json_schema", name: "ccna_technical_review", strict: true, schema: { type: "object", additionalProperties: false, properties: { passed: { type: "boolean" }, issues: { type: "array", maxItems: 10, items: { type: "string", minLength: 20, maxLength: 500 } } }, required: ["passed", "issues"] } } }
     }, { timeout, maxRetries: 0 }));

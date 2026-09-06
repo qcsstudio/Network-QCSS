@@ -5,6 +5,7 @@ import { ccnaLessonContentSchema, ccnaOpenAIResponseSchema, evaluateCcnaLessonQu
 import { ccnaFoundationQuiz, ccnaFoundationUnits, ccnaFoundationSources } from "../src/lib/ccna-foundations.ts";
 import { ccnaBeginnerWritingPolicy, ccnaBeginnerReviewPolicy, ccnaTeachingPolicyVersion } from "../src/lib/ccna-teaching-policy.ts";
 import { ccnaVisualStoryIssues, firstNetworkVisualStory } from "../src/lib/ccna-visual-story.ts";
+import { ccnaComparisonBoundary, ccnaSectionBoundary } from "../src/lib/ccna-lesson-presentation.ts";
 
 test("OpenAI schema omits unsupported URI format while runtime URL validation stays strict", () => {
   const schema = ccnaOpenAIResponseSchema();
@@ -327,11 +328,12 @@ test("Day 2 contract supplies the complete reviewed visual without clipping", as
   assert.match(repaired.visualStory.boundary, /omitted from every hands-on and diagram step in this wired GNS3 lab/);
   assert.match(repaired.visualStory.boundary, /Wireless radio behavior and firewall policy are conceptual comparisons only, not simulated\.$/);
   assert.deepEqual(ccnaVisualStoryIssues(repaired.visualStory, repaired.sources.map((source) => source.url)), []);
-  assert.match(repaired.sections[0].explanation, /^A network segment is/);
-  assert.ok(repaired.sections.some((section) => section.keyPoints.some((point) => point.startsWith("Lab boundary:"))));
+  assert.deepEqual(repaired.sections[0], content.sections[0], "Prelude definitions must not overflow or replace existing teaching prose.");
+  assert.equal(repaired.teachingPrelude.terms.length, 10);
+  assert.match(repaired.teachingPrelude.explanation, /outgoing Ethernet interface/);
   assert.ok(repaired.lab.steps.every((step) => !step.commands.length || /right-click Router1 and choose Console before typing/i.test(step.instruction)));
   assert.match(repaired.lab.licensingNote, /do not share or redistribute Cisco image files/i);
-  assert.equal(repaired.sections[1].keyPoints[0], repaired.visualStory.boundary);
+  assert.equal(ccnaSectionBoundary(repaired, repaired.sections[1]), repaired.visualStory.boundary);
   assert.deepEqual(applyCcnaTopicContract(ccnaCurriculum[1], repaired), repaired, "A repair pass must not regress the reviewed boundary or alt text.");
 
   repaired.visualStory.stages[2].title = "Router1 to Switch2 and 2";
@@ -381,10 +383,11 @@ test("Day 2 publication rejects ambiguous alt text and inconsistent boundary cal
   content.sections[2].heading = "The access point role";
   content.sections[3].heading = "The firewall role";
   const prepared = applyCcnaTopicContract(ccnaCurriculum[1], content);
-  for (const index of [1, 2, 3]) assert.equal(prepared.sections[index].keyPoints[0], prepared.visualStory.boundary);
+  for (const index of [1, 2, 3]) assert.equal(ccnaSectionBoundary(prepared, prepared.sections[index]), prepared.visualStory.boundary);
   prepared.visualStory.altText = "EndpointA sends a packet through Switch1 to Router1. Router1 forwards it through Switch2, and EndpointB receives it on the destination network.";
   prepared.visualStory.boundary = "This is only a conceptual diagram and leaves out some details about network devices.";
   prepared.sections[2].keyPoints[0] = "Lab boundary: The access point is shown as a concept with some implementation details omitted.";
+  delete prepared.teachingPrelude;
   const issues = ccnaTopicSpecificIssues(ccnaCurriculum[1], prepared);
   assert.ok(issues.some((issue) => issue.includes("The diagram ends at EndpointB.")));
   assert.ok(issues.some((issue) => issue.includes("explicit wired-lab visual boundary")));
@@ -457,7 +460,7 @@ test("Day 2 combines gateway repairs and visual normalization before reviewing t
     review: async (draft) => {
       reviews += 1;
       assert.match(draft.visualStory.altText, /The diagram ends at EndpointB\.$/);
-      assert.equal(draft.visualStory.boundary, draft.sections[1].keyPoints[0]);
+      assert.equal(draft.visualStory.boundary, ccnaSectionBoundary(draft, draft.sections[1]));
       return { passed: true, issues: [] };
     }
   });
@@ -476,6 +479,84 @@ test("Day 2 normalization does not discard existing setup or teaching points to 
   const result = applyCcnaTopicContract(ccnaCurriculum[1], content);
   assert.deepEqual(result.sections[1].keyPoints, content.sections[1].keyPoints);
   assert.deepEqual(result.lab.setup, content.lab.setup);
+  assert.equal(ccnaSectionBoundary(result, result.sections[1]), result.visualStory.boundary, "A full key-point array must not prevent a boundary callout.");
+});
+
+test("Day 2 accepts documented dotted-mask VPCS commands and a reply-path explanation", async () => {
+  const { applyCcnaTopicContract, ccnaTopicSpecificIssues } = await import("../src/lib/ccna-content-agent.ts");
+  const content = dayTwoLessonContent();
+  for (const step of content.lab.steps) step.commands = step.commands.map((command) => command.replace("/24", " 255.255.255.0"));
+  content.lab.steps[7].expectedResult = "Ping fails: no echo replies are received from EndpointB.";
+  content.lab.steps[7].why = "EndpointB cannot reply because its gateway is incorrect; the reply path to EndpointA is broken.";
+  const prepared = applyCcnaTopicContract(ccnaCurriculum[1], content);
+  assert.deepEqual(ccnaTopicSpecificIssues(ccnaCurriculum[1], prepared), []);
+  prepared.lab.steps[6].commands[0] = "ip 10.1.2.10 255.255.0.0 10.1.2.254";
+  assert.ok(ccnaTopicSpecificIssues(ccnaCurriculum[1], prepared).some((issue) => issue.includes("wrong-gateway")));
+});
+
+test("a built-in switch MAC-table step becomes an honest paper observation, not a fake console", async () => {
+  const { applyCcnaTopicContract, ccnaTopicSpecificIssues } = await import("../src/lib/ccna-content-agent.ts");
+  const content = dayTwoLessonContent();
+  const step = { ...content.lab.steps[0], title: "Check MAC Address Table on Switch1 (if supported)", instruction: "If your switch image supports it, right-click Switch1 and choose Console before typing. Type show mac address-table and press Enter.", commands: ["show mac address-table"], commandExplanations: ["Display the MAC-to-port mappings from the switch."] };
+  content.lab.steps.splice(6, 0, step);
+  const prepared = applyCcnaTopicContract(ccnaCurriculum[1], content);
+  assert.deepEqual(prepared.lab.steps[6].commands, []);
+  assert.deepEqual(prepared.lab.steps[6].commandExplanations, []);
+  assert.match(prepared.lab.steps[6].expectedResult, /prediction, not observed/);
+  assert.match(prepared.lab.steps[6].why, /not a Cisco IOS switch/);
+  assert.deepEqual(ccnaTopicSpecificIssues(ccnaCurriculum[1], prepared), []);
+
+  prepared.lab.steps[6] = step;
+  const issues = ccnaTopicSpecificIssues(ccnaCurriculum[1], prepared);
+  assert.ok(issues.some((issue) => issue.includes("unsupported built-in-switch CLI")));
+  assert.equal(issues.some((issue) => issue.includes("Every Day 2 command step")), false, "Do not tell the writer to invent a console for this step.");
+});
+
+test("unknown or mixed switch actions remain visible for independent repair", async () => {
+  const { applyCcnaTopicContract, ccnaTopicSpecificIssues } = await import("../src/lib/ccna-content-agent.ts");
+  const content = dayTwoLessonContent();
+  const step = { ...content.lab.steps[0], title: "Inspect Switch2", instruction: "In GNS3, right-click Switch2 and choose Console before typing. Enter the supplied commands in order.", commands: ["enable", "show mac address-table", "configure terminal", "interface Ethernet0/0"] };
+  content.lab.steps.splice(6, 0, step);
+  const prepared = applyCcnaTopicContract(ccnaCurriculum[1], content);
+  assert.deepEqual(prepared.lab.steps[6], step, "Mixed instructions must not be silently deleted or relabelled as Router1 commands.");
+  assert.ok(ccnaTopicSpecificIssues(ccnaCurriculum[1], prepared).some((issue) => issue.includes("unsupported built-in-switch CLI")));
+});
+
+test("the prelude is preserved through storage without requiring OpenAI to generate it", async () => {
+  const { applyCcnaTopicContract, ccnaTopicSpecificIssues } = await import("../src/lib/ccna-content-agent.ts");
+  const prepared = applyCcnaTopicContract(ccnaCurriculum[1], dayTwoLessonContent());
+  assert.equal(ccnaOpenAIResponseSchema().properties.teachingPrelude, undefined);
+  const p = prepared.teachingPrelude;
+  prepared.teachingPrelude = { labBoundary: p.labBoundary, explanation: p.explanation, terms: p.terms.map(({ term, meaning }) => ({ meaning, term })) };
+  assert.deepEqual(ccnaTopicSpecificIssues(ccnaCurriculum[1], ccnaLessonContentSchema.parse(prepared)), [], "JSON object-key ordering must not invalidate a saved prelude.");
+});
+
+test("the native newsletter defines terms before its beginner walkthrough and renders full-array boundaries", async () => {
+  const { applyCcnaTopicContract } = await import("../src/lib/ccna-content-agent.ts");
+  const { buildCcnaNewsletterEdition } = await import("../src/lib/ccna-newsletter.ts");
+  const content = dayTwoLessonContent();
+  content.beginnerGuide.everydayComparison.familiarSituation = "An access-point comparison uses a wireless mail collection point only as a paper analogy.";
+  content.realWorldScenario.situation += " Compare firewall inspection with an entry check on paper, without claiming this wired lab tests firewall policy.";
+  content.sections[1].keyPoints = Array.from({ length: 6 }, (_, index) => `Keep the existing comparison explanation number ${index + 1}.`);
+  const prepared = applyCcnaTopicContract(ccnaCurriculum[1], content);
+  const text = buildCcnaNewsletterEdition({ title: "Network components and their jobs", slug: "network-components-and-their-jobs", content: prepared });
+  assert.ok(text.indexOf("An Ethernet frame is") < text.indexOf("START WITH SOMETHING FAMILIAR"));
+  assert.ok(text.indexOf("VPCS means") < text.indexOf("FOLLOW ONE WORKED EXAMPLE"));
+  const sectionStart = text.indexOf(prepared.sections[1].heading);
+  assert.ok(text.indexOf(prepared.teachingPrelude.labBoundary, sectionStart) < text.indexOf(prepared.sections[1].explanation, sectionStart));
+  const comparisonStart = text.indexOf("An everyday comparison");
+  assert.ok(text.indexOf(prepared.teachingPrelude.labBoundary, comparisonStart) < text.indexOf(prepared.beginnerGuide.everydayComparison.familiarSituation));
+  const scenarioStart = text.indexOf("REAL-WORLD WALKTHROUGH");
+  assert.ok(text.indexOf(prepared.teachingPrelude.labBoundary, scenarioStart) < text.indexOf(prepared.realWorldScenario.situation));
+  for (const point of content.sections[1].keyPoints) assert.ok(text.includes(point));
+});
+
+test("comparison boundaries recognize hyphenated access-point roles without affecting unrelated lessons", async () => {
+  const { applyCcnaTopicContract } = await import("../src/lib/ccna-content-agent.ts");
+  const prepared = applyCcnaTopicContract(ccnaCurriculum[1], dayTwoLessonContent());
+  assert.equal(ccnaComparisonBoundary(prepared, ["An access-point role is a conceptual comparison."]), prepared.visualStory.boundary);
+  assert.equal(ccnaComparisonBoundary(prepared, ["Explain a router's wired forwarding decision."]), undefined);
+  assert.equal(ccnaComparisonBoundary({}, ["Compare access points and firewalls."]), undefined);
 });
 
 test("presentation ellipses are normalized before the lesson quality gate", async () => {

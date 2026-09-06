@@ -11926,6 +11926,7 @@ body:has(.portal-access-page, .portal-page, .portal-report-page, .admin-page, .a
 .ccna-beginner-link { margin: 30px 0 0; color: #364761; line-height: 1.7; }
 .ccna-beginner-link a { display: inline-flex; align-items: center; gap: 8px; color: #2857a7; text-decoration: underline; text-underline-offset: 3px; }
 .ccna-lesson-article .ccna-beginner-guide,
+.ccna-lesson-article .ccna-teaching-prelude,
 .ccna-lesson-article .ccna-early-glossary { border: 0; border-block: 1px solid #d7e0eb; border-radius: 0; background: #fff; }
 .ccna-beginner-guide > h3 { margin-top: 28px; font-size: 23px; }
 .ccna-beginner-guide :is(p, li, dd) { max-width: 70ch; }
@@ -11938,6 +11939,11 @@ body:has(.portal-access-page, .portal-page, .portal-report-page, .admin-page, .a
 .ccna-beginner-check { padding-block: 14px; border-bottom: 1px solid #d7e0eb; }
 .ccna-early-glossary > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; }
 .ccna-early-glossary details { border-bottom: 1px solid #d7e0eb; }
+.ccna-teaching-prelude dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 28px; margin: 24px 0; }
+.ccna-teaching-prelude dl > div { min-width: 0; border-bottom: 1px solid #d7e0eb; padding-bottom: 16px; }
+.ccna-teaching-prelude dt { font-weight: 700; color: #172238; }
+.ccna-teaching-prelude dd { margin: 8px 0 0; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .ccna-teaching-prelude dl { grid-template-columns: minmax(0, 1fr); } }
 .ccna-command-explanations { margin-block: 22px; }
 .ccna-command-explanations h4 { font-size: 18px; margin: 0 0 12px; }
 .ccna-lab-steps .ccna-command-explanations dl { display: block; }

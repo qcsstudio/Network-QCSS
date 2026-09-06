@@ -7,6 +7,9 @@ import { CcnaQuiz } from "@/components/ccna-quiz";
 import { CcnaBeginnerGuide } from "@/components/ccna-beginner-guide";
 import { CcnaLessonShell } from "@/components/ccna-lesson-shell";
 import { CcnaVisualExplainer } from "@/components/ccna-visual-explainer";
+import { CcnaTeachingPrelude } from "@/components/ccna-teaching-prelude";
+import { ccnaComparisonBoundary, ccnaSectionBoundary } from "@/lib/ccna-lesson-presentation";
+import { CcnaLabBoundary } from "@/components/ccna-lab-boundary";
 import { firstNetworkArtwork, visualStoryForLesson } from "@/lib/ccna-visual-story";
 import { StructuredData } from "@/components/structured-data";
 import { getPublishedCcnaLessonBySlug, getPublishedCcnaLessons } from "@/lib/ccna-learning";
@@ -93,11 +96,12 @@ export default async function CcnaLessonPage({ params }: PageProps) {
       </header>
 
       <CcnaLessonShell
-        outline={<>{visualStory ? <a href="#visual-walkthrough">See the idea</a> : null}{content.beginnerGuide ? <a href="#start-with-an-example">Start with an example</a> : null}<a href="#new-words">New words</a><a href="#real-world-scenario">Real-life example</a><a href="#gns3-lab">Practice network</a><a href="#practice-questions">Practice questions</a><a href="#lesson-quiz-title">Quiz</a></>}
+        outline={<>{content.teachingPrelude ? <a href="#first-concepts">First concepts</a> : null}{visualStory ? <a href="#visual-walkthrough">See the idea</a> : null}{content.beginnerGuide ? <a href="#start-with-an-example">Start with an example</a> : null}<a href="#new-words">New words</a><a href="#real-world-scenario">Real-life example</a><a href="#gns3-lab">Practice network</a><a href="#practice-questions">Practice questions</a><a href="#lesson-quiz-title">Quiz</a></>}
         sources={<>{content.sources.map((source) => <a href={source.url} key={source.url} rel="noreferrer" target="_blank">{source.label}<ExternalLink aria-hidden="true" size={14} /></a>)}</>}
       >
+          {content.teachingPrelude ? <CcnaTeachingPrelude prelude={content.teachingPrelude} /> : null}
           {visualStory ? <CcnaVisualExplainer story={visualStory} artwork={firstNetworkArtwork(lesson)} /> : null}
-          {content.beginnerGuide ? <CcnaBeginnerGuide guide={content.beginnerGuide} /> : null}
+          {content.beginnerGuide ? <CcnaBeginnerGuide guide={content.beginnerGuide} labBoundary={ccnaComparisonBoundary(content, Object.values(content.beginnerGuide.everydayComparison))} /> : null}
           <section className="ccna-answer-block"><Lightbulb aria-hidden="true" size={24} /><div><p className="eyebrow">Short answer</p><h2>What should you understand today?</h2><p>{content.plainAnswer}</p></div></section>
 
           <section className="ccna-objectives"><div><p className="eyebrow">Before you begin</p><h2>Learning targets</h2></div><div><strong>Prerequisites</strong><ul>{content.prerequisites.map((item) => <li key={item}>{item}</li>)}</ul></div><div><strong>By the end</strong><ul>{content.objectives.map((item) => <li key={item}>{item}</li>)}</ul></div></section>
@@ -105,12 +109,12 @@ export default async function CcnaLessonPage({ params }: PageProps) {
           <section className="ccna-early-glossary" id="new-words"><h2>Words you will meet</h2><p>Open a word when you need its meaning. You do not need to memorize the whole list before reading.</p><div>{content.glossary.map((item) => <details key={item.term}><summary>{item.term}</summary><p>{item.meaning}</p></details>)}</div></section>
 
           {content.sections.map((section, sectionIndex) => {
-            const labBoundary = section.keyPoints.find((point) => /^Lab boundary:/i.test(point));
-            const keyPoints = section.keyPoints.filter((point) => point !== labBoundary);
+            const labBoundary = ccnaSectionBoundary(content, section);
+            const keyPoints = section.keyPoints.filter((point) => !/^Lab boundary:/i.test(point));
             return (
               <section className="ccna-teaching-section" key={section.heading}>
                 <header><span>{String(sectionIndex + 1).padStart(2, "0")}</span><h2>{section.heading}</h2></header>
-                {labBoundary ? <aside className="ccna-lab-boundary-note"><ShieldCheck aria-hidden="true" size={20} /><div><strong>Lab boundary</strong><p>{labBoundary.replace(/^Lab boundary:\s*/i, "")}</p></div></aside> : null}
+                <CcnaLabBoundary boundary={labBoundary} />
                 {section.explanation.split(/\n\n+/).map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}
                 <aside><Lightbulb aria-hidden="true" size={20} /><div><strong>Put it into a real situation</strong><p>{section.example}</p></div></aside>
                 <ul>{keyPoints.map((point) => <li key={point}><CheckCircle2 aria-hidden="true" size={17} />{point}</li>)}</ul>
@@ -119,7 +123,7 @@ export default async function CcnaLessonPage({ params }: PageProps) {
             );
           })}
 
-          <section className="ccna-scenario-section" id="real-world-scenario"><div className="ccna-section-icon"><Network aria-hidden="true" /></div><p className="eyebrow">Real-world walkthrough</p><h2>{content.realWorldScenario.title}</h2><p>{content.realWorldScenario.situation}</p><ol>{content.realWorldScenario.walkthrough.map((step) => <li key={step}>{step}</li>)}</ol><strong>{content.realWorldScenario.takeaway}</strong></section>
+          <section className="ccna-scenario-section" id="real-world-scenario"><div className="ccna-section-icon"><Network aria-hidden="true" /></div><p className="eyebrow">Real-world walkthrough</p><h2>{content.realWorldScenario.title}</h2><CcnaLabBoundary boundary={ccnaComparisonBoundary(content, [content.realWorldScenario.title, content.realWorldScenario.situation, ...content.realWorldScenario.walkthrough, content.realWorldScenario.takeaway])} /><p>{content.realWorldScenario.situation}</p><ol>{content.realWorldScenario.walkthrough.map((step) => <li key={step}>{step}</li>)}</ol><strong>{content.realWorldScenario.takeaway}</strong></section>
 
           <section className="ccna-lab-section" id="gns3-lab">
             <header><div><p className="eyebrow">Guided GNS3 lab</p><h2>{content.lab.title}</h2><p>{content.lab.goal}</p></div><FlaskConical aria-hidden="true" size={36} /></header>

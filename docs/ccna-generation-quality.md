@@ -46,6 +46,16 @@ The normalized visual alt text is: "A packet travels from EndpointA through Swit
 
 Both the visual boundary and each access-point or firewall comparison callout use the same complete, 208-character text: "Lab boundary: The access point and firewall are omitted from every hands-on and diagram step in this wired GNS3 lab. Wireless radio behavior and firewall policy are conceptual comparisons only, not simulated." Normalization cannot overwrite this with earlier ambiguous wording. Existing teaching points are preserved; a full field must be rewritten through the bounded repair workflow, never clipped or silently discarded.
 
+The application now stores a `teachingPrelude` with ten direct definitions, a two-LAN forwarding explanation, and the boundary. It is composed before independent review and covered by the saved-content digest, but omitted from the writer's response schema. Both the webpage and native newsletter put these definitions before the visual or beginner walkthrough. Comparison callouts use the prelude's boundary independently of the section's key-point array, so six existing teaching points do not block the callout or require deletion.
+
+The same boundary also precedes access-point or firewall comparisons in the beginner analogy and real-world scenario. Visuals and comparisons share one callout component; plain-text newsletter editions preserve its complete wording. The local QA command verifies the analogy callout's reading order and keeps its saved draft and screenshots out of Git.
+
+Day 2 command recognition accepts both `ip 10.1.2.10/24 10.1.2.254` and `ip 10.1.2.10 255.255.255.0 10.1.2.254`; the restoration forms receive identical checks. Wrong masks, consoles, addresses and order still fail. A reply-path explanation is equivalent to a return-path explanation. The built-in switches are not IOS switches: a narrowly recognized `show mac address-table` step is replaced with an explicitly labelled paper prediction with no commands or invented output. Unknown or mixed switch actions stay visible for repair. Router1's new frame uses its outgoing-interface MAC and EndpointB's MAC; the switches learn independent local tables.
+
+References: [GNS3 built-in switch limitations](https://docs.gns3.com/docs-3.1-en/web-ui/template-preferences-builtin), [GNS3 VPCS command formats](https://docs.gns3.com/docs-3.1-en/web-ui/template-preferences-vpcs), [Cisco switching and frame rewriting](https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/ipswitch_poview/configuration/12-2sx/isw-poview-12-2sx/isw-poview-overview.pdf).
+
+`scripts/qa-ccna-day-two.mjs --input <lesson-json>` renders the normalized prelude, visual stages and guide using real components and stylesheet, then checks reading order and overflow at 320, 390, 768 and 1440 pixels with 2x screenshots. `--live-draft` instead performs a read-only Day 2 database fetch. Neither option calls a model, changes a database record, approves a revision, or publishes anything. Fixture rendering does not replace a live generation review or executing the GNS3 lab.
+
 Technical reference: [RFC 1122, local/remote routing and gateway selection](https://www.rfc-editor.org/rfc/rfc1122.html#section-3.3.1.1). A destination on another IP network requires gateway routing for the reply as well as the request.
 
 ## Regression coverage

@@ -1,13 +1,14 @@
 import type { CcnaLessonContent } from "@/lib/ccna-lesson-schema";
+import { CcnaLabBoundary } from "@/components/ccna-lab-boundary";
 
-export function CcnaBeginnerGuide({ guide }: { guide: NonNullable<CcnaLessonContent["beginnerGuide"]> }) {
+export function CcnaBeginnerGuide({ guide, labBoundary }: { guide: NonNullable<CcnaLessonContent["beginnerGuide"]>; labBoundary?: string }) {
   return <section className="ccna-beginner-guide" id="start-with-an-example">
     <p className="eyebrow">One idea at a time</p>
     <h2>Start with something familiar.</h2>
     <p>{guide.startingPoint}</p>
     <h3>Why learn this?</h3><p>{guide.whyItMatters}</p>
     <div className="ccna-beginner-comparison">
-      <h3>An everyday comparison</h3><p>{guide.everydayComparison.familiarSituation}</p>
+      <h3>An everyday comparison</h3><CcnaLabBoundary boundary={labBoundary} /><p>{guide.everydayComparison.familiarSituation}</p>
       <h3>What happens in a network</h3><p>{guide.everydayComparison.networkMeaning}</p>
       <strong>Where the comparison stops</strong><p>{guide.everydayComparison.whereItStops}</p>
     </div>
