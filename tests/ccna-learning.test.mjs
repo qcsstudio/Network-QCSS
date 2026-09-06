@@ -205,6 +205,31 @@ test("a passing review is valid only for the exact saved lesson revision", async
   assert.match(ccnaReviewedRevisionIssues(result.content, trace).join(" "), /exact saved content/);
 });
 
+test("a throttled independent review resumes without rewriting the completed draft", async () => {
+  const { runCcnaGenerationPipeline } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const { createCcnaRequestRunner } = await import("../src/lib/ccna-openai-requests.ts");
+  const content = generationFixture();
+  let now = 0;
+  const runner = createCcnaRequestRunner({ deadlineAt: 270_000, now: () => now, random: () => 0, sleep: async (ms) => { now += ms; } });
+  let writes = 0;
+  const reviewedDrafts = [];
+  const result = await runCcnaGenerationPipeline({
+    ...await pipelineOptions(content),
+    write: async () => { writes += 1; return JSON.stringify(content); },
+    review: (candidate) => runner.run("independent technical review", "gpt-4.1", async () => {
+      reviewedDrafts.push(structuredClone(candidate));
+      if (reviewedDrafts.length === 1) throw Object.assign(new Error("Rate limit reached. Please try again in 10.822s."), { status: 429, code: "rate_limit_exceeded" });
+      return { passed: true, issues: [] };
+    })
+  });
+  assert.equal(result.quality.ready, true);
+  assert.equal(writes, 1);
+  assert.equal(result.repairPasses, 0);
+  assert.equal(reviewedDrafts.length, 2);
+  assert.deepEqual(reviewedDrafts[0], reviewedDrafts[1]);
+  assert.equal(now, 11_072);
+});
+
 test("verified section citations are reconciled into the lesson bibliography", async () => {
   const { reconcileCcnaLessonSources } = await import("../src/lib/ccna-content-agent.ts");
   const content = lessonContent();

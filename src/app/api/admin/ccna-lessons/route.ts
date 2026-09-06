@@ -7,6 +7,7 @@ import { queueLinkedInForCcnaLesson } from "@/lib/social-publications";
 import { rateLimit } from "@/lib/rate-limit";
 import { requestContext } from "@/lib/security";
 import { createAuditLog } from "@/lib/store";
+import { CcnaRequestDeferredError } from "@/lib/ccna-openai-requests";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,6 +61,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, result, lessons: await listCcnaLessons() }, { headers: noStoreHeaders });
   } catch (error) {
     console.error(`CCNA admin action ${action} failed.`, error);
+    if (error instanceof CcnaRequestDeferredError) {
+      const response = jsonError(error.message, error.reason === "request_too_large" ? 422 : error.reason === "deadline" ? 503 : 429);
+      if (error.retryAfterMs > 0) response.headers.set("Retry-After", String(Math.ceil(error.retryAfterMs / 1000)));
+      return response;
+    }
     return jsonError(error instanceof Error ? error.message : "The CCNA action failed.", 400);
   }
 }

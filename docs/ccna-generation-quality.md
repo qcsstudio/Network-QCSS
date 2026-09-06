@@ -23,6 +23,14 @@ Malformed JSON cannot be technically reviewed; it is repaired first. Determinist
 
 Each attempt records schema status, whether review ran, review status, content digest and the full findings. A failed final structured draft remains `needs_review`. An unrepairable malformed draft retains diagnostics and does not enter another automatic paid validation loop. Network, authentication, quota and provider failures remain operational failures, not technical approvals.
 
+## Provider capacity
+
+Research, drafting, repairs and independent review share one bounded request runner. A temporary OpenAI token/request limit or explicit model-overload error retries the same request at most twice. The runner honors Retry-After (including dates and milliseconds), the provider's stated retry interval, or reset headers; otherwise it uses exponential backoff. Positive jitter is added, never subtracted from the provider's minimum. The whole job may spend at most 60 seconds waiting and stops within a 270-second application deadline, leaving time for persistence before Vercel's 300-second route limit.
+
+Authentication, billing/quota failures and ambiguous network failures are not replayed. A request that exceeds the model's entire TPM limit is not retried unchanged. Exhaustion is reported as a capacity or deadline problem, not a technical-review failure. Request retries do not reduce the lesson's output allowance, truncate its content or replace the independent review model. Retry events are recorded in the generation trace and server logs. No claim is made that one process can control other workloads sharing the organization's limits.
+
+Official reference: [OpenAI rate-limit handling](https://developers.openai.com/api/docs/guides/rate-limits).
+
 ## Regression coverage
 
 Run `npm run test:ccna`, `npm run typecheck`, lint and the production build when changing these contracts. Tests cover citation-budget boundaries, canonical duplicates, untrusted URLs, combined schema/technical failures, malformed JSON, contradictory reviews, bounded repairs, changed-content approval, Day 2 console-separated fault recovery, visual limits and existing course/social behavior.
