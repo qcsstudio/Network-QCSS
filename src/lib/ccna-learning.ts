@@ -1,6 +1,7 @@
 import { Prisma, type CcnaLesson } from "@prisma/client";
 import { ccnaCurriculum, ccnaTopicBySlug } from "@/lib/ccna-curriculum";
 import { evaluateCcnaLessonForTopic, generateResearchedCcnaLesson } from "@/lib/ccna-content-agent";
+import { CcnaLessonOutputError } from "@/lib/ccna-lesson-writer";
 import { CcnaGenerationValidationError, ccnaReviewedRevisionIssues } from "@/lib/ccna-generation-pipeline";
 import { ccnaLessonContentSchema, type CcnaLessonContent } from "@/lib/ccna-lesson-schema";
 import { getPrismaClient } from "@/lib/prisma";
@@ -230,7 +231,8 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
   } catch (error) {
     const current = await prisma.ccnaLesson.findUniqueOrThrow({ where: { id } });
     const validationFailure = error instanceof CcnaGenerationValidationError;
-    const retry = !validationFailure && current.attempts < 3;
+    const outputFailure = error instanceof CcnaLessonOutputError;
+    const retry = !validationFailure && !outputFailure && current.attempts < 3;
     const message = error instanceof Error ? error.message : "Unknown CCNA lesson generation error";
     await prisma.ccnaLesson.update({
       where: { id },
@@ -238,6 +240,7 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
         generationStartedAt: null,
         lastError: message,
         ...(validationFailure ? { generationTrace: { validationPolicyVersion: 1, validationPasses: error.passes, editorialReview: { passed: false, issues: error.issues }, reviewWasRun: error.passes.some((pass) => pass.reviewWasRun) } as unknown as Prisma.InputJsonValue } : {}),
+        ...(outputFailure ? { generationTrace: { writingResponses: error.attempts, editorialReview: { passed: false, issues: [message] }, reviewWasRun: error.attempts.some((attempt) => attempt.stage === "independent technical review") } as unknown as Prisma.InputJsonValue } : {}),
         nextAttemptAt: new Date(Date.now() + Math.max(10, current.attempts * 10) * 60_000),
         status: retry ? "retry" : "needs_review"
       }

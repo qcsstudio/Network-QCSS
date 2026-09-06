@@ -31,6 +31,16 @@ Authentication, billing/quota failures and ambiguous network failures are not re
 
 Official reference: [OpenAI rate-limit handling](https://developers.openai.com/api/docs/guides/rate-limits).
 
+## Complete structured writing
+
+The former single 14,000-token teaching request could end with `status: incomplete` and `max_output_tokens` before the combined gate could run. Writing now uses three coordinated JSON parts from the same full schema: lab and bibliography first, then teaching and beginner support, then the visual and assessments. Later parts receive the completed lab and earlier material; all parts are assembled before the existing full validation and independent review. Schema fields are assigned exactly once, and adding a required field without assigning it fails locally before a paid writing call.
+
+Normal output ceilings are 6,000 / 8,000 / 5,000 tokens. Only a confirmed `max_output_tokens` response permits one fresh, complete retry of that part at 8,000 / 10,000 / 7,000 respectively, with concise-writing instructions. No partial JSON is joined, parsed as a lesson, or published. There are at most two output-limit recoveries shared across the whole job, including repair passes and a review recovery from 1,600 to 3,000 tokens. The existing deadline, rate-limit wait budget and two full-content repair limit still apply. Research and completed writing parts are reused within the current attempt; this is not durable cross-job checkpointing.
+
+The configured models and their reasoning settings remain unchanged. Refusals, content filters, empty or failed responses do not trigger output-budget escalation. Exhausted output recovery places the job in `needs_review`, not another automatic full-research retry. Response IDs, completion reasons and token usage are stored in diagnostics; partial lesson text is not logged. Approval still requires an independent passing review of the exact assembled revision. No token allowance is a guarantee that a model will finish or that its content is correct.
+
+Official reference: [OpenAI Responses API](https://developers.openai.com/api/reference/typescript/resources/responses/methods/create). `max_output_tokens` includes visible output and reasoning tokens; incomplete responses require explicit handling.
+
 ## Day 2 wired-lab contract
 
 The writer, repair prompt and independent reviewer receive one shared fault-test instruction. Day 2 requests 10-12 lab steps, rather than the general 7-9, so router setup and the four fault/recovery actions can stay on separate, named consoles.

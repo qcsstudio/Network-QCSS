@@ -377,6 +377,38 @@ test("Day 2 gates accept separate console actions for the fault, failed test, re
   assert.ok(ccnaTopicSpecificIssues(ccnaCurriculum[1], normalized).some((issue) => issue.includes("wrong-gateway verification")), "A self-ping must not satisfy the cross-subnet failure check.");
 });
 
+test("coordinated writing recovers a cutoff and passes the real full lesson gates before approval", async () => {
+  const { applyCcnaTopicContract, evaluateCcnaLessonForTopic } = await import("../src/lib/ccna-content-agent.ts");
+  const { inspectCcnaLessonCandidate, runCcnaGenerationPipeline, ccnaContentDigest } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const { writeCcnaLessonParts, createCcnaOutputRunner } = await import("../src/lib/ccna-lesson-writer.ts");
+  const { ccnaOfficialSources } = await import("../src/lib/ccna-curriculum.ts");
+  const fixture = dayTwoLessonContent();
+  const allowedSources = [...fixture.sources.map((source) => source.url), ...ccnaOfficialSources.map((source) => source.url)];
+  const outputs = createCcnaOutputRunner();
+  const calls = [];
+  const result = await runCcnaGenerationPipeline({
+    write: () => writeCcnaLessonParts({ schema: ccnaOpenAIResponseSchema(allowedSources), request: async (part) => {
+      const response = await outputs.run(part.name, part.budgets, async (_budget, recovery) => {
+        calls.push(part.name);
+        if (part.name === "teaching" && !recovery) return { status: "incomplete", incomplete_details: { reason: "max_output_tokens" }, output_text: '{"sections":[' };
+        return { status: "completed", output_text: JSON.stringify(Object.fromEntries(part.schema.required.map((key) => [key, fixture[key]]))) };
+      });
+      return response.output_text;
+    } }),
+    inspect: (text) => inspectCcnaLessonCandidate(text, { allowedSources, prepare: (content) => applyCcnaTopicContract(ccnaCurriculum[1], content), evaluate: (content) => evaluateCcnaLessonForTopic(ccnaCurriculum[1], content) }),
+    review: async (content) => {
+      assert.equal(evaluateCcnaLessonForTopic(ccnaCurriculum[1], content).ready, true);
+      assert.equal(content.lab.steps.length, fixture.lab.steps.length);
+      assert.equal(content.visualStory.nodes.length, 5);
+      return { passed: true, issues: [] };
+    }
+  });
+  assert.equal(result.quality.ready, true, result.quality.issues.join(" "));
+  assert.deepEqual(calls, ["lab", "teaching", "teaching", "assessment"]);
+  assert.equal(result.reviewedContentDigest, ccnaContentDigest(result.content));
+  assert.equal(result.repairPasses, 0);
+});
+
 test("Day 2 publication rejects ambiguous alt text and inconsistent boundary callouts together", async () => {
   const { applyCcnaTopicContract, ccnaTopicSpecificIssues } = await import("../src/lib/ccna-content-agent.ts");
   const content = dayTwoLessonContent();
