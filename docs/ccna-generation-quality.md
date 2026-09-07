@@ -53,6 +53,10 @@ Automatic continuation uses the existing scheduled worker calls; this change doe
 
 Verified citation URLs now appear once in a shared `$defs` definition instead of being repeated in every section, source and visual-stage schema. Runtime URL, bibliography and evidence checks remain in force, and the common source field retains its 1,000-character ceiling. See [OpenAI Structured Outputs, definitions and references](https://developers.openai.com/api/docs/guides/structured-outputs).
 
+Citation references are substituted only after Zod finishes JSON Schema conversion. Injecting `$ref` inside its draft-7 override callback introduces `allOf` wrappers around constrained URL fields, which OpenAI rejects. Preflight inspects the emitted lab, teaching and assessment schemas before source research and again after evidence URLs are populated. It rejects unsupported composition keywords, unresolved local references and non-strict objects rather than deleting unknown constraints. The independent-review schema also passes preflight before submission. These checks cover the documented subset used here; they do not claim to be a replacement for provider validation of every possible schema.
+
+A provider/schema failure remains an operational hold. An explicit manual retry can reuse its unexpired checkpoint and original draft-only intent after configuration is corrected. This does not add automatic retries for 400 errors, extend the six-hour evidence lifetime, bypass the six-run bound or approve a technically failed lesson.
+
 ## Day 2 wired-lab contract
 
 The writer, repair prompt and independent reviewer receive one shared fault-test instruction. Day 2 requests 10-12 lab steps, rather than the general 7-9, so router setup and the four fault/recovery actions can stay on separate, named consoles.

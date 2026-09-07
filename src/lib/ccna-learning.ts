@@ -47,7 +47,7 @@ function content(value: Prisma.JsonValue): CcnaLessonContent | null {
 
 function mapLesson(lesson: CcnaLesson): CcnaLessonRecord {
   const trace = generationTrace(lesson.generationTrace);
-  const checkpoint = readCcnaGenerationCheckpoint(trace.checkpoint);
+  const checkpoint = resumableCheckpoint(lesson.status, trace);
   return {
     id: lesson.id,
     sequence: lesson.sequence,
@@ -68,7 +68,7 @@ function mapLesson(lesson: CcnaLesson): CcnaLessonRecord {
     attempts: lesson.attempts,
     lastError: lesson.lastError || "",
     updatedAt: lesson.updatedAt.toISOString(),
-    ...(["retry", "generating"].includes(lesson.status) && checkpoint ? { generationProgress: {
+    ...(checkpoint ? { generationProgress: {
       completedSteps: checkpoint.entries.length,
       stage: typeof trace.waitingStage === "string" ? trace.waitingStage : checkpoint.entries.at(-1)?.stage || "source research",
       retryAt: lesson.status === "retry" ? lesson.nextAttemptAt.toISOString() : ""
@@ -78,6 +78,15 @@ function mapLesson(lesson: CcnaLesson): CcnaLessonRecord {
 
 function generationTrace(value: Prisma.JsonValue): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
+function resumableCheckpoint(status: string, trace: Record<string, unknown>) {
+  const checkpoint = readCcnaGenerationCheckpoint(trace.checkpoint);
+  if (!checkpoint) return null;
+  if (["retry", "generating"].includes(status)) return checkpoint;
+  // An explicit retry after correcting a provider/schema problem may reuse
+  // completed research. Technical failures and exhausted jobs start fresh.
+  return status === "needs_review" && typeof trace.operationalError === "string" && checkpoint.runs < ccnaCheckpointRunLimit ? checkpoint : null;
 }
 
 function indiaClock(now = new Date()) {
@@ -204,7 +213,7 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
   if (["rate_limit", "deadline"].includes(String(trace.pauseReason)) && existing.nextAttemptAt.getTime() > Date.now()) {
     throw new CcnaRequestDeferredError(trace.pauseReason as "rate_limit" | "deadline", existing.nextAttemptAt.getTime() - Date.now(), String(trace.waitingStage || "saved lesson"));
   }
-  const previousCheckpoint = ["retry", "generating"].includes(existing.status) ? readCcnaGenerationCheckpoint(trace.checkpoint) : null;
+  const previousCheckpoint = resumableCheckpoint(existing.status, trace);
   const shouldPublish = previousCheckpoint && typeof trace.publishWhenReady === "boolean" ? trace.publishWhenReady : publishWhenReady;
   const runStartedAt = new Date();
   let checkpoint: CcnaGenerationCheckpoint | null = previousCheckpoint;

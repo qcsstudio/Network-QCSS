@@ -9,10 +9,12 @@ import { canonicalCcnaSourceUrl, ccnaSourceLimit, ccnaTrustedSourceHosts, consol
 import { inspectCcnaLessonCandidate, runCcnaGenerationPipeline } from "@/lib/ccna-generation-pipeline";
 import { createCcnaRequestRunner } from "@/lib/ccna-openai-requests";
 import { ccnaSectionBoundary } from "@/lib/ccna-lesson-presentation";
-import { createCcnaOutputRunner, writeCcnaLessonParts, CcnaLessonOutputError } from "@/lib/ccna-lesson-writer";
+import { createCcnaOutputRunner, writeCcnaLessonParts, ccnaLessonPartSchemas, CcnaLessonOutputError } from "@/lib/ccna-lesson-writer";
+import { assertCcnaOpenAISchema } from "@/lib/ccna-openai-schema";
 import { createCcnaGenerationCheckpoint, type CcnaGenerationCheckpoint } from "@/lib/ccna-generation-checkpoint";
 
 const allowedSourceHosts = ccnaTrustedSourceHosts;
+const technicalReviewResponseSchema = { type: "object", additionalProperties: false, properties: { passed: { type: "boolean" }, issues: { type: "array", maxItems: 10, items: { type: "string", minLength: 20, maxLength: 500 } } }, required: ["passed", "issues"] };
 
 function env(name: string) {
   return process.env[name]?.trim() || "";
@@ -353,6 +355,8 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
 } = {}) {
   const config = ccnaContentAgentConfiguration();
   const startedAt = Date.now();
+  ccnaLessonPartSchemas(ccnaOpenAIResponseSchema(ccnaOfficialSources.map((source) => source.url)));
+  assertCcnaOpenAISchema(technicalReviewResponseSchema);
   const client = openAIClient();
   const requests = createCcnaRequestRunner({
     deadlineAt: startedAt + 270_000,
@@ -479,9 +483,11 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
       input: `${brief}\n\nVISUAL REVIEW: Check visualStory against the lesson and evidence. Verify every node label, direction, address and cited source, that each of the three stages teaches a different point, and that its boundary prevents a misleading literal interpretation. Reject concept repetition or unsupported connections.\n\nFEEDBACK FORMAT: Write each finding as a complete, concise repair instruction, preferably under 350 characters. The 500-character limit is not a truncation target. Never end a finding mid-word or mid-sentence.\n\nLESSON TO REVIEW:\n${JSON.stringify(content)}`,
       max_output_tokens: maxOutputTokens,
       ...(recovery ? { input: `${brief}\n\nReview the complete lesson again. Return complete, concise findings without repetition; the previous review reached its output ceiling.\n\nLESSON TO REVIEW:\n${JSON.stringify(content)}` } : {}),
-      text: { format: { type: "json_schema", name: "ccna_technical_review", strict: true, schema: { type: "object", additionalProperties: false, properties: { passed: { type: "boolean" }, issues: { type: "array", maxItems: 10, items: { type: "string", minLength: 20, maxLength: 500 } } }, required: ["passed", "issues"] } } }
+      text: { format: { type: "json_schema", name: "ccna_technical_review", strict: true, schema: technicalReviewResponseSchema } }
     });
-    const response = await checkpoint.run("independent technical review", [buildRequest(1_600, false), buildRequest(3_000, true)], (key) =>
+    const reviewRequest = buildRequest(1_600, false);
+    if (reviewRequest.text?.format?.type === "json_schema") assertCcnaOpenAISchema(reviewRequest.text.format.schema);
+    const response = await checkpoint.run("independent technical review", [reviewRequest, buildRequest(3_000, true)], (key) =>
       outputs.run("independent technical review", [1_600, 3_000], (cap, recovery) => requests.run("independent technical review", model, (timeout) => client.responses.create(buildRequest(cap, recovery), { timeout, maxRetries: 0 })), key));
     try { return JSON.parse(response.output_text) as unknown; } catch { return null; }
   }

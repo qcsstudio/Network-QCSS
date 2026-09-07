@@ -1,3 +1,5 @@
+import { assertCcnaOpenAISchema } from "./ccna-openai-schema";
+
 type WriterResponse = {
   id?: string;
   status?: string;
@@ -86,7 +88,11 @@ export function ccnaLessonPartSchemas(schema: LessonSchema) {
     || assigned.some((key) => !(key in properties) || !required.includes(key)) || required.length !== assigned.length) {
     throw new Error("The CCNA writing parts must cover every required lesson field exactly once.");
   }
-  return parts.map((part) => ({ ...part, schema: { ...schema, properties: Object.fromEntries(part.keys.map((key) => [key, properties[key]])), required: [...part.keys], additionalProperties: false } }));
+  return parts.map((part) => {
+    const partSchema = { ...schema, properties: Object.fromEntries(part.keys.map((key) => [key, properties[key]])), required: [...part.keys], additionalProperties: false };
+    assertCcnaOpenAISchema(partSchema);
+    return { ...part, schema: partSchema };
+  });
 }
 
 export async function writeCcnaLessonParts(options: {

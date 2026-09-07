@@ -3,6 +3,7 @@ import test from "node:test";
 import { ccnaCurriculum } from "../src/lib/ccna-curriculum.ts";
 import { generateCcnaLesson, listCcnaLessons, publishCcnaLesson } from "../src/lib/ccna-learning.ts";
 import { CcnaRequestDeferredError } from "../src/lib/ccna-openai-requests.ts";
+import { assertCcnaOpenAISchema } from "../src/lib/ccna-openai-schema.ts";
 
 function harness(t) {
   const topic = ccnaCurriculum.find((item) => item.sequence === 3);
@@ -18,6 +19,7 @@ function harness(t) {
   });
   t.mock.method(console, "info", () => {});
   let loseOwnership = false;
+  let schemaFailure = false;
   const calls = [];
   globalThis.prisma = { ccnaLesson: {
     findUnique: async () => structuredClone(row),
@@ -44,9 +46,11 @@ function harness(t) {
         { type: "message", id: "mock-message", role: "assistant", status: "completed", content: [{ type: "output_text", text: `Verified evidence from ${source}.`, annotations: [] }] }
       ] }), { headers: { "content-type": "application/json" } });
     }
+    assertCcnaOpenAISchema(request.text.format.schema);
+    if (schemaFailure) return new Response(JSON.stringify({ error: { message: "Invalid schema: Unsupported keywords ('allOf',).", code: "invalid_json_schema", type: "invalid_request_error" } }), { status: 400, headers: { "content-type": "application/json" } });
     return new Response(JSON.stringify({ error: { message: "Rate limit reached on tokens per min. Try again in 61s.", code: "rate_limit_exceeded", type: "tokens" } }), { status: 429, headers: { "content-type": "application/json", "retry-after": "61" } });
   });
-  return { row, calls, loseOwnership: () => { loseOwnership = true; } };
+  return { row, calls, loseOwnership: () => { loseOwnership = true; }, setSchemaFailure: (value) => { schemaFailure = value; } };
 }
 
 test("real generation service saves research, enforces cooldown before spending, and resumes just the missing lab", async (t) => {
@@ -94,4 +98,18 @@ test("the sixth capacity interruption holds the job instead of scheduling unboun
   assert.equal(row.generationTrace.checkpoint.runs, 6);
   assert.equal(calls.length, 5);
   assert.match(row.lastError, /Automatic continuation is held/);
+});
+
+test("manual retry after a schema correction reuses held research without auto-publishing", async (t) => {
+  const { row, calls, setSchemaFailure } = harness(t);
+  setSchemaFailure(true);
+  await assert.rejects(() => generateCcnaLesson(row.id, "test-operator", false), /Invalid schema/);
+  assert.equal(row.status, "needs_review");
+  assert.equal(row.generationTrace.checkpoint.entries.length, 3);
+  assert.equal((await listCcnaLessons())[0].generationProgress.completedSteps, 3);
+  setSchemaFailure(false);
+  await assert.rejects(() => generateCcnaLesson(row.id, "test-operator", true), CcnaRequestDeferredError);
+  assert.equal(calls.length, 5);
+  assert.equal(calls.filter((call) => call.tools).length, 3);
+  assert.equal(row.generationTrace.publishWhenReady, false);
 });
