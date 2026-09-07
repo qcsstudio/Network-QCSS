@@ -19,8 +19,12 @@ test("OpenAI schema omits unsupported URI format while runtime URL validation st
 test("generation citation fields accept only exact verified URLs", () => {
   const urls = ["https://docs.gns3.com/docs/emulators/vpcs"];
   const schema = ccnaOpenAIResponseSchema(urls);
-  assert.deepEqual(schema.properties.sources.items.properties.url.enum, urls);
-  assert.deepEqual(schema.properties.sections.items.properties.sourceUrls.items.enum, urls);
+  assert.equal(schema.properties.sources.items.properties.url.$ref, "#/$defs/verifiedSourceUrl");
+  assert.equal(schema.properties.sections.items.properties.sourceUrls.items.$ref, "#/$defs/verifiedSourceUrl");
+  assert.equal(schema.properties.visualStory.properties.stages.items.properties.sourceUrls.items.$ref, "#/$defs/verifiedSourceUrl");
+  assert.deepEqual(schema.$defs.verifiedSourceUrl.enum, urls);
+  assert.equal(schema.$defs.verifiedSourceUrl.maxLength, 1_000);
+  assert.equal(JSON.stringify(schema).split(urls[0]).length - 1, 1);
 });
 
 test("generation visual limits match the publishing composition budgets", async () => {

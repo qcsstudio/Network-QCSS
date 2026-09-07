@@ -62,7 +62,10 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error(`CCNA admin action ${action} failed.`, error);
     if (error instanceof CcnaRequestDeferredError) {
-      const response = jsonError(error.message, error.reason === "request_too_large" ? 422 : error.reason === "deadline" ? 503 : 429);
+      const response = NextResponse.json({ ok: false, error: error.message, lessons: await listCcnaLessons() }, {
+        status: error.reason === "request_too_large" ? 422 : error.reason === "deadline" ? 503 : 429,
+        headers: noStoreHeaders
+      });
       if (error.retryAfterMs > 0) response.headers.set("Retry-After", String(Math.ceil(error.retryAfterMs / 1000)));
       return response;
     }

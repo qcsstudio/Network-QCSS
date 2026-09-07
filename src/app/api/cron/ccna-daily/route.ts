@@ -5,6 +5,7 @@ import { runCcnaDailyEdition } from "@/lib/ccna-learning";
 import { queueLinkedInForCcnaLesson } from "@/lib/social-publications";
 import { requestContext } from "@/lib/security";
 import { createAuditLog } from "@/lib/store";
+import { CcnaRequestDeferredError } from "@/lib/ccna-openai-requests";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,6 +21,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, result, distributionId: distribution?.id || "" }, { headers: noStoreHeaders });
   } catch (error) {
     console.error("CCNA daily automation failed.", error);
+    if (error instanceof CcnaRequestDeferredError) {
+      const response = jsonError(error.message, error.reason === "request_too_large" ? 422 : error.reason === "deadline" ? 503 : 429);
+      if (error.retryAfterMs > 0) response.headers.set("Retry-After", String(Math.ceil(error.retryAfterMs / 1000)));
+      return response;
+    }
     return jsonError(error instanceof Error ? error.message : "CCNA daily automation failed.", 500);
   }
 }

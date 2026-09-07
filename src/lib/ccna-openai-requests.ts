@@ -2,7 +2,7 @@ type ProviderError = { status?: number; code?: string; message?: string; error?:
 type RetryEvent = { stage: string; model: string; retry: number; delayMs: number };
 
 export class CcnaRequestDeferredError extends Error {
-  constructor(public readonly reason: "rate_limit" | "request_too_large" | "deadline", public readonly retryAfterMs: number, stage: string) {
+  constructor(public readonly reason: "rate_limit" | "request_too_large" | "deadline", public readonly retryAfterMs: number, public readonly stage: string) {
     super(reason === "request_too_large"
       ? `The ${stage} request exceeds the model's entire token-per-minute allowance. Waiting alone will not help; reduce the request size or request a higher model limit. No lesson was approved.`
       : reason === "deadline"

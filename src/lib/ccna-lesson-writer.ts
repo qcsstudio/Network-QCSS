@@ -17,6 +17,8 @@ export type CcnaOutputAttempt = {
   inputTokens: number | null;
   outputTokens: number | null;
   reasoningTokens: number | null;
+  operationKey?: string;
+  recoveryScheduled?: boolean;
 };
 
 export class CcnaLessonOutputError extends Error {
@@ -26,23 +28,28 @@ export class CcnaLessonOutputError extends Error {
   }
 }
 
-export function createCcnaOutputRunner(onAttempt?: (event: CcnaOutputAttempt) => void) {
-  const attempts: CcnaOutputAttempt[] = [];
+export function createCcnaOutputRunner(onAttempt?: (event: CcnaOutputAttempt) => void | Promise<void>, previousAttempts: CcnaOutputAttempt[] = []) {
+  const attempts: CcnaOutputAttempt[] = previousAttempts.map((attempt) => ({ ...attempt }));
   // Shared by the initial draft, all repairs and technical review within this job.
-  let remainingRecoveries = 2;
-  async function run<T extends WriterResponse>(stage: string, budgets: readonly [number, number], request: (maxOutputTokens: number, recovery: boolean) => Promise<T>) {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+  let remainingRecoveries = Math.max(0, 2 - attempts.filter((attempt) => attempt.recoveryScheduled).length);
+  async function run<T extends WriterResponse>(stage: string, budgets: readonly [number, number], request: (maxOutputTokens: number, recovery: boolean) => Promise<T>, operationKey?: string) {
+    const previous = operationKey ? attempts.filter((attempt) => attempt.operationKey === operationKey).at(-1) : undefined;
+    if (previous && !previous.recoveryScheduled) throw new CcnaLessonOutputError(stage, "saved output attempt requires operator review", [...attempts]);
+    for (let attempt = previous?.recoveryScheduled ? 1 : 0; attempt < 2; attempt += 1) {
       const response = await request(budgets[attempt], attempt > 0);
       const event: CcnaOutputAttempt = {
         stage, attempt: attempt + 1, maxOutputTokens: budgets[attempt], status: response.status || "unknown",
         reason: response.incomplete_details?.reason || null, responseId: response.id || null,
         inputTokens: response.usage?.input_tokens ?? null, outputTokens: response.usage?.output_tokens ?? null,
-        reasoningTokens: response.usage?.output_tokens_details?.reasoning_tokens ?? null
+        reasoningTokens: response.usage?.output_tokens_details?.reasoning_tokens ?? null,
+        ...(operationKey ? { operationKey } : {})
       };
-      attempts.push(event);
-      onAttempt?.(event);
       const refusal = response.output?.some((item) => item.content?.some((part) => part.type === "refusal"));
-      if (response.status === "incomplete" && event.reason === "max_output_tokens" && !refusal && attempt === 0 && remainingRecoveries > 0) {
+      const recover = response.status === "incomplete" && event.reason === "max_output_tokens" && !refusal && attempt === 0 && remainingRecoveries > 0;
+      if (recover) event.recoveryScheduled = true;
+      attempts.push(event);
+      await onAttempt?.(event);
+      if (recover) {
         remainingRecoveries -= 1;
         continue;
       }

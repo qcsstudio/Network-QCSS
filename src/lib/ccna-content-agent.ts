@@ -10,6 +10,7 @@ import { inspectCcnaLessonCandidate, runCcnaGenerationPipeline } from "@/lib/ccn
 import { createCcnaRequestRunner } from "@/lib/ccna-openai-requests";
 import { ccnaSectionBoundary } from "@/lib/ccna-lesson-presentation";
 import { createCcnaOutputRunner, writeCcnaLessonParts, CcnaLessonOutputError } from "@/lib/ccna-lesson-writer";
+import { createCcnaGenerationCheckpoint, type CcnaGenerationCheckpoint } from "@/lib/ccna-generation-checkpoint";
 
 const allowedSourceHosts = ccnaTrustedSourceHosts;
 
@@ -345,7 +346,11 @@ export function evaluateCcnaLessonForTopic(topic: CcnaCurriculumTopic, content: 
   return { ...base, issues, score, ready: issues.length === 0 && score >= 88 };
 }
 
-export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, recentVisuals: string[] = []) {
+export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, recentVisuals: string[] = [], progress: {
+  checkpoint?: unknown;
+  contentRevision?: unknown;
+  onCheckpoint?: (checkpoint: CcnaGenerationCheckpoint) => Promise<void>;
+} = {}) {
   const config = ccnaContentAgentConfiguration();
   const startedAt = Date.now();
   const client = openAIClient();
@@ -353,8 +358,17 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     deadlineAt: startedAt + 270_000,
     onRetry: (event) => console.info("CCNA provider request waiting for rate-limit capacity.", event)
   });
-  const outputs = createCcnaOutputRunner((event) => console.info("CCNA structured writing response.", event));
   const researchModel = env("CCNA_RESEARCH_MODEL") || "gpt-5-mini";
+  const reviewModel = env("CCNA_REVIEW_MODEL") || "gpt-4.1";
+  const checkpoint = createCcnaGenerationCheckpoint({
+    scope: { version: 1, topic, model: config.model, researchModel, reviewModel, policy: ccnaTeachingPolicyVersion, contentRevision: progress.contentRevision ?? null },
+    previous: progress.checkpoint, recentVisuals, persist: progress.onCheckpoint
+  });
+  await checkpoint.start();
+  const outputs = createCcnaOutputRunner(async (event) => {
+    console.info("CCNA structured writing response.", event);
+    await checkpoint.recordAttempt(event);
+  }, checkpoint.snapshot().outputAttempts);
   const researchQueries = topic.sequence === 2 ? [
     "Cisco Ethernet switch router wireless access point firewall distinct roles forwarding frames packets",
     "GNS3 VPCS ip default gateway ping command two subnets router lab",
@@ -381,7 +395,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
       input: query,
       max_output_tokens: 8_000
     };
-    const research = await requests.run("source research", researchModel, (timeout) => client.responses.create(researchRequest, { timeout, maxRetries: 0 }));
+    const research = await checkpoint.run("source research", researchRequest, () => requests.run("source research", researchModel, (timeout) => client.responses.create(researchRequest, { timeout, maxRetries: 0 })));
     if (research.status === "incomplete") throw new Error(`CCNA source research was incomplete (${research.incomplete_details?.reason || "unknown reason"}); no lesson was published.`);
     const activity = webActivity(research);
     activity.urls.forEach((url) => discovered.add(url));
@@ -409,13 +423,13 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
         ].join(" ")
       : `TOPIC BOUNDARY: Teach only ${topic.title}; use the smallest topology that proves ${topic.objective}. State every prerequisite. If GNS3 cannot reproduce a radio, cloud service, or platform feature, provide an explicitly labeled observation or paper exercise and a practical alternative instead of invented emulator behavior.`;
   const brief = [
-    `AS OF: ${new Date().toISOString().slice(0, 10)}`,
+    `AS OF: ${checkpoint.context.asOf}`,
     `DAY ${topic.sequence} / MODULE ${topic.moduleTitle} / TOPIC ${topic.title}`,
     `OUTCOME: ${topic.objective}`,
     `EARLIER LESSONS AVAILABLE FOR A SHORT RECAP: ${ccnaCurriculum.filter((item) => item.sequence < topic.sequence).map((item) => `Day ${item.sequence}: ${item.title}`).join("; ") || "None. Assume zero background knowledge."}`,
     `Blueprint references, not teaching claims: v1.1 ${topic.v11}; v2.0 ${topic.v20}`,
     topicBoundary,
-    `RECENT VISUAL CONCEPTS, FOR COMPOSITION COMPARISON ONLY:\n${recentVisuals.slice(0, 8).join("\n") || "No earlier visual plans recorded."}`,
+    `RECENT VISUAL CONCEPTS, FOR COMPOSITION COMPARISON ONLY:\n${checkpoint.context.recentVisuals.join("\n") || "No earlier visual plans recorded."}`,
     `OFFICIAL REFERENCES:\n${ccnaOfficialSources.map((source) => `${source.label}: ${source.url}`).join("\n")}`,
     `VERIFIED RESEARCH:\n${evidence.join("\n\n")}`,
     `ALLOWED RESEARCH URLS:\n${[...discovered].join("\n")}`
@@ -438,16 +452,18 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     "The licensing note states that GNS3 does not provide Cisco images; learners may use a Cisco image only when the applicable license or entitlement permits that use and must not share or redistribute the image. State that CML reference-platform images are licensed for use within CML unless separately licensed, Cisco Modeling Labs is the official alternative, and built-in VPCS labs need no Cisco image."
   ].join(" ");
   async function writeLesson(repair?: { candidate: unknown; issues: string[] }) {
-    const model = repair ? (env("CCNA_REVIEW_MODEL") || "gpt-4.1") : config.model;
+    const model = repair ? reviewModel : config.model;
     return writeCcnaLessonParts({ schema, repair, request: async (part) => {
       const stage = `${repair ? "lesson repair" : "lesson draft"}: ${part.name}`;
-      const response = await outputs.run(stage, part.budgets, (maxOutputTokens, recovery) => requests.run(stage, model, (timeout) => client.responses.create({
+      const buildRequest = (maxOutputTokens: number, recovery: boolean): OpenAI.Responses.ResponseCreateParamsNonStreaming => ({
         model, store: false,
         instructions: `${writingInstructions}\n\n${part.instructions}${recovery ? "\nThe previous response hit its output ceiling. Return a new complete object for ONLY this part. Remove repetition and shorten wording naturally, keeping all required concepts, commands, explanations and citations. Do not continue or concatenate the partial JSON." : ""}`,
         input: `${brief}\n\n${part.input}`,
         max_output_tokens: maxOutputTokens,
         text: { format: { type: "json_schema", name: `qcs_ccna_${part.name}`, strict: true, schema: part.schema } }
-      }, { timeout, maxRetries: 0 })));
+      });
+      const response = await checkpoint.run(stage, [buildRequest(part.budgets[0], false), buildRequest(part.budgets[1], true)], (key) =>
+        outputs.run(stage, part.budgets, (cap, recovery) => requests.run(stage, model, (timeout) => client.responses.create(buildRequest(cap, recovery), { timeout, maxRetries: 0 })), key));
       return response.output_text;
     } }).catch((error: unknown) => {
       if (error instanceof CcnaLessonOutputError && !error.attempts.length) throw new CcnaLessonOutputError(error.stage, error.reason, [...outputs.attempts]);
@@ -455,8 +471,8 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     });
   }
   async function reviewLesson(content: unknown) {
-    const model = env("CCNA_REVIEW_MODEL") || "gpt-4.1";
-    const response = await outputs.run("independent technical review", [1_600, 3_000], (maxOutputTokens, recovery) => requests.run("independent technical review", model, (timeout) => client.responses.create({
+    const model = reviewModel;
+    const buildRequest = (maxOutputTokens: number, recovery: boolean): OpenAI.Responses.ResponseCreateParamsNonStreaming => ({
       model,
       store: false,
       instructions: "Act as an independent Cisco instructor and technical editor. Review the supplied lesson against the source evidence and topic boundary. Reject factual errors, incomplete or contradictory lab topology/configuration, unsupported commands, ambiguous quiz answers, misleading exam-version claims, unintroduced advanced scope, repeated filler, serialized data in prose, and visual text that ends abruptly or appears cut to a field limit. Check that each command block belongs to one named console and peer tests do not ping the device's own address. Do not confuse features unused in this lab with features unsupported by the emulator; GNS3's built-in switch has VLAN port modes. Licensing must not imply unrestricted export of Cisco images. Passing schema or word counts does not prove quality. Report only concrete actionable defects, not stylistic preferences. Omit praise, correct observations, summaries, and statements that require no change from issues. Combine related defects into one concise repair instruction and return no more than ten issues. No requirement to run real hardware. Return passed=true only if issues is empty. " + ccnaBeginnerReviewPolicy,
@@ -464,7 +480,9 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
       max_output_tokens: maxOutputTokens,
       ...(recovery ? { input: `${brief}\n\nReview the complete lesson again. Return complete, concise findings without repetition; the previous review reached its output ceiling.\n\nLESSON TO REVIEW:\n${JSON.stringify(content)}` } : {}),
       text: { format: { type: "json_schema", name: "ccna_technical_review", strict: true, schema: { type: "object", additionalProperties: false, properties: { passed: { type: "boolean" }, issues: { type: "array", maxItems: 10, items: { type: "string", minLength: 20, maxLength: 500 } } }, required: ["passed", "issues"] } } }
-    }, { timeout, maxRetries: 0 })));
+    });
+    const response = await checkpoint.run("independent technical review", [buildRequest(1_600, false), buildRequest(3_000, true)], (key) =>
+      outputs.run("independent technical review", [1_600, 3_000], (cap, recovery) => requests.run("independent technical review", model, (timeout) => client.responses.create(buildRequest(cap, recovery), { timeout, maxRetries: 0 })), key));
     try { return JSON.parse(response.output_text) as unknown; } catch { return null; }
   }
   const result = await runCcnaGenerationPipeline({
@@ -477,5 +495,5 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     })
   });
   const { content, quality, review, repairPasses, passes, reviewedContentDigest } = result;
-  return { content, quality, trace: { provider: config.provider, model: config.model, researchModel, reviewModel: env("CCNA_REVIEW_MODEL") || "gpt-4.1", generatedAt: new Date().toISOString(), durationMs: Date.now() - startedAt, policyVersion: ccnaTeachingPolicyVersion, visualPolicyVersion: 1, validationPolicyVersion: 1, validationPasses: passes, reviewedContentDigest, searchQueries: [...actualQueries], discoveredSources: [...discovered], rateLimitRetries: requests.events, writingResponses: outputs.attempts, editorialReview: review, reviewWasRun: true, repaired: repairPasses > 0, repairPasses, quality } };
+  return { content, quality, trace: { provider: config.provider, model: config.model, researchModel, reviewModel, generatedAt: new Date().toISOString(), durationMs: Date.now() - startedAt, policyVersion: ccnaTeachingPolicyVersion, visualPolicyVersion: 1, validationPolicyVersion: 1, validationPasses: passes, reviewedContentDigest, searchQueries: [...actualQueries], discoveredSources: [...discovered], rateLimitRetries: requests.events, writingResponses: outputs.attempts, resumedStages: checkpoint.reusedStages, generationRuns: checkpoint.snapshot().runs, editorialReview: review, reviewWasRun: true, repaired: repairPasses > 0, repairPasses, quality } };
 }

@@ -22,7 +22,8 @@ test("first lesson has three distinct concepts and source-mapped teaching stages
 test("new generation requires the visual plan without breaking stored legacy lessons", () => {
   const schema = ccnaOpenAIResponseSchema(sources);
   assert.ok(schema.required.includes("visualStory"));
-  assert.deepEqual(schema.properties.visualStory.properties.stages.items.properties.sourceUrls.items.enum, sources);
+  assert.equal(schema.properties.visualStory.properties.stages.items.properties.sourceUrls.items.$ref, "#/$defs/verifiedSourceUrl");
+  assert.deepEqual(schema.$defs.verifiedSourceUrl.enum, sources);
   assert.equal(schema.properties.visualStory.properties.conceptSelection.properties.candidates.minItems, 3);
   assert.equal(schema.properties.visualStory.properties.nodes.maxItems, 5);
   assert.equal(schema.properties.visualStory.properties.altText.maxLength, ccnaVisualTextBudgets.altText);

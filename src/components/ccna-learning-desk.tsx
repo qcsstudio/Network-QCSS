@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { BookOpenCheck, CalendarCheck, Check, Clipboard, ExternalLink, GraduationCap, LoaderCircle, Play, RefreshCcw, Send, SkipForward } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CcnaLessonRecord } from "@/lib/ccna-learning";
 import { buildCcnaNewsletterEdition } from "@/lib/ccna-newsletter";
 
@@ -14,7 +14,19 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
   const [busy, setBusy] = useState("");
   const [copied, setCopied] = useState(false);
   const [requestError, setRequestError] = useState("");
+  const [now, setNow] = useState(0);
   const selected = lessons.find((lesson) => lesson.id === selectedId) || lessons[0];
+  const retryAt = selected?.generationProgress?.retryAt;
+  useEffect(() => {
+    if (!retryAt) return;
+    const timer = window.setInterval(() => {
+      const timestamp = Date.now();
+      setNow(timestamp);
+      if (timestamp >= Date.parse(retryAt)) window.clearInterval(timer);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [retryAt]);
+  const cooldownSeconds = retryAt ? now ? Math.max(0, Math.ceil((Date.parse(retryAt) - now) / 1000)) : null : 0;
   const commandCount = selected?.content?.lab.steps.reduce((total, step) => total + step.commands.length, 0) || 0;
   const explainedCommandCount = selected?.content?.lab.steps.reduce((total, step) => total + step.commands.filter((_, index) => Boolean(step.commandExplanations?.[index])).length, 0) || 0;
   const stats = useMemo(() => ({
@@ -29,8 +41,8 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
     try {
       const response = await fetch("/api/admin/ccna-lessons", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, id: id || undefined }) });
       const payload = await response.json() as { error?: string; lessons?: CcnaLessonRecord[] };
-      if (!response.ok) throw new Error(payload.error || "CCNA action failed.");
       if (payload.lessons) setLessons(payload.lessons);
+      if (!response.ok) throw new Error(payload.error || "CCNA action failed.");
     } catch (error) {
       setRequestError(error instanceof Error ? error.message : "CCNA action failed. Please retry.");
     } finally {
@@ -70,8 +82,9 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
           {selected.content ? <div className="ccna-admin-preview"><strong>{selected.content.learnerOutcome}</strong><p>{selected.content.plainAnswer}</p><div><span>{selected.content.sections.length} teaching sections</span><span>{selected.content.lab.steps.length} lab steps</span><span>{selected.content.practiceQuestions.length} practice questions</span><span>{selected.content.quiz.length} quiz questions</span><span>{selected.content.sources.length} sources</span></div></div> : <div className="empty-state"><h3>Lesson content is not generated yet.</h3><p>Generation researches the controlled topic, builds the lesson and lab, then applies the publishing gate.</p></div>}
           {selected.content ? <p className="ccna-admin-beginner-status">Beginner guide: {selected.content.beginnerGuide ? "included" : "required before the next publication"}. Command explanations: {explainedCommandCount}/{commandCount}. Automated checks do not replace testing with real learners.</p> : null}
           {selected.lastError ? <p className="ccna-admin-error">{selected.lastError}</p> : null}
+          {selected.generationProgress ? <p className="ccna-admin-beginner-status" role="status">{selected.generationProgress.completedSteps} completed stages saved. {selected.status === "retry" ? `Paused at ${selected.generationProgress.stage}. ${cooldownSeconds === null ? "Checking provider cooldown." : cooldownSeconds ? `Resume available in ${cooldownSeconds} seconds.` : "Ready to resume."}` : "Generation in progress."}</p> : null}
           <div className="ccna-admin-actions">
-            {["scheduled", "retry", "needs_review", "draft"].includes(selected.status) ? <button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("generate", selected.id)} type="button"><RefreshCcw aria-hidden="true" size={17} /> {selected.content ? "Regenerate" : "Generate lesson"}</button> : null}
+            {["scheduled", "retry", "needs_review", "draft"].includes(selected.status) ? <button className="button secondary" disabled={Boolean(busy) || cooldownSeconds === null || cooldownSeconds > 0} onClick={() => mutate("generate", selected.id)} type="button"><RefreshCcw aria-hidden="true" size={17} /> {selected.generationProgress ? "Resume generation" : selected.content ? "Regenerate" : "Generate lesson"}</button> : null}
             {["draft", "needs_review"].includes(selected.status) && selected.content ? <button className="button primary" disabled={Boolean(busy)} onClick={() => mutate("publish", selected.id)} type="button"><Check aria-hidden="true" size={17} /> Publish</button> : null}
             {selected.status === "published" ? <><Link className="button secondary" href={`/courses/ccna/lessons/${selected.slug}`} target="_blank">Open lesson <ExternalLink aria-hidden="true" size={16} /></Link><button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("queue_linkedin", selected.id)} type="button"><Send aria-hidden="true" size={17} /> Queue LinkedIn</button><button className="button secondary" onClick={copyEdition} type="button">{copied ? <Check aria-hidden="true" size={17} /> : <Clipboard aria-hidden="true" size={17} />} {copied ? "Copied" : "Copy native edition"}</button><a className="button secondary" href="https://www.linkedin.com/article/new/" rel="noreferrer" target="_blank">Open LinkedIn editor <ExternalLink aria-hidden="true" size={16} /></a><button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("draft", selected.id)} type="button">Return to draft</button></> : null}
             {!["published", "skipped"].includes(selected.status) ? <button aria-label="Skip lesson" className="icon-button danger" disabled={Boolean(busy)} onClick={() => mutate("skip", selected.id)} title="Skip lesson" type="button"><SkipForward aria-hidden="true" size={18} /></button> : null}
