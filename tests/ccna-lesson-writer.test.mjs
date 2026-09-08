@@ -11,6 +11,30 @@ const cutoff = () => ({ status: "incomplete", incomplete_details: { reason: "max
 const schema = ccnaOpenAIResponseSchema(["https://www.cisco.com/", "https://docs.gns3.com/"]);
 const partValues = (part) => Object.fromEntries(part.schema.required.map((key) => [key, `${part.name}:${key}`]));
 
+test("topic-owned lab and visual are assembled but not regenerated or repeated in paid writing context", async () => {
+  const fixedFields = { lab: { fixed: "complete topology lab" }, visualStory: { fixed: "all five complete diagrams" } };
+  for (const repair of [undefined, { candidate: { ...fixedFields, sections: "existing teaching" }, issues: ["Repair the teaching explanation."] }]) {
+    const requests = [];
+    const result = JSON.parse(await writeCcnaLessonParts({ schema, fixedFields, repair, request: async (part) => {
+      requests.push(part);
+      assert.ok(!part.schema.required.includes("lab") && !part.schema.required.includes("visualStory"));
+      assert.doesNotMatch(part.input, /complete topology lab|all five complete diagrams/);
+      return JSON.stringify(partValues(part));
+    } }));
+    assert.deepEqual(result.lab, fixedFields.lab);
+    assert.deepEqual(result.visualStory, fixedFields.visualStory);
+    assert.deepEqual(requests.map((part) => part.budgets[0]), [3000, 8000, 3500]);
+    assert.deepEqual(Object.keys(result).sort(), [...schema.required].sort());
+  }
+});
+
+test("the writer cannot overwrite a topic-owned field or accept unknown fixed fields", async () => {
+  await assert.rejects(() => writeCcnaLessonParts({ schema, fixedFields: { lab: {} }, request: async () => JSON.stringify({ lab: "replacement" }) }), /unexpected part fields/);
+  let requests = 0;
+  await assert.rejects(() => writeCcnaLessonParts({ schema, fixedFields: { invented: {} }, request: async () => { requests++; return "{}"; } }), /Unknown fixed/);
+  assert.equal(requests, 0);
+});
+
 test("writing partitions cover the complete existing schema once without weakening field limits", () => {
   const parts = ccnaLessonPartSchemas(schema);
   const keys = parts.flatMap((part) => part.schema.required);

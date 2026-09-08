@@ -12,23 +12,28 @@ const ccnaVisualNodeSchema = z.object({
   detail: z.string().max(ccnaVisualFieldLimits.nodeDetail)
 });
 
-export const ccnaVisualStorySchema = z.object({
+const ccnaVisualSceneSchema = z.object({
   conceptSelection: visualConceptSelectionSchema,
   title: z.string().min(8).max(65),
   takeaway: z.string().min(30).max(180),
   altText: z.string().min(40).max(ccnaVisualFieldLimits.altText),
   boundary: z.string().min(40).max(ccnaVisualFieldLimits.boundary),
-  layout: z.enum(["sequence", "comparison", "layers"]),
-  nodes: z.array(ccnaVisualNodeSchema).min(2).max(5),
-  connections: z.array(z.object({ id, from: id, to: id })).max(5),
+  layout: z.enum(["sequence", "comparison", "layers", "fabric"]),
+  nodes: z.array(ccnaVisualNodeSchema).min(2).max(6),
+  connections: z.array(z.object({ id, from: id, to: id })).max(6),
   stages: z.array(z.object({
     title: z.string().min(4).max(ccnaVisualFieldLimits.stageTitle),
     explanation: z.string().min(40).max(ccnaVisualFieldLimits.stageExplanation),
-    activeNodes: z.array(id).min(1).max(4),
-    activeConnections: z.array(id).max(5),
+    activeNodes: z.array(id).min(1).max(6),
+    activeConnections: z.array(id).max(6),
     direction: z.enum(["forward", "reverse", "none"]),
     sourceUrls: z.array(z.string().url()).min(1).max(3)
   })).length(3)
+});
+
+export const ccnaVisualStorySchema = ccnaVisualSceneSchema.extend({
+  // Curated comparisons are composed before review, not squeezed into one path.
+  comparisons: z.array(ccnaVisualSceneSchema).min(1).max(4).optional()
 });
 
 export type CcnaVisualStory = z.infer<typeof ccnaVisualStorySchema>;
@@ -58,6 +63,10 @@ function isCompleteNodeDetail(value: string) {
 
 export function ccnaVisualStoryIssues(story: CcnaVisualStory, sources: string[]) {
   const issues = visualConceptIssues(story.conceptSelection);
+  for (const comparison of story.comparisons || []) {
+    issues.push(...ccnaVisualStoryIssues(comparison, sources).map((issue) => `${comparison.title}: ${issue}`));
+  }
+  if (story.layout === "fabric" && story.nodes.length !== 6) issues.push("The fabric layout requires two endpoints, two leaves and two spines as six nodes.");
   const nodes = new Set(story.nodes.map((node) => node.id));
   const connections = new Set(story.connections.map((edge) => edge.id));
   if (nodes.size !== story.nodes.length || connections.size !== story.connections.length) issues.push("Use unique visual node and connection identifiers.");

@@ -78,7 +78,12 @@ export function consolidateCcnaCitations(value: unknown, allowedUrls: string[]) 
     }
   }
   reconcile(candidate.sections, "sections", "heading");
-  if (record(candidate.visualStory)) reconcile(candidate.visualStory.stages, "visualStory.stages", "title");
+  if (record(candidate.visualStory)) {
+    reconcile(candidate.visualStory.stages, "visualStory.stages", "title");
+    if (Array.isArray(candidate.visualStory.comparisons)) candidate.visualStory.comparisons.forEach((story, index) => {
+      if (record(story)) reconcile(story.stages, `visualStory.comparisons[${index}].stages`, "title");
+    });
+  }
 
   const cited = [...required].map((url) => bibliography.get(url)!);
   const uncited = [...bibliography].filter(([url]) => !required.has(url)).map(([, source]) => source);

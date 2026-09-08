@@ -27,11 +27,13 @@ export function wrapVisualLabel(text: string, limit: number) {
 export function ccnaDiagramGeometry(story: CcnaVisualStory, compact = false) {
   const vertical = compact || story.layout === "layers";
   const width = vertical ? 320 : 1080;
-  const height = vertical ? story.nodes.length * 250 : story.layout === "comparison" ? 650 : 340;
+  const fabric = !vertical && story.layout === "fabric";
+  const height = vertical ? story.nodes.length * 250 : fabric ? 740 : story.layout === "comparison" ? Math.ceil(story.nodes.length / 2) * 300 + 50 : 340;
+  const fabricPositions = [[100, 290], [310, 290], [540, 80], [540, 530], [770, 290], [980, 290]];
   const nodes = story.nodes.map((node, index) => ({
     ...node,
-    x: vertical ? 140 : story.layout === "comparison" ? 270 + (index % 2) * 540 : (width / story.nodes.length) * (index + 0.5),
-    y: vertical ? 70 + index * 250 : story.layout === "comparison" ? 90 + Math.floor(index / 2) * 300 : 110
+    x: vertical ? 140 : fabric ? fabricPositions[index][0] : story.layout === "comparison" ? 270 + (index % 2) * 540 : (width / story.nodes.length) * (index + 0.5),
+    y: vertical ? 70 + index * 250 : fabric ? fabricPositions[index][1] : story.layout === "comparison" ? 90 + Math.floor(index / 2) * 300 : 110
   }));
   return { width, height, nodes };
 }
@@ -41,7 +43,7 @@ export function CcnaVisualDiagram({ story, stageIndex = 0, compact = false, widt
   const stage = story.stages[stageIndex] || story.stages[0];
   return <svg width={width || geometry.width} height={height || geometry.height} viewBox={`0 0 ${geometry.width} ${geometry.height}`} role="img" aria-label={story.altText} xmlns="http://www.w3.org/2000/svg">
     {includeLabels ? <title>{story.altText}</title> : null}
-    {story.connections.map((edge) => {
+    {story.connections.map((edge, edgeIndex) => {
       const from = geometry.nodes.find((node) => node.id === edge.from);
       const to = geometry.nodes.find((node) => node.id === edge.to);
       if (!from || !to) return null;
@@ -56,15 +58,20 @@ export function CcnaVisualDiagram({ story, stageIndex = 0, compact = false, widt
       const uy = dy / distance;
       // Vertical links use a side lane so they never cross a node's text labels.
       const vertical = Math.abs(dx) < 1;
-      const sideLane = geometry.width === 320 ? 150 : 170;
+      const sideLane = geometry.width === 320 ? 122 + edgeIndex * 9 : 170;
       const sx = vertical ? start.x + sideLane : start.x + ux * 64;
       const sy = vertical ? start.y : start.y + uy * 64;
       const ex = vertical ? end.x + sideLane : end.x - ux * 64;
       const ey = vertical ? end.y : end.y - uy * 64;
       const color = active ? (reversed ? "#b03363" : "#087b7e") : "#b7c4ca";
+      const fabric = story.layout === "fabric" && !compact;
+      const fsx = start.x + Math.sign(dx) * 58;
+      const fex = end.x - Math.sign(dx) * 58;
+      const mid = (fsx + fex) / 2;
       return <g key={edge.id}>
-        <path d={vertical ? `M ${start.x + 58} ${sy} H ${sx} V ${ey} H ${end.x + 58}` : `M ${sx} ${sy} L ${ex} ${ey}`} fill="none" stroke={color} strokeWidth={active ? 5 : 3} strokeDasharray={active ? undefined : "7 8"} />
-        {active && stage.direction !== "none" ? vertical
+        <path data-connection={edge.id} d={fabric ? `M ${fsx} ${start.y} C ${mid} ${start.y}, ${mid} ${end.y}, ${fex} ${end.y}` : vertical ? `M ${start.x + 58} ${sy} H ${sx} V ${ey} H ${end.x + 58}` : `M ${sx} ${sy} L ${ex} ${ey}`} fill="none" stroke={color} strokeWidth={active ? 5 : 3} strokeDasharray={active ? undefined : "7 8"} />
+        {active && stage.direction !== "none" ? fabric
+          ? <polygon points={`${fex},${end.y} ${fex - Math.sign(dx) * 16},${end.y - 9} ${fex - Math.sign(dx) * 16},${end.y + 9}`} fill={color} /> : vertical
           ? <polygon points={`${ex},${(sy + ey) / 2 + uy * 15} ${ex - 10},${(sy + ey) / 2 - uy * 9} ${ex + 10},${(sy + ey) / 2 - uy * 9}`} fill={color} />
           : <polygon points={`${ex},${ey} ${ex - ux * 18 - uy * 10},${ey - uy * 18 + ux * 10} ${ex - ux * 18 + uy * 10},${ey - uy * 18 - ux * 10}`} fill={color} /> : null}
       </g>;

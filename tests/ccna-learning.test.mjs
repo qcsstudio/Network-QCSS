@@ -46,6 +46,36 @@ function generationFixture() {
   return content;
 }
 
+test("Day 3 composition passes the combined schema and citation gates before exact-revision review", async () => {
+  const { inspectCcnaLessonCandidate, runCcnaGenerationPipeline, ccnaReviewedRevisionIssues } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const { applyCcnaTopicContract, evaluateCcnaLessonForTopic } = await import("../src/lib/ccna-content-agent.ts");
+  const { ccnaTopologySources } = await import("../src/lib/ccna-topology-contract.ts");
+  const topic = ccnaCurriculum.find((item) => item.sequence === 3);
+  const draft = generationFixture();
+  const headings = ["Campus networks", "WAN connections", "SOHO gateways", "Cloud services", "Spine-leaf networks"];
+  draft.sections.forEach((section, index) => {
+    section.heading = headings[index];
+    section.sourceUrls = [ccnaTopologySources[index % ccnaTopologySources.length].url];
+  });
+  draft.sections[0].explanation += " Real campuses can have redundant switches and multiple paths; the small access lab deliberately does not.";
+  draft.sections[3].explanation += " The cloud paper comparison does not test provider failover or logical isolation.";
+  draft.sections[4].explanation += " Equal-cost multipath is a routed feature, examined only as a paper comparison here.";
+  const allowedSources = [...draft.sources.map((source) => source.url), ...ccnaTopologySources.map((source) => source.url)];
+  let reviewed;
+  const result = await runCcnaGenerationPipeline({
+    write: async () => JSON.stringify(draft),
+    inspect: (text) => inspectCcnaLessonCandidate(text, { allowedSources, prepare: (content) => applyCcnaTopicContract(topic, content), evaluate: (content) => evaluateCcnaLessonForTopic(topic, content) }),
+    review: async (content) => { reviewed = content; return { passed: true, issues: [] }; }
+  });
+  assert.deepEqual(result.quality.issues, []);
+  assert.equal(result.repairPasses, 0);
+  assert.equal(reviewed.visualStory.comparisons.length, 4);
+  assert.equal(reviewed.lab.addressing.length, 2);
+  assert.equal(reviewed.lab.steps.length, 12);
+  assert.ok(reviewed.sources.length <= 10);
+  assert.deepEqual(ccnaReviewedRevisionIssues(result.content, { editorialReview: result.review, reviewedContentDigest: result.reviewedContentDigest }), []);
+});
+
 test("a full bibliography makes room for cited visual evidence without losing citations", async () => {
   const { consolidateCcnaCitations } = await import("../src/lib/ccna-citations.ts");
   const content = generationFixture();

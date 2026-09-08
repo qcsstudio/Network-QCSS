@@ -12,6 +12,8 @@ import { ccnaSectionBoundary } from "@/lib/ccna-lesson-presentation";
 import { createCcnaOutputRunner, writeCcnaLessonParts, ccnaLessonPartSchemas, CcnaLessonOutputError } from "@/lib/ccna-lesson-writer";
 import { assertCcnaOpenAISchema } from "@/lib/ccna-openai-schema";
 import { createCcnaGenerationCheckpoint, type CcnaGenerationCheckpoint } from "@/lib/ccna-generation-checkpoint";
+import { ccnaImageLicensingNote } from "@/lib/ccna-image-licensing";
+import { applyCcnaTopologyContract, ccnaTopologyIssues, ccnaTopologySources, ccnaTopologyWritingBoundary, ccnaTopologyLab, ccnaTopologyVisual } from "@/lib/ccna-topology-contract";
 
 const allowedSourceHosts = ccnaTrustedSourceHosts;
 const technicalReviewResponseSchema = { type: "object", additionalProperties: false, properties: { passed: { type: "boolean" }, issues: { type: "array", maxItems: 10, items: { type: "string", minLength: 20, maxLength: 500 } } }, required: ["passed", "issues"] };
@@ -121,7 +123,6 @@ const dayTwoGatewayInstructions = [
   "4. In GNS3, right-click EndpointA and choose Console before typing. Repeat ping 10.1.2.10. Expect echo replies from EndpointB; this confirms recovery of this request-and-reply path, not application health. Keep verification, troubleshooting, walkthroughs and quiz explanations consistent with these results."
 ].join(" ");
 const dayTwoInterfaceMapping = "Interface mapping example: run show ip interface brief, then map the interface cabled to Switch1 as LAN1 and the interface cabled to Switch2 as LAN2. If the router shows GigabitEthernet0/0/0 and GigabitEthernet0/0/1, use the first for 10.1.1.1/24 and the second for 10.1.2.1/24. Substitute the displayed names in every interface command.";
-const ccnaImageLicensingNote = "GNS3 does not provide Cisco software images. Use a Cisco image only when the applicable Cisco license or entitlement legally permits that use, and do not share or redistribute Cisco image files. Cisco CML reference-platform images are licensed for use within CML unless a separate license permits outside use. Cisco Modeling Labs is the official alternative; built-in VPCS and Ethernet switch nodes do not require a Cisco image.";
 
 function dayTwoEndpointAddress(command: string) {
   const match = /^ip\s+(10\.1\.[12]\.10)(?:\/24|\s+255\.255\.255\.0)\s+(\S+)$/i.exec(command.trim());
@@ -204,6 +205,8 @@ function dayTwoGatewayIssues(content: CcnaLessonContent) {
 }
 
 export function applyCcnaTopicContract(topic: CcnaCurriculumTopic, content: CcnaLessonContent) {
+  content = { ...content, lab: { ...content.lab, licensingNote: ccnaImageLicensingNote } };
+  if (topic.sequence === 3) return applyCcnaTopologyContract(content);
   if (topic.sequence !== 2 || !content.visualStory) return content;
 
   const visualSources = content.visualStory.stages.map((stage) => stage.sourceUrls);
@@ -274,6 +277,7 @@ export function applyCcnaTopicContract(topic: CcnaCurriculumTopic, content: Ccna
 }
 
 export function ccnaTopicSpecificIssues(topic: CcnaCurriculumTopic, content: CcnaLessonContent) {
+  if (topic.sequence === 3) return ccnaTopologyIssues(content);
   if (topic.sequence !== 2) return [];
   const issues: string[] = [];
   const story = content.visualStory;
@@ -355,7 +359,8 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
 } = {}) {
   const config = ccnaContentAgentConfiguration();
   const startedAt = Date.now();
-  ccnaLessonPartSchemas(ccnaOpenAIResponseSchema(ccnaOfficialSources.map((source) => source.url)));
+  const officialSources = [...ccnaOfficialSources, ...(topic.sequence === 3 ? ccnaTopologySources : [])];
+  ccnaLessonPartSchemas(ccnaOpenAIResponseSchema(officialSources.map((source) => source.url)));
   assertCcnaOpenAISchema(technicalReviewResponseSchema);
   const client = openAIClient();
   const requests = createCcnaRequestRunner({
@@ -365,7 +370,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
   const researchModel = env("CCNA_RESEARCH_MODEL") || "gpt-5-mini";
   const reviewModel = env("CCNA_REVIEW_MODEL") || "gpt-4.1";
   const checkpoint = createCcnaGenerationCheckpoint({
-    scope: { version: 1, topic, model: config.model, researchModel, reviewModel, policy: ccnaTeachingPolicyVersion, contentRevision: progress.contentRevision ?? null },
+    scope: { version: 1, topic, model: config.model, researchModel, reviewModel, policy: ccnaTeachingPolicyVersion, ...(topic.sequence === 3 ? { topicContract: "five-topologies-v1" } : {}), contentRevision: progress.contentRevision ?? null },
     previous: progress.checkpoint, recentVisuals, persist: progress.onCheckpoint
   });
   await checkpoint.start();
@@ -377,6 +382,10 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     "Cisco Ethernet switch router wireless access point firewall distinct roles forwarding frames packets",
     "GNS3 VPCS ip default gateway ping command two subnets router lab",
     "RFC 1122 section 3.3.1.1 local remote gateway selection ICMP echo reply return path"
+  ] : topic.sequence === 3 ? [
+    "Cisco campus WAN SOHO topology redundant switches traffic path failure domain",
+    "Cisco leaf spine equal cost multipath NIST cloud service network isolation",
+    "GNS3 VPCS Ethernet switch first topology ip ping Cisco Modeling Labs image licensing"
   ] : [
     `${topic.title} ${topic.sequence === 1 ? "Cisco CCNA 200-301 v1.1 exam topics February 2027 v2.0" : "Cisco IOS XE configuration guide verification"}`,
     `${topic.sequence === 1 ? "GNS3 VPCS two PCs built-in Ethernet switch ping ip command getting started" : `${topic.title} GNS3 lab prerequisites troubleshooting`}`,
@@ -407,7 +416,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     evidence.push(`RESEARCH QUESTION: ${query}\n${research.output_text}`);
   }
   if (actualQueries.size < 3 || discovered.size < 3) throw new Error("CCNA research must complete three distinct searches with authoritative source evidence.");
-  const schema = ccnaOpenAIResponseSchema([...ccnaOfficialSources.map((source) => source.url), ...discovered]);
+  const schema = ccnaOpenAIResponseSchema([...officialSources.map((source) => source.url), ...discovered]);
   const topicBoundary = topic.sequence === 1
     ? "DAY ONE BOUNDARY: This is a study-method and first-observation lesson, not VLAN/OSPF configuration. Use exactly two built-in GNS3 VPCS nodes and one built-in Ethernet switch on one subnet. Supply the exact cable endpoints, IP/mask plan, VPCS ip/show ip/ping/save commands, a single reversible wrong-IP fault, and an isolated lab cleanup. No Cisco image is needed for this first lab. Explain licensing only as a boundary for later Cisco labs. Do not test unintroduced routing protocols, VLANs, or ACLs. Do not describe CCNA v1.1 as theory-only; it already includes configuration and verification."
     : topic.sequence === 2
@@ -425,6 +434,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
           "For every lab step containing a command, use this exact pattern for the correct device: right-click <node> and choose Console before typing. Repeat it when the learner returns to a console; do not rely on Day 1 memory. Include a concrete interface mapping example: after show ip interface brief, map the port cabled to Switch1 as LAN1 and the port cabled to Switch2 as LAN2. Show how GigabitEthernet0/0 and GigabitEthernet0/1 could instead appear as GigabitEthernet0/0/0 and GigabitEthernet0/0/1, and tell the learner to substitute the observed names.",
           `The renderer places teachingPrelude.labBoundary before each access-point or firewall comparison, separately from its key points. Do not spend a key-point slot on that callout. Keep every supporting explanation consistent with this boundary: ${dayTwoLabBoundary}`
         ].join(" ")
+      : topic.sequence === 3 ? ccnaTopologyWritingBoundary
       : `TOPIC BOUNDARY: Teach only ${topic.title}; use the smallest topology that proves ${topic.objective}. State every prerequisite. If GNS3 cannot reproduce a radio, cloud service, or platform feature, provide an explicitly labeled observation or paper exercise and a practical alternative instead of invented emulator behavior.`;
   const brief = [
     `AS OF: ${checkpoint.context.asOf}`,
@@ -434,7 +444,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     `Blueprint references, not teaching claims: v1.1 ${topic.v11}; v2.0 ${topic.v20}`,
     topicBoundary,
     `RECENT VISUAL CONCEPTS, FOR COMPOSITION COMPARISON ONLY:\n${checkpoint.context.recentVisuals.join("\n") || "No earlier visual plans recorded."}`,
-    `OFFICIAL REFERENCES:\n${ccnaOfficialSources.map((source) => `${source.label}: ${source.url}`).join("\n")}`,
+    `OFFICIAL REFERENCES:\n${officialSources.map((source) => `${source.label}: ${source.url}`).join("\n")}`,
     `VERIFIED RESEARCH:\n${evidence.join("\n\n")}`,
     `ALLOWED RESEARCH URLS:\n${[...discovered].join("\n")}`
   ].join("\n\n");
@@ -443,7 +453,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     ccnaBeginnerWritingPolicy,
     visualConceptInstructions,
     ccnaVisualWritingInstructions,
-    `Use 5-6 substantial teaching sections, ${topic.sequence === 2 ? "10-12" : "7-9"} real operational lab steps, 6 original practice questions, 5 original multiple-choice quiz questions, and 5-7 takeaways. Aim for 1,800-2,400 useful words. Do not fill arrays to their maximum or repeat generic material to meet length.`,
+    `Use 5-6 substantial teaching sections, ${topic.sequence === 2 || topic.sequence === 3 ? "10-12" : "7-9"} real operational lab steps, 6 original practice questions, 5 original multiple-choice quiz questions, and 5-7 takeaways. Aim for 1,800-2,400 useful words. Do not fill arrays to their maximum or repeat generic material to meet length.`,
     "Each string must be finished natural-language prose, never nested serialized JSON, internal notes, placeholders, dangling sentences, or another field's headings. Never use three dots or a Unicode ellipsis. Write a complete sentence; for variable command output, use a descriptive bracketed value such as [destination address]. The short answer answers the actual topic in 2-3 complete sentences.",
     "Define new terms before using them. Develop a mental model, a worked example, verification reasoning and a realistic fault. Distinguish what an observation proves from what it cannot prove.",
     "The lab must be exactly reproducible: named devices and cable endpoints, prerequisites, exact addresses with prefix or mask and default gateways where required, command mode/context, expected observations, deliberate reversible fault, recovery and cleanup. Never claim the lab has been executed when it has not. Licensing notes, quiz, glossary and sources are NOT lab steps.",
@@ -457,7 +467,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
   ].join(" ");
   async function writeLesson(repair?: { candidate: unknown; issues: string[] }) {
     const model = repair ? reviewModel : config.model;
-    return writeCcnaLessonParts({ schema, repair, request: async (part) => {
+    return writeCcnaLessonParts({ schema, repair, ...(topic.sequence === 3 ? { fixedFields: { lab: ccnaTopologyLab(), visualStory: ccnaTopologyVisual() } } : {}), request: async (part) => {
       const stage = `${repair ? "lesson repair" : "lesson draft"}: ${part.name}`;
       const buildRequest = (maxOutputTokens: number, recovery: boolean): OpenAI.Responses.ResponseCreateParamsNonStreaming => ({
         model, store: false,
@@ -476,10 +486,13 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
   }
   async function reviewLesson(content: unknown) {
     const model = reviewModel;
+    const comparisonReview = topic.sequence === 3
+      ? "DAY 3 VISUAL REVIEW: visualStory is the campus scene; visualStory.comparisons contains four separate WAN, SOHO, cloud and spine-leaf scenes. Inspect every scene, path, destination, boundary and citation. Do not demand that one packet traverse all five designs or that paper-only device roles be installed as GNS3 appliances. The executable campus lab and the paper comparisons must agree with the teaching body and assessments. The complete teachingPrelude is displayed before the visual, beginner guide and main body; count its explicit definitions when assessing first use. No Cisco IOS console is used, so do not require privileged EXEC or shutdown instruction, but reject invented IOS tasks on the built-in nodes. Check that ping verifies only the tested exchange, not a hub-and-spoke design. For spine-leaf questions distinguish the illustrated two-link inter-leaf path from a universal hop-count rule, account for same-leaf traffic and eligible ECMP alternatives, and evaluate the selected answer and explanation rather than treating incorrect distractors as claims. Check that analogies explicitly state their limits and are not used as literal network rules."
+      : "";
     const buildRequest = (maxOutputTokens: number, recovery: boolean): OpenAI.Responses.ResponseCreateParamsNonStreaming => ({
       model,
       store: false,
-      instructions: "Act as an independent Cisco instructor and technical editor. Review the supplied lesson against the source evidence and topic boundary. Reject factual errors, incomplete or contradictory lab topology/configuration, unsupported commands, ambiguous quiz answers, misleading exam-version claims, unintroduced advanced scope, repeated filler, serialized data in prose, and visual text that ends abruptly or appears cut to a field limit. Check that each command block belongs to one named console and peer tests do not ping the device's own address. Do not confuse features unused in this lab with features unsupported by the emulator; GNS3's built-in switch has VLAN port modes. Licensing must not imply unrestricted export of Cisco images. Passing schema or word counts does not prove quality. Report only concrete actionable defects, not stylistic preferences. Omit praise, correct observations, summaries, and statements that require no change from issues. Combine related defects into one concise repair instruction and return no more than ten issues. No requirement to run real hardware. Return passed=true only if issues is empty. " + ccnaBeginnerReviewPolicy,
+      instructions: "Act as an independent Cisco instructor and technical editor. Review the supplied lesson against the source evidence and topic boundary. Reject factual errors, incomplete or contradictory lab topology/configuration, unsupported commands, ambiguous quiz answers, misleading exam-version claims, unintroduced advanced scope, repeated filler, serialized data in prose, and visual text that ends abruptly or appears cut to a field limit. Check that each command block belongs to one named console and peer tests do not ping the device's own address. Do not confuse features unused in this lab with features unsupported by the emulator; GNS3's built-in switch has VLAN port modes. Licensing must not imply unrestricted export of Cisco images. Passing schema or word counts does not prove quality. Report only concrete actionable defects, not stylistic preferences. Omit praise, correct observations, summaries, and statements that require no change from issues. Combine related defects into one concise repair instruction and return no more than ten issues. No requirement to run real hardware. Return passed=true only if issues is empty. " + ccnaBeginnerReviewPolicy + " " + comparisonReview,
       input: `${brief}\n\nVISUAL REVIEW: Check visualStory against the lesson and evidence. Verify every node label, direction, address and cited source, that each of the three stages teaches a different point, and that its boundary prevents a misleading literal interpretation. Reject concept repetition or unsupported connections.\n\nFEEDBACK FORMAT: Write each finding as a complete, concise repair instruction, preferably under 350 characters. The 500-character limit is not a truncation target. Never end a finding mid-word or mid-sentence.\n\nLESSON TO REVIEW:\n${JSON.stringify(content)}`,
       max_output_tokens: maxOutputTokens,
       ...(recovery ? { input: `${brief}\n\nReview the complete lesson again. Return complete, concise findings without repetition; the previous review reached its output ceiling.\n\nLESSON TO REVIEW:\n${JSON.stringify(content)}` } : {}),
@@ -495,7 +508,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     write: writeLesson,
     review: reviewLesson,
     inspect: (text) => inspectCcnaLessonCandidate(text, {
-      allowedSources: [...ccnaOfficialSources.map((source) => source.url), ...discovered],
+      allowedSources: [...officialSources.map((source) => source.url), ...discovered],
       prepare: (content) => applyCcnaTopicContract(topic, normalizeCcnaPresentationEllipses(content)),
       evaluate: (content) => evaluateCcnaLessonForTopic(topic, content)
     })

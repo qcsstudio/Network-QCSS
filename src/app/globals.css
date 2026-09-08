@@ -11989,6 +11989,9 @@ body:has(.portal-access-page, .portal-page, .portal-report-page, .admin-page, .a
 .ccna-visual-artwork .ccna-visual-brand { position: absolute; top: 16px; left: 16px; width: 142px; height: auto; }
 .ccna-visual-artwork figcaption { padding: 12px 0; font-size: 15px; line-height: 1.6; color: #425564; }
 .ccna-visual-stage-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid #b8cbd0; margin-top: 24px; gap: 6px; }
+.ccna-topology-nav { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #b8cbd0; margin: 20px 0; }
+.ccna-topology-nav button { min-height: 44px; padding: 10px 14px; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; color: #425564; font: inherit; font-size: 16px; line-height: 1.4; cursor: pointer; }
+.ccna-topology-nav button[aria-pressed="true"] { color: #075e62; border-bottom-color: #08777b; background: #edf7f5; font-weight: 700; }
 .ccna-visual-stage-nav button { display: flex; align-items: center; justify-content: flex-start; gap: 10px; background: transparent; color: #425564; border: 0; border-bottom: 3px solid transparent; border-radius: 0; min-height: 72px; padding: 12px 8px; font: inherit; font-size: 16px; font-weight: 650; text-align: left; line-height: 1.4; cursor: pointer; overflow-wrap: anywhere; }
 .ccna-visual-stage-nav button span { flex: 0 0 28px; font-weight: 700; color: #08777b; font-size: 22px; }
 .ccna-visual-stage-nav button[aria-pressed="true"] { color: #075e62; border-bottom-color: #08777b; background: #edf7f5; }
