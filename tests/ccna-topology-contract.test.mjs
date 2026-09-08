@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ccnaTopologyVisual, ccnaTopologyLab, ccnaTopologyPrelude, ccnaTopologySources, ccnaTopologyIssues, ccnaTopologyWritingBoundary, applyCcnaTopologyContract } from "../src/lib/ccna-topology-contract.ts";
+import { ccnaTopologyVisual, ccnaTopologyLab, ccnaTopologyPrelude, ccnaTopologySources, ccnaTopologyIssues, ccnaTopologyWritingBoundary, ccnaSpineLeafSection, applyCcnaTopologyContract } from "../src/lib/ccna-topology-contract.ts";
 import { ccnaLessonContentSchema, ccnaOpenAIResponseSchema } from "../src/lib/ccna-lesson-schema.ts";
 import { ccnaVisualStorySchema, ccnaVisualStoryIssues } from "../src/lib/ccna-visual-story.ts";
 import { consolidateCcnaCitations } from "../src/lib/ccna-citations.ts";
@@ -99,6 +99,53 @@ test("topic gates aggregate missing diagrams, wrong addressing and misleading te
   content.sections = [{ heading: "Network", explanation: "Configure SOHORouter in GNS3. Set PC1 to 172.16.0.10/24.", example: "No complete comparison.", keyPoints: [] }];
   const issues = ccnaTopologyIssues(content);
   assert.equal(issues.length, 8, issues.join("\n"));
+});
+
+test("the production ECMP omission is replaced before review without changing other sections", () => {
+  const content = fixture();
+  const section = content.sections.at(-1);
+  section.heading = "Spine-Leaf Topology: Data Center with Equal-Cost Multipath";
+  section.explanation = "Leaf switches connect servers. Equal-cost multipath (ECMP) distributes traffic over equal-cost paths for resilience.";
+  section.example = "If SpineSwitch1 fails, traffic reroutes via SpineSwitch2 without loss, thanks to ECMP. ECMP ensures fast recovery.";
+  section.keyPoints = ["Equal-cost multipath (ECMP) allows traffic load balancing."];
+  const before = structuredClone(content);
+  assert.deepEqual(ccnaTopologyIssues(content), ["State in the spine-leaf section: This paper comparison does not measure routed ECMP in GNS3; load distribution and routing convergence remain untested."]);
+  const repaired = applyCcnaTopologyContract(content);
+  assert.deepEqual(content, before, "Composition must not mutate the saved input.");
+  assert.deepEqual(repaired.sections.slice(0, -1), before.sections.slice(0, -1));
+  assert.deepEqual(repaired.sections.at(-1), ccnaSpineLeafSection());
+  assert.deepEqual(ccnaTopologyIssues(repaired), []);
+  assert.deepEqual(applyCcnaTopologyContract(repaired), repaired, "Repeated composition must not duplicate prose or sources.");
+  assert.equal(ccnaLessonContentSchema.shape.sections.element.safeParse(repaired.sections.at(-1)).success, true);
+  assert.match(repaired.sections.at(-1).explanation, /same destination.*same routing cost/);
+  assert.match(repaired.sections.at(-1).explanation, /does not measure routed ECMP in GNS3/);
+  assert.match(repaired.sections.at(-1).example, /packets may be lost/);
+  assert.doesNotMatch(JSON.stringify(repaired.sections.at(-1)), /reroutes.*without loss|ensures fast recovery/);
+  const previousApproval = { editorialReview: { passed: true, issues: [] }, reviewedContentDigest: ccnaContentDigest(before) };
+  assert.ok(ccnaReviewedRevisionIssues(repaired, previousApproval).length, "Previous approval must not authorize the repaired content.");
+});
+
+test("ECMP validation checks visible key points and distinguishes definition from boundary failures", () => {
+  const content = fixture();
+  const section = content.sections.at(-1);
+  section.explanation = "Trace the eligible routes between the leaves.";
+  section.example = "Cover a spine on the paper diagram.";
+  section.keyPoints = ["Equal\u2011cost multipath (ECMP) uses eligible routes to the same destination with the same routing cost.", "This paper comparison does not measure routed ECMP in GNS3."];
+  assert.deepEqual(ccnaTopologyIssues(content), []);
+  section.keyPoints.shift();
+  assert.ok(ccnaTopologyIssues(content).some((issue) => issue.startsWith("Define equal-cost multipath")));
+  section.keyPoints = ["Equal-cost multipath is discussed in this paper exercise.", "We measure routed ECMP in GNS3."];
+  assert.ok(ccnaTopologyIssues(content).some((issue) => issue.startsWith("State in the spine-leaf section")));
+});
+
+test("missing or duplicate spine-leaf sections are held instead of overwriting unrelated teaching", () => {
+  for (const count of [0, 2]) {
+    const content = fixture();
+    content.sections = [...content.sections.slice(0, -1), ...Array.from({ length: count }, () => ccnaSpineLeafSection())];
+    const repaired = applyCcnaTopologyContract(content);
+    assert.deepEqual(repaired.sections, content.sections);
+    assert.ok(ccnaTopologyIssues(repaired).some((issue) => issue.startsWith("Include one clearly named spine-leaf")));
+  }
 });
 
 test("comparison citations survive canonicalization and source limits include all five scenes", () => {

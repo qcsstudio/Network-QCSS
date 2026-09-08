@@ -182,11 +182,40 @@ export function ccnaTopologyLab(): CcnaLessonContent["lab"] {
   };
 }
 
+export function ccnaSpineLeafSection(): CcnaLessonContent["sections"][number] {
+  return {
+    heading: "Spine-leaf topology: equal-cost paths on paper",
+    explanation: [
+      "Leaf switches connect endpoint devices. Spine switches connect the leaves to one another. In this drawing, each leaf connects to both spines. Equal-cost multipath (ECMP) allows a routing device to use multiple eligible routes to the same destination when those routes have the same routing cost. Cost is a route-selection value, not a money price. Traffic is commonly assigned by flow, meaning related packets such as one download. ECMP does not duplicate each packet across every spine or guarantee an even split of traffic.",
+      "Lab boundary: This spine-leaf comparison is a paper exercise. It does not measure routed ECMP in GNS3, load distribution, failure-detection time or routing convergence. Convergence means updating forwarding choices after the network changes. GNS3's built-in Ethernet switch provides switching, not the routed ECMP implementation needed for this experiment. A routed test needs capable, properly licensed devices and a separate configuration. The live campus ping exercise tests only its local path."
+    ].join("\n\n"),
+    example: "On paper, trace Spine PC to LeafSwitch1, SpineSwitch1, LeafSwitch2 and Spine Server. Trace the alternative through SpineSwitch2 using the same source, leaves and destination. Cover SpineSwitch1: the second drawn route remains. Restore it, then cover LeafSwitch2: this drawn, single-attached Spine Server has no remaining path. Single-attached means the server connects to only one leaf. These observations identify path dependencies; they do not demonstrate automatic or loss-free recovery. In a configured network, recovery depends on failure detection, routing updates and an eligible surviving route; packets may be lost during the change.",
+    keyPoints: [
+      "Equal-cost routes are eligible routes to the same destination with the same routing cost; extra cables alone do not enable ECMP.",
+      "A flow commonly uses one selected path. Multiple eligible paths do not guarantee equal traffic shares or copy every packet to every spine.",
+      "Both drawn paths end at Spine Server. Losing its only leaf removes this server's paths, not necessarily those of every server in a real fabric.",
+      "The illustrated inter-leaf path crosses one spine and two fabric links. Same-leaf traffic need not cross a spine; this is not a universal IP hop-count rule.",
+      "This paper comparison does not measure routed ECMP in GNS3. Load balancing, routing convergence and recovery timing remain untested."
+    ],
+    sourceUrls: [refs.fabric, refs.switching]
+  };
+}
+
+function isSpineLeafSection(section: CcnaLessonContent["sections"][number]) {
+  return /\bspines?\b/i.test(section.heading) && /\b(?:leaf|leaves)\b/i.test(section.heading);
+}
+
 export function applyCcnaTopologyContract(content: CcnaLessonContent): CcnaLessonContent {
   const sources = [...content.sources];
   for (const source of ccnaTopologySources) if (!sources.some((item) => item.url === source.url)) sources.push(source);
+  // Replace the complete section before review, rather than adding a disclaimer
+  // beneath generated claims of guaranteed recovery. Ambiguous sections stay held.
+  const spineSections = content.sections.filter(isSpineLeafSection);
+  const sections = spineSections.length === 1
+    ? content.sections.map((section) => isSpineLeafSection(section) ? ccnaSpineLeafSection() : section)
+    : content.sections;
   // Citation reconciliation follows composition and retains all actually cited evidence.
-  return { ...content, sources, visualStory: ccnaTopologyVisual(), lab: ccnaTopologyLab(), teachingPrelude: structuredClone(ccnaTopologyPrelude) };
+  return { ...content, sections, sources, visualStory: ccnaTopologyVisual(), lab: ccnaTopologyLab(), teachingPrelude: structuredClone(ccnaTopologyPrelude) };
 }
 
 export function ccnaTopologyIssues(content: CcnaLessonContent): string[] {
@@ -206,7 +235,17 @@ export function ccnaTopologyIssues(content: CcnaLessonContent): string[] {
   if (/\b(?:add|install|drag|configure)\b[^.\n]{0,65}\b(?:SOHORouter|CloudDevice|SpineSwitch[12]|LeafSwitch[12])\b/i.test(teaching)) issues.push("Treat WAN, SOHO, cloud and spine-leaf as named paper models, not invented GNS3 templates or configured appliances.");
   if (!content.sections.some((s) => /campus/i.test(s.heading) && /redundan|backup/i.test(`${s.explanation} ${s.example} ${s.keyPoints.join(" ")}`))) issues.push("Explain redundant campus switches and paths in the campus section; the single-switch failure result applies only to this lab.");
   if (!content.sections.some((s) => /cloud/i.test(s.heading) && /paper/i.test(`${s.explanation} ${s.example}`) && /not|cannot/i.test(`${s.explanation} ${s.example}`))) issues.push("The cloud section must explicitly separate its paper comparison from untested provider failover and logical isolation.");
-  if (!content.sections.some((s) => /spine|leaf/i.test(s.heading) && /equal.cost multipath/i.test(`${s.explanation} ${s.example}`) && /paper|not simulated/i.test(`${s.explanation} ${s.example}`))) issues.push("Define equal-cost multipath in the spine-leaf section and explain that the paper comparison does not measure routed ECMP in GNS3.");
+  const spineSections = content.sections.filter(isSpineLeafSection);
+  if (spineSections.length !== 1) {
+    issues.push("Include one clearly named spine-leaf teaching section with the ECMP definition and paper-only GNS3 boundary.");
+  } else {
+    const section = spineSections[0];
+    const text = [section.explanation, section.example, ...section.keyPoints].join("\n").normalize("NFKC").replace(/[\u2010-\u2015\u2212]/g, "-");
+    if (!/equal[-\s]+cost\s+multi[-\s]?path/i.test(text)) issues.push("Define equal-cost multipath (ECMP) in the spine-leaf section's explanation, worked example or key points, not only its heading or glossary.");
+    if (!/paper/i.test(text) || !/GNS3/i.test(text) || !/(?:does not|do not|cannot)\s+(?:measure|test|simulate|demonstrate)\s+(?:routed\s+)?ECMP|(?:routed\s+)?ECMP\s+(?:is\s+)?not\s+(?:measured|tested|simulated|demonstrated)/i.test(text)) {
+      issues.push("State in the spine-leaf section: This paper comparison does not measure routed ECMP in GNS3; load distribution and routing convergence remain untested.");
+    }
+  }
   return issues;
 }
 
@@ -218,6 +257,7 @@ export const ccnaTopologyWritingBoundary = [
   "The prelude defines interface, console, ping, ICMP, echo request and echo reply before commands. Explain that successful replies verify this tested exchange, not an application or hub-and-spoke WAN design. There is no Cisco IOS console in this lab: do not add privileged EXEC, enable, configure terminal, shutdown or show interfaces tasks. Do not copy command explanations between different devices or tests.",
   "WAN: BranchPC - BranchRouter - RemoteRouter - RemoteServer. SOHO: SOHO PC - SOHORouter - SOHO Server on another network. Cloud: CloudDevice - CloudGateway - Cloud Server. These are paper device roles, NOT GNS3 appliance templates. Provider routers, public-cloud failover and logical isolation are not emulated. Offer the campus cable fault as a local-connectivity comparison, never as proof of cloud resilience.",
   "Spine-leaf: Spine PC - LeafSwitch1 - either SpineSwitch1 or SpineSwitch2 - LeafSwitch2 - Spine Server. Every leaf connects to both spines. Define equal-cost multipath (ECMP) before use. Cover a spine on paper to trace the alternative; cover LeafSwitch2 to show loss of this single-attached server. These are not emulator results. Built-in GNS3 switches can connect multiple links but do not provide routed ECMP; do not create loops to pretend otherwise.",
+  `The application replaces the single spine-leaf teaching section with this maintained content BEFORE independent review. Include one clearly named spine-leaf section in the sections array. Keep every other teaching field and assessment consistent with it; never promise even load sharing, automatic loss-free recovery or measured routed ECMP in this paper exercise. Section: ${JSON.stringify(ccnaSpineLeafSection())}`,
   "Scope spine-leaf questions to the illustrated fabric. The path between these leaves crosses one spine and two fabric links, not an unconditional two-hop rule for all endpoint traffic or all fabrics. Same-leaf traffic need not cross a spine. Distinguish physical links from IP hop counts. ECMP supplies eligible alternatives; it does not require every packet to visit every spine or be duplicated.",
   "The campus lab is a deliberately nonredundant access segment, not a claim that campuses have only one switch. Explain that real campuses can have redundant switches, uplinks and routing. Scope every failure question to the drawn example; never assert that one switch failure disables every campus.",
   "Write one clearly named teaching section for each of the five topologies, with an optional sixth synthesis section. Include full paths, failure reasoning and explicit exercise boundaries in the body, not only in a glossary. Use the prelude's definitions, including access, distribution, core, spine, leaf, interface, ping and ICMP. Define any extra term directly before its first teaching use; quiz answers may not depend on untaught concepts.",

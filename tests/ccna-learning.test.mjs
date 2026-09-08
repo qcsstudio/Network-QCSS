@@ -49,7 +49,7 @@ function generationFixture() {
 test("Day 3 composition passes the combined schema and citation gates before exact-revision review", async () => {
   const { inspectCcnaLessonCandidate, runCcnaGenerationPipeline, ccnaReviewedRevisionIssues } = await import("../src/lib/ccna-generation-pipeline.ts");
   const { applyCcnaTopicContract, evaluateCcnaLessonForTopic } = await import("../src/lib/ccna-content-agent.ts");
-  const { ccnaTopologySources } = await import("../src/lib/ccna-topology-contract.ts");
+  const { ccnaTopologySources, ccnaSpineLeafSection } = await import("../src/lib/ccna-topology-contract.ts");
   const topic = ccnaCurriculum.find((item) => item.sequence === 3);
   const draft = generationFixture();
   const headings = ["Campus networks", "WAN connections", "SOHO gateways", "Cloud services", "Spine-leaf networks"];
@@ -59,7 +59,7 @@ test("Day 3 composition passes the combined schema and citation gates before exa
   });
   draft.sections[0].explanation += " Real campuses can have redundant switches and multiple paths; the small access lab deliberately does not.";
   draft.sections[3].explanation += " The cloud paper comparison does not test provider failover or logical isolation.";
-  draft.sections[4].explanation += " Equal-cost multipath is a routed feature, examined only as a paper comparison here.";
+  draft.sections[4].explanation += " ECMP ensures fast recovery and traffic reroutes without loss.";
   const allowedSources = [...draft.sources.map((source) => source.url), ...ccnaTopologySources.map((source) => source.url)];
   let reviewed;
   const result = await runCcnaGenerationPipeline({
@@ -72,6 +72,7 @@ test("Day 3 composition passes the combined schema and citation gates before exa
   assert.equal(reviewed.visualStory.comparisons.length, 4);
   assert.equal(reviewed.lab.addressing.length, 2);
   assert.equal(reviewed.lab.steps.length, 12);
+  assert.deepEqual(reviewed.sections[4], ccnaSpineLeafSection(), "The independent reviewer must receive the corrected section, not the original overclaim.");
   assert.ok(reviewed.sources.length <= 10);
   assert.deepEqual(ccnaReviewedRevisionIssues(result.content, { editorialReview: result.review, reviewedContentDigest: result.reviewedContentDigest }), []);
 });

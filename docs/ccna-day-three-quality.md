@@ -14,9 +14,10 @@ The previous generic visual contract allowed five nodes and three stages, while 
 - Campus redundancy is explained as a production design option, not confused with the deliberately nonredundant lab.
 - The first teaching block defines access, distribution, core, spine, leaf, interface, console, ping and ICMP before the visual or commands. It explains echo requests/replies, limits the traffic test's conclusion and explicitly limits everyday analogies.
 - The writer and independent reviewer distinguish two illustrated inter-leaf links from a universal hop-count rule. Same-leaf traffic and eligible ECMP alternatives are covered; the fixed lab contains no invented Cisco IOS tasks on built-in nodes.
+- The single spine-leaf teaching section is composed from maintained, cited prose before review. Its definition, example and key points explicitly separate ECMP routing from paper path tracing and reject guarantees of even load sharing or loss-free recovery. Other sections remain unchanged. Missing or duplicate spine-leaf sections are held, not guessed.
 - The Cisco image note follows the applicable-license boundary and prohibits sharing or redistribution. CML reference images require permission for use outside CML.
 
-The writer generates the surrounding teaching, scenarios, questions and citations. It does not regenerate the fixed lab or diagrams. Their full content is assembled before independent review, and approval must match that exact content digest. Cached Day 3 writing from the old contract is incompatible and is not accepted as a reviewed new lesson.
+The writer generates the surrounding teaching, scenarios, questions and citations. It does not regenerate the fixed lab or diagrams; the spine-leaf teaching section is replaced during composition. Their full content is assembled before independent review, and approval must match that exact content digest. Cached Day 3 writing from the old contract is incompatible and is not accepted as a reviewed new lesson. A changed section cannot reuse an approval for the previous revision.
 
 ## Verification
 
