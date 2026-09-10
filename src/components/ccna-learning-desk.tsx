@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpenCheck, CalendarCheck, Check, Clipboard, ExternalLink, GraduationCap, LoaderCircle, Play, RefreshCcw, Send, SkipForward } from "lucide-react";
+import { BookOpenCheck, CalendarCheck, Check, Clipboard, ExternalLink, GraduationCap, LoaderCircle, Play, RefreshCcw, RotateCcw, Send, SkipForward } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { CcnaLessonRecord } from "@/lib/ccna-learning";
 import { buildCcnaNewsletterEdition } from "@/lib/ccna-newsletter";
@@ -84,6 +84,7 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
           {selected.lastError ? <p className="ccna-admin-error">{selected.lastError}</p> : null}
           {selected.generationProgress ? <p className="ccna-admin-beginner-status" role="status">{selected.generationProgress.completedSteps} completed stages saved. {selected.status === "retry" ? `Paused at ${selected.generationProgress.stage}. ${cooldownSeconds === null ? "Checking provider cooldown." : cooldownSeconds ? `Resume available in ${cooldownSeconds} seconds.` : "Ready to resume."}` : selected.status === "generating" ? "Generation in progress." : "Saved progress is available for a manual retry after resolving the operational error."}</p> : null}
           <div className="ccna-admin-actions">
+            {selected.status === "skipped" ? <button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("draft", selected.id)} type="button"><RotateCcw aria-hidden="true" size={17} /> Restore to draft</button> : null}
             {["scheduled", "retry", "needs_review", "draft"].includes(selected.status) ? <button className="button secondary" disabled={Boolean(busy) || cooldownSeconds === null || cooldownSeconds > 0} onClick={() => mutate("generate", selected.id)} type="button"><RefreshCcw aria-hidden="true" size={17} /> {selected.generationProgress ? "Resume generation" : selected.content ? "Regenerate" : "Generate lesson"}</button> : null}
             {["draft", "needs_review"].includes(selected.status) && selected.content ? <button className="button primary" disabled={Boolean(busy)} onClick={() => mutate("publish", selected.id)} type="button"><Check aria-hidden="true" size={17} /> Publish</button> : null}
             {selected.status === "published" ? <><Link className="button secondary" href={`/courses/ccna/lessons/${selected.slug}`} target="_blank">Open lesson <ExternalLink aria-hidden="true" size={16} /></Link><button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("queue_linkedin", selected.id)} type="button"><Send aria-hidden="true" size={17} /> Queue LinkedIn</button><button className="button secondary" onClick={copyEdition} type="button">{copied ? <Check aria-hidden="true" size={17} /> : <Clipboard aria-hidden="true" size={17} />} {copied ? "Copied" : "Copy native edition"}</button><a className="button secondary" href="https://www.linkedin.com/article/new/" rel="noreferrer" target="_blank">Open LinkedIn editor <ExternalLink aria-hidden="true" size={16} /></a><button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("draft", selected.id)} type="button">Return to draft</button></> : null}
