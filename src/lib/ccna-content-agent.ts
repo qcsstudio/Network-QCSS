@@ -14,6 +14,7 @@ import { assertCcnaOpenAISchema } from "@/lib/ccna-openai-schema";
 import { createCcnaGenerationCheckpoint, type CcnaGenerationCheckpoint } from "@/lib/ccna-generation-checkpoint";
 import { ccnaImageLicensingNote } from "@/lib/ccna-image-licensing";
 import { applyCcnaTopologyContract, ccnaTopologyIssues, ccnaTopologySources, ccnaTopologyWritingBoundary, ccnaTopologyLab, ccnaTopologyVisual } from "@/lib/ccna-topology-contract";
+import { applyCcnaLayeredContract, ccnaLayeredIssues, ccnaLayeredSources, ccnaLayeredWritingBoundary, ccnaLayeredLab, ccnaLayeredVisual } from "@/lib/ccna-layered-contract";
 
 const allowedSourceHosts = ccnaTrustedSourceHosts;
 const technicalReviewResponseSchema = { type: "object", additionalProperties: false, properties: { passed: { type: "boolean" }, issues: { type: "array", maxItems: 10, items: { type: "string", minLength: 20, maxLength: 500 } } }, required: ["passed", "issues"] };
@@ -207,6 +208,7 @@ function dayTwoGatewayIssues(content: CcnaLessonContent) {
 export function applyCcnaTopicContract(topic: CcnaCurriculumTopic, content: CcnaLessonContent) {
   content = { ...content, lab: { ...content.lab, licensingNote: ccnaImageLicensingNote } };
   if (topic.sequence === 3) return applyCcnaTopologyContract(content);
+  if (topic.sequence === 4) return applyCcnaLayeredContract(content);
   if (topic.sequence !== 2 || !content.visualStory) return content;
 
   const visualSources = content.visualStory.stages.map((stage) => stage.sourceUrls);
@@ -278,6 +280,7 @@ export function applyCcnaTopicContract(topic: CcnaCurriculumTopic, content: Ccna
 
 export function ccnaTopicSpecificIssues(topic: CcnaCurriculumTopic, content: CcnaLessonContent) {
   if (topic.sequence === 3) return ccnaTopologyIssues(content);
+  if (topic.sequence === 4) return ccnaLayeredIssues(content);
   if (topic.sequence !== 2) return [];
   const issues: string[] = [];
   const story = content.visualStory;
@@ -359,7 +362,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
 } = {}) {
   const config = ccnaContentAgentConfiguration();
   const startedAt = Date.now();
-  const officialSources = [...ccnaOfficialSources, ...(topic.sequence === 3 ? ccnaTopologySources : [])];
+  const officialSources = [...ccnaOfficialSources, ...(topic.sequence === 3 ? ccnaTopologySources : topic.sequence === 4 ? ccnaLayeredSources : [])];
   ccnaLessonPartSchemas(ccnaOpenAIResponseSchema(officialSources.map((source) => source.url)));
   assertCcnaOpenAISchema(technicalReviewResponseSchema);
   const client = openAIClient();
@@ -370,7 +373,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
   const researchModel = env("CCNA_RESEARCH_MODEL") || "gpt-5-mini";
   const reviewModel = env("CCNA_REVIEW_MODEL") || "gpt-4.1";
   const checkpoint = createCcnaGenerationCheckpoint({
-    scope: { version: 1, topic, model: config.model, researchModel, reviewModel, policy: ccnaTeachingPolicyVersion, ...(topic.sequence === 3 ? { topicContract: "five-topologies-v1" } : {}), contentRevision: progress.contentRevision ?? null },
+    scope: { version: 1, topic, model: config.model, researchModel, reviewModel, policy: ccnaTeachingPolicyVersion, ...(topic.sequence === 3 ? { topicContract: "five-topologies-v1" } : topic.sequence === 4 ? { topicContract: "layered-diagnostics-v1" } : {}), contentRevision: progress.contentRevision ?? null },
     previous: progress.checkpoint, recentVisuals, persist: progress.onCheckpoint
   });
   await checkpoint.start();
@@ -386,6 +389,10 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     "Cisco campus WAN SOHO topology redundant switches traffic path failure domain",
     "Cisco leaf spine equal cost multipath NIST cloud service network isolation",
     "GNS3 VPCS Ethernet switch first topology ip ping Cisco Modeling Labs image licensing"
+  ] : topic.sequence === 4 ? [
+    "RFC 1122 Cisco OSI TCP IP models ICMP layer ping limitations ARP filtering troubleshooting",
+    "Cisco IOS numbered ACL 199 show access-lists no ip access-group no access-list baseline rollback",
+    "GNS3 VPCS console Cisco router interface mapping show ip interface brief administratively down no shutdown image licensing"
   ] : [
     `${topic.title} ${topic.sequence === 1 ? "Cisco CCNA 200-301 v1.1 exam topics February 2027 v2.0" : "Cisco IOS XE configuration guide verification"}`,
     `${topic.sequence === 1 ? "GNS3 VPCS two PCs built-in Ethernet switch ping ip command getting started" : `${topic.title} GNS3 lab prerequisites troubleshooting`}`,
@@ -435,6 +442,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
           `The renderer places teachingPrelude.labBoundary before each access-point or firewall comparison, separately from its key points. Do not spend a key-point slot on that callout. Keep every supporting explanation consistent with this boundary: ${dayTwoLabBoundary}`
         ].join(" ")
       : topic.sequence === 3 ? ccnaTopologyWritingBoundary
+      : topic.sequence === 4 ? ccnaLayeredWritingBoundary
       : `TOPIC BOUNDARY: Teach only ${topic.title}; use the smallest topology that proves ${topic.objective}. State every prerequisite. If GNS3 cannot reproduce a radio, cloud service, or platform feature, provide an explicitly labeled observation or paper exercise and a practical alternative instead of invented emulator behavior.`;
   const brief = [
     `AS OF: ${checkpoint.context.asOf}`,
@@ -453,7 +461,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     ccnaBeginnerWritingPolicy,
     visualConceptInstructions,
     ccnaVisualWritingInstructions,
-    `Use 5-6 substantial teaching sections, ${topic.sequence === 2 || topic.sequence === 3 ? "10-12" : "7-9"} real operational lab steps, 6 original practice questions, 5 original multiple-choice quiz questions, and 5-7 takeaways. Aim for 1,800-2,400 useful words. Do not fill arrays to their maximum or repeat generic material to meet length.`,
+    `Use 5-6 substantial teaching sections, ${topic.sequence === 4 ? "the 14 supplied" : topic.sequence === 2 || topic.sequence === 3 ? "10-12" : "7-9"} real operational lab steps, 6 original practice questions, 5 original multiple-choice quiz questions, and 5-7 takeaways. Aim for 1,800-2,400 useful words. Do not fill arrays to their maximum or repeat generic material to meet length.`,
     "Each string must be finished natural-language prose, never nested serialized JSON, internal notes, placeholders, dangling sentences, or another field's headings. Never use three dots or a Unicode ellipsis. Write a complete sentence; for variable command output, use a descriptive bracketed value such as [destination address]. The short answer answers the actual topic in 2-3 complete sentences.",
     "Define new terms before using them. Develop a mental model, a worked example, verification reasoning and a realistic fault. Distinguish what an observation proves from what it cannot prove.",
     "The lab must be exactly reproducible: named devices and cable endpoints, prerequisites, exact addresses with prefix or mask and default gateways where required, command mode/context, expected observations, deliberate reversible fault, recovery and cleanup. Never claim the lab has been executed when it has not. Licensing notes, quiz, glossary and sources are NOT lab steps.",
@@ -467,7 +475,9 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
   ].join(" ");
   async function writeLesson(repair?: { candidate: unknown; issues: string[] }) {
     const model = repair ? reviewModel : config.model;
-    return writeCcnaLessonParts({ schema, repair, ...(topic.sequence === 3 ? { fixedFields: { lab: ccnaTopologyLab(), visualStory: ccnaTopologyVisual() } } : {}), request: async (part) => {
+    const fixedFields = topic.sequence === 3 ? { lab: ccnaTopologyLab(), visualStory: ccnaTopologyVisual() }
+      : topic.sequence === 4 ? { lab: ccnaLayeredLab(), visualStory: ccnaLayeredVisual() } : undefined;
+    return writeCcnaLessonParts({ schema, repair, fixedFields, request: async (part) => {
       const stage = `${repair ? "lesson repair" : "lesson draft"}: ${part.name}`;
       const buildRequest = (maxOutputTokens: number, recovery: boolean): OpenAI.Responses.ResponseCreateParamsNonStreaming => ({
         model, store: false,

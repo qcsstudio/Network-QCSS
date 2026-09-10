@@ -61,6 +61,16 @@ function isCompleteNodeDetail(value: string) {
   return text.length > 0 && !/\.{3}|…/.test(text) && !/[,;:\-]$/.test(text) && !danglingNodeEnding.test(text);
 }
 
+function hasBalancedBrackets(value: string) {
+  const stack: string[] = [];
+  const pairs: Record<string, string> = { ")": "(", "]": "[", "}": "{" };
+  for (const char of value) {
+    if ("([{".includes(char)) stack.push(char);
+    else if (char in pairs && stack.pop() !== pairs[char]) return false;
+  }
+  return stack.length === 0;
+}
+
 export function ccnaVisualStoryIssues(story: CcnaVisualStory, sources: string[]) {
   const issues = visualConceptIssues(story.conceptSelection);
   for (const comparison of story.comparisons || []) {
@@ -82,6 +92,10 @@ export function ccnaVisualStoryIssues(story: CcnaVisualStory, sources: string[])
     issues.push(`Rewrite the visual boundary as one or two complete sentences within ${ccnaVisualTextBudgets.boundary} characters; current length is ${story.boundary.length}. State what the diagram omits and why without clipping.`);
   }
   const incompleteNodeDetails = story.nodes.filter((node) => node.detail.length > ccnaVisualTextBudgets.nodeDetail || !isCompleteNodeDetail(node.detail));
+  const incompleteNodeLabels = story.nodes.filter((node) => !isCompleteNodeDetail(node.label) || !hasBalancedBrackets(node.label));
+  if (incompleteNodeLabels.length) {
+    issues.push(`Rewrite complete device labels for: ${incompleteNodeLabels.map((node) => node.id).join(", ")}. Do not leave open brackets or clipped addresses; move addressing into stages and the addressing table.`);
+  }
   if (incompleteNodeDetails.length) {
     issues.push(`Rewrite node details as complete phrases of no more than ${ccnaVisualTextBudgets.nodeDetail} characters for: ${incompleteNodeDetails.map((node) => node.label).join(", ")}. Move supporting explanation into the visual stages instead of cutting text.`);
   }

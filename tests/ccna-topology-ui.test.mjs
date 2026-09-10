@@ -8,12 +8,15 @@ import { chromium } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import postcss from "postcss";
 import { ccnaTopologyPrelude, ccnaTopologyVisual } from "../src/lib/ccna-topology-contract.ts";
+import { ccnaLayeredPrelude, ccnaLayeredVisual } from "../src/lib/ccna-layered-contract.ts";
 
-test("five interactive comparisons have complete, unclipped diagrams at desktop and mobile sizes", async () => {
-  const story = ccnaTopologyVisual();
-  const scenes = [story, ...story.comparisons];
+for (const { day, story, prelude } of [
+  { day: 3, story: ccnaTopologyVisual(), prelude: ccnaTopologyPrelude },
+  { day: 4, story: ccnaLayeredVisual(), prelude: ccnaLayeredPrelude }
+]) test(`Day ${day} interactive diagrams and definitions remain complete at desktop and mobile sizes`, async () => {
+  const scenes = [story, ...(story.comparisons || [])];
   const bundle = await build({ stdin: {
-    contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {CcnaTeachingPrelude} from './src/components/ccna-teaching-prelude'; import {CcnaVisualExplainer} from './src/components/ccna-visual-explainer'; createRoot(document.getElementById('root')).render(<><CcnaTeachingPrelude prelude={${JSON.stringify(ccnaTopologyPrelude)}} /><CcnaVisualExplainer story={${JSON.stringify(story)}} artwork={null} /></>);`,
+    contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {CcnaTeachingPrelude} from './src/components/ccna-teaching-prelude'; import {CcnaVisualExplainer} from './src/components/ccna-visual-explainer'; createRoot(document.getElementById('root')).render(<><CcnaTeachingPrelude prelude={${JSON.stringify(prelude)}} /><CcnaVisualExplainer story={${JSON.stringify(story)}} artwork={null} /></>);`,
     resolveDir: process.cwd(), loader: "jsx"
   }, bundle: true, write: false, platform: "browser", format: "iife", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": "{}" } });
   let css = "";
@@ -36,9 +39,9 @@ test("five interactive comparisons have complete, unclipped diagrams at desktop 
     css += face;
   }
   css += `:root{${[...fontVariables].map(([key, value]) => `${key}:${value}`).join(";")}}`;
-  const directory = path.join(tmpdir(), "qcs-ccna-day3-qa");
+  const directory = path.join(tmpdir(), `qcs-ccna-day${day}-qa`);
   await mkdir(directory, { recursive: true });
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QCS CCNA Day 3 topology preview</title><style>${css}\nbody{margin:0;background:#fafbfc}main{max-width:1120px;margin:auto;padding:16px}h1{font-size:24px}</style></head><body><main><h1>CCNA Day 3: topology comparison preview</h1><article class="ccna-lesson-article" id="root"></article></main><script>${bundle.outputFiles[0].text.replaceAll("</script", "<\\/script")}</script></body></html>`;
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QCS CCNA Day ${day} visual preview</title><style>${css}\nbody{margin:0;background:#fafbfc}main{max-width:1120px;margin:auto;padding:16px}h1{font-size:24px}</style></head><body><main><h1>CCNA Day ${day}: visual preview</h1><article class="ccna-lesson-article" id="root"></article></main><script>${bundle.outputFiles[0].text.replaceAll("</script", "<\\/script")}</script></body></html>`;
   await writeFile(path.join(directory, "preview.html"), html);
   const browser = await chromium.launch({ headless: true });
   try {
@@ -49,17 +52,19 @@ test("five interactive comparisons have complete, unclipped diagrams at desktop 
       page.on("pageerror", (error) => errors.push(error.message));
       await page.route("**/*", (route) => route.request().url() === "http://ccna-topology.test/" ? route.fulfill({ contentType: "text/html", body: html }) : route.abort());
       await page.goto("http://ccna-topology.test/");
-      await page.getByRole("group", { name: "Network topologies", exact: true }).waitFor();
+      await page.locator("#visual-walkthrough").waitFor();
       await page.evaluate(() => document.fonts.ready);
-      assert.equal(await page.locator("#first-concepts dt").count(), ccnaTopologyPrelude.terms.length);
-      assert.deepEqual(await page.locator("#first-concepts dd").allTextContents(), ccnaTopologyPrelude.terms.map((term) => term.meaning));
+      assert.equal(await page.locator("#first-concepts dt").count(), prelude.terms.length);
+      assert.deepEqual(await page.locator("#first-concepts dd").allTextContents(), prelude.terms.map((term) => term.meaning));
       assert.equal(await page.evaluate(() => Boolean(document.querySelector("#first-concepts").compareDocumentPosition(document.querySelector("#visual-walkthrough")) & Node.DOCUMENT_POSITION_FOLLOWING)), true);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false, `Prelude overflow at ${width}px`);
       await page.locator("#first-concepts").screenshot({ path: path.join(directory, `First-concepts-${width}.png`) });
       for (const scene of scenes) {
-        const select = page.getByRole("group", { name: "Network topologies", exact: true }).getByRole("button", { name: scene.title, exact: true });
-        await select.click();
-        assert.equal(await select.getAttribute("aria-pressed"), "true");
+        if (story.comparisons) {
+          const select = page.getByRole("group", { name: "Network topologies", exact: true }).getByRole("button", { name: scene.title, exact: true });
+          await select.click();
+          assert.equal(await select.getAttribute("aria-pressed"), "true");
+        }
         for (let stage = 0; stage < 3; stage++) {
           await page.getByRole("group", { name: "Visual explanation steps", exact: true }).getByRole("button").nth(stage).click();
           assert.equal(await page.locator(".ccna-visual-stage-copy p").innerText(), scene.stages[stage].explanation);
@@ -87,5 +92,5 @@ test("five interactive comparisons have complete, unclipped diagrams at desktop 
       await context.close();
     }
   } finally { await browser.close(); }
-  console.log(`Day 3 component QA and preview: ${directory}`);
+  console.log(`Day ${day} component QA and preview: ${directory}`);
 });

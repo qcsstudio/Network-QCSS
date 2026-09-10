@@ -77,6 +77,36 @@ test("Day 3 composition passes the combined schema and citation gates before exa
   assert.deepEqual(ccnaReviewedRevisionIssues(result.content, { editorialReview: result.review, reviewedContentDigest: result.reviewedContentDigest }), []);
 });
 
+test("Day 4 composes complete diagnostics before combined gates and independent review", async () => {
+  const { inspectCcnaLessonCandidate, runCcnaGenerationPipeline, ccnaReviewedRevisionIssues } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const { applyCcnaTopicContract, evaluateCcnaLessonForTopic } = await import("../src/lib/ccna-content-agent.ts");
+  const { ccnaLayeredSources, ccnaLayeredLab, ccnaLayeredVisual } = await import("../src/lib/ccna-layered-contract.ts");
+  const topic = ccnaCurriculum.find((item) => item.sequence === 4);
+  const draft = generationFixture();
+  draft.visualStory.nodes[1].label = "Router (192.168.1.1/24, ";
+  draft.visualStory.nodes[1].detail = "Routes packets between ";
+  const snapshot = structuredClone(draft);
+  const allowedSources = [...draft.sources.map((source) => source.url), ...ccnaLayeredSources.map((source) => source.url)];
+  let reviewed;
+  const options = {
+    write: async () => JSON.stringify(draft),
+    inspect: (text) => inspectCcnaLessonCandidate(text, { allowedSources, prepare: (content) => applyCcnaTopicContract(topic, content), evaluate: (content) => evaluateCcnaLessonForTopic(topic, content) }),
+    review: async (content) => { reviewed = content; return { passed: true, issues: [] }; }
+  };
+  const result = await runCcnaGenerationPipeline(options);
+  assert.deepEqual(draft, snapshot);
+  assert.deepEqual(result.quality.issues, []);
+  assert.equal(result.repairPasses, 0);
+  assert.deepEqual(reviewed.visualStory, ccnaLayeredVisual());
+  assert.deepEqual(reviewed.lab, ccnaLayeredLab());
+  assert.ok(reviewed.teachingPrelude.terms.some((entry) => /Console/.test(entry.term)));
+  assert.ok(reviewed.sources.length <= 10);
+  assert.deepEqual(ccnaReviewedRevisionIssues(result.content, { editorialReview: result.review, reviewedContentDigest: result.reviewedContentDigest }), []);
+  const rejected = await runCcnaGenerationPipeline({ ...options, review: async () => ({ passed: false, issues: ["Correct a remaining teaching claim against its primary source before publishing."] }) });
+  assert.equal(rejected.quality.ready, false, "Maintained lab fields must never override a failed independent review.");
+  assert.equal(rejected.passes.length, 3, "The existing bounded review/repair policy remains in force.");
+});
+
 test("a full bibliography makes room for cited visual evidence without losing citations", async () => {
   const { consolidateCcnaCitations } = await import("../src/lib/ccna-citations.ts");
   const content = generationFixture();
