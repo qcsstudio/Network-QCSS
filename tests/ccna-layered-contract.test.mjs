@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ccnaLayeredLab, ccnaLayeredVisual, ccnaLayeredPrelude, ccnaLayeredSources, ccnaLayeredWritingBoundary, applyCcnaLayeredContract, ccnaLayeredIssues } from "../src/lib/ccna-layered-contract.ts";
+import { ccnaLayeredLab, ccnaLayeredVisual, ccnaLayeredPrelude, ccnaLayeredSources, ccnaLayeredWritingBoundary, ccnaLayeredReviewBoundary, ccnaLayeredBeginnerGuide, applyCcnaLayeredContract, ccnaLayeredIssues } from "../src/lib/ccna-layered-contract.ts";
 import { ccnaLessonContentSchema } from "../src/lib/ccna-lesson-schema.ts";
 import { ccnaVisualGenerationSchema, ccnaVisualStoryIssues } from "../src/lib/ccna-visual-story.ts";
 import { ccnaContentDigest, ccnaReviewedRevisionIssues } from "../src/lib/ccna-generation-pipeline.ts";
@@ -56,6 +56,7 @@ test("Day 4 lab and first-use definitions fit schemas and commands belong to one
   const lab = ccnaLayeredLab();
   assert.deepEqual(ccnaLessonContentSchema.shape.lab.safeParse(lab).error?.issues || [], []);
   assert.deepEqual(ccnaLessonContentSchema.shape.teachingPrelude.safeParse(ccnaLayeredPrelude).error?.issues || [], []);
+  assert.deepEqual(ccnaLessonContentSchema.shape.beginnerGuide.safeParse(ccnaLayeredBeginnerGuide()).error?.issues || [], []);
   assert.equal(lab.steps.length, 14);
   for (const step of lab.steps) {
     assert.equal(step.commands.length, step.commandExplanations.length);
@@ -135,7 +136,7 @@ test("peer tests, diagnosis limits and interface recovery cover reported beginne
 test("Day 4 composition is immutable, idempotent and invalidates old independent approval", () => {
   const before = { sources: [], sections: [{ heading: "Unchanged teaching" }], lab: {}, visualStory: { nodes: [] }, teachingPrelude: undefined };
   const snapshot = structuredClone(before);
-  assert.equal(ccnaLayeredIssues(before).length, 3);
+  assert.equal(ccnaLayeredIssues(before).length, 4);
   const after = applyCcnaLayeredContract(before);
   assert.deepEqual(before, snapshot);
   assert.deepEqual(after.sections, before.sections);
@@ -148,6 +149,19 @@ test("Day 4 composition is immutable, idempotent and invalidates old independent
   after.visualStory.nodes[2].label = "Router (";
   after.teachingPrelude = undefined;
   assert.equal(ccnaLayeredIssues(after).length, 3, "Aggregate every contract defect in one pass.");
+});
+
+test("Day 4 starts with paper predictions and supplies notes setup before executable instructions", () => {
+  const guide = ccnaLayeredBeginnerGuide();
+  assert.match(guide.startingPoint, /paper prediction.*Do not type commands yet/);
+  assert.match(guide.everydayComparison.whereItStops, /not a literal.*silently drop.*does not prove an application/);
+  assert.match(guide.walkthrough[1].whatHappens, /Before configuration.*Step 2.*mapping/);
+  assert.match(guide.walkthrough[1].why, /before any changes.*rollback/);
+  assert.match(guide.firstPractice.task, /paper only.*Do not change a live network/);
+  assert.match(ccnaLayeredLab().setup[0], /Notepad.*Day4-baseline.txt.*Ctrl\+S.*paper notebook/);
+  assert.match(ccnaLayeredPrelude.terms.find((x) => x.term === "Ping and ICMP").meaning, /internet layer, not TCP\/UDP transport.*self-ping.*local IP stack/);
+  assert.match(ccnaLayeredReviewBoundary, /Count its actual definitions.*do not require them to be repeated/);
+  assert.match(ccnaLayeredReviewBoundary, /exact field.*quote.*full lesson.*Reject actual contradictions/);
 });
 
 test("mobile and desktop diagram geometry retains every complete role and label", () => {
