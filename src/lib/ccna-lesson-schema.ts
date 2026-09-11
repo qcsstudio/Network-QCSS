@@ -177,6 +177,9 @@ export function evaluateCcnaLessonQuality(content: CcnaLessonContent) {
     issues.push("Include the required practice set and scored quiz.");
   }
   if (/\.{3}|…/.test(JSON.stringify(content))) issues.push("Remove clipped sentences and ellipses.");
+  if (!/[.!?]["')\]]?$/.test(content.plainAnswer.trim())) {
+    issues.push("Rewrite plainAnswer as complete concise sentences within 700 characters; its last sentence is unfinished. Do not clip it to the field limit.");
+  }
   const prose = [content.plainAnswer, content.learnerOutcome, ...content.takeaways, ...content.sections.flatMap((section) => [section.explanation, section.example, ...section.keyPoints])].join("\n");
   if (/["'](?:url|supports|sources|sourceUrls|label)["']\s*:|needs_search_refs|update_bibliography|\*\*(?:Prerequisites|Objectives|Learner Outcome)/i.test(prose)) {
     issues.push("Remove serialized data, generation instructions, and misplaced section headings from the teaching prose.");
