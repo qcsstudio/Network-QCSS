@@ -175,6 +175,10 @@ test("a clipped opening answer cannot pass just because it fits its character li
   assert.ok(evaluateCcnaLessonQuality(content).issues.some((issue) => /plainAnswer.*unfinished/.test(issue)));
   content.plainAnswer = "Ping sends an ICMP request and checks for a reply from the named peer. A timeout is evidence to investigate, not proof of one faulty layer.";
   assert.ok(!evaluateCcnaLessonQuality(content).issues.some((issue) => /plainAnswer/.test(issue)));
+  for (const ending of ['"', "'", ")", "\u2019", "\u201D", ')"']) {
+    const quoted = { ...content, plainAnswer: content.plainAnswer + ending };
+    assert.ok(!evaluateCcnaLessonQuality(quoted).issues.some((issue) => /plainAnswer/.test(issue)), `Complete quoted sentence ending ${ending}`);
+  }
 });
 
 test("repair-existing inspects and independently reviews the saved revision before any paid writing", async () => {
