@@ -83,15 +83,18 @@ export function inspectCcnaLessonCandidate(text: string, options: {
 }
 
 export async function runCcnaGenerationPipeline(options: {
+  initialCandidate?: unknown;
   write: (repair?: { candidate: unknown; issues: string[] }) => Promise<string>;
   inspect: (text: string) => Inspection;
   review: (candidate: unknown) => Promise<unknown>;
 }) {
   const passes: Pass[] = [];
   let repair: { candidate: unknown; issues: string[] } | undefined;
-  // One draft and at most two focused repairs: no unbounded paid retry loop.
+  // An existing draft is inspected before any writing; both paths allow at most two repairs.
   for (let attempt = 0; attempt <= 2; attempt += 1) {
-    const inspected = options.inspect(await options.write(repair));
+    const text = attempt === 0 && options.initialCandidate !== undefined
+      ? JSON.stringify(options.initialCandidate) : await options.write(repair);
+    const inspected = options.inspect(text);
     let reviewWasRun = false;
     let review: Review = { passed: false, issues: ["Independent review requires a complete lesson JSON object."] };
     if (inspected.candidate && typeof inspected.candidate === "object" && !Array.isArray(inspected.candidate)) {

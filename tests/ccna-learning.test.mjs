@@ -167,6 +167,45 @@ async function pipelineOptions(content) {
   };
 }
 
+test("repair-existing inspects and independently reviews the saved revision before any paid writing", async () => {
+  const { runCcnaGenerationPipeline, ccnaContentDigest } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const content = generationFixture();
+  let reviews = 0;
+  const result = await runCcnaGenerationPipeline({
+    ...await pipelineOptions(content), initialCandidate: content,
+    write: async () => { assert.fail("A valid existing draft must not be rewritten."); },
+    review: async (candidate) => { reviews += 1; assert.equal(candidate.metaTitle, content.metaTitle); return { passed: true, issues: [] }; }
+  });
+  assert.equal(reviews, 1);
+  assert.equal(result.quality.ready, true, result.quality.issues.join(" "));
+  assert.equal(result.repairPasses, 0);
+  assert.equal(result.reviewedContentDigest, ccnaContentDigest(result.content));
+});
+
+test("repair-existing combines findings, preserves the seed, and stops after two repairs", async () => {
+  const { runCcnaGenerationPipeline, ccnaReviewedRevisionIssues } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const content = generationFixture();
+  const snapshot = structuredClone(content);
+  let writes = 0;
+  let reviews = 0;
+  const result = await runCcnaGenerationPipeline({
+    ...await pipelineOptions(content), initialCandidate: content,
+    write: async (repair) => {
+      writes += 1;
+      assert.ok(reviews > 0, "Review the saved revision before writing a repair.");
+      assert.equal(repair.candidate.metaTitle, content.metaTitle);
+      assert.ok(repair.issues.includes("Explain the ACL ownership checkpoint before deleting a numbered list."));
+      return JSON.stringify(content);
+    },
+    review: async () => { reviews += 1; return { passed: false, issues: ["Explain the ACL ownership checkpoint before deleting a numbered list."] }; }
+  });
+  assert.equal(writes, 2);
+  assert.equal(reviews, 3);
+  assert.equal(result.quality.ready, false);
+  assert.deepEqual(content, snapshot);
+  assert.ok(ccnaReviewedRevisionIssues(result.content, { editorialReview: result.review, reviewedContentDigest: result.reviewedContentDigest }).length);
+});
+
 test("one repair receives all schema, citation and technical findings plus the actual draft", async () => {
   const { runCcnaGenerationPipeline, ccnaContentDigest } = await import("../src/lib/ccna-generation-pipeline.ts");
   const valid = generationFixture();

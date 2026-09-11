@@ -358,6 +358,7 @@ export function evaluateCcnaLessonForTopic(topic: CcnaCurriculumTopic, content: 
 export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, recentVisuals: string[] = [], progress: {
   checkpoint?: unknown;
   contentRevision?: unknown;
+  repairExisting?: boolean;
   onCheckpoint?: (checkpoint: CcnaGenerationCheckpoint) => Promise<void>;
 } = {}) {
   const config = ccnaContentAgentConfiguration();
@@ -373,7 +374,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
   const researchModel = env("CCNA_RESEARCH_MODEL") || "gpt-5-mini";
   const reviewModel = env("CCNA_REVIEW_MODEL") || "gpt-4.1";
   const checkpoint = createCcnaGenerationCheckpoint({
-    scope: { version: 1, topic, model: config.model, researchModel, reviewModel, policy: ccnaTeachingPolicyVersion, ...(topic.sequence === 3 ? { topicContract: "five-topologies-v1" } : topic.sequence === 4 ? { topicContract: "layered-diagnostics-v2" } : {}), contentRevision: progress.contentRevision ?? null },
+    scope: { version: 1, topic, model: config.model, researchModel, reviewModel, policy: ccnaTeachingPolicyVersion, ...(topic.sequence === 3 ? { topicContract: "five-topologies-v1" } : topic.sequence === 4 ? { topicContract: "layered-diagnostics-v3" } : {}), repairExisting: !!progress.repairExisting, contentRevision: progress.contentRevision ?? null },
     previous: progress.checkpoint, recentVisuals, persist: progress.onCheckpoint
   });
   await checkpoint.start();
@@ -519,6 +520,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     try { return JSON.parse(response.output_text) as unknown; } catch { return null; }
   }
   const result = await runCcnaGenerationPipeline({
+    ...(progress.repairExisting ? { initialCandidate: progress.contentRevision } : {}),
     write: writeLesson,
     review: reviewLesson,
     inspect: (text) => inspectCcnaLessonCandidate(text, {

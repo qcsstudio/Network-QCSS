@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpenCheck, CalendarCheck, Check, Clipboard, ExternalLink, GraduationCap, LoaderCircle, Play, RefreshCcw, RotateCcw, Send, SkipForward } from "lucide-react";
+import { BookOpenCheck, CalendarCheck, Check, Clipboard, ExternalLink, GraduationCap, LoaderCircle, Play, RefreshCcw, RotateCcw, Send, SkipForward, Wrench } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { CcnaLessonRecord } from "@/lib/ccna-learning";
 import { buildCcnaNewsletterEdition } from "@/lib/ccna-newsletter";
 
-type Action = "draft" | "generate" | "publish" | "queue_linkedin" | "run_today" | "skip" | "sync";
+type Action = "draft" | "generate" | "repair" | "publish" | "queue_linkedin" | "run_today" | "skip" | "sync";
 
 export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLessonRecord[] }) {
   const [lessons, setLessons] = useState(initialLessons);
@@ -84,6 +84,7 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
           {selected.lastError ? <p className="ccna-admin-error">{selected.lastError}</p> : null}
           {selected.generationProgress ? <p className="ccna-admin-beginner-status" role="status">{selected.generationProgress.completedSteps} completed stages saved. {selected.status === "retry" ? `Paused at ${selected.generationProgress.stage}. ${cooldownSeconds === null ? "Checking provider cooldown." : cooldownSeconds ? `Resume available in ${cooldownSeconds} seconds.` : "Ready to resume."}` : selected.status === "generating" ? "Generation in progress." : "Saved progress is available for a manual retry after resolving the operational error."}</p> : null}
           <div className="ccna-admin-actions">
+            {["draft", "needs_review"].includes(selected.status) && selected.content && !selected.generationProgress ? <button className="button secondary" disabled={Boolean(busy) || cooldownSeconds === null || cooldownSeconds > 0} onClick={() => mutate("repair", selected.id)} type="button">{busy === `repair:${selected.id}` ? <LoaderCircle aria-hidden="true" className="admin-action-spinner" size={17} /> : <Wrench aria-hidden="true" size={17} />} Repair draft</button> : null}
             {selected.status === "skipped" ? <button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("draft", selected.id)} type="button"><RotateCcw aria-hidden="true" size={17} /> Restore to draft</button> : null}
             {["scheduled", "retry", "needs_review", "draft"].includes(selected.status) ? <button className="button secondary" disabled={Boolean(busy) || cooldownSeconds === null || cooldownSeconds > 0} onClick={() => mutate("generate", selected.id)} type="button"><RefreshCcw aria-hidden="true" size={17} /> {selected.generationProgress ? "Resume generation" : selected.content ? "Regenerate" : "Generate lesson"}</button> : null}
             {["draft", "needs_review"].includes(selected.status) && selected.content ? <button className="button primary" disabled={Boolean(busy)} onClick={() => mutate("publish", selected.id)} type="button"><Check aria-hidden="true" size={17} /> Publish</button> : null}

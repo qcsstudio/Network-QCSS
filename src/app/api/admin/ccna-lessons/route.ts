@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 const actionSchema = z.object({
-  action: z.enum(["draft", "generate", "publish", "queue_linkedin", "run_today", "skip", "sync"]),
+  action: z.enum(["draft", "generate", "repair", "publish", "queue_linkedin", "run_today", "skip", "sync"]),
   id: z.string().trim().max(120).optional()
 });
 
@@ -44,6 +44,7 @@ export async function POST(request: Request) {
     } else {
       if (!id) return jsonError("A CCNA lesson id is required.", 400);
       if (action === "generate") result = await generateCcnaLesson(id, actor, false);
+      if (action === "repair") result = await generateCcnaLesson(id, actor, false, undefined, true);
       if (action === "publish") {
         const lesson = await publishCcnaLesson(id, actor);
         await queueLinkedInForCcnaLesson(lesson);

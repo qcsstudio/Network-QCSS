@@ -83,8 +83,12 @@ test("Day 4 lab and first-use definitions fit schemas and commands belong to one
 test("ACL rollback has the exact global/interface modes, identifier and detach-before-delete order", () => {
   const lab = ccnaLayeredLab();
   const removal = lab.steps.find((step) => step.commands.includes("no access-list 199"));
-  assert.deepEqual(removal.commands, ["enable", "configure terminal", "interface GigabitEthernet0/0", "no ip access-group 199 in", "exit", "no access-list 199", "end", "show access-lists", "show ip interface GigabitEthernet0/0"]);
-  assert.match(removal.instruction, /baseline.*no ACL was originally attached/);
+  assert.deepEqual(removal.commands, ["enable", "show ip interface brief", "show running-config", "show ip interface GigabitEthernet0/0", "configure terminal", "interface GigabitEthernet0/0", "no ip access-group 199 in", "exit", "no access-list 199", "end", "show access-lists", "show ip interface GigabitEthernet0/0"]);
+  assert.match(removal.instruction, /baseline had no ACL attached/);
+  assert.match(removal.instruction, /BOTH your baseline record and current show ip interface brief/);
+  assert.match(removal.instruction, /stop before configure terminal.*never paste this whole block blindly/);
+  assert.match(removal.commandExplanations[2], /every reference.*Stop if another interface or feature/);
+  assert.match(removal.commandExplanations[3], /Stop here if uncertain/);
   assert.match(removal.instruction, /not solely ours, stop/);
   assert.ok(lab.steps[1].commands.includes("show running-config"));
   assert.match(lab.steps[1].instruction, /no ACL 199 anywhere/);
@@ -178,4 +182,20 @@ test("mobile and desktop diagram geometry retains every complete role and label"
       assert.ok(node.y + 91 + label.length * 33 + (details.length - 1) * 26 < geometry.height);
     }
   }
+});
+
+test("Day 4 addresses the full beginner and ACL safety review as one maintained contract", () => {
+  const lab = ccnaLayeredLab();
+  const guide = ccnaLayeredBeginnerGuide();
+  assert.match(ccnaLayeredPrelude.terms[0].meaning, /^A layered model is a diagram or checklist that organizes troubleshooting steps by grouping related network jobs\./);
+  assert.match(guide.everydayComparison.familiarSituation, /^Imagine a parcel-delivery checklist\. This is a memory aid, not a literal delivery process/);
+  assert.match(guide.everydayComparison.networkMeaning, /organizational metaphor, not a literal device action/);
+  assert.ok(lab.setup.some((text) => /Mac.*TextEdit.*Linux.*Gedit.*notes editors, not network consoles/.test(text)));
+  assert.ok(lab.setup.some((text) => /Before installing Router.*legal permission.*permits.*GNS3.*CML license alone does not grant GNS3 image rights/.test(text)));
+  assert.match(lab.steps[7].instruction, /permit ip any any permits other IPv4 traffic evaluated by this ACL; it does not create routes or services/);
+  assert.match(lab.steps[7].instruction, /fully disconnected lab, never on production or shared networks/);
+  for (const collection of [lab.troubleshooting, lab.cleanup]) assert.match(collection[0], /only in the isolated lab setup, not on networks with production traffic or shared use/);
+  assert.match(guide.firstPractice.task, /not on networks with production traffic or shared use/);
+  assert.match(ccnaLayeredWritingBoundary, /fault-evidence section AND workplace scenario.*host firewalls, link problems or rate limits/);
+  assert.match(ccnaLayeredWritingBoundary, /quiz explanation.*detachment before no access-list 199.*ownership/);
 });

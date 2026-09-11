@@ -6,6 +6,47 @@ import path from "node:path";
 import { build } from "esbuild";
 import { chromium } from "@playwright/test";
 
+test("repair draft is a separate unpublished action and remains usable at mobile and desktop widths", async () => {
+  const lesson = { id: "day4-repair", sequence: 4, week: 1, day: 4, slug: "osi-and-tcp-ip-models", title: "OSI and TCP/IP models", moduleTitle: "Network fundamentals", status: "needs_review", attempts: 7, qualityScore: 76, lastError: "Clarify the analogy and safe rollback checkpoint.", content: { lab: { steps: [] }, sections: [], practiceQuestions: [], quiz: [], sources: [], learnerOutcome: "Use evidence to investigate missing replies.", plainAnswer: "A layered model organizes related network jobs for troubleshooting." } };
+  const bundle = await build({ stdin: {
+    contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {CcnaLearningDesk} from './src/components/ccna-learning-desk'; createRoot(document.getElementById('root')).render(<CcnaLearningDesk initialLessons={${JSON.stringify([lesson])}} />);`,
+    resolveDir: process.cwd(), loader: "jsx"
+  }, bundle: true, write: false, platform: "browser", format: "iife", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": "{}" } });
+  const css = await readFile("src/app/globals.css", "utf8");
+  const directory = path.join(tmpdir(), "qcs-ccna-repair-qa");
+  await mkdir(directory, { recursive: true });
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const width of [320, 390, 768, 1440]) {
+      const page = await browser.newPage({ viewport: { width, height: 950 }, deviceScaleFactor: 2 });
+      const errors = [];
+      const actions = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      await page.route("**/*", async (route) => {
+        if (route.request().url() === "http://ccna-repair.test/") return route.fulfill({ contentType: "text/html", body: `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style></head><body><div id="root"></div></body></html>` });
+        if (route.request().url() === "http://ccna-repair.test/api/admin/ccna-lessons") {
+          const body = route.request().postDataJSON();
+          actions.push(body.action);
+          assert.deepEqual(body, { action: "repair", id: lesson.id });
+          return route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, lessons: [{ ...lesson, status: "draft", qualityScore: 100, lastError: null }] }) });
+        }
+        return route.abort();
+      });
+      await page.goto("http://ccna-repair.test/");
+      await page.addScriptTag({ content: bundle.outputFiles[0].text });
+      await page.getByRole("button", { name: "Repair draft", exact: true }).click();
+      await page.waitForFunction(() => document.querySelector(".ccna-admin-detail .status-pill")?.textContent === "draft");
+      assert.deepEqual(actions, ["repair"], "Repair must not regenerate from scratch, publish or queue LinkedIn.");
+      assert.equal(await page.getByRole("button", { name: "Publish", exact: true }).count(), 1);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false, `Overflow at ${width}px`);
+      assert.deepEqual(errors, []);
+      await page.locator(".ccna-admin-actions").screenshot({ path: path.join(directory, `repair-${width}.png`) });
+      await page.close();
+    }
+  } finally { await browser.close(); }
+  console.log(`CCNA repair QA screenshots: ${directory}`);
+});
+
 test("admin restores skipped lessons without publishing and waits for generation cooldown across breakpoints", async () => {
   const lesson = { id: "fixture-day-4", sequence: 4, week: 1, day: 4, slug: "osi-and-tcp-ip-models", title: "OSI and TCP/IP models", moduleTitle: "Network fundamentals", status: "skipped", attempts: 0, qualityScore: 0, content: null, lastError: "", v11Blueprint: "1.0", v20Blueprint: "1.0" };
   const bundle = await build({ stdin: {
