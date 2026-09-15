@@ -392,7 +392,23 @@ export async function completeCcnaPublicationDelivery(id: string) {
   if (existing.status === "published" && job) await prisma.ccnaLesson.updateMany({ where: { id, status: "published", updatedAt: existing.updatedAt }, data: {
     // Queue bookkeeping must not invalidate the exact content revision sent to LinkedIn.
     updatedAt: existing.updatedAt,
+    lastError: null,
     generationTrace: { ...trace, publicationJob: { ...job, delivery: "complete" } } as Prisma.InputJsonValue
+  } });
+}
+
+export async function holdCcnaPublicationDelivery(id: string, message: string) {
+  const prisma = getPrismaClient();
+  const existing = await prisma.ccnaLesson.findUniqueOrThrow({ where: { id } });
+  const trace = generationTrace(existing.generationTrace);
+  const job = ccnaPublicationJob(trace);
+  if (existing.status !== "published" || job?.delivery !== "pending") return;
+  const attempts = Math.min(3, (job.deliveryAttempts || 0) + 1);
+  await prisma.ccnaLesson.updateMany({ where: { id, status: "published", updatedAt: existing.updatedAt, generationTrace: { equals: trace as Prisma.InputJsonValue } }, data: {
+    updatedAt: existing.updatedAt,
+    nextAttemptAt: new Date(Date.now() + attempts * 10 * 60_000),
+    lastError: `Website lesson is published. LinkedIn queue ${attempts >= 3 ? "is held after three attempts; use Queue LinkedIn after resolving the error" : "will retry without regenerating the lesson"}. ${message}`,
+    generationTrace: { ...trace, publicationJob: { ...job, deliveryAttempts: attempts, delivery: attempts >= 3 ? "held" : "pending" } } as Prisma.InputJsonValue
   } });
 }
 

@@ -2,7 +2,7 @@ import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminSession, isAdminRequest } from "@/lib/admin-auth";
 import { jsonError, noStoreHeaders, readJsonBody } from "@/lib/api";
-import { generateCcnaLesson, listCcnaLessons, publishCcnaLesson, queueCcnaPublication, returnCcnaLessonToDraft, runCcnaDailyEdition, skipCcnaLesson, syncCcnaCurriculum } from "@/lib/ccna-learning";
+import { completeCcnaPublicationDelivery, generateCcnaLesson, listCcnaLessons, publishCcnaLesson, queueCcnaPublication, returnCcnaLessonToDraft, runCcnaDailyEdition, skipCcnaLesson, syncCcnaCurriculum } from "@/lib/ccna-learning";
 import { runCcnaPublicationJob } from "@/lib/ccna-publication-worker";
 import { queueLinkedInForCcnaLesson } from "@/lib/social-publications";
 import { rateLimit } from "@/lib/rate-limit";
@@ -60,6 +60,7 @@ export async function POST(request: Request) {
         const lesson = (await listCcnaLessons()).find((item) => item.id === id);
         if (!lesson) throw new Error("CCNA lesson not found.");
         result = await queueLinkedInForCcnaLesson(lesson);
+        await completeCcnaPublicationDelivery(id);
       }
     }
     await createAuditLog({ action: `ccna.${action}`, actor, target: id || "ccna-daily", metadata: { accepted: true } }, await requestContext());

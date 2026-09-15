@@ -111,7 +111,7 @@ test("one-click publishes an exact reviewed revision atomically without calling 
   const { applyCcnaTopicContract, evaluateCcnaLessonForTopic } = await import("../src/lib/ccna-content-agent.ts");
   const { ccnaLayeredSources } = await import("../src/lib/ccna-layered-contract.ts");
   const { inspectCcnaLessonCandidate, ccnaContentDigest } = await import("../src/lib/ccna-generation-pipeline.ts");
-  const { queueCcnaPublication, processCcnaPublication, completeCcnaPublicationDelivery } = await import("../src/lib/ccna-learning.ts");
+  const { queueCcnaPublication, processCcnaPublication, completeCcnaPublicationDelivery, holdCcnaPublicationDelivery } = await import("../src/lib/ccna-learning.ts");
   const draft = generationFixture();
   const topic = ccnaCurriculum[3];
   const inspected = inspectCcnaLessonCandidate(JSON.stringify(draft), { allowedSources: [...draft.sources.map((s) => s.url), ...ccnaLayeredSources.map((s) => s.url)], prepare: (c) => applyCcnaTopicContract(topic, c), evaluate: (c) => evaluateCcnaLessonForTopic(topic, c) });
@@ -137,9 +137,20 @@ test("one-click publishes an exact reviewed revision atomically without calling 
   assert.equal(publications, 1);
   assert.equal(row.approvedBy, "operator");
   const publishedRevision = row.updatedAt.toISOString();
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await holdCcnaPublicationDelivery(row.id, "Distribution queue unavailable.");
+    assert.equal(row.status, "published");
+    assert.equal(row.updatedAt.toISOString(), publishedRevision);
+    assert.equal(row.generationTrace.publicationJob.deliveryAttempts, attempt);
+    assert.equal(row.generationTrace.publicationJob.delivery, attempt < 3 ? "pending" : "held");
+    assert.ok(row.nextAttemptAt > new Date());
+  }
+  await holdCcnaPublicationDelivery(row.id, "Must not retry forever.");
+  assert.equal(row.generationTrace.publicationJob.deliveryAttempts, 3);
   await completeCcnaPublicationDelivery(row.id);
   assert.equal(row.generationTrace.publicationJob.delivery, "complete");
   assert.equal(row.updatedAt.toISOString(), publishedRevision, "Delivery metadata must preserve the queued content revision.");
+  assert.equal(row.lastError, null);
 });
 
 test("a full bibliography makes room for cited visual evidence without losing citations", async () => {

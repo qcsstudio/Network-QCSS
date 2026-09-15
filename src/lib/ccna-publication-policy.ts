@@ -2,7 +2,8 @@ import { z } from "zod";
 
 const jobSchema = z.object({
   requestedAt: z.string().datetime(), actor: z.string().min(1).max(200),
-  runs: z.number().int().min(0).max(6), delivery: z.enum(["pending", "complete"])
+  runs: z.number().int().min(0).max(6), delivery: z.enum(["pending", "complete", "held"]),
+  deliveryAttempts: z.number().int().min(0).max(3).optional()
 });
 export type CcnaPublicationJob = z.infer<typeof jobSchema>;
 export function ccnaPublicationJob(trace: unknown) {

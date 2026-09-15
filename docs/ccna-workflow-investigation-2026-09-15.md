@@ -83,6 +83,8 @@ that assembled revision; passing deterministic tests is not approval.
    leaves a pending delivery marker for worker recovery; it does not unpublish the
    lesson or pretend LinkedIn has delivered it. Queue bookkeeping preserves the
    published content timestamp so it cannot invalidate its queued revision.
+   Queue failures back off and stop after three attempts, freeing the worker for
+   later lessons. Use **Queue LinkedIn** after resolving the reported cause.
 
 **Repair draft** remains a draft-only action. **Prepare & publish** is explicit
 publication authorization. Do not use the latter just to inspect an unfinished
