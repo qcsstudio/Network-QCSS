@@ -227,6 +227,15 @@ test("a clipped opening answer cannot pass just because it fits its character li
   }
 });
 
+test("clipped metadata and dangling prerequisites are reported in the same preflight", () => {
+  const content = generationFixture();
+  content.metaDescription = "Learn how to use OSI and TCP/IP layered models to identify network faults methodically. Understand key layer jobs, controlled ICMP filtering, router ACLs, and real V";
+  content.prerequisites[0] = "Read the earlier device lesson and recognize that a built-in Switch in GNS3 has";
+  const issues = evaluateCcnaLessonQuality(content).issues;
+  assert.ok(issues.some((issue) => issue.includes("metaDescription")));
+  assert.ok(issues.some((issue) => issue.includes("prerequisite")));
+});
+
 test("repair-existing inspects and independently reviews the saved revision before any paid writing", async () => {
   const { runCcnaGenerationPipeline, ccnaContentDigest } = await import("../src/lib/ccna-generation-pipeline.ts");
   const content = generationFixture();

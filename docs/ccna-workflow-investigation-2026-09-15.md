@@ -102,3 +102,14 @@ These checks do not execute licensed Cisco IOS in GNS3, guarantee that a model
 never makes a mistake, or make provider billing/outages disappear. Content with an
 unresolved safety or factual issue must remain held with its combined diagnostics.
 One click means orchestration of the whole process, not bypassing review.
+
+## Production Repair Follow-Up
+
+The first live verification retained nine completed stages when the final review
+hit the request deadline. Deadline-bound SDK timeouts now become resumable pauses;
+short remaining windows do not start another paid request. Ambiguous early network
+timeouts still hold for inspection because a server may already have processed
+the request. Clipped legacy metadata and unfinished prerequisites are checked
+together, and Day 4's maintained package includes those fields as well as its
+teaching. Review findings must be checked against the actual cited fields and
+declared platform, not unrelated operating systems or absent-context assumptions.

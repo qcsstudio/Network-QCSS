@@ -1,10 +1,24 @@
 import type { CcnaLessonContent } from "./ccna-lesson-schema.ts";
 
-type Teaching = Pick<CcnaLessonContent, "plainAnswer" | "sections" | "realWorldScenario" | "practiceQuestions" | "quiz" | "glossary" | "takeaways">;
+type Teaching = Pick<CcnaLessonContent, "metaTitle" | "metaDescription" | "learnerOutcome" | "prerequisites" | "objectives" | "plainAnswer" | "sections" | "realWorldScenario" | "practiceQuestions" | "quiz" | "glossary" | "takeaways">;
 
 // Stable instruction for this one foundational lesson, reviewed with the lab as a unit.
 export function layeredTeaching(refs: { layers: string; routing: string; acl: string; ping: string; setup: string }): Teaching {
   return {
+    metaTitle: "OSI and TCP/IP Models: A Beginner Troubleshooting Lab",
+    metaDescription: "Understand OSI and TCP/IP with a guided GNS3 lab. Trace a packet, interpret ping results, test an isolated ACL and safely restore your baseline.",
+    learnerOutcome: "Use OSI and TCP/IP as troubleshooting checklists. Trace an ICMP exchange, explain its limits and compare a safe lab baseline before, during and after a controlled filter.",
+    prerequisites: [
+      "Complete the Start from zero guide for clicking, typing and keeping notes. Read Day 2's device roles; this lesson reintroduces every console action.",
+      "Use a computer that can run GNS3 and a legally permitted Cisco IOS router image with two routed Ethernet ports and extended IPv4 ACL support.",
+      "Without a permitted image or suitable computer, follow the labelled paper exercises only. Do not type lab commands or claim observed results."
+    ],
+    objectives: [
+      "Use seven OSI categories and the four-layer TCP/IP convention to organize questions, not automatically diagnose faults.",
+      "Distinguish changing Ethernet frames from endpoint IP addresses on the PC1-Switch-Router-PC2 path without NAT.",
+      "Interpret repeated peer pings and interface or ACL evidence without claiming application health from ICMP alone.",
+      "In a disconnected lab, record a clean baseline, apply only the owned test ACL and verify its careful removal."
+    ],
     plainAnswer: "A layered model is a diagram or checklist that organizes troubleshooting steps by grouping related network jobs. Use OSI and TCP/IP to ask about links, local delivery, routing and services, then collect evidence. A missing ping reply does not identify a faulty layer; a successful reply does not prove a web application works.",
     sections: [
       {
@@ -31,7 +45,7 @@ export function layeredTeaching(refs: { layers: string; routing: string; acl: st
       {
         heading: "Read Layered Evidence and ACL Bindings",
         explanation: "Begin with read-only observations: inspect cable endpoints and interface state, compare addresses and gateways, and review the tested path and policy. An ACL is an ordered permit/deny rule list. Its identifier can be a number, such as 199, or a name. An ip access-group command binds that list to an interface: inbound means arriving at Router through that port; outbound means leaving Router through that port. A rule's match counter counts matching packets since the counter was last initialized or cleared. It is not the ACL identifier, the number of rules, or a rule sequence number. Counter availability and display vary by image. Correlate a supported counter change with the exact test, attachment and baseline; missing or stale counters are not proof of a particular cause. In real networks, missed ping replies may involve host firewalls, link problems or rate limits even when an ACL exists. An up/up interface is evidence about that local interface, not proof of end-to-end connectivity.",
-        example: "Read this as an illustrative output interpretation, not a command to type: '10 deny icmp host 192.168.1.10 host 192.168.2.10 echo (6 matches)' means rule sequence 10 recorded six matches. The list heading identifies ACL 199. An interface's 'ip access-group 199 in' attaches that list inbound. Your output may differ; do not invent counts or expect exactly six matches.",
+        example: "Illustrative output, not commands: under the heading 'Extended IP access list 199', the entry '10 deny icmp host 192.168.1.10 host 192.168.2.10 echo (6 matches)' has rule sequence 10 and six matches. List identifier 199, entry sequence 10 and match count 6 are separate values. An interface's 'ip access-group 199 in' attaches that list inbound. Your image's output may differ; do not invent counts or expect exactly six matches.",
         keyPoints: ["ACL 199 identifies the list; a rule sequence and its match count are separate values.", "Inbound and outbound describe direction relative to the selected router interface.", "Inspect the complete configuration for other references and stop on unfamiliar ownership."],
         sourceUrls: [refs.acl, refs.ping]
       },

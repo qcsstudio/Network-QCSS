@@ -180,6 +180,12 @@ export function evaluateCcnaLessonQuality(content: CcnaLessonContent) {
   if (!/[.!?]["')\]\u2019\u201D]*$/.test(content.plainAnswer.trim())) {
     issues.push("Rewrite plainAnswer as complete concise sentences within 700 characters; its last sentence is unfinished. Do not clip it to the field limit.");
   }
+  if (!/[.!?]["')\]\u2019\u201D]*$/.test(content.metaDescription.trim())) {
+    issues.push("Rewrite metaDescription as a complete sentence within 165 characters; never cut metadata to its field limit.");
+  }
+  if (content.prerequisites.some((item) => /\b(?:and|or|the|to|has|with|of|a|an|for|in|is|are)\s*$/i.test(item))) {
+    issues.push("Finish every prerequisite as a complete phrase; do not leave an unfinished clause or word at the field limit.");
+  }
   const prose = [content.plainAnswer, content.learnerOutcome, ...content.takeaways, ...content.sections.flatMap((section) => [section.explanation, section.example, ...section.keyPoints])].join("\n");
   if (/["'](?:url|supports|sources|sourceUrls|label)["']\s*:|needs_search_refs|update_bibliography|\*\*(?:Prerequisites|Objectives|Learner Outcome)/i.test(prose)) {
     issues.push("Remove serialized data, generation instructions, and misplaced section headings from the teaching prose.");

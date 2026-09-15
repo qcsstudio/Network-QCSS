@@ -6,6 +6,21 @@ import { CcnaRequestDeferredError, ccnaProviderRetryDelay, createCcnaRequestRunn
 const message = "Rate limit reached for gpt-4.1 on tokens per min (TPM): Limit 30000, Used 16589, Requested 18822. Please try again in 10.822s.";
 const rateError = (headers = {}, extra = {}) => Object.assign(new Error(message), { status: 429, code: "rate_limit_exceeded", headers: new Headers(headers), ...extra });
 
+test("deadline-bound SDK timeouts defer saved work while ambiguous timeouts are not blindly replayed", async () => {
+  const runner = clockedRunner(30_000);
+  let calls = 0;
+  await assert.rejects(() => runner.run("independent technical review", "gpt-5-mini", async () => {
+    calls++; runner.advance(25_000); throw new OpenAI.APIConnectionTimeoutError();
+  }), (error) => error.reason === "deadline");
+  assert.equal(calls, 1);
+  assert.deepEqual(runner.waits, []);
+  const early = clockedRunner();
+  const error = new OpenAI.APIConnectionTimeoutError();
+  await assert.rejects(() => early.run("source research", "gpt-5-mini", async () => { throw error; }), (observed) => observed === error);
+  const short = clockedRunner(19_000);
+  await assert.rejects(() => short.run("independent technical review", "gpt-5-mini", async () => assert.fail("No short-lived paid request")), (error) => error.reason === "deadline");
+});
+
 function clockedRunner(deadlineAt = 270_000) {
   let now = 0;
   const waits = [];

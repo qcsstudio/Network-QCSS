@@ -20,7 +20,7 @@ test("Day 4 maintained teaching and assessments are never silently rewritten by 
     assert.ok(part.schema.required.every((key) => !(key in fixedFields)));
     return JSON.stringify(partValues(part));
   } }));
-  assert.deepEqual(requests.map((part) => part.name), ["lab", "teaching"]);
+  assert.deepEqual(requests.map((part) => part.name), ["lab"]);
   for (const key of Object.keys(fixedFields)) assert.deepEqual(result[key], fixedFields[key]);
 });
 

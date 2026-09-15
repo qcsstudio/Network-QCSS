@@ -1,3 +1,5 @@
+import { APIConnectionTimeoutError } from "openai";
+
 type ProviderError = { status?: number; code?: string; message?: string; error?: { code?: string; type?: string }; headers?: Headers };
 type RetryEvent = { stage: string; model: string; retry: number; delayMs: number };
 
@@ -67,10 +69,14 @@ export function createCcnaRequestRunner(options: {
   async function run<T>(stage: string, model: string, request: (timeoutMs: number) => Promise<T>) {
     for (let retry = 0; retry <= 2; retry += 1) {
       const remainingMs = options.deadlineAt - now();
-      if (remainingMs <= 5_000) throw new CcnaRequestDeferredError("deadline", 60_000, stage);
+      if (remainingMs <= 20_000) throw new CcnaRequestDeferredError("deadline", 60_000, stage);
       try {
         return await request(Math.min(180_000, remainingMs - 5_000));
       } catch (error) {
+        // A local deadline timeout must preserve the job, not become a failed review.
+        if ((error instanceof APIConnectionTimeoutError || (error instanceof Error && error.constructor.name === "APIConnectionTimeoutError")) && now() >= options.deadlineAt - 10_000) {
+          throw new CcnaRequestDeferredError("deadline", 60_000, stage);
+        }
         const minimumMs = ccnaProviderRetryDelay(error, retry, now());
         if (minimumMs === null) throw error;
         if (exceedsWholeTokenWindow(error)) throw new CcnaRequestDeferredError("request_too_large", 0, stage);
