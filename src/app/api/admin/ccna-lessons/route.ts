@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { getAdminSession, isAdminRequest } from "@/lib/admin-auth";
 import { jsonError, noStoreHeaders, readJsonBody } from "@/lib/api";
-import { generateCcnaLesson, listCcnaLessons, publishCcnaLesson, returnCcnaLessonToDraft, runCcnaDailyEdition, skipCcnaLesson, syncCcnaCurriculum } from "@/lib/ccna-learning";
+import { generateCcnaLesson, listCcnaLessons, publishCcnaLesson, queueCcnaPublication, returnCcnaLessonToDraft, runCcnaDailyEdition, skipCcnaLesson, syncCcnaCurriculum } from "@/lib/ccna-learning";
+import { runCcnaPublicationJob } from "@/lib/ccna-publication-worker";
 import { queueLinkedInForCcnaLesson } from "@/lib/social-publications";
 import { rateLimit } from "@/lib/rate-limit";
 import { requestContext } from "@/lib/security";
@@ -14,13 +15,12 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 const actionSchema = z.object({
-  action: z.enum(["draft", "generate", "repair", "publish", "queue_linkedin", "run_today", "skip", "sync"]),
+  action: z.enum(["draft", "generate", "repair", "prepare_publish", "publish", "queue_linkedin", "run_today", "skip", "sync"]),
   id: z.string().trim().max(120).optional()
 });
 
 export async function GET(request: Request) {
   if (!isAdminRequest(request)) return jsonError("Unauthorized", 401);
-  await syncCcnaCurriculum("admin-read");
   return NextResponse.json({ ok: true, lessons: await listCcnaLessons() }, { headers: noStoreHeaders });
 }
 
@@ -43,6 +43,10 @@ export async function POST(request: Request) {
       result = daily;
     } else {
       if (!id) return jsonError("A CCNA lesson id is required.", 400);
+      if (action === "prepare_publish") {
+        result = await queueCcnaPublication(id, actor);
+        after(() => runCcnaPublicationJob(id).then(() => {}));
+      }
       if (action === "generate") result = await generateCcnaLesson(id, actor, false);
       if (action === "repair") result = await generateCcnaLesson(id, actor, false, undefined, true);
       if (action === "publish") {
@@ -58,10 +62,10 @@ export async function POST(request: Request) {
         result = await queueLinkedInForCcnaLesson(lesson);
       }
     }
-    await createAuditLog({ action: `ccna.${action}`, actor, target: id || "ccna-daily", metadata: { result } }, await requestContext());
-    return NextResponse.json({ ok: true, result, lessons: await listCcnaLessons() }, { headers: noStoreHeaders });
+    await createAuditLog({ action: `ccna.${action}`, actor, target: id || "ccna-daily", metadata: { accepted: true } }, await requestContext());
+    return NextResponse.json({ ok: true, result, lessons: await listCcnaLessons() }, { status: action === "prepare_publish" ? 202 : 200, headers: noStoreHeaders });
   } catch (error) {
-    console.error(`CCNA admin action ${action} failed.`, error);
+    console.error(`CCNA admin action ${action} failed.`, { message: error instanceof Error ? error.message : "Unknown error" });
     if (error instanceof CcnaRequestDeferredError) {
       const response = NextResponse.json({ ok: false, error: error.message, lessons: await listCcnaLessons() }, {
         status: error.reason === "request_too_large" ? 422 : error.reason === "deadline" ? 503 : 429,

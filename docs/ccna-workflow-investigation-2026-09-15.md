@@ -1,0 +1,102 @@
+# CCNA Investigation and Publication Workflow
+
+Verified on 15 September 2026. Research horizon: 15 September 2027.
+
+## Exam Findings
+
+The live 200-301 exam remains v1.1. Cisco gives 2 February 2027 as its final
+testing date and 3 February 2027 as the v2.0 launch. This is a blueprint change,
+not an immediate replacement of the current exam. No subsequent 200-301 revision
+was verified in the official announcements inspected for the one-year horizon.
+That is not a guarantee that Cisco will announce nothing else.
+
+Sources: [current exam](https://www.cisco.com/site/us/en/learn/training-certifications/exams/ccna.html),
+[transition dates](https://blogs.cisco.com/learning/stay-on-track-get-certified-before-the-ccna-refresh),
+[refresh announcement](https://blogs.cisco.com/learning/ai-updates-ccna-ccie-automation),
+[certification roadmap alerts](https://mkto.cisco.com/certification-roadmap.html).
+
+The v2.0 emphasis is applied troubleshooting and operations. Its five domain
+weights are 25/25/20/20/10. Material that must be explicit in our path includes
+OSPFv3, operational HSRP/VRRP interpretation, SFTP/SCP, named as well as numbered
+ACLs, edge-host/PoE scenarios, client-OS troubleshooting, packet-capture evidence,
+Ansible execution and careful evaluation of AI recommendations. Keep a simulator
+boundary where real RF, PoE or cloud services cannot be demonstrated.
+
+[Official v2.0 blueprint](https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301_CCNA_v2.0_Exam_Topics_PDF.pdf)
+was compared with the
+[v1.1 blueprint](https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301-CCNA-v1.1.pdf).
+The existing v1.1 references for transport, addressing, wireless, virtualization
+and switching were misnumbered. Those are corrected without renumbering days or
+changing lesson URLs. NTP, QoS, REST and JSON remain useful learning material but
+are no longer presented as individually named v2.0 objectives. Courseware version
+numbers and the separate CCNA Automation/Cybersecurity certifications are not
+substitutes for the 200-301 exam version.
+
+The manifest records its verification date and research horizon. Admin warns
+after 30 days without verification; this is not an automatic Cisco-change detector.
+Generation researches official sources, but any newly announced blueprint still
+needs a deliberate mapping update. Never silently relabel published material.
+
+## Failure Findings
+
+Production checks found Day 4 held after eight attempts and Day 5 held with the
+older `allOf` response-schema rejection. Historical logs separately recorded API
+credit exhaustion, temporary token-rate limits and a lost worker ownership claim.
+These are distinct from a failed technical review. Historical billing errors do
+not establish the present credit balance.
+
+Day 4 mixed maintained lab fields with regenerated prose and assessments, leading
+to contradictory answers. Some reviewer suggestions were themselves inaccurate:
+a non-NAT router does not replace a forwarded endpoint's source IP with its own.
+The aligned maintained lesson now covers the definitions, nonliteral analogies,
+full diagram, isolated lab, exact console steps, ownership checks and cautious
+interpretation of ping/counters as one unit. Independent review still evaluates
+that assembled revision; passing deterministic tests is not approval.
+
+## One-Action Workflow
+
+1. In Admin > CCNA Learning Desk, select a lesson and choose **Prepare & publish**.
+2. The authenticated request persists the job before returning HTTP 202. A second
+   click finds the same active job. The page polls read-only status; closing it
+   does not remove the database job.
+3. A complete, independently reviewed current revision can publish without paid
+   generation. Otherwise use the saved draft as the first candidate or generate
+   a new lesson. OpenAI JSON schemas are checked before provider requests.
+4. Research primary documents, then assemble the lab, teaching and assessments.
+   Inspect schema limits, complete sentences, visual endpoints, command context,
+   topic constraints, paired explanations and canonical citations together.
+5. Independently review the complete assembled content against the evidence.
+   Send all actionable findings into bounded repairs. Stop unchanged repaired
+   content rather than paying for the identical review again. Never clip a field
+   or erase a required citation to pass its limit.
+6. Preserve complete provider stages across temporary capacity/deadline pauses.
+   The existing five-minute editorial worker also checks explicitly requested
+   publication jobs; actual scheduler latency can vary. This reuses an existing
+   job, with no additional recurring GitHub job. An empty queue makes no model
+   calls. New automatic editions retain their weekday-only schedule; requested
+   publication jobs can resume outside that window.
+7. Publish only a passing exact revision. Compare-and-swap and generation leases
+   prevent a stale worker from replacing an operator's newer action. Skipped or
+   cancelled jobs do not auto-publish. A job has at most six worker runs.
+8. Queue the canonical lesson for LinkedIn through the existing idempotent queue.
+   Website publication and LinkedIn delivery are separate states. Failed queueing
+   leaves a pending delivery marker for worker recovery; it does not unpublish the
+   lesson or pretend LinkedIn has delivered it. Queue bookkeeping preserves the
+   published content timestamp so it cannot invalidate its queued revision.
+
+**Repair draft** remains a draft-only action. **Prepare & publish** is explicit
+publication authorization. Do not use the latter just to inspect an unfinished
+lesson. Published lessons remain unchanged until explicitly returned to draft.
+
+## Verification and Limits
+
+Regression tests exercise schema compatibility, every known Day 2/3/4 constraint,
+retina diagram geometry, citation budgets, bounded output/retry behavior, billing
+classification, persistent publication intent, duplicate requests, cancellation
+and exact-review-digest publication. Browser tests cover narrow mobile through
+desktop and mock the network so they cannot accidentally publish real lessons.
+
+These checks do not execute licensed Cisco IOS in GNS3, guarantee that a model
+never makes a mistake, or make provider billing/outages disappear. Content with an
+unresolved safety or factual issue must remain held with its combined diagnostics.
+One click means orchestration of the whole process, not bypassing review.

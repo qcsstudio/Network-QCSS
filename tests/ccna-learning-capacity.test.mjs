@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ccnaCurriculum } from "../src/lib/ccna-curriculum.ts";
-import { generateCcnaLesson, listCcnaLessons, publishCcnaLesson } from "../src/lib/ccna-learning.ts";
+import { generateCcnaLesson, listCcnaLessons, publishCcnaLesson, queueCcnaPublication, processCcnaPublication } from "../src/lib/ccna-learning.ts";
 import { CcnaRequestDeferredError } from "../src/lib/ccna-openai-requests.ts";
 import { assertCcnaOpenAISchema } from "../src/lib/ccna-openai-schema.ts";
 
@@ -112,4 +112,41 @@ test("manual retry after a schema correction reuses held research without auto-p
   assert.equal(calls.length, 5);
   assert.equal(calls.filter((call) => call.tools).length, 3);
   assert.equal(row.generationTrace.publishWhenReady, false);
+});
+
+test("one-click publication persists intent, queues once and resumes after capacity pauses", async (t) => {
+  const { row, calls } = harness(t);
+  await queueCcnaPublication(row.id, "test-operator");
+  assert.equal(row.status, "retry");
+  const job = structuredClone(row.generationTrace.publicationJob);
+  await queueCcnaPublication(row.id, "second-click");
+  assert.deepEqual(row.generationTrace.publicationJob, job);
+  assert.equal(calls.length, 0);
+  await assert.rejects(() => processCcnaPublication(row.id), CcnaRequestDeferredError);
+  assert.equal(row.generationTrace.publishWhenReady, true);
+  assert.equal(row.generationTrace.publicationJob.runs, 1);
+  const count = calls.length;
+  await processCcnaPublication(row.id);
+  assert.equal(calls.length, count, "Polling before cooldown must not spend more.");
+  row.nextAttemptAt = new Date(0);
+  await assert.rejects(() => processCcnaPublication(row.id), CcnaRequestDeferredError);
+  assert.equal(row.generationTrace.publicationJob.runs, 2);
+  assert.equal(calls.filter((call) => call.tools).length, 3, "Completed research is reused.");
+});
+
+test("cancelled, published and budget-exhausted publication jobs cannot trigger generation", async (t) => {
+  const { row, calls } = harness(t);
+  row.status = "skipped";
+  await assert.rejects(() => queueCcnaPublication(row.id, "test"), /Restore/);
+  await assert.rejects(() => publishCcnaLesson(row.id, "test"), /Restore/);
+  row.status = "published";
+  row.publishedAt = new Date("2026-09-10T01:00:00Z");
+  await queueCcnaPublication(row.id, "test");
+  await publishCcnaLesson(row.id, "test");
+  assert.equal(row.publishedAt.toISOString(), "2026-09-10T01:00:00.000Z");
+  row.status = "retry";
+  row.generationTrace = { publicationJob: { requestedAt: new Date().toISOString(), actor: "test", runs: 6, delivery: "pending" } };
+  await processCcnaPublication(row.id);
+  assert.equal(row.status, "needs_review");
+  assert.equal(calls.length, 0);
 });

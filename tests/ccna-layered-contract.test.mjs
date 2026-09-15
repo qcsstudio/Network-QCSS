@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ccnaLayeredLab, ccnaLayeredVisual, ccnaLayeredPrelude, ccnaLayeredSources, ccnaLayeredWritingBoundary, ccnaLayeredReviewBoundary, ccnaLayeredBeginnerGuide, applyCcnaLayeredContract, ccnaLayeredIssues } from "../src/lib/ccna-layered-contract.ts";
+import { ccnaLayeredLab, ccnaLayeredVisual, ccnaLayeredPrelude, ccnaLayeredSources, ccnaLayeredWritingBoundary, ccnaLayeredReviewBoundary, ccnaLayeredBeginnerGuide, ccnaLayeredTeaching, applyCcnaLayeredContract, ccnaLayeredIssues } from "../src/lib/ccna-layered-contract.ts";
 import { ccnaLessonContentSchema } from "../src/lib/ccna-lesson-schema.ts";
 import { ccnaVisualGenerationSchema, ccnaVisualStoryIssues } from "../src/lib/ccna-visual-story.ts";
 import { ccnaContentDigest, ccnaReviewedRevisionIssues } from "../src/lib/ccna-generation-pipeline.ts";
@@ -19,7 +19,8 @@ test("Day 4 complete visual phrases satisfy the real 24/26 character generation 
   assert.equal(visual.stages[2].title, "Check Router filtering");
   assert.ok(visual.nodes.every((node) => node.detail.length <= 24));
   assert.ok(visual.stages.every((stage) => stage.title.length <= 26));
-  assert.match(visual.stages[0].explanation, /192\.168\.1\.1\/24.*192\.168\.2\.1\/24.*192\.168\.2\.10\/24/);
+  assert.match(visual.stages[0].explanation, /LAN1.*LAN2.*IP addresses remain PC1 to PC2.*LAN2 IP is not the source IP/);
+  assert.match(visual.stages[2].explanation, /PC2 does not receive it/);
   assert.match(visual.altText, /PC1.*Switch.*Router.*PC2/);
   assert.match(visual.altText, /ends at PC2/);
   for (const stage of visual.stages) for (const id of stage.activeConnections) {
@@ -140,10 +141,10 @@ test("peer tests, diagnosis limits and interface recovery cover reported beginne
 test("Day 4 composition is immutable, idempotent and invalidates old independent approval", () => {
   const before = { sources: [], sections: [{ heading: "Unchanged teaching" }], lab: {}, visualStory: { nodes: [] }, teachingPrelude: undefined };
   const snapshot = structuredClone(before);
-  assert.equal(ccnaLayeredIssues(before).length, 4);
+  assert.equal(ccnaLayeredIssues(before).length, 5);
   const after = applyCcnaLayeredContract(before);
   assert.deepEqual(before, snapshot);
-  assert.deepEqual(after.sections, before.sections);
+  assert.deepEqual(after.sections, ccnaLayeredTeaching().sections);
   assert.deepEqual(applyCcnaLayeredContract(after), after);
   assert.deepEqual(ccnaLayeredIssues(after), []);
   assert.equal(new Set(after.sources.map(({ url }) => url)).size, after.sources.length);
@@ -162,10 +163,25 @@ test("Day 4 starts with paper predictions and supplies notes setup before execut
   assert.match(guide.walkthrough[1].whatHappens, /Before configuration.*Step 2.*mapping/);
   assert.match(guide.walkthrough[1].why, /before any changes.*rollback/);
   assert.match(guide.firstPractice.task, /paper only.*Do not change a live network/);
-  assert.match(ccnaLayeredLab().setup[0], /Notepad.*Day4-baseline.txt.*Ctrl\+S.*paper notebook/);
+  assert.ok(ccnaLayeredLab().setup.some((text) => /Notepad.*Day4-baseline.txt.*Ctrl\+S.*paper notebook/.test(text)));
   assert.match(ccnaLayeredPrelude.terms.find((x) => x.term === "Ping and ICMP").meaning, /internet layer, not TCP\/UDP transport.*self-ping.*local IP stack/);
   assert.match(ccnaLayeredReviewBoundary, /Count its actual definitions.*do not require them to be repeated/);
   assert.match(ccnaLayeredReviewBoundary, /exact field.*quote.*full lesson.*Reject actual contradictions/);
+});
+
+test("Day 4 teaching removes the reported real-world policy and assessment contradictions", () => {
+  const teaching = ccnaLayeredTeaching();
+  for (const key of Object.keys(teaching)) assert.deepEqual(ccnaLessonContentSchema.shape[key].safeParse(teaching[key]).error?.issues || [], [], key);
+  assert.doesNotMatch(JSON.stringify(teaching), /\.{3}|\u2026/);
+  assert.match(teaching.sections[0].explanation, /memory aid, not a literal delivery process.*organizational metaphor/);
+  assert.match(teaching.sections[1].explanation, /source remains PC1.*destination remains PC2.*TTL.*checksum/);
+  assert.match(teaching.sections[2].explanation, /host firewalls, link problems or rate limits/);
+  assert.match(teaching.sections[3].explanation, /since the counter was last initialized or cleared.*not the ACL identifier/);
+  assert.match(teaching.realWorldScenario.walkthrough.at(-1), /Do not detach or delete office ACLs/);
+  assert.match(teaching.quiz[2].explanation, /ownership and detaching.*another interface or feature references 199, stop/);
+  assert.match(teaching.practiceQuestions[3].answer, /Stop without changing/);
+  assert.match(teaching.practiceQuestions[3].explanation, /not a guarantee enforced by IOS/);
+  assert.match(ccnaLayeredReviewBoundary, /Do not recommend replacing PC1's source IP with Router's IP/);
 });
 
 test("mobile and desktop diagram geometry retains every complete role and label", () => {

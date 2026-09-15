@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, BookOpenCheck, CalendarDays, FlaskConical, Route, ShieldCheck } from "lucide-react";
 import { StructuredData } from "@/components/structured-data";
-import { ccnaCourseFacts, ccnaModules, ccnaOfficialSources, ccnaCurriculum } from "@/lib/ccna-curriculum";
+import { ccnaCourseFacts, ccnaModules, ccnaOfficialSources, ccnaCurriculum, ccnaExamStatus } from "@/lib/ccna-curriculum";
 import { getPublishedCcnaLessons } from "@/lib/ccna-learning";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Latest CCNA 200-301 Course, Syllabus, GNS3 Labs and Daily Lessons",
-  description: "Study the current CCNA 200-301 v1.1 syllabus with a v2.0 transition map, 60 weekday lessons, simple explanations, GNS3 labs, practice questions, and quizzes.",
+  description: "Study CCNA 200-301 with dated v1.1 and v2.0 syllabus mappings, 60 lessons, beginner explanations, GNS3 labs, practice questions and quizzes.",
   path: "/courses/ccna",
   keywords: ["latest CCNA course", "CCNA 200-301 syllabus", "CCNA v1.1 course", "CCNA v2.0 syllabus", "CCNA GNS3 labs", "CCNA daily lessons"]
 });
@@ -59,8 +59,8 @@ export default async function CcnaCoursePage() {
             {latest ? <Link className="button secondary" href={`/courses/ccna/lessons/${latest.slug}`}>Open latest lesson</Link> : <a className="button secondary" href="#syllabus">Explore syllabus</a>}
           </div>
           <dl className="ccna-course-stats">
-            <div><dt>Current exam</dt><dd>v1.1 through 2 Feb 2027</dd></div>
-            <div><dt>Next exam</dt><dd>v2.0 from 3 Feb 2027</dd></div>
+            <div><dt>Exam by date</dt><dd>{ccnaExamStatus().activeVersion}</dd></div>
+            <div><dt>Version transition</dt><dd>3 Feb 2027</dd></div>
             <div><dt>Learning rhythm</dt><dd>Monday to Friday</dd></div>
           </dl>
         </div>
@@ -80,7 +80,7 @@ export default async function CcnaCoursePage() {
 
       <section className="ccna-version-band">
         <div><p className="eyebrow">Which exam version?</p><h2>Choose by your planned exam date.</h2></div>
-        <p>Cisco says the current exam remains available through <strong>2 February 2027</strong>, with v2.0 starting on <strong>3 February 2027</strong>. The refreshed blueprint keeps the technical core but gives more weight to practical troubleshooting, security-first operations, IPv6, AI, and network management. Each QCS lesson shows both mappings.</p>
+        <p>Cisco lists v1.1 testing through <strong>2 February 2027</strong>, with v2.0 starting on <strong>3 February 2027</strong>. Checked <strong>{ccnaCourseFacts.verifiedAt}</strong>. The syllabus separates named exam objectives from supporting foundations. No later 200-301 release was verified for the research horizon ending September 2027. <a href="https://blogs.cisco.com/learning/stay-on-track-get-certified-before-the-ccna-refresh">Cisco transition guidance</a>.</p>
       </section>
 
       <section className="section ccna-method-section">

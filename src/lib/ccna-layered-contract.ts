@@ -2,6 +2,7 @@ import type { CcnaLessonContent } from "./ccna-lesson-schema.ts";
 import type { CcnaVisualStory } from "./ccna-visual-story.ts";
 import { ccnaImageLicensingNote } from "./ccna-image-licensing.ts";
 import { ccnaContentDigest } from "./ccna-generation-pipeline.ts";
+import { layeredTeaching } from "./ccna-layered-teaching.ts";
 
 const refs = {
   acl: "https://www.cisco.com/c/en/us/support/docs/security/ios-firewall/23602-confaccesslists.html",
@@ -10,7 +11,8 @@ const refs = {
   setup: "https://docs.gns3.com/docs/getting-started/your-first-cisco-topology",
   switching: "https://docs.gns3.com/docs/using-gns3/advanced/hubs-and-switches",
   license: "https://developer.cisco.com/docs/modeling-labs/vm-images-for-cml-labs/",
-  layers: "https://www.rfc-editor.org/rfc/rfc1122"
+  layers: "https://www.rfc-editor.org/rfc/rfc1122",
+  routing: "https://www.rfc-editor.org/rfc/rfc1812.html"
 };
 
 export const ccnaLayeredSources = [
@@ -20,26 +22,27 @@ export const ccnaLayeredSources = [
   { label: "GNS3 Cisco topology setup", url: refs.setup, supports: "Installing an authorized router appliance, naming nodes and connecting router interfaces." },
   { label: "GNS3 Ethernet switch", url: refs.switching, supports: "Built-in Ethernet switch port settings; no Cisco IOS command console is required." },
   { label: "Cisco CML image licensing", url: refs.license, supports: "CML reference images are licensed for CML unless another license permits use elsewhere." },
-  { label: "RFC 1122 Internet layers", url: refs.layers, supports: "Internet host link, IP and transport requirements and the limits of a layered model." }
+  { label: "RFC 1122 Internet layers", url: refs.layers, supports: "Internet host link, IP and transport requirements and the limits of a layered model." },
+  { label: "RFC 1812 IPv4 forwarding", url: refs.routing, supports: "IPv4 router forwarding, TTL decrement, checksum adjustment and use of the selected outgoing interface." }
 ];
 
 export const ccnaLayeredPrelude: NonNullable<CcnaLessonContent["teachingPrelude"]> = {
   terms: [
-    { term: "Layer and model", meaning: "A layered model is a diagram or checklist that organizes troubleshooting steps by grouping related network jobs. A layer is one such group. The OSI model has seven layers; the four-layer TCP/IP model groups jobs differently. Neither model is a set of physical boxes or an automatic fault detector." },
+    { term: "Layer and model", meaning: "A layered model is a diagram or checklist that organizes troubleshooting steps by grouping related network jobs. A layer is one such group. The OSI model has seven layers; the four-layer TCP/IP model groups jobs differently. Models structure questions; they do not detect or indicate a fault on their own and are not physical boxes." },
     { term: "OSI and TCP/IP", meaning: "Open Systems Interconnection (OSI) describes physical, data link, network, transport, session, presentation and application jobs. This lesson uses four TCP/IP layers: link, internet, transport and application. Some teaching sources split link into physical and data link, giving five layers. These are grouping conventions, not different networks. TCP/IP means Transmission Control Protocol/Internet Protocol." },
     { term: "Frame and packet", meaning: "A frame carries data across one local link. An IP packet carries data toward an IP destination, inside a frame on Ethernet. A router reads the destination IP and builds a new outgoing frame; a switch forwards local frames." },
     { term: "Address and gateway", meaning: "An IP address identifies a network interface. A /24 prefix means a 255.255.255.0 mask; compare the first three numbers in this lab. A default gateway is the local router used to reach another network. A MAC address identifies an Ethernet interface on a local link." },
-    { term: "Interface and segment", meaning: "An interface is a device connection such as GigabitEthernet0/0. A local Ethernet segment lets devices exchange frames without routing. Router separates the two IP networks in this lesson; its two interfaces need different network addresses." },
+    { term: "Interface and segment", meaning: "An interface is a device connection such as GigabitEthernet0/0. A local Ethernet segment lets devices exchange frames without routing. Router separates the two IP networks. Administratively down means an interface is disabled by configuration; no shutdown enables that mapped port but does not repair a cable. Up/up is local physical and protocol status, not proof of end-to-end delivery." },
     { term: "VPCS and Console", meaning: "Virtual PC Simulator (VPCS) is GNS3's lightweight practice computer. A Console is its text-control window: right-click the node and choose Console. A prompt such as PC1> means it is ready. Type only the command, then press Enter. The built-in Switch has no IOS console." },
     { term: "Router command modes", meaning: "The router's prompt may use its configured hostname. A > prompt is user EXEC; enable opens privileged EXEC (#), which permits inspection and changes. configure terminal enters (config)#; interface selects (config-if)#. exit goes back one level; end returns to #. Never type the prompt." },
     { term: "Ping and ICMP", meaning: "Ping sends an Internet Control Message Protocol (ICMP) echo request and waits for an echo reply. ICMP belongs with IP at the TCP/IP internet layer, not TCP/UDP transport. A host is a network-connected computer. No reply means the exchange timed out, not proof of a failed layer. Host settings, filters and either path direction can affect it. A self-ping tests the local IP stack, not the peer path; a reply does not prove application health." },
     { term: "ARP and intermittent loss", meaning: "Address Resolution Protocol (ARP) finds a local Ethernet MAC address for an IPv4 next hop. An initial request can time out during discovery. Repeat the same peer test; intermittent loss can also reflect links, load or filtering. Persistent failure needs evidence, not a guess." },
-    { term: "ACL number and name", meaning: "An access control list (ACL) is an ordered permit/deny rule list. In running-config, access-list 199 identifies a numbered list; ip access-list extended LAB_FILTER identifies a named list. An interface's ip access-group line shows its list and in/out direction. A rule's sequence number is not the ACL identifier." },
+    { term: "ACL number and name", meaning: "An ACL is an ordered permit/deny rule list. access-list 199 identifies a numbered list; ip access-list extended LAB_FILTER identifies a named list. An ip access-group line binds a list to an interface: in means arriving through that port, out means leaving. A rule's sequence number is not its ACL identifier. A per-rule match counter counts matched packets since initialization or clearing, not the number of rules; availability varies by image." },
     { term: "Baseline and rollback", meaning: "A baseline records the known configuration, cabling and successful tests before a change. Running-config is active; startup-config is the saved boot configuration. Rollback returns only our changes to that recorded state. Copying startup-config into running-config merges settings; it is not a reliable rollback." },
     { term: "Filtering boundary", meaning: "This router ACL checks ICMP and IP addresses, not TCP/UDP port numbers or application health. After the specific deny, permit ip any any permits other IPv4 traffic evaluated by this ACL. It does not create routes or expose services by itself. Use this permissive teaching policy only in the fully disconnected lab; never copy it to a production or shared network." }
   ],
   explanation: "Use these definitions before the diagram, walkthrough or commands. First establish a working peer exchange, then change one known rule and compare observations. An analogy can help remember a job, but it is not literal forwarding behavior. Our checklist narrows possibilities; it does not prove a faulty layer from one symptom.",
-  labBoundary: "Lab boundary: Use a disconnected, disposable GNS3 project with PC1, Switch, Router and PC2. No company network or Internet bridge is allowed. This IPv4/ICMP exercise does not test application, wireless or firewall-product behavior."
+  labBoundary: "Lab boundary: Use a disconnected, disposable GNS3 project with PC1, Switch, Router and PC2. Do not add Cloud, NAT or real-network adapters or connect company, production, shared or Internet traffic. This IPv4/ICMP exercise does not test applications, wireless or a firewall product."
 };
 
 export function ccnaLayeredVisual(): CcnaVisualStory {
@@ -64,9 +67,9 @@ export function ccnaLayeredVisual(): CcnaVisualStory {
     ],
     connections: [{ id: "pc1-switch", from: "pc1", to: "switch" }, { id: "switch-router", from: "switch", to: "router" }, { id: "router-pc2", from: "router", to: "pc2" }],
     stages: [
-      { title: "PC1 sends to PC2", explanation: "PC1 is 192.168.1.10/24. Switch forwards its local frame to Router at 192.168.1.1/24. Router sends a new frame from 192.168.2.1/24 to PC2 at 192.168.2.10/24.", activeNodes: ["pc1", "switch", "router", "pc2"], activeConnections: ["pc1-switch", "switch-router", "router-pc2"], direction: "forward", sourceUrls: [refs.layers] },
+      { title: "PC1 sends to PC2", explanation: "PC1 reaches Router's LAN1 through Switch. Router builds a new Ethernet frame on LAN2 for PC2. The request's IP addresses remain PC1 to PC2; Router's LAN2 IP is not the source IP. See the address table.", activeNodes: ["pc1", "switch", "router", "pc2"], activeConnections: ["pc1-switch", "switch-router", "router-pc2"], direction: "forward", sourceUrls: [refs.routing] },
       { title: "PC2 replies to PC1", explanation: "PC2 uses gateway 192.168.2.1 to return through Router and Switch to PC1. Replies confirm this ICMP exchange, not a working website or every application.", activeNodes: ["pc1", "switch", "router", "pc2"], activeConnections: ["pc1-switch", "switch-router", "router-pc2"], direction: "reverse", sourceUrls: [refs.ping] },
-      { title: "Check Router filtering", explanation: "The lab-only ACL 199 blocks PC1's echo request before Router forwards it to PC2. Check the matching rule counter, detach and delete only our ACL, then repeat the same peer test.", activeNodes: ["pc1", "switch", "router"], activeConnections: ["pc1-switch", "switch-router"], direction: "forward", sourceUrls: [refs.acl] }
+      { title: "Check Router filtering", explanation: "The lab-only ACL 199 stops PC1's request at Router; PC2 does not receive it. Inspect the rule counter and every reference first. Follow the lab's ownership checks and rollback; never remove an unfamiliar ACL or binding.", activeNodes: ["pc1", "switch", "router"], activeConnections: ["pc1-switch", "switch-router"], direction: "forward", sourceUrls: [refs.acl] }
     ]
   };
 }
@@ -92,6 +95,7 @@ export function ccnaLayeredLab(): CcnaLessonContent["lab"] {
       { device: "PC2", interface: "Ethernet0", address: "192.168.2.10/24", purpose: "Destination; default gateway 192.168.2.1" }
     ],
     setup: [
+      "Open GNS3. Choose File > New blank project, name it Day4-Isolated and confirm its new folder. Reopen with File > Open project. The clean-baseline step separately saves Router's configuration. Drag templates from the device browser; Start/Resume all devices starts them. To return, right-click the named node and choose Console. Stop the disposable nodes before closing; do not alter other projects.",
       "Complete the start-here guide and recap Day 2's console and gateway concepts. Use a new disconnected project. Keep any existing project untouched. For Windows notes, click Start, type Notepad, press Enter, and click New tab. Type a heading, press Ctrl+Shift+S, choose Documents, enter Day4-baseline.txt, then click Save. Keep this window open; click below existing notes, paste copied console output, and press Ctrl+S after each addition. A dated paper notebook is an alternative.",
       "For notes on Mac, open TextEdit from Applications and select Format > Make Plain Text. On Linux, open an installed text editor such as Gedit; use nano in Terminal only if you already know it. Save as Day4-baseline.txt, then use the editor's Save command after additions. A paper notebook also works. These are notes editors, not network consoles: on every operating system, right-click the named GNS3 node and choose Console before typing device commands.",
       "Before installing Router, you must have legal permission or entitlement that permits this Cisco image's use in GNS3; do not use an image without that right. GNS3 supplies no Cisco images. Follow its official topology setup guide and use two routed Ethernet ports with IPv4 extended ACL support. Never share or redistribute image files. If not entitled, use a paper prediction or separately configured Cisco Modeling Labs; a CML license alone does not grant GNS3 image rights.",
@@ -108,7 +112,7 @@ export function ccnaLayeredLab(): CcnaLessonContent["lab"] {
         ["show running-config", "Read the complete active configuration. Record interface blocks and all ACL references before making any change."],
         ["show access-lists", "List existing ACL identifiers and rules. A numbered list uses an identifier such as 199, not a rule sequence number."]
       ], "Your baseline shows no ACL 199 and no ACL attachment or existing IP address on the two selected ports. If it does not, stop without changing that router.", "A numbered ACL can be shared by other features. Confirm it is absent everywhere before reserving 199 for this exercise."),
-      consoleStep("Router", "Configure the two mapped router ports", "Use the exact interface mapping from your notes. These full commands assume LAN1 is GigabitEthernet0/0 and LAN2 is GigabitEthernet0/1. no shutdown enables only those approved lab ports. If status remains down, check the cable endpoints and started peer nodes before proceeding.", [
+      consoleStep("Router", "Configure the two mapped router ports", "Use the exact interface mapping from your notes. These full commands assume LAN1 is GigabitEthernet0/0 and LAN2 is GigabitEthernet0/1. Administratively down means disabled by configuration; no shutdown enables only those approved lab ports. Down/down reports physical and protocol down; up/down reports physical up but protocol down. Check both cable endpoints and started peers; do not proceed without the expected up/up baseline.", [
         ["enable", "Select Router's privileged mode before starting this interface-configuration block."],
         ["configure terminal", "Enter global configuration mode to make the recorded lab-only address changes."],
         ["interface GigabitEthernet0/0", "Select LAN1, the port connected to Switch. Substitute its observed full interface name if different."],
@@ -245,16 +249,20 @@ export function ccnaLayeredBeginnerGuide(): NonNullable<CcnaLessonContent["begin
   };
 }
 
-export const ccnaLayeredReviewBoundary = "DAY 4 REVIEW: Evaluate the complete assembled lesson in displayed order: teachingPrelude, visualStory, beginnerGuide, sections, scenario, lab, practice and quiz. The prelude is visible teaching before every exercise, not a hidden glossary. Count its actual definitions; do not require them to be repeated in every field. The beginner guide is a labelled paper prediction; only the lab contains executable commands. Check that these scopes remain distinct. Inspect every quiz answer/explanation and practice answer before asserting that coverage is missing. Identify the exact field and quote the problematic wording for each finding. For an omission, verify it across the full lesson first. Do not require redundant disclaimers in every field or invent extra objectives. Reject actual contradictions, unsafe steps, missing required evidence or unclear instructions; do not approve just because maintained content is supplied.";
+export const ccnaLayeredReviewBoundary = "DAY 4 REVIEW: Evaluate the complete assembled lesson in displayed order: teachingPrelude, visualStory, beginnerGuide, sections, scenario, lab, practice and quiz. The prelude is visible teaching before every exercise, not a hidden glossary. Count its actual definitions; do not require them to be repeated in every field. The beginner guide is a labelled paper prediction; only the lab contains executable commands. Check that these scopes remain distinct. Inspect every quiz answer/explanation and practice answer before asserting that coverage is missing. Identify the exact field and quote the problematic wording for each finding. For an omission, verify it across the full lesson first. Do not require redundant disclaimers in every field or invent extra objectives. FACT CHECK: No NAT is configured. Forwarding creates a new Ethernet frame, not a new endpoint source IP; IPv4 TTL and checksum change. Do not recommend replacing PC1's source IP with Router's IP. ACL detachment before deletion is the lab's safety procedure, not a universal IOS parser requirement. Unknown references are a stop condition, not authorization to remove others' policy. A missing match counter is not proof of a non-match when counters are unavailable. Reject actual contradictions, unsafe steps, missing required evidence or unclear instructions; do not approve just because maintained content is supplied.";
+
+export function ccnaLayeredTeaching() { return layeredTeaching(refs); }
 
 export function applyCcnaLayeredContract(content: CcnaLessonContent): CcnaLessonContent {
   const sources = [...content.sources];
   for (const source of ccnaLayeredSources) if (!sources.some((item) => item.url === source.url)) sources.push({ ...source });
-  return { ...content, sources, teachingPrelude: structuredClone(ccnaLayeredPrelude), beginnerGuide: ccnaLayeredBeginnerGuide(), visualStory: ccnaLayeredVisual(), lab: ccnaLayeredLab() };
+  return { ...content, ...ccnaLayeredTeaching(), sources, teachingPrelude: structuredClone(ccnaLayeredPrelude), beginnerGuide: ccnaLayeredBeginnerGuide(), visualStory: ccnaLayeredVisual(), lab: ccnaLayeredLab() };
 }
 
 export function ccnaLayeredIssues(content: CcnaLessonContent): string[] {
   const issues: string[] = [];
+  const teaching = ccnaLayeredTeaching();
+  if (ccnaContentDigest(Object.fromEntries(Object.keys(teaching).map((key) => [key, content[key as keyof CcnaLessonContent]]))) !== ccnaContentDigest(teaching)) issues.push("Use Day 4's aligned teaching and assessments: non-literal analogies, unchanged endpoint IPs without NAT, ping uncertainty and ownership-aware lab-only rollback. Do not regenerate conflicting prose around the maintained lab.");
   if (ccnaContentDigest(content.visualStory ?? null) !== ccnaContentDigest(ccnaLayeredVisual())) issues.push("Use the complete Day 4 PC1-Switch-Router-PC2 visual: short labels, full role phrases, all links, peer destination and bounded stage titles.");
   if (ccnaContentDigest(content.lab) !== ccnaContentDigest(ccnaLayeredLab())) issues.push("Use the complete Day 4 isolated lab: exact console sequences, interface mapping, no self-pings, clean baseline, lab-only ACL 199, detach-before-delete rollback and peer retests.");
   if (ccnaContentDigest(content.teachingPrelude ?? null) !== ccnaContentDigest(ccnaLayeredPrelude)) issues.push("Define Day 4 layers, frames, packets, consoles, command modes, ACL identifiers, baselines and ping limitations in the teaching prelude before use.");
@@ -269,6 +277,7 @@ export const ccnaLayeredWritingBoundary = [
   `FIXED LAB: ${JSON.stringify(ccnaLayeredLab())}`,
   `FIXED VISUAL: ${JSON.stringify(ccnaLayeredVisual())}`,
   `FIXED BEGINNER GUIDE: ${JSON.stringify(ccnaLayeredBeginnerGuide())}`,
+  `FIXED TEACHING AND ASSESSMENTS: ${JSON.stringify(ccnaLayeredTeaching())}`,
   "Use exactly PC1-Switch-Router-PC2, the two 192.168.1.0/24 and 192.168.2.0/24 networks and the stated gateways. Explain every new word at first use. The built-in Switch has no IOS CLI. Do not invent a firewall node, wireless path, Layer 4 port test, browser or DNS server in the live lab. A labelled paper/application comparison is acceptable but not an executed test.",
   "Explain ACL names and numbers from the actual running-config examples. Use only lab-owned unused numbered ACL 199; no pre-existing binding may be replaced. Step 11 supplies enable, configure terminal, mapped interface, no ip access-group 199 in, exit, no access-list 199, end and verification. Never instruct remove all ACLs or erase configuration. Baselines are recorded before changes; startup-config merge is not rollback.",
   "The quiz AND practice set must each contain an explained ping-limit question: missing replies can involve either path direction, ICMP filtering, host/firewall behavior or ARP/link conditions. Distinguish an initial ARP delay from an established stable baseline; never promise a successful ping despite a wrong gateway. A self-ping proves no peer path. Successful ICMP says nothing conclusive about TCP/UDP ports or application health.",

@@ -90,11 +90,19 @@ export async function runCcnaGenerationPipeline(options: {
 }) {
   const passes: Pass[] = [];
   let repair: { candidate: unknown; issues: string[] } | undefined;
+  let previousReview: Review | undefined;
   // An existing draft is inspected before any writing; both paths allow at most two repairs.
   for (let attempt = 0; attempt <= 2; attempt += 1) {
     const text = attempt === 0 && options.initialCandidate !== undefined
       ? JSON.stringify(options.initialCandidate) : await options.write(repair);
     const inspected = options.inspect(text);
+    const digest = ccnaContentDigest(inspected.candidate);
+    if (passes.at(-1)?.contentDigest === digest && previousReview) {
+      const issues = [...new Set([...inspected.quality.issues, ...previousReview.issues,
+        "The repair did not change the reviewed lesson. Automatic repair stopped to avoid repeating identical paid reviews; inspect the reported fields before retrying."])];
+      if (!inspected.content) throw new CcnaGenerationValidationError(passes, issues);
+      return { content: inspected.content, quality: { ...inspected.quality, ready: false, issues, score: Math.max(0, 100 - issues.length * 12) }, review: previousReview, repairPasses: attempt, passes, reviewedContentDigest: digest };
+    }
     let reviewWasRun = false;
     let review: Review = { passed: false, issues: ["Independent review requires a complete lesson JSON object."] };
     if (inspected.candidate && typeof inspected.candidate === "object" && !Array.isArray(inspected.candidate)) {
@@ -103,7 +111,7 @@ export async function runCcnaGenerationPipeline(options: {
       review = result.success ? result.data : { passed: false, issues: ["The independent review response was invalid or contradictory; a valid technical review is required."] };
     }
     const issues = [...new Set([...inspected.quality.issues, ...review.issues])];
-    const digest = ccnaContentDigest(inspected.candidate);
+    previousReview = review;
     const ready = !!inspected.content && inspected.quality.ready && review.passed && !issues.length;
     passes.push({ attempt: attempt + 1, schemaPassed: !!inspected.content, reviewWasRun, reviewPassed: review.passed, contentDigest: digest, issues });
     if (ready || attempt === 2) {

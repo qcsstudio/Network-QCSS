@@ -46,11 +46,15 @@ knowledge and overinterpreted missing ping replies.
 
 ## Assembly And Review
 
-`ccna-layered-contract.ts` supplies the full lab, visual and prelude before the
-combined schema, citation and quality checks and before independent review. The
-writer generates the topic teaching, scenarios and assessments against this
-same contract. Research queries specifically cover layered diagnosis, ACL
-commands, console setup and interface troubleshooting.
+`ccna-layered-contract.ts` and `ccna-layered-teaching.ts` supply the aligned lab,
+visual, prelude, teaching, scenario and assessments before combined schema,
+citation and quality checks and independent review. The writer cannot replace
+these maintained fields; it supplies remaining metadata, objectives and sources.
+This prevents repairs from changing fields that assembly immediately replaces.
+Research still covers layered diagnosis, ACL commands, console setup and
+interface troubleshooting. The default Day 4 independent reviewer is GPT-5 mini;
+an explicitly configured CCNA_REVIEW_MODEL is respected. Reasoning output has a
+bounded budget and incomplete output never counts as approval.
 
 The independent reviewer still checks the entire assembled lesson and can reject
 contradictory body text, unsafe instructions or inaccurate quiz answers. Passing
@@ -85,4 +89,7 @@ consolidation and independent-review rejection. Command tests check sequence
 structure, not actual Cisco IOS execution or real network forwarding.
 
 Primary references are listed in `ccnaLayeredSources`, including Cisco ACL and
-ping documentation, GNS3 router/VPCS setup, RFC 1122 and Cisco image licensing.
+ping documentation, GNS3 router/VPCS setup, RFC 1122, RFC 1812 and Cisco image
+licensing. Non-NAT forwarding preserves endpoint IP addresses while replacing
+the local Ethernet frame and updating IPv4 TTL/checksum. Incorrect reviewer
+suggestions must not override that fact.

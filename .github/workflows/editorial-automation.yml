@@ -50,7 +50,7 @@ jobs:
     needs: scan-advisories
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 12
     concurrency:
       group: qcs-editorial-completion
       cancel-in-progress: false
@@ -64,3 +64,16 @@ jobs:
           curl --fail-with-body --silent --show-error --retry 1 --retry-all-errors --max-time 300 \
             -H "Authorization: Bearer ${token}" \
             "https://www.qcsstudio.com/api/cron/content-editorial"
+
+      - name: Resume explicitly requested CCNA publication jobs
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          token="$(curl --fail --silent --show-error \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https%3A%2F%2Fwww.qcsstudio.com%2Fautomation" | jq -r '.value')"
+          response="$(curl --fail-with-body --silent --show-error --max-time 300 \
+            -H "Authorization: Bearer ${token}" \
+            "https://www.qcsstudio.com/api/cron/ccna-daily?queuedOnly=1")"
+          printf '%s' "${response}" | jq '{ok, action: .result.action, lesson: (.result.lesson | {slug, status, qualityScore, lastError}), distributionId}'
+          printf '%s' "${response}" | jq -e '.ok == true' > /dev/null

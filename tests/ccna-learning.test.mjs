@@ -104,7 +104,42 @@ test("Day 4 composes complete diagnostics before combined gates and independent 
   assert.deepEqual(ccnaReviewedRevisionIssues(result.content, { editorialReview: result.review, reviewedContentDigest: result.reviewedContentDigest }), []);
   const rejected = await runCcnaGenerationPipeline({ ...options, review: async () => ({ passed: false, issues: ["Correct a remaining teaching claim against its primary source before publishing."] }) });
   assert.equal(rejected.quality.ready, false, "Maintained lab fields must never override a failed independent review.");
-  assert.equal(rejected.passes.length, 3, "The existing bounded review/repair policy remains in force.");
+  assert.equal(rejected.passes.length, 1, "A fixed, unchanged revision must stop rather than repeat the same paid review.");
+});
+
+test("one-click publishes an exact reviewed revision atomically without calling OpenAI", async (t) => {
+  const { applyCcnaTopicContract, evaluateCcnaLessonForTopic } = await import("../src/lib/ccna-content-agent.ts");
+  const { ccnaLayeredSources } = await import("../src/lib/ccna-layered-contract.ts");
+  const { inspectCcnaLessonCandidate, ccnaContentDigest } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const { queueCcnaPublication, processCcnaPublication, completeCcnaPublicationDelivery } = await import("../src/lib/ccna-learning.ts");
+  const draft = generationFixture();
+  const topic = ccnaCurriculum[3];
+  const inspected = inspectCcnaLessonCandidate(JSON.stringify(draft), { allowedSources: [...draft.sources.map((s) => s.url), ...ccnaLayeredSources.map((s) => s.url)], prepare: (c) => applyCcnaTopicContract(topic, c), evaluate: (c) => evaluateCcnaLessonForTopic(topic, c) });
+  assert.equal(inspected.quality.ready, true);
+  const row = { id: "reviewed-day4", sequence: 4, slug: topic.slug, status: "draft", title: topic.title, content: inspected.content, updatedAt: new Date(), nextAttemptAt: new Date(0), attempts: 0,
+    generationTrace: { editorialReview: { passed: true, issues: [] }, reviewedContentDigest: ccnaContentDigest(inspected.content) } };
+  const previous = globalThis.prisma;
+  t.after(() => { if (previous) globalThis.prisma = previous; else delete globalThis.prisma; });
+  let publications = 0;
+  globalThis.prisma = { ccnaLesson: {
+    findUnique: async () => structuredClone(row), findUniqueOrThrow: async () => structuredClone(row),
+    updateMany: async ({where, data}) => {
+      if (where.updatedAt.getTime() !== row.updatedAt.getTime() || (where.status && where.status !== row.status)) return {count: 0};
+      if (data.status === "published") { publications++; assert.equal(where.status, "retry"); }
+      Object.assign(row, structuredClone(data), {updatedAt: data.updatedAt || new Date(row.updatedAt.getTime() + 1)}); return {count: 1};
+    }
+  } };
+  t.mock.method(globalThis, "fetch", async () => { throw new Error("A reviewed lesson must not call a paid provider."); });
+  await queueCcnaPublication(row.id, "operator");
+  await queueCcnaPublication(row.id, "duplicate");
+  assert.equal((await processCcnaPublication(row.id)).status, "published");
+  await processCcnaPublication(row.id);
+  assert.equal(publications, 1);
+  assert.equal(row.approvedBy, "operator");
+  const publishedRevision = row.updatedAt.toISOString();
+  await completeCcnaPublicationDelivery(row.id);
+  assert.equal(row.generationTrace.publicationJob.delivery, "complete");
+  assert.equal(row.updatedAt.toISOString(), publishedRevision, "Delivery metadata must preserve the queued content revision.");
 });
 
 test("a full bibliography makes room for cited visual evidence without losing citations", async () => {
@@ -196,7 +231,7 @@ test("repair-existing inspects and independently reviews the saved revision befo
   assert.equal(result.reviewedContentDigest, ccnaContentDigest(result.content));
 });
 
-test("repair-existing combines findings, preserves the seed, and stops after two repairs", async () => {
+test("repair-existing preserves the seed and stops an unchanged repair before another paid review", async () => {
   const { runCcnaGenerationPipeline, ccnaReviewedRevisionIssues } = await import("../src/lib/ccna-generation-pipeline.ts");
   const content = generationFixture();
   const snapshot = structuredClone(content);
@@ -213,8 +248,9 @@ test("repair-existing combines findings, preserves the seed, and stops after two
     },
     review: async () => { reviews += 1; return { passed: false, issues: ["Explain the ACL ownership checkpoint before deleting a numbered list."] }; }
   });
-  assert.equal(writes, 2);
-  assert.equal(reviews, 3);
+  assert.equal(writes, 1);
+  assert.equal(reviews, 1);
+  assert.match(result.quality.issues.join(" "), /did not change the reviewed lesson/);
   assert.equal(result.quality.ready, false);
   assert.deepEqual(content, snapshot);
   assert.ok(ccnaReviewedRevisionIssues(result.content, { editorialReview: result.review, reviewedContentDigest: result.reviewedContentDigest }).length);
@@ -289,7 +325,7 @@ test("invalid or contradictory review cannot approve a lesson or retry without a
   const { runCcnaGenerationPipeline, ccnaReviewedRevisionIssues } = await import("../src/lib/ccna-generation-pipeline.ts");
   const valid = generationFixture();
   let writes = 0;
-  const result = await runCcnaGenerationPipeline({ ...await pipelineOptions(valid), write: async () => { writes += 1; return JSON.stringify(valid); }, review: async () => ({ passed: true, issues: ["The final destination is missing from this network diagram."] }) });
+  const result = await runCcnaGenerationPipeline({ ...await pipelineOptions(valid), write: async () => { writes += 1; return JSON.stringify({ ...valid, metaTitle: `${valid.metaTitle} ${writes}` }); }, review: async () => ({ passed: true, issues: ["The final destination is missing from this network diagram."] }) });
   assert.equal(writes, 3);
   assert.equal(result.quality.ready, false);
   assert.equal(result.passes.length, 3);
@@ -302,7 +338,7 @@ test("unrepairable schema errors preserve all diagnostics after exactly two repa
   const broken = { ...valid, metaTitle: "bad", metaDescription: "bad" };
   const options = await pipelineOptions(valid);
   let writes = 0;
-  await assert.rejects(() => runCcnaGenerationPipeline({ ...options, write: async () => { writes += 1; return JSON.stringify(broken); } }), (error) => {
+  await assert.rejects(() => runCcnaGenerationPipeline({ ...options, write: async () => { writes += 1; return JSON.stringify({ ...broken, metaTitle: `bad${writes}` }); } }), (error) => {
     assert.ok(error instanceof CcnaGenerationValidationError);
     assert.equal(error.passes.length, 3);
     assert.match(error.message, /metaTitle/);

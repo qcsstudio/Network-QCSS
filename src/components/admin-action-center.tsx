@@ -47,6 +47,7 @@ function shouldReport(url: URL, method: string) {
 }
 
 async function responseDetail(response: Response) {
+  if (response.status === 202) return { degraded: false, detail: "Job accepted. Preparation and review are still running; follow its saved status in the dashboard." };
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) return { degraded: false, detail: response.ok ? "The operation completed." : `The server returned HTTP ${response.status}.` };
   try {

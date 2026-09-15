@@ -5,8 +5,9 @@ import { BookOpenCheck, CalendarCheck, Check, Clipboard, ExternalLink, Graduatio
 import { useEffect, useMemo, useState } from "react";
 import type { CcnaLessonRecord } from "@/lib/ccna-learning";
 import { buildCcnaNewsletterEdition } from "@/lib/ccna-newsletter";
+import { ccnaCourseFacts, ccnaExamStatus } from "@/lib/ccna-curriculum";
 
-type Action = "draft" | "generate" | "repair" | "publish" | "queue_linkedin" | "run_today" | "skip" | "sync";
+type Action = "draft" | "generate" | "repair" | "prepare_publish" | "publish" | "queue_linkedin" | "run_today" | "skip" | "sync";
 
 export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLessonRecord[] }) {
   const [lessons, setLessons] = useState(initialLessons);
@@ -15,8 +16,28 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
   const [copied, setCopied] = useState(false);
   const [requestError, setRequestError] = useState("");
   const [now, setNow] = useState(0);
+  const [notice, setNotice] = useState("");
   const selected = lessons.find((lesson) => lesson.id === selectedId) || lessons[0];
   const retryAt = selected?.generationProgress?.retryAt;
+  const pendingPublication = lessons.some((lesson) => lesson.publicationRequested && ["retry", "generating", "published"].includes(lesson.status));
+  useEffect(() => {
+    if (!pendingPublication) return;
+    let cancelled = false;
+    let timer: number;
+    const controller = new AbortController();
+    async function refresh() {
+      try {
+        const response = await fetch("/api/admin/ccna-lessons", { cache: "no-store", signal: controller.signal });
+        if (!response.ok) throw new Error("Could not refresh publication status. The saved job has not been cancelled.");
+        const data = await response.json() as { lessons: CcnaLessonRecord[] };
+        if (!cancelled) setLessons(data.lessons);
+      } catch (error) {
+        if (!cancelled) setRequestError(error instanceof Error ? error.message : "Status refresh failed.");
+      } finally { if (!cancelled) timer = window.setTimeout(refresh, 5000); }
+    }
+    timer = window.setTimeout(refresh, 1500);
+    return () => { cancelled = true; controller.abort(); window.clearTimeout(timer); };
+  }, [pendingPublication]);
   useEffect(() => {
     if (!retryAt) return;
     const timer = window.setInterval(() => {
@@ -43,6 +64,7 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
       const payload = await response.json() as { error?: string; lessons?: CcnaLessonRecord[] };
       if (payload.lessons) setLessons(payload.lessons);
       if (!response.ok) throw new Error(payload.error || "CCNA action failed.");
+      if (action === "prepare_publish") setNotice("Publication job accepted. Research, checks and independent review run before publishing. Progress is saved between capacity pauses.");
     } catch (error) {
       setRequestError(error instanceof Error ? error.message : "CCNA action failed. Please retry.");
     } finally {
@@ -69,6 +91,9 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
         <div className="button-row"><button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("sync")} type="button"><RefreshCcw aria-hidden="true" size={17} /> Sync syllabus</button><button className="button primary" disabled={Boolean(busy)} onClick={() => mutate("run_today")} type="button">{busy.startsWith("run_today") ? <LoaderCircle aria-hidden="true" className="admin-action-spinner" size={17} /> : <Play aria-hidden="true" size={17} />} Run today&apos;s edition</button></div>
       </header>
       {requestError ? <p className="form-error" role="alert">{requestError}</p> : null}
+      {notice ? <p className="ccna-admin-beginner-status" role="status">{notice}</p> : null}
+      <p className="ccna-admin-beginner-status">Blueprint checked {ccnaCourseFacts.verifiedAt}. {ccnaExamStatus().transition}.</p>
+      {ccnaExamStatus().verificationDue ? <p className="form-error">The syllabus verification is over 30 days old. Recheck Cisco&apos;s exam overview and both official blueprints before changing exam claims.</p> : null}
       <div className="ccna-admin-metrics"><div><GraduationCap aria-hidden="true" /><span>Curriculum</span><strong>{lessons.length}</strong></div><div><CalendarCheck aria-hidden="true" /><span>Published</span><strong>{stats.published}</strong></div><div><BookOpenCheck aria-hidden="true" /><span>Remaining</span><strong>{stats.remaining}</strong></div><div><RefreshCcw aria-hidden="true" /><span>Needs review</span><strong>{stats.review}</strong></div></div>
 
       <div className="ccna-admin-layout">
@@ -81,9 +106,10 @@ export function CcnaLearningDesk({ initialLessons }: { initialLessons: CcnaLesso
           <dl className="ccna-admin-map"><div><dt>Current v1.1</dt><dd>{selected.v11Blueprint}</dd></div><div><dt>Announced v2.0</dt><dd>{selected.v20Blueprint}</dd></div><div><dt>Quality</dt><dd>{selected.qualityScore || "Pending"}</dd></div><div><dt>Attempts</dt><dd>{selected.attempts}</dd></div></dl>
           {selected.content ? <div className="ccna-admin-preview"><strong>{selected.content.learnerOutcome}</strong><p>{selected.content.plainAnswer}</p><div><span>{selected.content.sections.length} teaching sections</span><span>{selected.content.lab.steps.length} lab steps</span><span>{selected.content.practiceQuestions.length} practice questions</span><span>{selected.content.quiz.length} quiz questions</span><span>{selected.content.sources.length} sources</span></div></div> : <div className="empty-state"><h3>Lesson content is not generated yet.</h3><p>Generation researches the controlled topic, builds the lesson and lab, then applies the publishing gate.</p></div>}
           {selected.content ? <p className="ccna-admin-beginner-status">Beginner guide: {selected.content.beginnerGuide ? "included" : "required before the next publication"}. Command explanations: {explainedCommandCount}/{commandCount}. Automated checks do not replace testing with real learners.</p> : null}
-          {selected.lastError ? <p className="ccna-admin-error">{selected.lastError}</p> : null}
+          {selected.reviewIssues?.length ? <div className="ccna-admin-error"><strong>Technical review needs attention</strong><ul>{selected.reviewIssues.map((issue, index) => <li key={index}>{issue}</li>)}</ul></div> : selected.lastError ? <p className="ccna-admin-error">{selected.lastError}</p> : null}
           {selected.generationProgress ? <p className="ccna-admin-beginner-status" role="status">{selected.generationProgress.completedSteps} completed stages saved. {selected.status === "retry" ? `Paused at ${selected.generationProgress.stage}. ${cooldownSeconds === null ? "Checking provider cooldown." : cooldownSeconds ? `Resume available in ${cooldownSeconds} seconds.` : "Ready to resume."}` : selected.status === "generating" ? "Generation in progress." : "Saved progress is available for a manual retry after resolving the operational error."}</p> : null}
           <div className="ccna-admin-actions">
+            {!["published", "skipped"].includes(selected.status) ? <button className="button primary" disabled={Boolean(busy) || selected.status === "generating" || (selected.publicationRequested && selected.status === "retry")} onClick={() => mutate("prepare_publish", selected.id)} type="button">{selected.publicationRequested && ["retry", "generating"].includes(selected.status) ? <LoaderCircle aria-hidden="true" className="admin-action-spinner" size={17} /> : <BookOpenCheck aria-hidden="true" size={17} />} {selected.publicationRequested && ["retry", "generating"].includes(selected.status) ? "Publication in progress" : "Prepare & publish"}</button> : null}
             {["draft", "needs_review"].includes(selected.status) && selected.content && !selected.generationProgress ? <button className="button secondary" disabled={Boolean(busy) || cooldownSeconds === null || cooldownSeconds > 0} onClick={() => mutate("repair", selected.id)} type="button">{busy === `repair:${selected.id}` ? <LoaderCircle aria-hidden="true" className="admin-action-spinner" size={17} /> : <Wrench aria-hidden="true" size={17} />} Repair draft</button> : null}
             {selected.status === "skipped" ? <button className="button secondary" disabled={Boolean(busy)} onClick={() => mutate("draft", selected.id)} type="button"><RotateCcw aria-hidden="true" size={17} /> Restore to draft</button> : null}
             {["scheduled", "retry", "needs_review", "draft"].includes(selected.status) ? <button className="button secondary" disabled={Boolean(busy) || cooldownSeconds === null || cooldownSeconds > 0} onClick={() => mutate("generate", selected.id)} type="button"><RefreshCcw aria-hidden="true" size={17} /> {selected.generationProgress ? "Resume generation" : selected.content ? "Regenerate" : "Generate lesson"}</button> : null}

@@ -8,6 +8,7 @@ import { getPrismaClient } from "@/lib/prisma";
 import { visualStoryForLesson } from "@/lib/ccna-visual-story";
 import { ccnaCheckpointRunLimit, readCcnaGenerationCheckpoint, type CcnaGenerationCheckpoint } from "@/lib/ccna-generation-checkpoint";
 import { CcnaRequestDeferredError } from "@/lib/ccna-openai-requests";
+import { ccnaPublicationJob, ccnaFailureSummary } from "@/lib/ccna-publication-policy";
 
 export type CcnaLessonStatus = "scheduled" | "generating" | "retry" | "needs_review" | "draft" | "published" | "skipped";
 
@@ -32,6 +33,8 @@ export type CcnaLessonRecord = {
   lastError: string;
   updatedAt: string;
   generationProgress?: { completedSteps: number; stage: string; retryAt: string };
+  publicationRequested?: boolean;
+  reviewIssues?: string[];
 };
 
 function status(value: string): CcnaLessonStatus {
@@ -66,13 +69,15 @@ function mapLesson(lesson: CcnaLesson): CcnaLessonRecord {
     content: content(lesson.content),
     qualityScore: lesson.qualityScore || 0,
     attempts: lesson.attempts,
-    lastError: lesson.lastError || "",
+    lastError: ccnaFailureSummary(lesson.lastError || ""),
+    publicationRequested: ccnaPublicationJob(trace)?.delivery === "pending",
+    reviewIssues: trace.editorialReview && typeof trace.editorialReview === "object" && "issues" in trace.editorialReview && Array.isArray(trace.editorialReview.issues) ? trace.editorialReview.issues.filter((issue): issue is string => typeof issue === "string") : [],
     updatedAt: lesson.updatedAt.toISOString(),
     ...(checkpoint ? { generationProgress: {
       completedSteps: checkpoint.entries.length,
       stage: typeof trace.waitingStage === "string" ? trace.waitingStage : checkpoint.entries.at(-1)?.stage || "source research",
       retryAt: lesson.status === "retry" ? lesson.nextAttemptAt.toISOString() : ""
-    } } : {})
+    } } : ccnaPublicationJob(trace)?.delivery === "pending" && ["retry", "generating"].includes(lesson.status) ? { generationProgress: { completedSteps: 0, stage: "queued for preparation", retryAt: lesson.status === "retry" ? lesson.nextAttemptAt.toISOString() : "" } } : {})
   };
 }
 
@@ -207,9 +212,12 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
   if (!existing) throw new Error("CCNA lesson not found.");
   const topic = ccnaTopicBySlug(existing.slug);
   if (!topic) throw new Error("This lesson is not mapped to the controlled CCNA curriculum.");
-  if (existing.status === "published" && !publishWhenReady) throw new Error("Return the lesson to draft before regenerating it.");
+  if (existing.status === "published") throw new Error("Return the lesson to draft before regenerating it.");
 
   const trace = generationTrace(existing.generationTrace);
+  const publicationJob = ccnaPublicationJob(trace);
+  if (publicationJob && publicationJob.runs >= 6) throw new Error("This publication job reached its six-run limit. Review its diagnostics before starting another job.");
+  const jobTrace = publicationJob ? { publicationJob: { ...publicationJob, runs: publicationJob.runs + 1 } } : {};
   // A paused manual repair must retain its mode even when resumed by the existing worker.
   const repairing = repairExisting || (Boolean(resumableCheckpoint(existing.status, trace)) && trace.repairExisting === true);
   if (repairing && (!existing.content || !["draft", "needs_review", "retry", "generating"].includes(existing.status))) {
@@ -219,7 +227,7 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
     throw new CcnaRequestDeferredError(trace.pauseReason as "rate_limit" | "deadline", existing.nextAttemptAt.getTime() - Date.now(), String(trace.waitingStage || "saved lesson"));
   }
   const previousCheckpoint = resumableCheckpoint(existing.status, trace);
-  const shouldPublish = repairing ? false : previousCheckpoint && typeof trace.publishWhenReady === "boolean" ? trace.publishWhenReady : publishWhenReady;
+  const shouldPublish = publicationJob?.delivery === "pending" ? true : repairing ? false : previousCheckpoint && typeof trace.publishWhenReady === "boolean" ? trace.publishWhenReady : publishWhenReady;
   const runStartedAt = new Date();
   let checkpoint: CcnaGenerationCheckpoint | null = previousCheckpoint;
   const ownership = { id, status: "generating", generationStartedAt: runStartedAt };
@@ -235,6 +243,7 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
       generationStartedAt: runStartedAt,
       lastError: null,
       qualityScore: null,
+      ...(publicationJob ? { generationTrace: { ...trace, ...jobTrace, publishWhenReady: shouldPublish, repairExisting: repairing } as Prisma.InputJsonValue } : {}),
       status: "generating"
     }
   });
@@ -252,7 +261,7 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
       repairExisting: repairing,
       onCheckpoint: async (saved) => {
         const result = await prisma.ccnaLesson.updateMany({ where: ownership, data: {
-          generationTrace: { checkpoint: saved, publishWhenReady: shouldPublish, repairExisting: repairing } as unknown as Prisma.InputJsonValue
+          generationTrace: { checkpoint: saved, publishWhenReady: shouldPublish, repairExisting: repairing, ...jobTrace } as unknown as Prisma.InputJsonValue
         } });
         if (!result.count) throw new Error("CCNA generation ownership changed. The previous worker stopped without publishing.");
         checkpoint = saved;
@@ -267,7 +276,7 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
         approvedBy: nextStatus === "published" ? actor : null,
         content: generated.content as unknown as Prisma.InputJsonValue,
         generationStartedAt: null,
-        generationTrace: generated.trace as unknown as Prisma.InputJsonValue,
+        generationTrace: { ...generated.trace, ...jobTrace } as unknown as Prisma.InputJsonValue,
         lastError: generated.quality.ready ? null : generated.quality.issues.join(" "),
         nextAttemptAt: new Date(Date.now() + 30 * 60_000),
         publishedAt: nextStatus === "published" ? new Date() : null,
@@ -284,7 +293,7 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
     const validationFailure = error instanceof CcnaGenerationValidationError;
     const outputFailure = error instanceof CcnaLessonOutputError;
     const deferred = error instanceof CcnaRequestDeferredError;
-    const retry = deferred && error.reason !== "request_too_large" && !!checkpoint && checkpoint.runs < ccnaCheckpointRunLimit;
+    const retry = deferred && error.reason !== "request_too_large" && !!checkpoint && checkpoint.runs < ccnaCheckpointRunLimit && (!publicationJob || publicationJob.runs + 1 < 6);
     const nextAttemptAt = new Date(Date.now() + (deferred ? Math.max(1_000, error.retryAfterMs) : Math.max(10, current.attempts * 10) * 60_000));
     const message = error instanceof Error ? error.message : "Unknown CCNA lesson generation error";
     const progressMessage = deferred && checkpoint ? ` ${checkpoint.entries.length} completed stages are saved.${retry ? " Resume after the cooldown; completed requests will be reused." : " Automatic continuation is held for operator review."}` : "";
@@ -294,10 +303,10 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
         generationStartedAt: null,
         lastError: message + progressMessage,
         generationTrace: { ...(checkpoint ? { checkpoint } : {}), publishWhenReady: shouldPublish, repairExisting: repairing,
-          ...(deferred ? { pauseReason: error.reason, waitingStage: error.stage } : { operationalError: message })
+          ...jobTrace, ...(deferred ? { pauseReason: error.reason, waitingStage: error.stage } : { operationalError: message })
         } as unknown as Prisma.InputJsonValue,
-        ...(validationFailure ? { generationTrace: { validationPolicyVersion: 1, validationPasses: error.passes, editorialReview: { passed: false, issues: error.issues }, reviewWasRun: error.passes.some((pass) => pass.reviewWasRun) } as unknown as Prisma.InputJsonValue } : {}),
-        ...(outputFailure ? { generationTrace: { writingResponses: error.attempts, editorialReview: { passed: false, issues: [message] }, reviewWasRun: error.attempts.some((attempt) => attempt.stage === "independent technical review") } as unknown as Prisma.InputJsonValue } : {}),
+        ...(validationFailure ? { generationTrace: { ...jobTrace, validationPolicyVersion: 1, validationPasses: error.passes, editorialReview: { passed: false, issues: error.issues }, reviewWasRun: error.passes.some((pass) => pass.reviewWasRun) } as unknown as Prisma.InputJsonValue } : {}),
+        ...(outputFailure ? { generationTrace: { ...jobTrace, ...(checkpoint ? { checkpoint } : {}), publishWhenReady: shouldPublish, repairExisting: repairing, operationalError: message, writingResponses: error.attempts, editorialReview: { passed: false, issues: [message] }, reviewWasRun: error.attempts.some((attempt) => attempt.stage === "independent technical review") } as unknown as Prisma.InputJsonValue } : {}),
         nextAttemptAt,
         status: retry ? "retry" : "needs_review"
       }
@@ -306,11 +315,13 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
   }
 }
 
-export async function publishCcnaLesson(id: string, actor: string) {
+export async function publishCcnaLesson(id: string, actor: string, queuedPublication = false) {
   const prisma = getPrismaClient();
   const existing = await prisma.ccnaLesson.findUnique({ where: { id } });
   if (!existing) throw new Error("CCNA lesson not found.");
-  if (["generating", "retry"].includes(existing.status)) throw new Error("Finish the active CCNA generation and independent review before publishing.");
+  if (existing.status === "published") return mapLesson(existing);
+  if (existing.status === "skipped") throw new Error("Restore the skipped lesson to draft before publishing.");
+  if (existing.status === "generating" || (existing.status === "retry" && !(queuedPublication && ccnaPublicationJob(existing.generationTrace)))) throw new Error("Finish the active CCNA generation and independent review before publishing.");
   const topic = ccnaTopicBySlug(existing.slug);
   if (!topic) throw new Error("This lesson is not mapped to the controlled CCNA curriculum.");
   const parsed = ccnaLessonContentSchema.safeParse(existing.content);
@@ -318,8 +329,8 @@ export async function publishCcnaLesson(id: string, actor: string) {
   const quality = evaluateCcnaLessonForTopic(topic, parsed.data);
   const issues = [...quality.issues, ...ccnaReviewedRevisionIssues(parsed.data, existing.generationTrace)];
   if (issues.length) throw new Error(`CCNA lesson held by quality gate: ${issues.join(" ")}`);
-  const record = await prisma.ccnaLesson.update({
-    where: { id },
+  const saved = await prisma.ccnaLesson.updateMany({
+    where: { id, updatedAt: existing.updatedAt, status: existing.status },
     data: {
       approvedAt: new Date(),
       approvedBy: actor,
@@ -329,13 +340,74 @@ export async function publishCcnaLesson(id: string, actor: string) {
       status: "published"
     }
   });
-  return mapLesson(record);
+  if (!saved.count) throw new Error("The lesson changed during publication. Review its current revision before retrying.");
+  return mapLesson(await prisma.ccnaLesson.findUniqueOrThrow({ where: { id } }));
+}
+
+export async function queueCcnaPublication(id: string, actor: string) {
+  const prisma = getPrismaClient();
+  const existing = await prisma.ccnaLesson.findUniqueOrThrow({ where: { id } });
+  if (existing.status === "published") return mapLesson(existing);
+  if (existing.status === "skipped") throw new Error("Restore the skipped lesson to draft first.");
+  const trace = generationTrace(existing.generationTrace);
+  if (ccnaPublicationJob(trace) && ["retry", "generating"].includes(existing.status)) return mapLesson(existing);
+  if (existing.status === "generating") throw new Error("A draft generation is already running. Wait for it to finish before requesting publication.");
+  const checkpoint = resumableCheckpoint(existing.status, trace);
+  const cooldown = ["rate_limit", "deadline"].includes(String(trace.pauseReason)) && existing.nextAttemptAt > new Date();
+  const result = await prisma.ccnaLesson.updateMany({ where: { id, updatedAt: existing.updatedAt }, data: {
+    status: "retry", generationStartedAt: null, nextAttemptAt: cooldown ? existing.nextAttemptAt : new Date(), lastError: null,
+    generationTrace: { ...trace, ...(checkpoint ? { checkpoint } : {}), repairExisting: !!existing.content, publishWhenReady: true,
+      publicationJob: { requestedAt: new Date().toISOString(), actor, runs: 0, delivery: "pending" } } as Prisma.InputJsonValue
+  } });
+  if (!result.count) throw new Error("The lesson changed while queueing. Refresh its current status.");
+  return mapLesson(await prisma.ccnaLesson.findUniqueOrThrow({ where: { id } }));
+}
+
+export async function processCcnaPublication(id: string) {
+  const prisma = getPrismaClient();
+  const existing = await prisma.ccnaLesson.findUniqueOrThrow({ where: { id } });
+  const trace = generationTrace(existing.generationTrace);
+  const job = ccnaPublicationJob(trace);
+  if (!job || job.delivery === "complete" || ["skipped", "draft", "needs_review"].includes(existing.status)) return mapLesson(existing);
+  if (existing.status === "published") return mapLesson(existing);
+  if (existing.nextAttemptAt > new Date() || (existing.status === "generating" && existing.generationStartedAt && Date.now() - existing.generationStartedAt.getTime() < 20 * 60_000)) return mapLesson(existing);
+  if (job.runs >= 6) {
+    await prisma.ccnaLesson.updateMany({ where: { id, updatedAt: existing.updatedAt }, data: { status: "needs_review", generationStartedAt: null, lastError: "The six-run publication budget is exhausted. Inspect the saved diagnostics before starting a new job." } });
+    return mapLesson(await prisma.ccnaLesson.findUniqueOrThrow({ where: { id } }));
+  }
+  // A reviewed draft can publish without research or generation calls.
+  const parsed = ccnaLessonContentSchema.safeParse(existing.content);
+  const topic = ccnaTopicBySlug(existing.slug);
+  if (existing.status === "retry" && parsed.success && topic && evaluateCcnaLessonForTopic(topic, parsed.data).ready && !ccnaReviewedRevisionIssues(parsed.data, trace).length) {
+    return publishCcnaLesson(id, job.actor, true);
+  }
+  return generateCcnaLesson(id, job.actor, true, undefined, !!existing.content);
+}
+
+export async function completeCcnaPublicationDelivery(id: string) {
+  const prisma = getPrismaClient();
+  const existing = await prisma.ccnaLesson.findUniqueOrThrow({ where: { id } });
+  const trace = generationTrace(existing.generationTrace);
+  const job = ccnaPublicationJob(trace);
+  if (existing.status === "published" && job) await prisma.ccnaLesson.updateMany({ where: { id, status: "published", updatedAt: existing.updatedAt }, data: {
+    // Queue bookkeeping must not invalidate the exact content revision sent to LinkedIn.
+    updatedAt: existing.updatedAt,
+    generationTrace: { ...trace, publicationJob: { ...job, delivery: "complete" } } as Prisma.InputJsonValue
+  } });
+}
+
+export async function nextCcnaPublicationJob() {
+  return getPrismaClient().ccnaLesson.findFirst({ where: { status: { in: ["retry", "generating", "published"] },
+    generationTrace: { path: ["publicationJob", "delivery"], equals: "pending" },
+    nextAttemptAt: { lte: new Date() },
+    OR: [{ status: { not: "generating" } }, { generationStartedAt: null }, { generationStartedAt: { lte: new Date(Date.now() - 20 * 60_000) } }]
+  }, orderBy: { updatedAt: "asc" }, select: { id: true } });
 }
 
 export async function returnCcnaLessonToDraft(id: string) {
   const record = await getPrismaClient().ccnaLesson.update({
     where: { id },
-    data: { approvedAt: null, approvedBy: null, publishedAt: null, status: "draft" }
+    data: { approvedAt: null, approvedBy: null, publishedAt: null, generationStartedAt: null, generationTrace: Prisma.JsonNull, status: "draft" }
   });
   return mapLesson(record);
 }

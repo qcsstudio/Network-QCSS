@@ -6,6 +6,38 @@ import path from "node:path";
 import { build } from "esbuild";
 import { chromium } from "@playwright/test";
 
+test("one-click queues once, polls saved progress and shows publication without additional clicks", async () => {
+  const lesson = { id: "queued-test", sequence: 5, week: 1, day: 5, slug: "encapsulation-and-packet-journey", title: "Encapsulation", status: "scheduled", attempts: 0, qualityScore: 0, content: null, lastError: "" };
+  const bundle = await build({ stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {CcnaLearningDesk} from './src/components/ccna-learning-desk'; createRoot(document.getElementById('root')).render(<CcnaLearningDesk initialLessons={${JSON.stringify([lesson])}} />);`, resolveDir: process.cwd(), loader: "jsx" }, bundle: true, write: false, platform: "browser", format: "iife", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": "{}" } });
+  const css = await readFile("src/app/globals.css", "utf8");
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const width of [320, 390, 768, 1440]) {
+      const page = await browser.newPage({viewport: {width, height: 1000}, deviceScaleFactor: 2});
+      const errors = []; let writes = 0; let polls = 0;
+      page.on("pageerror", (error) => errors.push(error.message));
+      await page.route("**/*", async (route) => {
+        const req = route.request();
+        if (req.url() === "http://ccna-job.test/") return route.fulfill({contentType: "text/html", body: `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style></head><body><div id="root"></div></body></html>`});
+        if (req.url().endsWith("/api/admin/ccna-lessons")) {
+          if (req.method() === "POST") { writes++; assert.deepEqual(req.postDataJSON(), {action: "prepare_publish", id: lesson.id}); return route.fulfill({status: 202, contentType: "application/json", body: JSON.stringify({lessons: [{...lesson, status: "retry", publicationRequested: true}]})}); }
+          polls++; return route.fulfill({contentType: "application/json", body: JSON.stringify({lessons: [{...lesson, status: "published", publicationRequested: false}]})});
+        }
+        return route.abort();
+      });
+      await page.goto("http://ccna-job.test/"); await page.addScriptTag({content: bundle.outputFiles[0].text});
+      await page.getByRole("button", {name: "Prepare & publish", exact: true}).click();
+      await page.getByRole("button", {name: "Publication in progress", exact: true}).waitFor();
+      assert.equal(await page.getByRole("button", {name: "Publication in progress", exact: true}).isDisabled(), true);
+      await page.getByRole("link", {name: "Open lesson", exact: true}).waitFor();
+      assert.equal(writes, 1); assert.equal(polls, 1);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+      assert.deepEqual(errors, []);
+      await page.close();
+    }
+  } finally { await browser.close(); }
+});
+
 test("repair draft is a separate unpublished action and remains usable at mobile and desktop widths", async () => {
   const lesson = { id: "day4-repair", sequence: 4, week: 1, day: 4, slug: "osi-and-tcp-ip-models", title: "OSI and TCP/IP models", moduleTitle: "Network fundamentals", status: "needs_review", attempts: 7, qualityScore: 76, lastError: "Clarify the analogy and safe rollback checkpoint.", content: { lab: { steps: [] }, sections: [], practiceQuestions: [], quiz: [], sources: [], learnerOutcome: "Use evidence to investigate missing replies.", plainAnswer: "A layered model organizes related network jobs for troubleshooting." } };
   const bundle = await build({ stdin: {

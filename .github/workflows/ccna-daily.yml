@@ -35,7 +35,7 @@ jobs:
             exit 1
           fi
           printf '%s' "${response}" | jq '{ok, action: .result.action, lesson: (.result.lesson | {slug, status, qualityScore, lastError}), distributionId}'
-          printf '%s' "${response}" | jq -e '.ok == true and (.result.action == "published" or .result.action == "already_published" or .result.action == "not_due" or .result.action == "course_complete")' > /dev/null
+          printf '%s' "${response}" | jq -e '.ok == true and (.result.action == "published" or .result.action == "already_published" or .result.action == "not_due" or .result.action == "course_complete" or .result.action == "retry_wait" or .result.action == "held")' > /dev/null
           echo "publication_id=$(printf '%s' "${response}" | jq -r '.distributionId // empty')" >> "${GITHUB_OUTPUT}"
 
       - name: Process the queued LinkedIn edition

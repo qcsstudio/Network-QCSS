@@ -11,6 +11,19 @@ const cutoff = () => ({ status: "incomplete", incomplete_details: { reason: "max
 const schema = ccnaOpenAIResponseSchema(["https://www.cisco.com/", "https://docs.gns3.com/"]);
 const partValues = (part) => Object.fromEntries(part.schema.required.map((key) => [key, `${part.name}:${key}`]));
 
+test("Day 4 maintained teaching and assessments are never silently rewritten by paid parts", async () => {
+  const { ccnaLayeredTeaching, ccnaLayeredLab, ccnaLayeredVisual, ccnaLayeredBeginnerGuide } = await import("../src/lib/ccna-layered-contract.ts");
+  const fixedFields = { ...ccnaLayeredTeaching(), lab: ccnaLayeredLab(), visualStory: ccnaLayeredVisual(), beginnerGuide: ccnaLayeredBeginnerGuide() };
+  const requests = [];
+  const result = JSON.parse(await writeCcnaLessonParts({ schema, fixedFields, request: async (part) => {
+    requests.push(part);
+    assert.ok(part.schema.required.every((key) => !(key in fixedFields)));
+    return JSON.stringify(partValues(part));
+  } }));
+  assert.deepEqual(requests.map((part) => part.name), ["lab", "teaching"]);
+  for (const key of Object.keys(fixedFields)) assert.deepEqual(result[key], fixedFields[key]);
+});
+
 test("topic-owned lab and visual are assembled but not regenerated or repeated in paid writing context", async () => {
   const fixedFields = { lab: { fixed: "complete topology lab" }, visualStory: { fixed: "all five complete diagrams" } };
   for (const repair of [undefined, { candidate: { ...fixedFields, sections: "existing teaching" }, issues: ["Repair the teaching explanation."] }]) {
@@ -165,7 +178,7 @@ test("assembled writing still passes through the complete independent-review and
     inspect: (text) => ({ content: JSON.parse(text), candidate: JSON.parse(text), quality: { ready: true, score: 100, usefulWords: 2_000, issues: [] } }),
     review: async (candidate) => { reviews += 1; assert.deepEqual(Object.keys(candidate).sort(), [...schema.required].sort()); return { passed: false, issues: ["The lab does not prove the lesson's claimed outcome."] }; }
   });
-  assert.equal(reviews, 3);
+  assert.equal(reviews, 1, "Identical failed repairs must not consume another independent review.");
   assert.equal(result.quality.ready, false);
   assert.equal(result.reviewedContentDigest, ccnaContentDigest(result.content));
   assert.ok(ccnaReviewedRevisionIssues(result.content, { editorialReview: result.review, reviewedContentDigest: result.reviewedContentDigest }).length > 0);
