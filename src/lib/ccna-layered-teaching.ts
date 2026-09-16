@@ -9,7 +9,7 @@ export function layeredTeaching(refs: { layers: string; routing: string; acl: st
     metaDescription: "Understand OSI and TCP/IP with a guided GNS3 lab. Trace a packet, interpret ping results, test an isolated ACL and safely restore your baseline.",
     learnerOutcome: "Use OSI and TCP/IP as troubleshooting checklists. Trace an ICMP exchange, explain its limits and compare a safe lab baseline before, during and after a controlled filter.",
     prerequisites: [
-      "Complete the Start from zero guide for clicking, typing and keeping notes. Read Day 2's device roles; this lesson reintroduces every console action.",
+      "For clicking, typing and notes, read https://www.qcsstudio.com/courses/ccna/start-here. Recap Day 2's device roles; this lesson reintroduces every console action.",
       "Use a computer that can run GNS3 and a legally permitted Cisco IOS router image with two routed Ethernet ports and extended IPv4 ACL support.",
       "Without a permitted image or suitable computer, follow the labelled paper exercises only. Do not type lab commands or claim observed results."
     ],
@@ -45,7 +45,7 @@ export function layeredTeaching(refs: { layers: string; routing: string; acl: st
       {
         heading: "Read Layered Evidence and ACL Bindings",
         explanation: "Begin with read-only observations: inspect cable endpoints and interface state, compare addresses and gateways, and review the tested path and policy. An ACL is an ordered permit/deny rule list. Its identifier can be a number, such as 199, or a name. An ip access-group command binds that list to an interface: inbound means arriving at Router through that port; outbound means leaving Router through that port. A rule's match counter counts matching packets since the counter was last initialized or cleared. It is not the ACL identifier, the number of rules, or a rule sequence number. Counter availability and display vary by image. Correlate a supported counter change with the exact test, attachment and baseline; missing or stale counters are not proof of a particular cause. In real networks, missed ping replies may involve host firewalls, link problems or rate limits even when an ACL exists. An up/up interface is evidence about that local interface, not proof of end-to-end connectivity.",
-        example: "Illustrative output, not commands: under the heading 'Extended IP access list 199', the entry '10 deny icmp host 192.168.1.10 host 192.168.2.10 echo (6 matches)' has rule sequence 10 and six matches. List identifier 199, entry sequence 10 and match count 6 are separate values. An interface's 'ip access-group 199 in' attaches that list inbound. Your image's output may differ; do not invent counts or expect exactly six matches.",
+        example: "Illustrative Router privileged-EXEC output (Router#), not commands to type: under 'Extended IP access list 199', the entry '10 deny icmp host 192.168.1.10 host 192.168.2.10 echo (6 matches)' has rule sequence 10 and six matches. List identifier 199, entry sequence 10 and count 6 are separate values. The interface configuration 'ip access-group 199 in' attaches that list inbound. Your image's output may differ; do not invent counts or expect exactly six matches.",
         keyPoints: ["ACL 199 identifies the list; a rule sequence and its match count are separate values.", "Inbound and outbound describe direction relative to the selected router interface.", "Inspect the complete configuration for other references and stop on unfamiliar ownership."],
         sourceUrls: [refs.acl, refs.ping]
       },

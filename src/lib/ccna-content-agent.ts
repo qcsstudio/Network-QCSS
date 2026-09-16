@@ -15,9 +15,10 @@ import { createCcnaGenerationCheckpoint, type CcnaGenerationCheckpoint } from "@
 import { ccnaImageLicensingNote } from "@/lib/ccna-image-licensing";
 import { applyCcnaTopologyContract, ccnaTopologyIssues, ccnaTopologySources, ccnaTopologyWritingBoundary, ccnaTopologyLab, ccnaTopologyVisual } from "@/lib/ccna-topology-contract";
 import { applyCcnaLayeredContract, ccnaLayeredIssues, ccnaLayeredSources, ccnaLayeredWritingBoundary, ccnaLayeredReviewBoundary, ccnaLayeredBeginnerGuide, ccnaLayeredLab, ccnaLayeredVisual, ccnaLayeredTeaching } from "@/lib/ccna-layered-contract";
+import { ccnaIndependentReviewResponseSchema, ccnaIndependentReviewPolicy, validateCcnaIndependentReview, runCcnaIndependentReview } from "@/lib/ccna-independent-review";
 
 const allowedSourceHosts = ccnaTrustedSourceHosts;
-const technicalReviewResponseSchema = { type: "object", additionalProperties: false, properties: { passed: { type: "boolean" }, issues: { type: "array", maxItems: 10, items: { type: "string", minLength: 20, maxLength: 500 } } }, required: ["passed", "issues"] };
+const technicalReviewResponseSchema = ccnaIndependentReviewResponseSchema;
 
 function env(name: string) {
   return process.env[name]?.trim() || "";
@@ -481,7 +482,7 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
   async function writeLesson(repair?: { candidate: unknown; issues: string[] }) {
     const model = repair ? reviewModel : config.model;
     const fixedFields = topic.sequence === 3 ? { lab: ccnaTopologyLab(), visualStory: ccnaTopologyVisual() }
-      : topic.sequence === 4 ? { ...ccnaLayeredTeaching(), lab: ccnaLayeredLab(), visualStory: ccnaLayeredVisual(), beginnerGuide: ccnaLayeredBeginnerGuide() } : undefined;
+      : topic.sequence === 4 ? { ...ccnaLayeredTeaching(), lab: ccnaLayeredLab(), visualStory: ccnaLayeredVisual(), beginnerGuide: ccnaLayeredBeginnerGuide(), sources: structuredClone(ccnaLayeredSources) } : undefined;
     return writeCcnaLessonParts({ schema, repair, fixedFields, request: async (part) => {
       const stage = `${repair ? "lesson repair" : "lesson draft"}: ${part.name}`;
       const buildRequest = (maxOutputTokens: number, recovery: boolean): OpenAI.Responses.ResponseCreateParamsNonStreaming => ({
@@ -500,30 +501,39 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
       throw error;
     });
   }
+  let reviewEvidence: ReturnType<typeof validateCcnaIndependentReview>["evidence"] | undefined;
   async function reviewLesson(content: unknown) {
     const model = reviewModel;
     const comparisonReview = topic.sequence === 3
       ? "DAY 3 VISUAL REVIEW: visualStory is the campus scene; visualStory.comparisons contains four separate WAN, SOHO, cloud and spine-leaf scenes. Inspect every scene, path, destination, boundary and citation. Do not demand that one packet traverse all five designs or that paper-only device roles be installed as GNS3 appliances. The executable campus lab and the paper comparisons must agree with the teaching body and assessments. The complete teachingPrelude is displayed before the visual, beginner guide and main body; count its explicit definitions when assessing first use. No Cisco IOS console is used, so do not require privileged EXEC or shutdown instruction, but reject invented IOS tasks on the built-in nodes. Check that ping verifies only the tested exchange, not a hub-and-spoke design. For spine-leaf questions distinguish the illustrated two-link inter-leaf path from a universal hop-count rule, account for same-leaf traffic and eligible ECMP alternatives, and evaluate the selected answer and explanation rather than treating incorrect distractors as claims. Check that analogies explicitly state their limits and are not used as literal network rules."
       : topic.sequence === 4 ? ccnaLayeredReviewBoundary : "";
-    const buildRequest = (maxOutputTokens: number, recovery: boolean): OpenAI.Responses.ResponseCreateParamsNonStreaming => ({
+    const buildRequest = (maxOutputTokens: number, recovery: boolean, feedback?: string): OpenAI.Responses.ResponseCreateParamsNonStreaming => ({
       model,
       store: false,
       ...(model.startsWith("gpt-5") ? { reasoning: { effort: "medium" as const } } : {}),
-      instructions: "Act as an independent Cisco instructor and technical editor. Review the supplied lesson against the source evidence and topic boundary. Reject factual errors, incomplete or contradictory lab topology/configuration, unsupported commands, ambiguous quiz answers, misleading exam-version claims, unintroduced advanced scope, repeated filler, serialized data in prose, and visual text that ends abruptly or appears cut to a field limit. Check that each command block belongs to one named console and peer tests do not ping the device's own address. Do not confuse features unused in this lab with features unsupported by the emulator; GNS3's built-in switch has VLAN port modes. Licensing must not imply unrestricted export of Cisco images. Passing schema or word counts does not prove quality. Report only concrete actionable defects, not stylistic preferences. Omit praise, correct observations, summaries, and statements that require no change from issues. Combine related defects into one concise repair instruction and return no more than ten issues. No requirement to run real hardware. Return passed=true only if issues is empty. " + ccnaBeginnerReviewPolicy + " " + comparisonReview,
-      input: `${reviewBrief}\n\nVISUAL REVIEW: Check visualStory against the lesson and evidence. Verify every node label, direction, address and cited source, that each of the three stages teaches a different point, and that its boundary prevents a misleading literal interpretation. Reject concept repetition or unsupported connections.\n\nFINDING SELF-CHECK: Before reporting an omission, read the exact field and its sourceUrls plus the visible prelude and related explanation. Do not report an absent citation when that URL is present. Assess commands against the declared platform, not unrelated NX-OS or other platforms. Do not demand placeholders where the complete example and mandatory mapping instructions are already explicit. These checks do not excuse genuine defects.\n\nFEEDBACK FORMAT: Name the field and give a complete repair instruction in under 300 characters. Do not quote entire paragraphs or serialize extra fields. The 500-character ceiling is not a target. Never split one finding across array entries or end a finding mid-sentence.\n\nLESSON TO REVIEW:\n${JSON.stringify(content)}`,
+      instructions: "Act as an independent Cisco instructor and technical editor. Check facts, all lab commands and modes, visual paths, explained quiz answers, first-use definitions, citations and licensing against the declared topic and evidence. Do not confuse unused emulator features with unsupported features. Passing schema or word counts is not proof of quality. Do not claim real hardware execution. " + ccnaIndependentReviewPolicy + " " + ccnaBeginnerReviewPolicy + " " + comparisonReview + (feedback ? ` REVIEW RESPONSE REPAIR: ${feedback} Re-read the complete candidate and return all nine checks with substantiated findings. Repair the review format or evidence, never hide an actual lesson defect to obtain a pass.` : ""),
+      input: `${reviewBrief}\n\nVISUAL REVIEW: Check every diagram node, connection, direction, stage, boundary and citation.\n\nFINDING SELF-CHECK: Check every claimed omission across the full lesson, including the visible prelude and paired command explanations. Do not demand placeholders where mandatory interface mapping and a complete example are explicit. Cite exact zero-based JSON Pointer paths and quotes from the candidate, never paraphrased quotes. Return the complete fixed checklist and only material findings.\n\nLESSON TO REVIEW:\n${JSON.stringify(content)}`,
       max_output_tokens: maxOutputTokens,
       ...(recovery ? { input: `${reviewBrief}\n\nReview the complete lesson again. Return complete, concise findings without repetition; the previous review reached its output ceiling.\n\nLESSON TO REVIEW:\n${JSON.stringify(content)}` } : {}),
       text: { format: { type: "json_schema", name: "ccna_technical_review", strict: true, schema: technicalReviewResponseSchema } }
     });
     const reviewBudgets = model.startsWith("gpt-5") ? [6_000, 8_000] as const : [1_600, 3_000] as const;
-    const reviewRequest = buildRequest(reviewBudgets[0], false);
-    if (reviewRequest.text?.format?.type === "json_schema") assertCcnaOpenAISchema(reviewRequest.text.format.schema);
-    const response = await checkpoint.run("independent technical review", [reviewRequest, buildRequest(reviewBudgets[1], true)], (key) =>
-      outputs.run("independent technical review", reviewBudgets, (cap, recovery) => requests.run("independent technical review", model, (timeout) => client.responses.create(buildRequest(cap, recovery), { timeout, maxRetries: 0 })), key));
-    try { return JSON.parse(response.output_text) as unknown; } catch { return null; }
+    const checked = await runCcnaIndependentReview({
+      content, allowedSources: [...officialSources.map((source) => source.url), ...discovered],
+      request: async (feedback) => {
+        const reviewRequest = buildRequest(reviewBudgets[0], false, feedback);
+        if (reviewRequest.text?.format?.type === "json_schema") assertCcnaOpenAISchema(reviewRequest.text.format.schema);
+        const response = await checkpoint.run("independent technical review", [reviewRequest, buildRequest(reviewBudgets[1], true, feedback)], (key) =>
+          outputs.run("independent technical review", reviewBudgets, (cap, recovery) => requests.run("independent technical review", model, (timeout) => client.responses.create(buildRequest(cap, recovery, feedback), { timeout, maxRetries: 0 })), key));
+        return response.output_text;
+      }
+    });
+    reviewEvidence = checked.evidence;
+    return checked.review;
   }
   const result = await runCcnaGenerationPipeline({
-    ...(progress.repairExisting ? { initialCandidate: progress.contentRevision } : {}),
+    ...(topic.sequence === 4 ? { initialCandidate: applyCcnaLayeredContract() }
+      : progress.repairExisting ? { initialCandidate: progress.contentRevision } : {}),
     write: writeLesson,
     review: reviewLesson,
     inspect: (text) => inspectCcnaLessonCandidate(text, {
@@ -533,5 +543,5 @@ export async function generateResearchedCcnaLesson(topic: CcnaCurriculumTopic, r
     })
   });
   const { content, quality, review, repairPasses, passes, reviewedContentDigest } = result;
-  return { content, quality, trace: { provider: config.provider, model: config.model, researchModel, reviewModel, generatedAt: new Date().toISOString(), durationMs: Date.now() - startedAt, policyVersion: ccnaTeachingPolicyVersion, visualPolicyVersion: 1, validationPolicyVersion: 1, validationPasses: passes, reviewedContentDigest, searchQueries: [...actualQueries], discoveredSources: [...discovered], rateLimitRetries: requests.events, writingResponses: outputs.attempts, resumedStages: checkpoint.reusedStages, generationRuns: checkpoint.snapshot().runs, editorialReview: review, reviewWasRun: true, repaired: repairPasses > 0, repairPasses, quality } };
+  return { content, quality, trace: { provider: config.provider, model: config.model, researchModel, reviewModel, generatedAt: new Date().toISOString(), durationMs: Date.now() - startedAt, policyVersion: ccnaTeachingPolicyVersion, visualPolicyVersion: 1, validationPolicyVersion: 1, validationPasses: passes, reviewedContentDigest, searchQueries: [...actualQueries], discoveredSources: [...discovered], rateLimitRetries: requests.events, writingResponses: outputs.attempts, resumedStages: checkpoint.reusedStages, generationRuns: checkpoint.snapshot().runs, editorialReview: review, reviewEvidence, reviewWasRun: true, repaired: repairPasses > 0, repairPasses, quality } };
 }

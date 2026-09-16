@@ -123,3 +123,22 @@ now supplies that exact observation sequence, treats missing counters as unknown
 and explains VPCS address syntax, the GNS3 Start control and IPv4 ACL show-command
 alternatives. These additions are covered by regression tests; they do not assert
 that a licensed IOS lab was executed or waive independent review.
+
+The subsequent run exposed a second loop: Day 4's maintained text was unchanged
+while generated bibliography-only repairs produced different content digests and
+new reviews. Day 4 now uses its exact maintained bibliography and no paid writing
+parts. Its assembled chapter still receives live research and independent review;
+an unchanged failing chapter stops after one review rather than paying for source
+churn. Stale bibliography entries are removed when that maintained chapter is
+assembled, not by dropping citations from independently generated chapters.
+
+Independent review now records nine explicit checks covering facts, reproducible
+labs, safety/licensing, beginner clarity, visuals, assessments, sources, syllabus
+scope and presentation. Each blocker needs an existing JSON Pointer, a verbatim
+quote, learner impact and repair. Technical corrections need verified primary
+references. Missing/duplicate checks, nonexistent quotes, unverified references
+and contradictory verdicts are invalid review responses, not accepted evidence of
+a lesson defect. One bounded response-correction request is allowed; capacity
+errors still pause normally. Review must not invent extra lesson objectives or
+block on optional alternate commands, but actual factual and safety defects still
+hold publication. The full checklist and findings are saved for audit.

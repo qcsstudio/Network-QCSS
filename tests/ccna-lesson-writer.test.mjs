@@ -12,15 +12,15 @@ const schema = ccnaOpenAIResponseSchema(["https://www.cisco.com/", "https://docs
 const partValues = (part) => Object.fromEntries(part.schema.required.map((key) => [key, `${part.name}:${key}`]));
 
 test("Day 4 maintained teaching and assessments are never silently rewritten by paid parts", async () => {
-  const { ccnaLayeredTeaching, ccnaLayeredLab, ccnaLayeredVisual, ccnaLayeredBeginnerGuide } = await import("../src/lib/ccna-layered-contract.ts");
-  const fixedFields = { ...ccnaLayeredTeaching(), lab: ccnaLayeredLab(), visualStory: ccnaLayeredVisual(), beginnerGuide: ccnaLayeredBeginnerGuide() };
+  const { ccnaLayeredTeaching, ccnaLayeredLab, ccnaLayeredVisual, ccnaLayeredBeginnerGuide, ccnaLayeredSources } = await import("../src/lib/ccna-layered-contract.ts");
+  const fixedFields = { ...ccnaLayeredTeaching(), lab: ccnaLayeredLab(), visualStory: ccnaLayeredVisual(), beginnerGuide: ccnaLayeredBeginnerGuide(), sources: ccnaLayeredSources };
   const requests = [];
   const result = JSON.parse(await writeCcnaLessonParts({ schema, fixedFields, request: async (part) => {
     requests.push(part);
     assert.ok(part.schema.required.every((key) => !(key in fixedFields)));
     return JSON.stringify(partValues(part));
   } }));
-  assert.deepEqual(requests.map((part) => part.name), ["lab"]);
+  assert.deepEqual(requests, [], "A maintained chapter must not pay a writer just to churn its bibliography.");
   for (const key of Object.keys(fixedFields)) assert.deepEqual(result[key], fixedFields[key]);
 });
 

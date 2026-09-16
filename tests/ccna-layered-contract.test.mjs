@@ -84,7 +84,7 @@ test("Day 4 lab and first-use definitions fit schemas and commands belong to one
 test("ACL rollback has the exact global/interface modes, identifier and detach-before-delete order", () => {
   const lab = ccnaLayeredLab();
   const removal = lab.steps.find((step) => step.commands.includes("no access-list 199"));
-  assert.deepEqual(removal.commands, ["enable", "show ip interface brief", "show running-config", "show ip interface GigabitEthernet0/0", "configure terminal", "interface GigabitEthernet0/0", "no ip access-group 199 in", "exit", "no access-list 199", "end", "show access-lists", "show ip interface GigabitEthernet0/0"]);
+  assert.deepEqual(removal.commands, ["enable", "show ip interface brief", "show running-config", "show ip interface GigabitEthernet0/0", "configure terminal", "interface GigabitEthernet0/0", "no ip access-group 199 in", "exit", "no access-list 199", "end", "show ip access-lists", "show ip interface GigabitEthernet0/0"]);
   assert.match(removal.instruction, /baseline had no ACL attached/);
   assert.match(removal.instruction, /BOTH your baseline record and current show ip interface brief/);
   assert.match(removal.instruction, /stop before configure terminal.*never paste this whole block blindly/);
@@ -142,10 +142,10 @@ test("Day 4 records counter evidence before traffic and explains novice startup 
   const lab = ccnaLayeredLab();
   assert.ok(lab.setup.some((text) => /Click the toolbar Start\/Resume.*right-click each node.*Wait until each node is running before opening Console/.test(text)));
   assert.match(lab.steps[1].instruction, /IOS\/IOS XE, not ASA or NX-OS.*show ip access-lists.*Stop if neither form/);
-  assert.match(lab.steps[3].instruction, /ip 192\.168\.1\.10 255\.255\.255\.0 192\.168\.1\.1.*whole line.*press Enter/);
-  assert.match(lab.steps[4].instruction, /ip 192\.168\.2\.10 255\.255\.255\.0 192\.168\.2\.1.*whole line.*press Enter/);
-  assert.equal(lab.steps[7].commands.at(-1), "show access-lists 199");
-  assert.match(lab.steps[7].commandExplanations.at(-1), /Before the next ping.*match count and time.*missing count means zero/);
+  assert.match(lab.steps[3].instruction, /PC1>.*format ip address\/prefix gateway.*192\.168\.1\.10.*192\.168\.1\.1.*whole command.*press Enter/);
+  assert.match(lab.steps[4].instruction, /PC2>.*format ip address\/prefix gateway.*192\.168\.2\.10.*192\.168\.2\.1.*whole command.*press Enter/);
+  assert.equal(lab.steps[7].commands.at(-1), "show ip access-lists 199");
+  assert.match(lab.steps[7].commandExplanations.at(-1), /Before the next ping.*match count.*computer's clock time.*missing count means zero/);
   assert.match(lab.steps[7].expectedResult, /pre-test deny count.*before Step 9/);
   assert.match(lab.steps[9].instruction, /recorded in Step 8.*8 after minus 3 before.*5 new matches.*Do not clear.*unavailable/);
   assert.match(lab.steps[9].commandExplanations[1], /after the peer tests.*Step 8/);
@@ -162,6 +162,7 @@ test("Day 4 composition is immutable, idempotent and invalidates old independent
   assert.deepEqual(applyCcnaLayeredContract(after), after);
   assert.deepEqual(ccnaLayeredIssues(after), []);
   assert.equal(new Set(after.sources.map(({ url }) => url)).size, after.sources.length);
+  assert.deepEqual(applyCcnaLayeredContract({ sources: [{ label: "Unrelated", url: "https://www.cisco.com/unverified", supports: "Not part of the maintained chapter." }] }).sources, ccnaLayeredSources);
   const oldApproval = { editorialReview: { passed: true, issues: [] }, reviewedContentDigest: ccnaContentDigest(before) };
   assert.ok(ccnaReviewedRevisionIssues(after, oldApproval).some((issue) => /exact saved content/.test(issue)));
   after.lab.steps[10].commands = ["no access-list 199"];
