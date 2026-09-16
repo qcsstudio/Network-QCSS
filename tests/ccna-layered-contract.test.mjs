@@ -138,6 +138,20 @@ test("peer tests, diagnosis limits and interface recovery cover reported beginne
   assert.match(ccnaLayeredWritingBoundary, /No ping result alone identifies a faulty layer/);
 });
 
+test("Day 4 records counter evidence before traffic and explains novice startup and syntax", () => {
+  const lab = ccnaLayeredLab();
+  assert.ok(lab.setup.some((text) => /Click the toolbar Start\/Resume.*right-click each node.*Wait until each node is running before opening Console/.test(text)));
+  assert.match(lab.steps[1].instruction, /IOS\/IOS XE, not ASA or NX-OS.*show ip access-lists.*Stop if neither form/);
+  assert.match(lab.steps[3].instruction, /ip 192\.168\.1\.10 255\.255\.255\.0 192\.168\.1\.1.*whole line.*press Enter/);
+  assert.match(lab.steps[4].instruction, /ip 192\.168\.2\.10 255\.255\.255\.0 192\.168\.2\.1.*whole line.*press Enter/);
+  assert.equal(lab.steps[7].commands.at(-1), "show access-lists 199");
+  assert.match(lab.steps[7].commandExplanations.at(-1), /Before the next ping.*match count and time.*missing count means zero/);
+  assert.match(lab.steps[7].expectedResult, /pre-test deny count.*before Step 9/);
+  assert.match(lab.steps[9].instruction, /recorded in Step 8.*8 after minus 3 before.*5 new matches.*Do not clear.*unavailable/);
+  assert.match(lab.steps[9].commandExplanations[1], /after the peer tests.*Step 8/);
+  assert.deepEqual(ccnaLessonContentSchema.shape.lab.safeParse(lab).error?.issues || [], []);
+});
+
 test("Day 4 composition is immutable, idempotent and invalidates old independent approval", () => {
   const before = { sources: [], sections: [{ heading: "Unchanged teaching" }], lab: {}, visualStory: { nodes: [] }, teachingPrelude: undefined };
   const snapshot = structuredClone(before);

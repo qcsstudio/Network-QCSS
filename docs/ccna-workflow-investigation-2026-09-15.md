@@ -113,3 +113,13 @@ the request. Clipped legacy metadata and unfinished prerequisites are checked
 together, and Day 4's maintained package includes those fields as well as its
 teaching. Review findings must be checked against the actual cited fields and
 declared platform, not unrelated operating systems or absent-context assumptions.
+
+On 16 September, a draft-only production verification completed three research
+stages, one independent review and one repair before pausing at the safe deadline.
+All five responses remained saved, and the lesson remained unpublished. The
+review identified a useful measurement improvement: record the ACL deny counter
+before the peer test, then compare its change after the test. The maintained lab
+now supplies that exact observation sequence, treats missing counters as unknown,
+and explains VPCS address syntax, the GNS3 Start control and IPv4 ACL show-command
+alternatives. These additions are covered by regression tests; they do not assert
+that a licensed IOS lab was executed or waive independent review.
