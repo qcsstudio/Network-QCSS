@@ -142,3 +142,11 @@ a lesson defect. One bounded response-correction request is allowed; capacity
 errors still pause normally. Review must not invent extra lesson objectives or
 block on optional alternate commands, but actual factual and safety defects still
 hold publication. The full checklist and findings are saved for audit.
+
+Final live verification on 16 September returned Day 4 to `draft` with quality
+score 100, no pending issues, eight sources and all nine independent checks passed.
+The saved review digest matches the exact saved chapter. No writing-part calls
+were needed for the maintained lesson, and `publishedAt` remains null. The score
+is an automated gate result, not a claim of perfect instruction or real IOS lab
+execution. Review feedback itself now requires complete sentences and rejects
+clipped impact/repair text before it can become another lesson-repair instruction.

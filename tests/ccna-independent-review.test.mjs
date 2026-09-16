@@ -80,6 +80,17 @@ test("technical corrections must cite primary evidence, not unsupported reviewer
   assert.throws(() => validateCcnaIndependentReview(result, content, [source]), /requires a verified primary source/);
 });
 
+test("clipped review feedback cannot become a lesson repair instruction", () => {
+  for (const field of ["impact", "repair"]) {
+    const result = failing(); result.findings[0][field] = "This field was cut before the";
+    assert.throws(() => validateCcnaIndependentReview(result, content, [source]), /unfinished impact or repair/);
+    result.findings[0][field] = "This explanation is incomplete...";
+    assert.throws(() => validateCcnaIndependentReview(result, content, [source]), /unfinished impact or repair/);
+  }
+  const result = failing(); result.findings[0].repair = "Tell the learner: 'Stop on unknown ownership.'";
+  assert.equal(validateCcnaIndependentReview(result, content, [source]).review.passed, false);
+});
+
 test("one invalid review response can be corrected without rewriting or approving flawed content", async () => {
   const feedbacks = [];
   const result = await runCcnaIndependentReview({ content, allowedSources: [source], request: async (feedback) => {
