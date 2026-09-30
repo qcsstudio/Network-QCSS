@@ -1,0 +1,482 @@
+/* Route-scoped integration: tools, lessons and admin retain their existing styling. */
+.consulting-home {
+  --font-display: Geist, Arial, sans-serif;
+  --font-body: Geist, Arial, sans-serif;
+  --font-tech: GeistMono, monospace;
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  font-family: Geist, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--ink);
+  overflow: clip;
+}
+.consulting-home h1,
+.consulting-home h2,
+.consulting-home h3,
+.consulting-home button,
+.consulting-home input,
+.consulting-home select,
+.consulting-home textarea {
+  font-family: Geist, Arial, sans-serif;
+  letter-spacing: 0;
+}
+.consulting-home h1,
+.consulting-home h2,
+.consulting-home h3 {
+  color: inherit;
+  margin: 0;
+  max-width: none;
+}
+.consulting-home h2 {
+  font-size: 46px;
+}
+.consulting-home h3 {
+  font-size: 24px;
+}
+.consulting-home button {
+  box-shadow: none;
+  background-image: none;
+  text-transform: none;
+}
+.consulting-home button:disabled {
+  cursor: not-allowed;
+}
+.consulting-home section {
+  scroll-margin-top: 166px;
+}
+.consulting-home .anchor-alias {
+  display: block;
+  height: 0;
+  scroll-margin-top: 166px;
+}
+.consulting-home .hero {
+  height: calc(100svh - 150px);
+  min-height: 620px;
+  max-height: 850px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+.consulting-home .hero h1 {
+  font-size: 64px;
+  line-height: 1.08;
+  max-width: 12ch;
+  font-weight: 590;
+}
+.consulting-home .hero-copy {
+  max-width: 760px;
+  padding-top: 48px;
+}
+.consulting-home .hero h1 > span {
+  color: #ad2058;
+}
+.consulting-home .hero .eyebrow {
+  font-size: 11px;
+  line-height: 1.6;
+}
+.consulting-home .hero-description {
+  max-width: 37ch;
+}
+.consulting-home .hero-copy p:not(.eyebrow) {
+  color: #4a5063;
+  max-width: 37ch;
+  font-size: 18px;
+  line-height: 1.65;
+}
+.consulting-home .hero-copy p.intro {
+  color: #242633;
+  font-size: 24px;
+  line-height: 1.3;
+  max-width: 26ch;
+}
+.consulting-home .hero-copy p.market {
+  font-size: 14px;
+  max-width: 44ch;
+}
+.consulting-home a.button {
+  font-family: Geist, Arial, sans-serif;
+}
+.consulting-home .hero-actions {
+  flex-wrap: wrap;
+}
+.consulting-home .section-heading {
+  width: 100%;
+  max-width: none;
+  margin: 0 0 48px;
+}
+.consulting-home .chapter-nav {
+  top: 88px;
+}
+.consulting-home .scene-labels {
+  z-index: 2;
+}
+.consulting-home .scene-label {
+  max-width: calc(100% - 16px);
+}
+.consulting-home .hero-scene canvas,
+.consulting-home .object-scene canvas,
+.consulting-home .service-scene canvas {
+  position: relative;
+  z-index: 1;
+}
+.consulting-home .section-backdrop {
+  z-index: -1;
+}
+.consulting-home .service-description h3 {
+  font-size: 34px;
+  max-width: 18ch;
+}
+.consulting-home .approach h2,
+.consulting-home .approach h3,
+.consulting-home .guardrails h2,
+.consulting-home .guardrails h3 {
+  color: #fff;
+}
+.consulting-home .method-select {
+  font-size: 24px;
+}
+.consulting-home .evidence-list li {
+  display: block;
+  padding: 0;
+}
+.consulting-home .learning-lab .lab-head {
+  gap: 10px;
+}
+.consulting-home .learning-lab .lab-head > .micro {
+  margin-right: auto;
+}
+.consulting-home .dark {
+  color: white;
+}
+.consulting-home .home-lead {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 7%;
+  border-top: 1px solid #d6bfb2;
+  padding-top: 40px;
+  margin: 30px 0 40px;
+  scroll-margin-top: 160px;
+}
+.consulting-home .home-lead > div p {
+  max-width: 44ch;
+  margin: 20px 0;
+  font-size: 16px;
+  color: #624c45;
+}
+.consulting-home .home-lead a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  color: #91234e;
+}
+.consulting-home .lead-form {
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+  gap: 20px;
+  color: #242633;
+}
+.consulting-home .field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.consulting-home .lead-form label {
+  display: grid;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 550;
+  color: #242633;
+}
+.consulting-home .lead-form input:not([type="checkbox"]),
+.consulting-home .lead-form textarea,
+.consulting-home .lead-form select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #bda8a6;
+  background: #fff;
+  color: #242633;
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.consulting-home .lead-form textarea {
+  resize: vertical;
+}
+.consulting-home .lead-form .consent-line {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-weight: 400;
+  line-height: 1.65;
+}
+.consulting-home .lead-form input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 3px;
+  accent-color: #ad2058;
+}
+.consulting-home .lead-form .form-note {
+  color: #624c45;
+  font-size: 15px;
+}
+.consulting-home .contact h2 {
+  font-size: 64px;
+  line-height: 1.1;
+}
+.consulting-home .latest-notes:has(.latest-advisory-links) {
+  padding-top: 48px;
+  padding-bottom: 48px;
+  border-top: 1px solid var(--line);
+}
+.consulting-home .latest-notes:not(:has(.latest-advisory-links)) {
+  display: none;
+}
+.consulting-home .latest-advisory-links {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+}
+.consulting-home .latest-advisory-links a {
+  padding: 20px 0;
+  border-top: 1px solid var(--line);
+  font-size: 16px;
+  line-height: 1.65;
+}
+.consulting-home .latest-advisory-links span {
+  display: block;
+  font-family: GeistMono, monospace;
+  text-transform: uppercase;
+  color: #982150;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+.consulting-home .latest-advisory-links strong {
+  font-weight: 550;
+}
+.consulting-home h1.home-arrived,
+.consulting-home h2.home-arrived,
+.consulting-home h3.home-arrived {
+  animation: qcs-production-heading 0.65s ease-out both;
+}
+@keyframes qcs-production-heading {
+  from {
+    transform: translateY(10px);
+  }
+  to {
+    transform: none;
+  }
+}
+.consulting-home.motion-paused *,
+.consulting-home.motion-paused *:before,
+.consulting-home.motion-paused *:after,
+.consulting-home.page-hidden * {
+  animation-play-state: paused !important;
+}
+body:has(.consulting-home) {
+  background: #fcfcfe;
+}
+body:has(.consulting-home) .experience-layer {
+  display: none;
+}
+body:has(.consulting-home) .site-header {
+  position: sticky;
+  top: 0;
+  min-height: 88px;
+  background: #fcfcfef5;
+  border-bottom: 1px solid #d7dae5;
+  box-shadow: 0 5px 20px #24263306;
+  color: #242633;
+  backdrop-filter: blur(12px);
+}
+body:has(.consulting-home) .site-header .nav-link,
+body:has(.consulting-home) .site-header .site-nav a {
+  font-family: Geist, Arial, sans-serif;
+  color: #303443;
+  letter-spacing: 0;
+}
+body:has(.consulting-home) .site-header .main-nav a {
+  font-family: Geist, Arial, sans-serif;
+  color: #303443;
+  letter-spacing: 0;
+  font-size: 20px;
+  font-weight: 550;
+}
+body:has(.consulting-home) .site-header .main-nav a:hover {
+  color: #ad2058;
+}
+.consulting-home .service-directory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  border-top: 1px solid var(--line);
+  margin-top: 28px;
+  padding-top: 20px;
+  font-size: 15px;
+}
+.consulting-home .service-directory a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  color: #923051;
+}
+body:has(.consulting-home) .command-header .header-inner {
+  max-width: 1600px;
+}
+body:has(.consulting-home) .site-footer {
+  font-family: Geist, Arial, sans-serif;
+}
+@media (min-width: 1000px) and (max-height: 850px) {
+  .consulting-home .hero h1 {
+    font-size: 52px;
+  }
+  .consulting-home .hero-copy {
+    padding-top: 28px;
+  }
+  .consulting-home .intro {
+    font-size: 21px;
+    margin-top: 18px;
+  }
+  .consulting-home .hero-description {
+    font-size: 16px;
+  }
+  .consulting-home .hero {
+    min-height: 590px;
+  }
+}
+@media (max-width: 1199px) {
+  .consulting-home .hero h1 {
+    font-size: 52px;
+  }
+  .consulting-home .hero-copy {
+    max-width: 570px;
+  }
+  .consulting-home .service-description h3 {
+    font-size: 30px;
+  }
+}
+@media (min-width: 761px) and (max-width: 1199px) {
+  body:has(.consulting-home) .site-header .main-nav a {
+    font-size: 16px;
+  }
+}
+@media (max-width: 999px) {
+  .consulting-home .hero {
+    height: auto;
+    max-height: none;
+    min-height: 0;
+  }
+  .consulting-home .hero-copy {
+    padding-top: 32px;
+    max-width: none;
+  }
+  .consulting-home .hero h1 {
+    max-width: 18ch;
+  }
+  .consulting-home .hero-scene {
+    height: 340px;
+  }
+  .consulting-home .home-lead {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .consulting-home .hero-bottom {
+    position: relative;
+  }
+  .consulting-home .latest-advisory-links {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 699px) {
+  body:has(.consulting-home) .site-header {
+    min-height: 74px;
+  }
+  .consulting-home .chapter-nav {
+    top: 74px;
+  }
+  .consulting-home .hero h1 {
+    font-size: 40px;
+    line-height: 1.12;
+  }
+  .consulting-home .hero-copy {
+    padding-top: 32px;
+    padding-bottom: 0;
+  }
+  .consulting-home .hero-scene {
+    height: 270px;
+    margin-top: 0;
+  }
+  .consulting-home .hero-description {
+    font-size: 17px;
+  }
+  .consulting-home h2 {
+    font-size: 34px;
+  }
+  .consulting-home .contact h2 {
+    font-size: 44px;
+  }
+  .consulting-home .service-description h3 {
+    font-size: 29px;
+  }
+  .consulting-home .field-grid {
+    grid-template-columns: 1fr;
+  }
+  .consulting-home .home-lead {
+    padding-top: 28px;
+  }
+  .consulting-home .hero .eyebrow {
+    font-size: 10px;
+  }
+  .consulting-home .hero-bottom {
+    gap: 12px;
+  }
+  .consulting-home .method-select {
+    font-size: 23px;
+  }
+}
+@media (max-width: 359px) {
+  .consulting-home .hero h1 {
+    font-size: 34px;
+  }
+  .consulting-home .hero .eyebrow {
+    font-size: 9px;
+  }
+  .consulting-home h2 {
+    font-size: 30px;
+  }
+  .consulting-home .hero-actions {
+    gap: 14px;
+  }
+  .consulting-home .contact h2 {
+    font-size: 38px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .consulting-home *,
+  .consulting-home *:before,
+  .consulting-home *:after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+.consulting-home:not(.home-enhanced) .object-scene,
+.consulting-home:not(.home-enhanced) .service-tabs,
+.consulting-home:not(.home-enhanced) .scene-toolbar,
+.consulting-home:not(.home-enhanced) .lens-switch,
+.consulting-home:not(.home-enhanced) [data-motion],
+.consulting-home:not(.home-enhanced) #lab-motion,
+.consulting-home:not(.home-enhanced) #run-packet {
+  display: none;
+}

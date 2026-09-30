@@ -28,12 +28,18 @@ function attribution() {
     content: params.get("utm_content") || undefined,
     term: params.get("utm_term") || undefined,
     landing: window.location.pathname,
-    referrer: document.referrer || undefined
+    referrer: document.referrer || undefined,
   };
 }
 
-export function LeadForm({ interest = "", pipeline, compact = false }: LeadFormProps) {
-  const [status, setStatus] = useState("Ready when you are. Share the issue and we will suggest the right next step.");
+export function LeadForm({
+  interest = "",
+  pipeline,
+  compact = false,
+}: LeadFormProps) {
+  const [status, setStatus] = useState(
+    "Ready when you are. Share the issue and we will suggest the right next step.",
+  );
   const [loading, setLoading] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -42,54 +48,88 @@ export function LeadForm({ interest = "", pipeline, compact = false }: LeadFormP
     const formData = new FormData(event.currentTarget);
     const score = compact ? 50 : 65;
 
-    const response = await fetch("/api/leads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: formData.get("name"),
-        email: formData.get("email"),
-        phone: formData.get("phone"),
-        interest: formData.get("interest") || interest,
-        challenge: formData.get("challenge"),
-        pipeline: pipeline || formData.get("interest") || interest,
-        score,
-        sessionId: sessionId(),
-        attribution: attribution(),
-        consent: { ...getStoredConsent(), contact: formData.get("contactConsent") === "on" },
-        sourceProfile: { form: compact ? "compact" : "full", score }
-      })
-    });
-
-    setLoading(false);
-    if (response.ok) {
-      trackBrowserEvent("generate_lead", {
-        pipeline: pipeline || formData.get("interest") || interest,
-        interest: formData.get("interest") || interest,
-        form_type: compact ? "compact" : "full"
+    try {
+      const response = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.get("name"),
+          email: formData.get("email"),
+          phone: formData.get("phone"),
+          interest: formData.get("interest") || interest,
+          challenge: formData.get("challenge"),
+          pipeline: pipeline || formData.get("interest") || interest,
+          score,
+          sessionId: sessionId(),
+          attribution: attribution(),
+          consent: {
+            ...getStoredConsent(),
+            contact: formData.get("contactConsent") === "on",
+          },
+          sourceProfile: { form: compact ? "compact" : "full", score },
+        }),
       });
-    }
 
-    setStatus(
-      response.ok
-        ? "Request received. QCS can review the details and respond with the right next step."
-        : "Please check the form fields and consent."
-    );
+      if (response.ok) {
+        try {
+          trackBrowserEvent("generate_lead", {
+            pipeline: pipeline || formData.get("interest") || interest,
+            interest: formData.get("interest") || interest,
+            form_type: compact ? "compact" : "full",
+          });
+        } catch {
+          // Optional tracking must not turn an accepted request into a failure.
+        }
+      }
+
+      setStatus(
+        response.ok
+          ? "Request received. QCS can review the details and respond with the right next step."
+          : "Please check the form fields and consent.",
+      );
+    } catch {
+      setStatus(
+        "We could not confirm your request. Your details are still here. Check your connection and try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <form className={compact ? "lead-form compact" : "lead-form"} onSubmit={submit}>
+    <form
+      className={compact ? "lead-form compact" : "lead-form"}
+      onSubmit={submit}
+    >
       <div className="field-grid">
         <label>
           Name
-          <input name="name" required placeholder="Your name" />
+          <input
+            name="name"
+            required
+            autoComplete="name"
+            placeholder="Your name"
+          />
         </label>
         <label>
           Work email
-          <input name="email" required type="email" placeholder="name@company.com" />
+          <input
+            name="email"
+            required
+            type="email"
+            autoComplete="email"
+            placeholder="name@company.com"
+          />
         </label>
         <label>
           WhatsApp / phone
-          <input name="phone" required placeholder="+91..." />
+          <input
+            name="phone"
+            required
+            type="tel"
+            autoComplete="tel"
+            placeholder="Country code and phone number"
+          />
         </label>
         <label>
           Interest
@@ -109,13 +149,20 @@ export function LeadForm({ interest = "", pipeline, compact = false }: LeadFormP
       {!compact && (
         <label>
           Current challenge
-          <textarea name="challenge" rows={4} placeholder="Tell us what is happening in your network" />
+          <textarea
+            name="challenge"
+            rows={4}
+            placeholder="Tell us what is happening in your network"
+          />
         </label>
       )}
 
       <label className="consent-line">
         <input name="contactConsent" required type="checkbox" />
-        <span>I agree to be contacted about this request and understand my data will be handled according to the privacy policy.</span>
+        <span>
+          I agree to be contacted about this request and understand my data will
+          be handled according to the privacy policy.
+        </span>
       </label>
 
       <button className="button primary" disabled={loading} type="submit">

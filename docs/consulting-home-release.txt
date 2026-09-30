@@ -1,0 +1,72 @@
+QCS CONSULTING HOMEPAGE RELEASE
+2026-09-30
+
+Scope
+Service-led homepage for India and international clients. The approved prototype
+is integrated into the existing Next.js site, not deployed as a separate site.
+Existing service, course, tool, content, administration and API routes remain.
+No database schema, editorial automation or authentication changes.
+
+Content and layout decisions
+- Lead with network, security and cloud consulting and a project enquiry.
+- Explain situations, scope, deliverables, engagement options and safeguards.
+- Keep training secondary and tools a short supporting section.
+- Label illustrative diagrams, example reports and scenarios honestly.
+- Use real existing service destinations and the existing lead endpoint.
+- Server-render headings, body copy, FAQs, links and structured data.
+- Keep canonical URL and include WebPage and service ItemList structured data.
+- Do not promise search rankings, AI citations, fabricated results or a universal
+  100-percent readability score.
+
+Primary research
+https://developers.google.com/search/docs/fundamentals/creating-helpful-content
+https://developers.google.com/search/docs/appearance/ai-features
+https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html
+https://web.dev/articles/defining-core-web-vitals-thresholds
+https://www.thoughtworks.com/en-in/what-we-do
+
+Graphics and accessibility
+Six lazy Three.js scenes and scoped Canvas backgrounds. Device-pixel ratio is
+capped at 2, with a pixel budget for background canvases. Motion stops offscreen,
+in hidden tabs and when paused; reduced-motion preferences are respected.
+Static fallbacks and crawlable text remain without the graphics enhancement.
+Service tabs support keyboard navigation. All diagrams are illustrative, not
+live telemetry. Resources, observers, listeners and GPU allocations are disposed
+on navigation. Local Geist fonts include their upstream OFL license.
+
+Verification completed locally
+- Next.js 16.3.7 production build: 103 static pages generated successfully.
+- TypeScript build check and targeted ESLint: passed.
+- consulting-home.test.mjs: 5/5 passed.
+- Browser widths 320, 390, 768, 1280 and 1440: no horizontal page overflow.
+- Mobile heading, input and button containment checks: passed.
+- Nonblank canvas pixel checks on all six scenes: passed.
+- Service text and target links change on selection; keyboard navigation works.
+- Global pause: background phase values remained unchanged across observations.
+- Learning packet pause and native empty-form validation: passed.
+- Browser error log during local QA: empty.
+- HTTP 200 for homepage, network service, penetration testing, tools, course,
+  resources, admin login and robots.txt.
+- Advisory route hit local Prisma EACCES (sandbox database restriction). Requires
+  production verification; homepage feed is isolated from database failures.
+
+Verification limits
+No real lead was submitted. No admin mutation, course generation, newsletter or
+LinkedIn job was triggered. Reduced motion is covered by code and unit tests,
+not browser OS preference emulation. Field Core Web Vitals and full WCAG
+conformance require ongoing measurement, not a single browser session.
+
+Dependency review
+Next.js and eslint-config-next updated from 16.2.12 to 16.3.7; Sharp to 0.35.4.
+Production npm audit after patches: 0 critical, 7 high, 2 moderate. Remaining
+pre-existing findings include Prisma tooling/transitives, Nodemailer, csv-parse,
+fast-uri, nanoid and baseline-browser-mapping. These need focused compatibility
+and reachability review; this release is not a claim of a clean security audit.
+Do not run npm audit fix --force or downgrade Prisma as part of visual delivery.
+
+Release and rollback
+Release through the repository's existing Vercel Git integration. Check deployment
+READY and the production homepage before declaring release complete.
+Last production commit before this release:
+59c31556557abf1b2619a1b8d5c3433046a8f477
+Vercel rollback can restore the prior deployment without reverting user files.
