@@ -7,6 +7,14 @@ const css = await read("../src/app/qcs-theme.css");
 const layout = await read("../src/app/layout.tsx");
 const scene = await read("../src/components/domain-scene.tsx");
 
+test("admin statuses occupy a separate row across responsive tab columns", () => {
+  assert.match(css, /\.admin-primary-tabs button \{[^}]*grid-template-columns: 18px minmax\(0, 1fr\)/);
+  assert.match(css, /\.admin-primary-tabs button > strong \{[^}]*grid-column: 2/);
+  for (const columns of [6, 3, 2]) {
+    assert.ok(css.includes(`grid-template-columns: repeat(${columns}, minmax(0, 1fr))`));
+  }
+});
+
 function luminance(hex) {
   const components = hex.match(/[a-f\d]{2}/gi).map((part) => {
     const value = parseInt(part, 16) / 255;
