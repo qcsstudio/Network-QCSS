@@ -294,7 +294,7 @@ export function HomeContent({ children }: { children: ReactNode }) {
                 className="service-scene"
                 data-kind="service"
                 role="img"
-                aria-label="Two branch offices connect through a WAN hub. Illustrative traffic, not live telemetry."
+                aria-label="Branch users reach an application server through a WAN router. Illustrative traffic, not live telemetry."
               >
                 <Image
                   className="scene-fallback"
@@ -314,7 +314,7 @@ export function HomeContent({ children }: { children: ReactNode }) {
                   <span data-tunnel-stage="decapsulate">03 / Decapsulate</span>
                 </div>
                 <p id="packet-note">
-                  Branch offices connect through a WAN hub. Illustrative traffic,
+                  Branch users reach an application server through a WAN router. Illustrative traffic,
                   not live telemetry.
                 </p>
               </div>
@@ -655,7 +655,7 @@ export function HomeContent({ children }: { children: ReactNode }) {
             id="evidence-scene"
             data-kind="evidence"
             role="img"
-            aria-label="An illustrative evidence file, prioritized actions and a verification seal arranged as three distinct deliverables."
+            aria-label="Three illustrative engineering records: a topology record, a risk register and a change record with retest and handover details."
           >
             <div className="scene-labels" aria-hidden="true"></div>
           </div>
@@ -972,7 +972,7 @@ export function HomeContent({ children }: { children: ReactNode }) {
             id="tools-scene"
             data-kind="tools"
             role="img"
-            aria-label="A command terminal, connected network ports and a structured diagnostic checklist."
+            aria-label="An illustrative DNS lookup for example.test and a structured answer using the documentation-only address 192.0.2.10. No request is executed."
           >
             <div className="scene-labels" aria-hidden="true"></div>
           </div>

@@ -3,6 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { buildDomainModel } from "./domain-models.js";
+import { appliance, display, serverCabinet } from "./hardware-models.js";
 
 export function createScene(element, state, onStage = () => {}) {
   const reduceMotion = {
@@ -144,78 +145,9 @@ export function createScene(element, state, onStage = () => {}) {
       );
     }
     rack(parent, x, z, height = 2.3, accent = palette.mint) {
-      this.box(
-        parent,
-        x,
-        height / 2 + 0.16,
-        z,
-        0.88,
-        height,
-        0.78,
-        palette.shell,
-        0.07,
-        0.65,
-      );
-      this.box(
-        parent,
-        x,
-        height / 2 + 0.16,
-        z + 0.4,
-        0.71,
-        height * 0.87,
-        0.045,
-        palette.dark,
-        0.015,
-      );
-      for (let i = 0; i < 6; i++) {
-        const y = 0.4 + i * ((height - 0.4) / 6);
-        this.box(
-          parent,
-          x,
-          y,
-          z + 0.44,
-          0.59,
-          0.19,
-          0.085,
-          palette.body,
-          0.018,
-        );
-        this.box(
-          parent,
-          x - 0.17,
-          y,
-          z + 0.49,
-          0.045,
-          0.038,
-          0.015,
-          accent,
-          0.005,
-          0.1,
-        );
-        this.box(
-          parent,
-          x + 0.05,
-          y,
-          z + 0.49,
-          0.24,
-          0.022,
-          0.015,
-          palette.metal,
-          0.004,
-        );
-      }
-      this.box(
-        parent,
-        x,
-        height + 0.185,
-        z,
-        0.42,
-        0.012,
-        0.45,
-        accent,
-        0.02,
-        0.1,
-      );
+      const rack = serverCabinet(this, parent, x, z, height, accent);
+      rack.scale.set(.8, 1, .8);
+      return rack;
     }
     cable(points, type, color, options = {}) {
       const featured = options.featured ?? ["network", "security", "cloud"].includes(type);
@@ -360,32 +292,7 @@ export function createScene(element, state, onStage = () => {}) {
       this.groups.network = branch;
       this.plate(branch, -3.5, 1.8, 2.4, 2.1);
       this.rack(branch, -3.9, 1.6, 1.3);
-      this.box(
-        branch,
-        -3.05,
-        0.78,
-        2.05,
-        0.72,
-        0.95,
-        0.12,
-        palette.body,
-        0.05,
-        0.65,
-      );
-      this.box(
-        branch,
-        -3.05,
-        0.79,
-        2.12,
-        0.59,
-        0.76,
-        0.022,
-        palette.mint,
-        0.02,
-        0.15,
-      );
-      this.box(branch, -3.05, 0.25, 2.05, 0.07, 0.25, 0.08, palette.metal);
-      this.box(branch, -3.05, 0.15, 2.08, 0.6, 0.07, 0.35, palette.metal);
+      display(this, branch, -3.05, 2.05, { width: 1.1, y: .95, title: "BRANCH", lines: ["Users + apps"] });
       const core = new THREE.Group();
       this.root.add(core);
       this.groups.core = core;
@@ -410,111 +317,15 @@ export function createScene(element, state, onStage = () => {}) {
       this.root.add(cloud);
       this.groups.cloud = cloud;
       this.plate(cloud, 2.7, -3.3, 2.9, 2.05);
-      for (let i = 0; i < 3; i++) {
-        this.box(
-          cloud,
-          2.7,
-          0.4 + i * 0.37,
-          -3.3,
-          2.35,
-          0.27,
-          1.6,
-          i === 2 ? palette.mint : palette.shell,
-          0.1,
-          0.55,
-        );
-        this.box(
-          cloud,
-          2.7,
-          0.4 + i * 0.37,
-          -2.48,
-          1.7,
-          0.055,
-          0.025,
-          palette.green,
-          0.01,
-        );
-      }
-      for (let i = 0; i < 3; i++)
-        this.box(
-          cloud,
-          2.0 + i * 0.68,
-          1.75,
-          -3.4,
-          0.52,
-          0.54,
-          0.65,
-          palette.shell,
-          0.065,
-          0.55,
-        );
+      this.rack(cloud, 2.3, -3.6, 2.1, 0x285f8f);
+      this.rack(cloud, 3.25, -3.6, 1.8, 0x285f8f);
+      appliance(this, cloud, 2.7, -2.6, { ports: 4 });
       const security = new THREE.Group();
       this.root.add(security);
       this.groups.security = security;
       this.plate(security, 3.3, 2.45, 2.7, 1.8);
-      this.box(
-        security,
-        3.3,
-        0.5,
-        2.45,
-        2.25,
-        0.65,
-        0.9,
-        palette.coral,
-        0.07,
-        0.5,
-      );
-      for (let i = 0; i < 8; i++)
-        this.box(
-          security,
-          2.45 + 0.24 * i,
-          0.49,
-          2.92,
-          0.11,
-          0.15,
-          0.035,
-          palette.dark,
-          0.008,
-        );
-      const shape = new THREE.Shape();
-      shape.moveTo(0, 1.4);
-      shape.lineTo(0.65, 1.12);
-      shape.lineTo(0.57, 0.42);
-      shape.quadraticCurveTo(0.45, 0.07, 0, -0.2);
-      shape.quadraticCurveTo(-0.45, 0.07, -0.57, 0.42);
-      shape.lineTo(-0.65, 1.12);
-      shape.closePath();
-      const shield = new THREE.Mesh(
-        new THREE.ExtrudeGeometry(shape, {
-          depth: 0.16,
-          bevelEnabled: true,
-          bevelThickness: 0.045,
-          bevelSize: 0.045,
-          bevelSegments: 2,
-          steps: 1,
-        }),
-        mat(palette.shell, 0.65),
-      );
-      shield.position.set(3.3, 0.95, 2.3);
-      shield.castShadow = true;
-      security.add(shield);
-      this.box(
-        security,
-        3.3,
-        1.6,
-        2.51,
-        0.34,
-        0.31,
-        0.08,
-        palette.green,
-        0.025,
-      );
-      const lock = new THREE.Mesh(
-        new THREE.TorusGeometry(0.12, 0.033, 8, 20, Math.PI),
-        mat(palette.green),
-      );
-      lock.position.set(3.3, 1.77, 2.52);
-      security.add(lock);
+      appliance(this, security, 3.3, 2.45, { ports: 6, accent: 0xad2058 });
+      display(this, security, 3.3, 1.8, { width: 1.9, y: 1.5, title: "POLICY REVIEW", lines: ["Allow / deny", "Log / verify"], accent: 0xad2058 });
       this.cable(
         [
           [-3.5, 0.16, 2.8],
@@ -537,6 +348,7 @@ export function createScene(element, state, onStage = () => {}) {
         ],
         "security",
         0xc62968,
+        { secured: false },
       );
       this.cable(
         [
@@ -544,7 +356,7 @@ export function createScene(element, state, onStage = () => {}) {
           [2.05, 2.4, 0.9],
           [3.8, 2.4, -0.5],
           [3.6, 1.2, -2.1],
-          [2.7, 1.14, -2.45],
+          [2.7, .55, -1.95],
         ],
         "cloud",
         0x1763ac,
@@ -638,7 +450,7 @@ export function createScene(element, state, onStage = () => {}) {
           if (packet.userData.wrapper)
             packet.userData.wrapper.visible =
               progress >= 0.18 && progress <= 0.82;
-          if (j === 0 && route.type === this.mode) {
+          if (j === 0 && route.type === this.mode && (route.secured || !this.routes.some((candidate) => candidate.type === this.mode && candidate.secured))) {
             const stage = route.secured
               ? progress < 0.18
                 ? "encapsulate"
@@ -734,10 +546,7 @@ export function createScene(element, state, onStage = () => {}) {
 
   class ObjectScene extends NetworkScene {
     monitor(parent, x, z, color = palette.mint) {
-      this.box(parent, x, 1.05, z, 1.35, 0.95, 0.16, palette.body);
-      this.box(parent, x, 1.06, z + 0.095, 1.16, 0.75, 0.035, color);
-      this.box(parent, x, 0.43, z, 0.12, 0.38, 0.12, palette.metal);
-      this.box(parent, x, 0.22, z + 0.1, 0.85, 0.08, 0.5, palette.shell);
+      return display(this, parent, x, z, { width: 1.8, y: 1.2, title: "WORKSTATION", lines: ["Send / receive"], accent: color === palette.coral ? 0xad2058 : 0x285f8f });
     }
     document(parent, x, y, z, accent = palette.green) {
       this.box(parent, x, y, z, 1.8, 2.25, 0.12, palette.shell);
@@ -817,11 +626,15 @@ export function createScene(element, state, onStage = () => {}) {
           this.serviceModels[mode] = { group, labels: this.labels.slice(start), animate: this.domainMotion };
         }
         this.root = parent;
-        this.domainSpan = 11;
+        this.domainSpan = 12.5;
         return;
       }
       if (kind?.startsWith("domain-")) {
         buildDomainModel(this, kind.slice(7), palette);
+        return;
+      }
+      if (kind === "tools") {
+        buildDomainModel(this, "tools", palette);
         return;
       }
       if (kind === "method") {
@@ -835,26 +648,8 @@ export function createScene(element, state, onStage = () => {}) {
         const [scope, evidence, verify] = this.focusObjects;
         this.rack(scope, -0.5, -0.2, 1.65);
         this.monitor(scope, 0.45, 0.4);
-        this.document(evidence, 0, 1.35, -0.1);
-        const lens = new THREE.Mesh(
-          new THREE.TorusGeometry(0.48, 0.085, 12, 40),
-          this.material(palette.coral, 0.65),
-        );
-        lens.position.set(0.45, 1.45, 0.6);
-        evidence.add(lens);
-        const handle = this.box(
-          evidence,
-          0.91,
-          0.83,
-          0.6,
-          0.13,
-          0.65,
-          0.13,
-          palette.coral,
-        );
-        handle.rotation.z = -0.55;
-        this.document(verify, 0, 1.35, -0.1);
-        this.check(verify, 0.45, 1.55, 0.25);
+        display(this, evidence, 0, 0, { width: 2.8, title: "EVIDENCE REVIEW", lines: ["Topology + config", "Logs + counters", "Risk + owner"] });
+        display(this, verify, 0, 0, { width: 2.8, title: "CHANGE VERIFICATION", lines: ["Baseline recorded", "Change checked", "Rollback prepared"], accent: 0xad2058 });
         this.cable(
           [
             [-2.5, 0.2, 0],
@@ -877,55 +672,34 @@ export function createScene(element, state, onStage = () => {}) {
         this.label("02 / EVIDENCE", [0, 0, 2]);
         this.label("03 / VERIFY", [4, 0, 2]);
       } else if (kind === "evidence") {
+        this.domainSpan = 12;
+        this.domainHeight = 6;
         this.focusObjects = [];
+        const reports = [
+          { title: "TOPOLOGY RECORD", lines: ["Sites + dependencies", "Paths + ownership"] },
+          { title: "RISK REGISTER", lines: ["Evidence + impact", "Priority + action"] },
+          { title: "CHANGE RECORD", lines: ["Baseline + outcome", "Retest + handover"] }
+        ];
         for (let i = 0; i < 3; i++) {
           const file = new THREE.Group();
           this.root.add(file);
-          this.document(
-            file,
-            0,
-            1.4,
-            0,
-            i === 1 ? palette.coral : palette.green,
-          );
+          display(this, file, 0, 0, { ...reports[i], width: 3, accent: i === 1 ? 0xad2058 : 0x285f8f });
           file.position.set(
-            (i - 1) * 1.65,
-            i === 1 ? 0.35 : 0,
-            i === 1 ? -0.35 : 0,
+            (i - 1) * 3.5,
+            0,
+            i === 1 ? -.4 : 0,
           );
-          file.rotation.y = (i - 1) * -0.19;
           file.userData.restY = file.position.y;
           this.focusObjects.push(file);
         }
-        this.check(this.root, 1.9, 0.9, 0.35);
-        this.label("OBSERVE", [-1.65, -0.1, 0.5]);
-        this.label("PRIORITIZE", [0, -0.1, 0.5]);
-        this.label("VERIFY", [1.9, -0.1, 0.5]);
+        this.label("OBSERVE", [-3.5, -.3, 1.7]);
+        this.label("PRIORITIZE", [0, -.3, 1.7]);
+        this.label("VERIFY", [3.5, -.3, 1.7]);
       } else if (kind === "lab") {
         this.monitor(this.root, -4.5, 0);
         this.monitor(this.root, 4.5, 0, palette.coral);
         [-1.5, 1.5].forEach((x, i) => {
-          this.box(
-            this.root,
-            x,
-            0.5,
-            0,
-            1.7,
-            0.65,
-            1.15,
-            i ? palette.coral : palette.shell,
-          );
-          for (let n = 0; n < 5; n++)
-            this.box(
-              this.root,
-              x - 0.6 + n * 0.3,
-              0.5,
-              0.6,
-              0.16,
-              0.15,
-              0.04,
-              palette.dark,
-            );
+          appliance(this, this.root, x, 0, { ports: i ? 4 : 8, accent: i ? 0xad2058 : 0x285f8f });
         });
         this.cable(
           [
@@ -1138,7 +912,12 @@ export function createScene(element, state, onStage = () => {}) {
         object.shadow?.map?.dispose();
       });
       geometries.forEach((g) => g.dispose());
-      materials.forEach((m) => m.dispose());
+      const textures = new Set();
+      materials.forEach((m) => {
+        for (const value of Object.values(m)) if (value?.isTexture) textures.add(value);
+        m.dispose();
+      });
+      textures.forEach((texture) => texture.dispose());
       view.environmentTarget.dispose();
       view.renderer.dispose();
       view.renderer.forceContextLoss();

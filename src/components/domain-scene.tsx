@@ -5,19 +5,22 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { SceneController } from "./consulting-home/scene-engine";
 
-export type DomainSceneVariant = "network" | "operations" | "security" | "cloud" | "training" | "intelligence" | "tools" | "resources" | "assessment" | "assurance";
+export type DomainSceneVariant = "network" | "operations" | "security" | "cloud" | "training" | "intelligence" | "tools" | "resources" | "assessment" | "assurance" | "wifi" | "firewall" | "troubleshooting";
 
 const descriptions: Record<DomainSceneVariant, string> = {
   network: "Illustrative branch-to-core network path. This is not live telemetry.",
   operations: "Conceptual monitoring wall: observe service signals, triage issues and respond. The indicators are illustrative, not live telemetry.",
   security: "Conceptual policy checkpoint: permitted traffic reaches the destination; denied traffic stops at the boundary. This is not a live firewall or an IPsec diagram.",
   cloud: "Two conceptual workload zones linked by a protected private connection. The model is not a specific cloud provider architecture.",
-  training: "Build understanding step by step, then try and verify it at a practice console. This learning model is not an OSI stack or a lab topology.",
+  training: "Follow an illustrative wired path from PC1 through a switch and router to PC2. Follow the lesson's own topology for hands-on configuration.",
   intelligence: "Official-source reports converge for context checking, then enter a priority queue. This is an editorial workflow, not a live feed.",
   resources: "An indexed reference library: read a practical guide and keep the supporting details close at hand.",
-  assessment: "Readiness questions paired with an evidence checklist. The animated dial is illustrative and does not represent a measured score.",
-  assurance: "A bounded, authorized scope paired with validated findings. The sweep is illustrative; no security test is running.",
-  tools: "A focused command input paired with structured diagnostic output. No commands are executed by this illustration."
+  assessment: "Environment questions lead to an evidence checklist. This example does not represent a completed assessment or measured score.",
+  assurance: "An authorized test workstation, an in-scope target and a finding record. This is an illustrative workflow; no security test is running.",
+  tools: "An example DNS question paired with a structured answer using documentation-only addresses. No diagnostic request is executed by this illustration.",
+  wifi: "A wired switch feeds an access point serving a wireless client. Radio arcs illustrate coverage, not a measured signal or site survey.",
+  firewall: "A policy appliance permits one path and stops another. The rule-review console is illustrative, not a live configuration.",
+  troubleshooting: "Trace a suspect link from infrastructure to a diagnostic console, then verify the repair. This is an example, not a live incident."
 };
 
 export function DomainScene({ variant, fallback, alt }: { variant: DomainSceneVariant; fallback: string; alt: string }) {
@@ -95,16 +98,16 @@ export function DomainScene({ variant, fallback, alt }: { variant: DomainSceneVa
         <Image className="qcs-scene-fallback" src={fallback} alt={alt} fill sizes="(max-width: 850px) 92vw, 44vw" />
         <div className="scene-labels" aria-hidden="true" />
       </div>
-      {ready ? <div className="qcs-scene-controls">
+      <div className="qcs-scene-controls">
         <span>{reduced ? "Reduced motion" : "Illustrative model"}</span>
-        <button type="button" aria-label={paused ? "Play illustration" : "Pause illustration"} title={paused ? "Play illustration" : "Pause illustration"} aria-pressed={paused} disabled={reduced} onClick={() => {
+        <button type="button" aria-label={paused ? "Play illustration" : "Pause illustration"} title={paused ? "Play illustration" : "Pause illustration"} aria-pressed={paused} disabled={!ready || reduced} onClick={() => {
           const next = !paused;
           motion.current.paused = next;
           setPaused(next);
           wake.current();
         }}>{paused || reduced ? <Play aria-hidden="true" size={17} /> : <Pause aria-hidden="true" size={17} />}</button>
-        <button type="button" aria-label="Reset illustration view" title="Reset illustration view" onClick={() => controller.current?.reset()}><RotateCcw aria-hidden="true" size={17} /></button>
-      </div> : null}
+        <button type="button" aria-label="Reset illustration view" title="Reset illustration view" disabled={!ready} onClick={() => controller.current?.reset()}><RotateCcw aria-hidden="true" size={17} /></button>
+      </div>
       <p className="qcs-scene-caption">{descriptions[variant]}</p>
     </div>
   );

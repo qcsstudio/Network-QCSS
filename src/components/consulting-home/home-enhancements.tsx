@@ -134,7 +134,7 @@ export function HomeEnhancements() {
         mode;
       const note =
         mode === "network"
-          ? "Branch offices connect through a WAN hub. Illustrative traffic, not live telemetry."
+          ? "Branch users reach an application server through a WAN router. Illustrative traffic, not live telemetry."
           : mode === "security"
             ? "Permitted traffic reaches its destination. Denied traffic stops at the policy boundary. This is a conceptual firewall, not a live test."
             : "Two workload zones connect through an illustrative IPsec tunnel. Peers protect the inner packet; outer headers remain visible. IKE is omitted.";

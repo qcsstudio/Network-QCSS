@@ -22,7 +22,10 @@ const outcomeNarratives = [
 
 function solutionVisualVariant(slug: string): DomainVisualVariant {
   if (slug.includes("cloud")) return "cloud";
-  if (slug.includes("firewall") || slug.includes("sase") || slug.includes("pentest")) return "security";
+  if (slug.includes("firewall")) return "firewall";
+  if (slug.includes("pentest")) return "assurance";
+  if (slug.includes("sase")) return "security";
+  if (slug.includes("outage")) return "troubleshooting";
   if (slug.includes("career")) return "training";
   return "operations";
 }

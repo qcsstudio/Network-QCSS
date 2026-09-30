@@ -1,70 +1,75 @@
-import { Activity, BookOpenCheck, CloudCog, FileCheck2, Network, ShieldCheck, Terminal } from "lucide-react";
+import { Activity, BookOpenCheck, CloudCog, FileCheck2, Network, ShieldCheck, Terminal, Wifi, Wrench } from "lucide-react";
 import { DomainScene, type DomainSceneVariant } from "./domain-scene";
 
 export type DomainVisualVariant = DomainSceneVariant;
 
 const domainVisuals = {
+  wifi: {
+    alt: "A wired switch, wireless access point and client",
+    Icon: Wifi,
+    status: "Wireless path"
+  },
+  firewall: {
+    alt: "A firewall allows a service request and blocks an unapproved path",
+    Icon: ShieldCheck,
+    status: "Policy review"
+  },
+  troubleshooting: {
+    alt: "A network device, suspect link and diagnostic workstation",
+    Icon: Wrench,
+    status: "Fault isolation"
+  },
   resources: {
-    src: "/brand/envato/objects/locked-data-folder.png",
-    alt: "Technical reference documents",
+    alt: "A technical guide alongside a checklist and network appliance",
     Icon: BookOpenCheck,
     status: "Reference library"
   },
   assessment: {
-    src: "/brand/consulting/operations-artwork.webp",
-    alt: "Network readiness review",
+    alt: "Environment questions paired with an evidence checklist",
     Icon: FileCheck2,
     status: "Readiness review"
   },
   assurance: {
-    src: "/brand/envato/cyber/security-shield-network.png",
-    alt: "Authorized security assurance",
+    alt: "An authorized testing workstation, scoped target and finding record",
     Icon: ShieldCheck,
     status: "Authorized scope"
   },
   tools: {
-    src: "/brand/consulting/operations-artwork.webp",
-    alt: "Network engineering tools and infrastructure",
+    alt: "An example DNS query and its illustrative structured answer",
     Icon: Terminal,
     status: "Diagnostic workspace"
   },
   network: {
-    src: "/brand/envato/library/data-center-platform.webp",
-    alt: "Isometric network and data center platform",
+    alt: "A branch workstation connects through a WAN router to a server",
     Icon: Network,
     status: "Topology mapped"
   },
   operations: {
-    src: "/brand/envato/cyber/network-service-operator.jpg",
-    alt: "Network engineer reviewing infrastructure in a server room",
+    alt: "Network devices send signals to a monitoring workstation",
     Icon: Activity,
     status: "Operations ready"
   },
   security: {
-    src: "/brand/envato/cyber/security-shield-network.png",
-    alt: "Network security shield protecting connected infrastructure",
+    alt: "Permitted and denied traffic at a firewall policy boundary",
     Icon: ShieldCheck,
     status: "Controls in scope"
   },
   cloud: {
-    src: "/brand/envato/cyber/data-access-cloud.png",
-    alt: "Protected cloud access and hybrid connectivity",
+    alt: "On-premises and cloud gateways joined by an illustrative IPsec VPN",
     Icon: CloudCog,
     status: "Cloud paths visible"
   },
   training: {
-    src: "/brand/envato/library/server-cluster-engineer.webp",
-    alt: "Engineer working with secure server and network infrastructure",
+    alt: "A complete wired path from PC1 through a switch and router to PC2",
     Icon: BookOpenCheck,
     status: "Lab path prepared"
   },
   intelligence: {
-    src: "/brand/envato/objects/locked-data-folder.png",
-    alt: "Protected evidence folder for network security guidance",
+    alt: "Vendor bulletin, evidence review and technical brief workstations",
     Icon: FileCheck2,
     status: "Evidence organized"
   }
-} satisfies Record<DomainVisualVariant, { src: string; alt: string; Icon: typeof Network; status: string }>;
+} satisfies Record<DomainVisualVariant, { alt: string; Icon: typeof Network; status: string }>;
 
 type DomainHeroVisualProps = {
   variant: DomainVisualVariant;
@@ -79,7 +84,7 @@ export function DomainHeroVisual({ variant, label, title, signals }: DomainHeroV
 
   return (
     <figure className={`domain-hero-visual domain-${variant}`}>
-      <DomainScene variant={variant} fallback={visual.src} alt={visual.alt} />
+      <DomainScene variant={variant} fallback={`/brand/engineering/${variant}.png`} alt={visual.alt} />
       <figcaption>
         <span><Icon aria-hidden="true" size={16} /> {label}</span>
         <strong>{title}</strong>

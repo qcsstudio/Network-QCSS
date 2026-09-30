@@ -16,8 +16,11 @@ type ServicePageProps = {
 function serviceVisualVariant(slug: string): DomainVisualVariant {
   if (slug.includes("cloud")) return "cloud";
   if (slug.includes("penetration")) return "assurance";
-  if (slug.includes("security") || slug.includes("firewall")) return "security";
-  if (slug.includes("wifi")) return "network";
+  if (slug.includes("firewall")) return "firewall";
+  if (slug.includes("security")) return "security";
+  if (slug.includes("wifi")) return "wifi";
+  if (slug.includes("troubleshooting")) return "troubleshooting";
+  if (slug.includes("managed-network")) return "network";
   return "operations";
 }
 

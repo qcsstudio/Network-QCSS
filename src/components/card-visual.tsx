@@ -53,8 +53,9 @@ const visualRules: { match: RegExp; Icon: LucideIcon; tone: NonNullable<CardVisu
 ];
 
 function resolveVisual(title: string, context = "") {
-  const haystack = `${title} ${context}`;
-  return visualRules.find((rule) => rule.match.test(haystack)) ?? { Icon: Network, tone: "blue" as const };
+  return visualRules.find((rule) => rule.match.test(title))
+    ?? visualRules.find((rule) => rule.match.test(context))
+    ?? { Icon: Network, tone: "blue" as const };
 }
 
 export function CardVisual({ title, context = "", icon, tone, className = "" }: CardVisualProps) {

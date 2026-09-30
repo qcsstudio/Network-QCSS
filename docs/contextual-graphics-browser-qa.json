@@ -1,0 +1,357 @@
+{
+  "desktop": [
+    {
+      "kind": "domain-cloud",
+      "overflow": false,
+      "pixels": "{\"visible\":8020,\"colors\":1295,\"hash\":2025369721,\"width\":616,\"height\":300}",
+      "rect": {
+        "bottom": 500.4583435058594,
+        "height": 300,
+        "left": 976.3333740234376,
+        "right": 1592.3333740234375,
+        "top": 200.45834350585935,
+        "width": 616,
+        "x": 976.3333740234376,
+        "y": 200.45834350585935
+      }
+    },
+    {
+      "kind": "domain-network",
+      "overflow": false,
+      "pixels": "{\"visible\":4604,\"colors\":920,\"hash\":3468307620,\"width\":616,\"height\":300}",
+      "rect": {
+        "bottom": 500.4583435058594,
+        "height": 300,
+        "left": 976.3333740234376,
+        "right": 1592.3333740234375,
+        "top": 200.45834350585935,
+        "width": 616,
+        "x": 976.3333740234376,
+        "y": 200.45834350585935
+      }
+    },
+    {
+      "kind": "domain-security",
+      "overflow": false,
+      "pixels": "{\"visible\":4964,\"colors\":988,\"hash\":2698001864,\"width\":616,\"height\":300}",
+      "rect": {
+        "bottom": 500.4583435058594,
+        "height": 300,
+        "left": 976.3333740234376,
+        "right": 1592.3333740234375,
+        "top": 200.45834350585935,
+        "width": 616,
+        "x": 976.3333740234376,
+        "y": 200.45834350585935
+      }
+    },
+    {
+      "kind": "domain-firewall",
+      "overflow": false,
+      "pixels": "{\"visible\":5980,\"colors\":1073,\"hash\":2896776111,\"width\":616,\"height\":300}",
+      "rect": {
+        "bottom": 500.4583435058594,
+        "height": 300,
+        "left": 976.3333740234376,
+        "right": 1592.3333740234375,
+        "top": 200.45834350585935,
+        "width": 616,
+        "x": 976.3333740234376,
+        "y": 200.45834350585935
+      }
+    },
+    {
+      "kind": "domain-wifi",
+      "overflow": false,
+      "pixels": "{\"visible\":4254,\"colors\":745,\"hash\":3139003412,\"width\":616,\"height\":300}",
+      "rect": {
+        "bottom": 500.4583435058594,
+        "height": 300,
+        "left": 976.3333740234376,
+        "right": 1592.3333740234375,
+        "top": 200.45834350585935,
+        "width": 616,
+        "x": 976.3333740234376,
+        "y": 200.45834350585935
+      }
+    },
+    {
+      "kind": "domain-operations",
+      "overflow": false,
+      "pixels": "{\"visible\":6980,\"colors\":1142,\"hash\":734716574,\"width\":616,\"height\":300}",
+      "rect": {
+        "bottom": 500.4583435058594,
+        "height": 300,
+        "left": 976.3333740234376,
+        "right": 1592.3333740234375,
+        "top": 200.45834350585935,
+        "width": 616,
+        "x": 976.3333740234376,
+        "y": 200.45834350585935
+      }
+    },
+    {
+      "kind": "domain-troubleshooting",
+      "overflow": false,
+      "pixels": "{\"visible\":6986,\"colors\":1155,\"hash\":2288595532,\"width\":616,\"height\":300}",
+      "rect": {
+        "bottom": 500.4583435058594,
+        "height": 300,
+        "left": 976.3333740234376,
+        "right": 1592.3333740234375,
+        "top": 200.45834350585935,
+        "width": 616,
+        "x": 976.3333740234376,
+        "y": 200.45834350585935
+      }
+    },
+    {
+      "kind": "domain-assurance",
+      "overflow": false,
+      "pixels": "{\"visible\":8105,\"colors\":1008,\"hash\":2119927419,\"width\":616,\"height\":300}",
+      "rect": {
+        "bottom": 500.4583435058594,
+        "height": 300,
+        "left": 976.3333740234376,
+        "right": 1592.3333740234375,
+        "top": 200.45834350585935,
+        "width": 616,
+        "x": 976.3333740234376,
+        "y": 200.45834350585935
+      }
+    },
+    {
+      "kind": "domain-training",
+      "overflow": false,
+      "pixels": "{\"visible\":4740,\"colors\":859,\"hash\":1320721010,\"width\":616,\"height\":300}",
+      "rect": {
+        "bottom": 436,
+        "height": 300,
+        "left": 976.3333740234376,
+        "right": 1592.3333740234375,
+        "top": 136,
+        "width": 616,
+        "x": 976.3333740234376,
+        "y": 136
+      }
+    },
+    {
+      "kind": "domain-assessment",
+      "overflow": false,
+      "pixels": "{\"visible\":8742,\"colors\":999,\"hash\":2763931789,\"width\":616,\"height\":300}",
+      "rect": {
+        "bottom": 436,
+        "height": 300,
+        "left": 976.3333740234376,
+        "right": 1592.3333740234375,
+        "top": 136,
+        "width": 616,
+        "x": 976.3333740234376,
+        "y": 136
+      }
+    },
+    {
+      "kind": "domain-tools",
+      "overflow": false,
+      "pixels": "{\"visible\":5555,\"colors\":747,\"hash\":3037696985,\"width\":462,\"height\":250}",
+      "rect": {
+        "bottom": 370,
+        "height": 250,
+        "left": 1129.885498046875,
+        "right": 1592.3334350585938,
+        "top": 120,
+        "width": 462.4479370117187,
+        "x": 1129.885498046875,
+        "y": 120
+      }
+    },
+    {
+      "kind": "domain-resources",
+      "overflow": false,
+      "pixels": "{\"visible\":6230,\"colors\":773,\"hash\":49541520,\"width\":616,\"height\":300}",
+      "rect": {
+        "bottom": 436,
+        "height": 300,
+        "left": 976.3333740234376,
+        "right": 1592.3333740234375,
+        "top": 136,
+        "width": 616,
+        "x": 976.3333740234376,
+        "y": 136
+      }
+    },
+    {
+      "kind": "domain-intelligence",
+      "overflow": false,
+      "pixels": "{\"visible\":8166,\"colors\":997,\"hash\":1308387288,\"width\":616,\"height\":300}",
+      "rect": {
+        "bottom": 436,
+        "height": 300,
+        "left": 976.3333740234376,
+        "right": 1592.3333740234375,
+        "top": 136,
+        "width": 616,
+        "x": 976.3333740234376,
+        "y": 136
+      }
+    }
+  ],
+  "mobile": [
+    {
+      "clipped": [],
+      "kind": "domain-cloud",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":2409,\"colors\":648,\"hash\":430080978,\"width\":331,\"height\":280}"
+    },
+    {
+      "clipped": [],
+      "kind": "domain-network",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":1789,\"colors\":562,\"hash\":1745548842,\"width\":331,\"height\":280}"
+    },
+    {
+      "clipped": [],
+      "kind": "domain-security",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":1970,\"colors\":582,\"hash\":3776588694,\"width\":331,\"height\":280}"
+    },
+    {
+      "clipped": [],
+      "kind": "domain-firewall",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":2876,\"colors\":711,\"hash\":576485961,\"width\":331,\"height\":280}"
+    },
+    {
+      "clipped": [],
+      "kind": "domain-wifi",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":1633,\"colors\":445,\"hash\":3350995567,\"width\":331,\"height\":280}"
+    },
+    {
+      "clipped": [],
+      "kind": "domain-operations",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":2648,\"colors\":678,\"hash\":564994845,\"width\":331,\"height\":280}"
+    },
+    {
+      "clipped": [],
+      "kind": "domain-troubleshooting",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":2652,\"colors\":706,\"hash\":3191335806,\"width\":331,\"height\":280}"
+    },
+    {
+      "clipped": [],
+      "kind": "domain-assurance",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":2655,\"colors\":552,\"hash\":2698580101,\"width\":331,\"height\":280}"
+    },
+    {
+      "clipped": [],
+      "kind": "domain-training",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":1387,\"colors\":449,\"hash\":4074775132,\"width\":331,\"height\":280}"
+    },
+    {
+      "clipped": [],
+      "kind": "domain-assessment",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":3359,\"colors\":624,\"hash\":4082730505,\"width\":331,\"height\":280}"
+    },
+    {
+      "clipped": [],
+      "kind": "domain-tools",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":3131,\"colors\":599,\"hash\":4132649704,\"width\":331,\"height\":250}"
+    },
+    {
+      "clipped": [],
+      "kind": "domain-resources",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":2379,\"colors\":481,\"hash\":1681094084,\"width\":331,\"height\":280}"
+    },
+    {
+      "clipped": [],
+      "kind": "domain-intelligence",
+      "overflow": false,
+      "overlaps": [],
+      "pixels": "{\"visible\":2392,\"colors\":528,\"hash\":3391544478,\"width\":331,\"height\":280}"
+    }
+  ],
+  "breakpoints": [
+    {
+      "clipped": [],
+      "kind": "domain-cloud",
+      "overflow": false,
+      "overlaps": [],
+      "width": 320
+    },
+    {
+      "clipped": [],
+      "kind": "domain-cloud",
+      "overflow": false,
+      "overlaps": [],
+      "width": 320
+    },
+    {
+      "clipped": [],
+      "kind": "domain-firewall",
+      "overflow": false,
+      "overlaps": [],
+      "width": 320
+    },
+    {
+      "clipped": [],
+      "kind": "domain-training",
+      "overflow": false,
+      "overlaps": [],
+      "width": 320
+    },
+    {
+      "clipped": [],
+      "kind": "domain-intelligence",
+      "overflow": false,
+      "overlaps": [],
+      "width": 320
+    },
+    {
+      "clipped": [],
+      "kind": "domain-cloud",
+      "overflow": false,
+      "overlaps": [],
+      "width": 768
+    },
+    {
+      "clipped": [],
+      "kind": "domain-firewall",
+      "overflow": false,
+      "overlaps": [],
+      "width": 768
+    },
+    {
+      "clipped": [],
+      "kind": "domain-training",
+      "overflow": false,
+      "overlaps": [],
+      "width": 768
+    },
+    {
+      "clipped": [],
+      "kind": "domain-intelligence",
+      "overflow": false,
+      "overlaps": [],
+      "width": 768
+    }
+  ]
+}

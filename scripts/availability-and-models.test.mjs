@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as THREE from "three";
+import { existsSync, readFileSync } from "node:fs";
 import { loadSection } from "../src/lib/section-availability.ts";
 import { buildDomainModel, domainModelKinds } from "../src/components/consulting-home/domain-models.js";
 
@@ -52,7 +53,7 @@ function model(kind) {
   return { view, boxes, labels, paths };
 }
 
-test("ten domain models have distinct compositions, labels and finite motion", () => {
+test("thirteen domain models have distinct compositions, labels and finite motion", () => {
   const signatures = new Set();
   for (const kind of domainModelKinds) {
     const output = model(kind);
@@ -60,9 +61,44 @@ test("ten domain models have distinct compositions, labels and finite motion", (
     assert.ok(output.labels.length >= 2, kind);
     assert.ok(output.boxes.length >= 2, kind);
     assert.equal(new Set(output.labels.map((label) => label.text)).size, output.labels.length);
+    assert.ok(output.boxes.every((box) => box.slice(0, 6).every(Number.isFinite) && box.slice(3, 6).every((value) => value > 0)), kind);
     signatures.add(JSON.stringify(output.boxes));
   }
   assert.equal(signatures.size, domainModelKinds.length);
+});
+
+test("each domain has a matching static fallback rather than a generic stock image", () => {
+  for (const kind of domainModelKinds) assert.ok(existsSync(new URL(`../public/brand/engineering/${kind}.png`, import.meta.url)), kind);
+});
+
+test("cloud protection is limited to the gateway-to-gateway route", () => {
+  const { paths } = model("cloud");
+  assert.deepEqual(paths.map((path) => path.options.secured), [false, true, false]);
+  assert.ok(paths[1].points[0][0] < 0 && paths[1].points.at(-1)[0] > 0);
+});
+
+test("training illustration includes both endpoints and complete forwarding path", () => {
+  const { labels, paths } = model("training");
+  assert.deepEqual(labels.map((label) => label.text), ["PC1", "SWITCH", "ROUTER", "PC2"]);
+  assert.equal(paths[0].points[0][0], -4.5);
+  assert.equal(paths[0].points.at(-1)[0], 4.5);
+  assert.ok(paths[0].points.some((point) => point[0] === -1.5));
+  assert.ok(paths[0].points.some((point) => point[0] === 1.5));
+});
+
+test("wireless model contains an access point and a wired uplink", () => {
+  const { view, paths } = model("wifi");
+  const devices = [];
+  view.root.traverse((object) => { if (object.userData.device) devices.push(object.userData.device); });
+  assert.deepEqual(devices, ["wireless-access-point", "network-appliance", "workstation"]);
+  assert.equal(paths[0].points.at(-1)[0], -.4);
+});
+
+test("scene cleanup disposes screen textures and caption controls do not cover the model", () => {
+  const engine = readFileSync(new URL("../src/components/consulting-home/scene-engine.js", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../src/app/qcs-theme.css", import.meta.url), "utf8");
+  assert.match(engine, /textures\.forEach\(\(texture\) => texture\.dispose\(\)\)/);
+  assert.match(css, /\.qcs-scene-controls \{ position: relative;/);
 });
 
 test("policy illustration ends denied traffic before the gate without encryption wrappers", () => {
