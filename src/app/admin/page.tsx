@@ -2,24 +2,26 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { LogOut, ShieldCheck } from "lucide-react";
 import { AdminDashboardTabs } from "@/components/admin-dashboard-tabs";
-import { ContentRadarPanel, type ContentPostRecord } from "@/components/content-radar-panel";
+import { ContentRadarPanel } from "@/components/content-radar-panel";
 import { OperatorDashboard } from "@/components/operator-dashboard";
 import { requireAdmin } from "@/lib/admin-auth";
 import { requestContext } from "@/lib/security";
-import { createAuditLog, getDashboardSnapshot, getEmptyDashboardSnapshot } from "@/lib/store";
+import { createAuditLog, getDashboardSnapshot } from "@/lib/store";
 import { listContentPosts } from "@/lib/content-posts";
 import { DistributionControlPanel } from "@/components/distribution-control-panel";
 import { getDistributionSnapshot } from "@/lib/distribution";
 import { AdvisoryManagementPanel } from "@/components/advisory-management-panel";
-import { listAdminSecurityAdvisories, type AdminAdvisoryRecord } from "@/lib/advisories";
+import { listAdminSecurityAdvisories } from "@/lib/advisories";
 import { VerifyGridControlPanel } from "@/components/verifygrid-control-panel";
 import { VerifyGridOnboardingQueue } from "@/components/verifygrid-onboarding-queue";
-import { getEmptyVerifyGridPortfolio, getVerifyGridPortfolio, type VerifyGridPortfolio } from "@/lib/verifygrid";
+import { getVerifyGridPortfolio } from "@/lib/verifygrid";
 import { VerifyGridAccessGate } from "@/components/verifygrid-access-gate";
 import { VerifyGridSecurityBar } from "@/components/verifygrid-security-bar";
 import { getVerifyGridAccessState } from "@/lib/verifygrid-operator-auth";
 import { CcnaLearningDesk } from "@/components/ccna-learning-desk";
-import { listCcnaLessons, syncCcnaCurriculum, type CcnaLessonRecord } from "@/lib/ccna-learning";
+import { listCcnaLessons } from "@/lib/ccna-learning";
+import { loadSection } from "@/lib/section-availability";
+import { SectionUnavailable } from "@/components/section-unavailable";
 
 export const metadata: Metadata = {
   title: "Operator Dashboard",
@@ -38,37 +40,18 @@ export default async function AdminPage() {
     },
     await requestContext()
   );
-  const [dashboardResult, contentPosts, distributionSnapshot, advisories, verifyGridAccess, ccnaLessons] = await Promise.all([
-    getDashboardSnapshot()
-      .then((snapshot) => ({ snapshot, storageUnavailable: false }))
-      .catch((error) => {
-        console.error("Admin dashboard storage is unavailable.", error);
-        return { snapshot: getEmptyDashboardSnapshot(), storageUnavailable: true };
-      }),
-    listContentPosts().catch((error) => {
-      console.error("Content Studio storage is unavailable.", error);
-      return [] as ContentPostRecord[];
-    }),
-    getDistributionSnapshot().catch((error) => {
-      console.error("Distribution operations are unavailable.", error);
-      return null;
-    }),
-    listAdminSecurityAdvisories().catch((error) => {
-      console.error("Advisory management storage is unavailable.", error);
-      return [] as AdminAdvisoryRecord[];
-    }),
-    getVerifyGridAccessState(session.email),
-    syncCcnaCurriculum(session.email).then(() => listCcnaLessons()).catch((error) => {
-      console.error("CCNA Learning Desk storage is unavailable.", error);
-      return [] as CcnaLessonRecord[];
-    })
+  const [dashboard, content, distribution, advisory, access, learning] = await Promise.all([
+    loadSection("Dashboard", getDashboardSnapshot),
+    loadSection("Content Studio", listContentPosts),
+    loadSection("Distribution", getDistributionSnapshot),
+    loadSection("Advisory management", listAdminSecurityAdvisories),
+    loadSection("VerifyGrid access", () => getVerifyGridAccessState(session.email)),
+    loadSection("CCNA Learning Desk", listCcnaLessons)
   ]);
-  const { snapshot, storageUnavailable } = dashboardResult;
-  const verifyGridPortfolio = verifyGridAccess.state === "unlocked" ? await getVerifyGridPortfolio().catch((error) => {
-    if (process.env.NODE_ENV === "production") console.error("VerifyGrid storage is unavailable.", error);
-    else console.warn("VerifyGrid development database is not migrated; rendering an empty portfolio.");
-    return process.env.NODE_ENV === "development" ? getEmptyVerifyGridPortfolio() : null as VerifyGridPortfolio | null;
-  }) : null;
+  const verifyGridAccess = access.data;
+  const portfolio = verifyGridAccess?.state === "unlocked"
+    ? await loadSection("VerifyGrid portfolio", getVerifyGridPortfolio) : null;
+  const storageUnavailable = [dashboard, content, distribution, advisory, access, learning].some((result) => !result.available) || portfolio?.available === false;
 
   return (
     <main className="admin-page">
@@ -96,31 +79,31 @@ export default async function AdminPage() {
           <section className="admin-system-alert">
             <div>
               <p className="eyebrow">Storage connection</p>
-              <h2>Dashboard data is temporarily unavailable.</h2>
-              <p>Configure PostgreSQL and run the production migration before relying on lead and assessment reporting.</p>
+              <h2>Some dashboard services are unavailable.</h2>
+              <p>Check database capacity and connectivity. Unavailable tabs show their status instead of empty records. Available modules remain accessible.</p>
             </div>
             <span className="status-pill missing">Action required</span>
           </section>
         ) : null}
         <AdminDashboardTabs
-          advisories={<AdvisoryManagementPanel initialAdvisories={advisories} />}
+          advisories={advisory.available ? <AdvisoryManagementPanel initialAdvisories={advisory.data} /> : <SectionUnavailable admin title="Advisory management" />}
           badges={{
-            advisories: advisories.length,
-            content: contentPosts.length,
-            distribution: distributionSnapshot?.linkedin.connected ? "Live" : "Check",
-            learning: ccnaLessons.filter((lesson) => lesson.status === "published").length,
-            overview: snapshot.totals.leads,
-            verifygrid: verifyGridAccess.state === "unlocked" ? "Ready" : "Locked"
+            advisories: advisory.available ? advisory.data.length : "Unavailable",
+            content: content.available ? content.data.length : "Unavailable",
+            distribution: distribution.available ? distribution.data.linkedin.connected ? "Connected" : "Check" : "Unavailable",
+            learning: learning.available ? learning.data.filter((lesson) => lesson.status === "published").length : "Unavailable",
+            overview: dashboard.available ? dashboard.data.totals.leads : "Unavailable",
+            verifygrid: !access.available || portfolio?.available === false ? "Unavailable" : verifyGridAccess?.state === "unlocked" ? "Ready" : "Locked"
           }}
-          content={<ContentRadarPanel initialPosts={contentPosts} />}
-          distribution={<DistributionControlPanel initialSnapshot={distributionSnapshot} />}
-          learning={<CcnaLearningDesk initialLessons={ccnaLessons} />}
-          overview={<OperatorDashboard snapshot={snapshot} />}
-          verifygrid={verifyGridAccess.state === "unlocked" ? (
+          content={content.available ? <ContentRadarPanel initialPosts={content.data} /> : <SectionUnavailable admin title="Content Studio" />}
+          distribution={distribution.available ? <DistributionControlPanel initialSnapshot={distribution.data} /> : <SectionUnavailable admin title="Distribution" />}
+          learning={learning.available ? <CcnaLearningDesk initialLessons={learning.data} /> : <SectionUnavailable admin title="CCNA Learning Desk" />}
+          overview={dashboard.available ? <OperatorDashboard snapshot={dashboard.data} /> : <SectionUnavailable admin title="Dashboard data" />}
+          verifygrid={!verifyGridAccess || portfolio?.available === false ? <SectionUnavailable admin title="VerifyGrid" /> : verifyGridAccess.state === "unlocked" && portfolio?.available ? (
             <>
               <VerifyGridSecurityBar access={verifyGridAccess} />
               <VerifyGridOnboardingQueue />
-              <VerifyGridControlPanel access={verifyGridAccess.operator} initialPortfolio={verifyGridPortfolio} />
+              <VerifyGridControlPanel access={verifyGridAccess.operator} initialPortfolio={portfolio.data} />
             </>
           ) : (
             <VerifyGridAccessGate access={verifyGridAccess} email={session.email} />

@@ -1,0 +1,37 @@
+QCS availability and visual refinement - 2026-09-30
+
+Confirmed production failures
+- Intelligence: securityAdvisory.findMany failed with Prisma P2039, database
+  53000, account/project quota exceeded (digest 2314455968).
+- Admin: sign-in completed, then verifyGridOperator.findUnique failed with the
+  same quota condition (digest 3942977592). Content, audit, distribution and
+  lesson queries also failed. The configured database provider is Neon.
+
+Repairs
+- Intelligence and the advisory directory render explicit unavailable states
+  instead of crashing or falsely claiming an empty/healthy live feed.
+- Dashboard reads are isolated by module. Failed modules do not mount editing,
+  publishing, enrollment or test controls. No empty datasets impersonate success.
+- Admin authentication is unchanged. Unverifiable operator authorization never
+  becomes unlocked access or first-operator enrollment.
+- Removed curriculum synchronization on dashboard GET; explicit sync and lesson
+  generation retain their existing authenticated handlers.
+- Distinct 3D compositions for network branches, security policy, cloud zones,
+  operations monitoring, learning, source triage, references, assessment,
+  authorized testing and diagnostic input/output.
+- Homepage service tabs switch full compositions, distinct from its hero scene.
+- Labels, descriptions, policy denial endpoints and cloud encapsulation agree.
+
+Verification before release
+- Production build and TypeScript passed; 103 static pages generated.
+- Targeted ESLint passed.
+- 13 tests passed, including failed-read isolation and 10 distinct compositions.
+- Browser canvas-pixel checks passed on all ten models. Desktop and 390px views
+  checked; no horizontal overflow or clipped model labels in checked views.
+- Homepage service tabs switch visible nodes and descriptive captions.
+- Advisory outage message remains readable at 320px.
+
+Not resolved by code
+- Neon quota must be restored through the provider account. No billing changes,
+  deletions or migrations were made. Publishing and data retrieval cannot be
+  claimed operational until database reads/writes recover.

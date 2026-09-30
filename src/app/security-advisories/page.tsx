@@ -7,6 +7,8 @@ import { SignalJourney } from "@/components/signal-journey";
 import { listSecurityAdvisories } from "@/lib/advisories";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
+import { loadSection } from "@/lib/section-availability";
+import { SectionUnavailable } from "@/components/section-unavailable";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +20,8 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default async function SecurityAdvisoryDeskPage() {
-  const advisories = await listSecurityAdvisories(100);
+  const result = await loadSection("Public advisory desk", () => listSecurityAdvisories(100));
+  const advisories = result.data ?? [];
   const latestVerification = advisories.map((item) => item.lastVerifiedAt).sort((a, b) => b.getTime() - a.getTime())[0];
   const publicAdvisories: PublicAdvisoryRecord[] = advisories.map((advisory) => ({
     id: advisory.id,
@@ -78,11 +81,11 @@ export default async function SecurityAdvisoryDeskPage() {
           </div>
         </div>
         <aside className="advisory-live-panel" aria-label="Advisory desk status">
-          <div className="advisory-live-signal"><Radio aria-hidden="true" size={17} /><span>Source monitor active</span></div>
+          <div className="advisory-live-signal"><Radio aria-hidden="true" size={17} /><span>{result.available ? "Published advisory records" : "Data service unavailable"}</span></div>
           <ShieldAlert aria-hidden="true" size={36} />
-          <strong>{advisories.length}</strong>
-          <span>source-verified records</span>
-          <small>{latestVerification ? `Latest verification: ${latestVerification.toLocaleString("en-IN")}` : "The live source scan is ready."}</small>
+          <strong>{result.available ? advisories.length : "Unavailable"}</strong>
+          <span>{result.available ? "source-verified records" : "Live counts cannot be confirmed"}</span>
+          <small>{latestVerification ? `Latest verification: ${latestVerification.toLocaleString("en-IN")}` : "No current verification time available."}</small>
         </aside>
       </section>
 
@@ -95,10 +98,10 @@ export default async function SecurityAdvisoryDeskPage() {
           <p>Priority combines source severity, known exploitation, remote attack conditions, recency, and network-edge relevance.</p>
         </div>
 
-        {advisories.length ? (
+        {!result.available ? <SectionUnavailable title="Security advisory records" /> : advisories.length ? (
           <AdvisoryDeskExplorer advisories={publicAdvisories} asOf={new Date().toISOString()} />
         ) : (
-          <div className="content-empty-state">The official-source scanner is connected. New qualifying advisories will appear here automatically.</div>
+          <div className="content-empty-state">No published advisories are available in this view.</div>
         )}
       </section>
     </main>

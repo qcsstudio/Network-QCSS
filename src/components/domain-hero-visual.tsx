@@ -4,6 +4,24 @@ import { DomainScene, type DomainSceneVariant } from "./domain-scene";
 export type DomainVisualVariant = DomainSceneVariant;
 
 const domainVisuals = {
+  resources: {
+    src: "/brand/envato/objects/locked-data-folder.png",
+    alt: "Technical reference documents",
+    Icon: BookOpenCheck,
+    status: "Reference library"
+  },
+  assessment: {
+    src: "/brand/consulting/operations-artwork.webp",
+    alt: "Network readiness review",
+    Icon: FileCheck2,
+    status: "Readiness review"
+  },
+  assurance: {
+    src: "/brand/envato/cyber/security-shield-network.png",
+    alt: "Authorized security assurance",
+    Icon: ShieldCheck,
+    status: "Authorized scope"
+  },
   tools: {
     src: "/brand/consulting/operations-artwork.webp",
     alt: "Network engineering tools and infrastructure",

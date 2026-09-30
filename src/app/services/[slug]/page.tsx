@@ -37,7 +37,8 @@ const deliverableNarratives = [
 
 function serviceVisualVariant(slug: string): DomainVisualVariant {
   if (slug.includes("cloud")) return "cloud";
-  if (slug.includes("security") || slug.includes("penetration") || slug.includes("firewall")) return "security";
+  if (slug.includes("penetration")) return "assurance";
+  if (slug.includes("security") || slug.includes("firewall")) return "security";
   if (slug.includes("wifi")) return "network";
   return "operations";
 }

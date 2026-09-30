@@ -123,7 +123,7 @@ export default async function ResourcesPage({ searchParams }: ResourcesPageProps
           </div>
         </div>
         <DomainHeroVisual
-          variant="intelligence"
+          variant="resources"
           label="Operational intelligence"
           title="Answer, evidence, and next action"
           signals={["Source checked", "Tool supported", "Action ready"]}

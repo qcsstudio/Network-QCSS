@@ -292,8 +292,9 @@ export function HomeContent({ children }: { children: ReactNode }) {
               <div
                 id="service-scene"
                 className="service-scene"
+                data-kind="service"
                 role="img"
-                aria-label="An illustrative branch connects to the network core along the highlighted path."
+                aria-label="Two branch offices connect through a WAN hub. Illustrative traffic, not live telemetry."
               >
                 <Image
                   className="scene-fallback"
@@ -313,8 +314,8 @@ export function HomeContent({ children }: { children: ReactNode }) {
                   <span data-tunnel-stage="decapsulate">03 / Decapsulate</span>
                 </div>
                 <p id="packet-note">
-                  Packets follow the highlighted route from the branch to the
-                  network core. Illustrative traffic, not live telemetry.
+                  Branch offices connect through a WAN hub. Illustrative traffic,
+                  not live telemetry.
                 </p>
               </div>
             </div>

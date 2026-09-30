@@ -70,7 +70,7 @@ export default function DiagnosePage() {
           </div>
         </div>
         <DomainHeroVisual
-          variant="network"
+          variant="assessment"
           label="Decision-ready snapshot"
           title="Questions become risk, evidence, and an accountable next move"
           signals={["Risk band", "Evidence list", "Next action"]}

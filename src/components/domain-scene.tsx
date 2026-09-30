@@ -5,16 +5,19 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { SceneController } from "./consulting-home/scene-engine";
 
-export type DomainSceneVariant = "network" | "operations" | "security" | "cloud" | "training" | "intelligence" | "tools";
+export type DomainSceneVariant = "network" | "operations" | "security" | "cloud" | "training" | "intelligence" | "tools" | "resources" | "assessment" | "assurance";
 
 const descriptions: Record<DomainSceneVariant, string> = {
   network: "Illustrative branch-to-core network path. This is not live telemetry.",
-  operations: "Illustrative network operations: a branch, network core, security boundary and cloud workloads.",
-  security: "Illustrative IPsec tunnel: peers protect the inner packet while outer IP headers remain visible. IKE negotiation is omitted.",
-  cloud: "Illustrative protected connectivity between the network core and cloud workloads. This is not a provider architecture or live telemetry.",
-  training: "Conceptual packet journey: PC1, Switch, Router, PC2, followed by a reply to PC1. Address resolution is omitted.",
-  intelligence: "Illustrative evidence workflow: observe, prioritize and verify. This is not a live security score.",
-  tools: "Illustrative diagnostic workspace: a network device, command console and checklist. No scan is running."
+  operations: "Conceptual monitoring wall: observe service signals, triage issues and respond. The indicators are illustrative, not live telemetry.",
+  security: "Conceptual policy checkpoint: permitted traffic reaches the destination; denied traffic stops at the boundary. This is not a live firewall or an IPsec diagram.",
+  cloud: "Two conceptual workload zones linked by a protected private connection. The model is not a specific cloud provider architecture.",
+  training: "Build understanding step by step, then try and verify it at a practice console. This learning model is not an OSI stack or a lab topology.",
+  intelligence: "Official-source reports converge for context checking, then enter a priority queue. This is an editorial workflow, not a live feed.",
+  resources: "An indexed reference library: read a practical guide and keep the supporting details close at hand.",
+  assessment: "Readiness questions paired with an evidence checklist. The animated dial is illustrative and does not represent a measured score.",
+  assurance: "A bounded, authorized scope paired with validated findings. The sweep is illustrative; no security test is running.",
+  tools: "A focused command input paired with structured diagnostic output. No commands are executed by this illustration."
 };
 
 export function DomainScene({ variant, fallback, alt }: { variant: DomainSceneVariant; fallback: string; alt: string }) {
@@ -25,7 +28,7 @@ export function DomainScene({ variant, fallback, alt }: { variant: DomainSceneVa
   const [paused, setPaused] = useState(false);
   const [ready, setReady] = useState(false);
   const [reduced, setReduced] = useState(false);
-  const kind = variant === "training" ? "lab" : variant === "intelligence" ? "evidence" : variant === "tools" ? "tools" : undefined;
+  const kind = `domain-${variant}`;
 
   useEffect(() => {
     const element = host.current;

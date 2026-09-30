@@ -8,6 +8,8 @@ import { listSecurityAdvisories } from "@/lib/advisories";
 import { siteConfig } from "@/lib/content";
 import { getAllPublishedBlogPosts } from "@/lib/content-posts";
 import { createPageMetadata } from "@/lib/seo";
+import { loadSection } from "@/lib/section-availability";
+import { SectionUnavailable } from "@/components/section-unavailable";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,10 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default async function IntelligencePage() {
-  const [advisories, posts] = await Promise.all([listSecurityAdvisories(3), getAllPublishedBlogPosts()]);
+  const [advisoryResult, posts] = await Promise.all([
+    loadSection("Intelligence advisories", () => listSecurityAdvisories(3)),
+    getAllPublishedBlogPosts()
+  ]);
   const lanes = [
     {
       icon: ShieldAlert,
@@ -28,7 +33,7 @@ export default async function IntelligencePage() {
       description: "Source-verified network vulnerabilities, active exploitation signals, mitigations, and vendor patch guidance published as they are detected.",
       href: "/security-advisories",
       action: "Open live advisories",
-      signal: `${advisories.length} current priority item(s) shown`
+      signal: advisoryResult.available ? `${advisoryResult.data.length} current priority item(s) shown` : "Live records temporarily unavailable"
     },
     {
       icon: BookOpen,
@@ -73,6 +78,7 @@ export default async function IntelligencePage() {
 
       <SignalJourney variant="intelligence" />
       <section className="section intelligence-lanes">
+        {!advisoryResult.available ? <SectionUnavailable title="Live advisory data" /> : null}
         {lanes.map((lane) => {
           const Icon = lane.icon;
           return (

@@ -127,21 +127,21 @@ export function HomeEnhancements() {
           ? "Network / packet forwarding"
           : mode === "cloud"
             ? "Hybrid cloud / IPsec VPN example"
-            : "IPsec ESP / tunnel mode";
+            : "Security / policy checkpoint";
       root!.querySelector<HTMLElement>(".packet-stages")!.hidden =
-        mode === "network";
+        mode !== "cloud";
       root!.querySelector<HTMLElement>(".packet-explainer")!.dataset.mode =
         mode;
       const note =
         mode === "network"
-          ? "Packets follow the highlighted route from the branch to the network core. Illustrative traffic, not live telemetry."
-          : "Example: two peers encrypt the inner IP packet; outer IP headers remain visible. IKE negotiation is omitted.";
+          ? "Branch offices connect through a WAN hub. Illustrative traffic, not live telemetry."
+          : mode === "security"
+            ? "Permitted traffic reaches its destination. Denied traffic stops at the policy boundary. This is a conceptual firewall, not a live test."
+            : "Two workload zones connect through an illustrative IPsec tunnel. Peers protect the inner packet; outer headers remain visible. IKE is omitted.";
       el("packet-note").textContent = note;
       el("service-scene").setAttribute(
         "aria-label",
-        mode === "network"
-          ? "A branch connects to the network core along a highlighted route. Illustrative traffic."
-          : `Conceptual ${mode === "cloud" ? "hybrid cloud" : "security"} IPsec path: encapsulation, protected transit and decapsulation at the receiving peer. Negotiation is omitted.`,
+        note,
       );
       views.get("service-scene")?.setMode(mode);
       backgrounds?.setService(mode);

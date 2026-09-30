@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { buildDomainModel } from "./domain-models.js";
 
 export function createScene(element, state, onStage = () => {}) {
   const reduceMotion = {
@@ -216,9 +217,9 @@ export function createScene(element, state, onStage = () => {}) {
         0.1,
       );
     }
-    cable(points, type, color) {
-      const featured = ["network", "security", "cloud"].includes(type);
-      const secured = type === "security" || type === "cloud";
+    cable(points, type, color, options = {}) {
+      const featured = options.featured ?? ["network", "security", "cloud"].includes(type);
+      const secured = options.secured ?? (type === "security" || type === "cloud");
       const curve = new THREE.CatmullRomCurve3(
         points.map((p) => new THREE.Vector3(...p)),
         false,
@@ -804,6 +805,25 @@ export function createScene(element, state, onStage = () => {}) {
       floor.receiveShadow = true;
       this.root.add(floor);
       const kind = this.el.dataset.kind;
+      if (kind === "service") {
+        const parent = this.root;
+        this.serviceModels = {};
+        for (const mode of ["network", "security", "cloud"]) {
+          const group = new THREE.Group();
+          parent.add(group);
+          this.root = group;
+          const start = this.labels.length;
+          buildDomainModel(this, mode, palette);
+          this.serviceModels[mode] = { group, labels: this.labels.slice(start), animate: this.domainMotion };
+        }
+        this.root = parent;
+        this.domainSpan = 11;
+        return;
+      }
+      if (kind?.startsWith("domain-")) {
+        buildDomainModel(this, kind.slice(7), palette);
+        return;
+      }
       if (kind === "method") {
         this.focusObjects = [-4, 0, 4].map((x) => {
           const group = new THREE.Group();
@@ -973,9 +993,9 @@ export function createScene(element, state, onStage = () => {}) {
         height = this.el.clientHeight;
       if (!width || !height) return;
       const kind = this.el.dataset.kind;
-      const span = kind === "method" || kind === "lab" ? 13 : 6.5;
+      const span = this.domainSpan || (kind === "method" || kind === "lab" ? 13 : 6.5);
       const size = Math.max(
-        kind === "method" ? 4.4 : 4.1,
+        this.domainHeight || (kind === "method" ? 4.4 : 4.1),
         span / (width / height),
       );
       const horizontal = (size * width) / height;
@@ -994,8 +1014,20 @@ export function createScene(element, state, onStage = () => {}) {
       this.renderer.setSize(width, height, false);
       this.render(0);
     }
-    setMode() {}
+    setMode(mode) {
+      if (!this.serviceModels) return;
+      for (const [name, model] of Object.entries(this.serviceModels)) {
+        model.group.visible = name === mode;
+        model.labels.forEach((label) => { label.node.hidden = name !== mode; });
+      }
+      this.domainMotion = this.serviceModels[mode]?.animate;
+      this.mode = mode;
+      this.el.dataset.model = mode;
+      this.phase = 0;
+      if (this.controls) this.render(0);
+    }
     render(delta) {
+      this.domainMotion?.(this.phase || 0);
       if (this.focusObjects) {
         const selected = Number(this.el.dataset.focusItem || 0);
         this.focusObjects.forEach((object, index) => {
