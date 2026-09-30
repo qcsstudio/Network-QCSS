@@ -10,6 +10,16 @@ type LeadFormProps = {
   compact?: boolean;
 };
 
+const standardInterests = [
+  "Managed network services",
+  "Network security services",
+  "Cloud network services",
+  "Penetration testing",
+  "Emergency troubleshooting",
+  "Network security training",
+  "Corporate training",
+];
+
 function sessionId() {
   const key = "network-qcss-session";
   const existing = window.localStorage.getItem(key);
@@ -41,6 +51,10 @@ export function LeadForm({
     "Ready when you are. Share the issue and we will suggest the right next step.",
   );
   const [loading, setLoading] = useState(false);
+  const initialInterest = standardInterests.find((option) => option.toLowerCase() === interest.toLowerCase()) ?? interest;
+  const interests = initialInterest && !standardInterests.includes(initialInterest)
+    ? [initialInterest, ...standardInterests]
+    : standardInterests;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -135,15 +149,9 @@ export function LeadForm({
         </label>
         <label>
           Interest
-          <select name="interest" required defaultValue={interest}>
+          <select name="interest" required defaultValue={initialInterest}>
             <option value="">Select one</option>
-            <option>Managed network services</option>
-            <option>Network security services</option>
-            <option>Cloud network services</option>
-            <option>Penetration testing</option>
-            <option>Emergency troubleshooting</option>
-            <option>Network security training</option>
-            <option>Corporate training</option>
+            {interests.map((option) => <option key={option} value={option}>{option}</option>)}
           </select>
         </label>
       </div>
@@ -163,7 +171,7 @@ export function LeadForm({
         <input name="contactConsent" required type="checkbox" />
         <span>
           I agree to be contacted about this request and understand my data will
-          be handled according to the privacy policy.
+          be handled according to the <a href="/privacy">privacy policy</a>.
         </span>
       </label>
 

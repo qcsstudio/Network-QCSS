@@ -4,16 +4,20 @@ import { getAllPublishedBlogPosts } from "@/lib/content-posts";
 import { networkUtilityTools } from "@/lib/network-tools";
 import { listSecurityAdvisories } from "@/lib/advisories";
 import { getPublishedCcnaLessons } from "@/lib/ccna-learning";
+import { loadSection } from "@/lib/section-availability";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date();
-  const [blogPosts, advisories, ccnaLessons] = await Promise.all([
-    getAllPublishedBlogPosts(),
-    listSecurityAdvisories(250),
-    getPublishedCcnaLessons().catch(() => [])
+  const [blogs, security, learning] = await Promise.all([
+    loadSection("Sitemap blog entries", getAllPublishedBlogPosts),
+    loadSection("Sitemap advisory entries", () => listSecurityAdvisories(250)),
+    loadSection("Sitemap lesson entries", getPublishedCcnaLessons)
   ]);
+  // Preserve independently available URLs during a content-store outage.
+  const blogPosts = blogs.available ? blogs.data : [];
+  const advisories = security.available ? security.data : [];
+  const ccnaLessons = learning.available ? learning.data : [];
   const staticRoutes = [
     { path: "", priority: 1, changeFrequency: "weekly" as const },
     { path: "/solutions", priority: 0.92, changeFrequency: "weekly" as const },
@@ -28,35 +32,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/privacy", priority: 0.3, changeFrequency: "yearly" as const }
   ].map((route) => ({
     url: `${siteConfig.url}${route.path}`,
-    lastModified: now,
     changeFrequency: route.changeFrequency,
     priority: route.priority
   }));
 
   const serviceRoutes = services.map((service) => ({
     url: `${siteConfig.url}/services/${service.slug}`,
-    lastModified: now,
     changeFrequency: "monthly" as const,
     priority: 0.86
   }));
 
   const toolRoutes = tools.map((tool) => ({
     url: `${siteConfig.url}/tools/${tool.slug}`,
-    lastModified: now,
     changeFrequency: "monthly" as const,
     priority: 0.82
   }));
 
   const solutionRoutes = solutionPages.map((solution) => ({
     url: `${siteConfig.url}/solutions/${solution.slug}`,
-    lastModified: now,
     changeFrequency: "monthly" as const,
     priority: 0.9
   }));
 
   const networkToolRoutes = networkUtilityTools.map((tool) => ({
     url: `${siteConfig.url}/network-tools/${tool.slug}`,
-    lastModified: now,
     changeFrequency: "weekly" as const,
     priority: 0.88
   }));

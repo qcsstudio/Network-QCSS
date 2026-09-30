@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
 import localFont from "next/font/local";
 import { ConsentBanner } from "@/components/consent-banner";
 import { ExperienceLayer } from "@/components/experience-layer";
 import { MarketingScripts } from "@/components/marketing-scripts";
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata, defaultKeywords } from "@/lib/seo";
@@ -112,69 +111,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <div id="main-content" tabIndex={-1}>
           {children}
         </div>
-        <footer className="site-footer command-footer">
-          <div className="footer-command-panel">
-            <div className="footer-brand-stack">
-              <Image
-                className="footer-logo"
-                src="/brand/quantumcrafters-logo.png"
-                alt="QuantumCrafters Studio Pvt. Ltd."
-                width={328}
-                height={100}
-              />
-              <strong>QuantumCrafters Studio Pvt. Ltd.</strong>
-              <p>Network operations, security, cloud, troubleshooting, penetration testing, and practical training for India and global teams.</p>
-              <div className="footer-signal-row" aria-label="QuantumCrafters operating signals">
-                <span>Managed Network</span>
-                <span>Network Security</span>
-                <span>Cloud Network</span>
-                <span>Institute</span>
-              </div>
-            </div>
-
-            <nav className="footer-link-grid" aria-label="Footer links">
-              <div>
-                <span>Explore</span>
-                <Link href="/solutions">Solutions</Link>
-                <Link href="/#services">Services</Link>
-                <Link href="/network-tools">Network Tools</Link>
-              </div>
-              <div>
-                <span>Decide</span>
-                <Link href="/diagnose">Assessments</Link>
-                <Link href="/intelligence">Intelligence</Link>
-                <Link href="/security-advisories">Advisories</Link>
-                <Link href="/resources">Blog &amp; Resources</Link>
-                <Link href="/institute">Institute</Link>
-                <Link href="/courses/ccna">CCNA Daily Course</Link>
-              </div>
-              <div>
-                <span>System</span>
-                <Link href="/privacy">Privacy</Link>
-                <Link href="/admin">Admin</Link>
-                <a href="/api/health">Health</a>
-              </div>
-            </nav>
-
-            <div className="footer-action-panel">
-              <p className="eyebrow">Command handoff</p>
-              <h2>Start with a readiness snapshot.</h2>
-              <p>Share the symptom, exposure, project, or training goal and move toward a clearer next step.</p>
-              <div className="button-row">
-                <Link className="button primary" href="/diagnose">
-                  Run Assessment
-                </Link>
-                <Link className="button secondary dark" href="/network-tools">
-                  Open Tools
-                </Link>
-              </div>
-            </div>
-          </div>
-          <div className="footer-bottom-bar">
-            <span>QCS Network Command</span>
-            <span>Operate + Secure + Modernize + Train</span>
-          </div>
-        </footer>
+        <SiteFooter />
         <ConsentBanner />
       </body>
     </html>

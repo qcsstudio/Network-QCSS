@@ -4,21 +4,23 @@ import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const navItems = [
   { href: "/solutions", label: "Solutions" },
   { href: "/#services", label: "Services" },
-  { href: "/diagnose", label: "Assessments", mobileLabel: "Assess" },
+  { href: "/diagnose", label: "Assessments" },
   { href: "/network-tools", label: "Tools" },
   { href: "/institute", label: "Institute" },
-  { href: "/intelligence", label: "Intelligence", mobileLabel: "Intel" }
+  { href: "/intelligence", label: "Intelligence" }
 ];
 
 export function SiteHeader() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuToggle = useRef<HTMLButtonElement>(null);
+  const mobileMenu = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 18);
@@ -34,17 +36,41 @@ export function SiteHeader() {
       return;
     }
 
+    const closeMenu = () => {
+      setMenuOpen(false);
+      menuToggle.current?.focus();
+    };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setMenuOpen(false);
+        event.preventDefault();
+        closeMenu();
       }
+      if (event.key === "Tab") {
+        const controls = [menuToggle.current, ...Array.from(mobileMenu.current?.querySelectorAll<HTMLAnchorElement>("a[href]") ?? [])].filter(Boolean) as HTMLElement[];
+        const index = controls.indexOf(document.activeElement as HTMLElement);
+        if (index < 0 || (event.shiftKey && index === 0) || (!event.shiftKey && index === controls.length - 1)) {
+          event.preventDefault();
+          controls[event.shiftKey ? controls.length - 1 : 0]?.focus();
+        }
+      }
+    };
+    const desktop = window.matchMedia("(min-width: 1081px)");
+    const handleResize = () => {
+      if (desktop.matches) setMenuOpen(false);
     };
 
     document.body.classList.add("mobile-menu-locked");
+    const background = [document.getElementById("main-content"), document.querySelector<HTMLElement>(".site-footer")].filter(Boolean) as HTMLElement[];
+    const previousInert = background.map((element) => element.inert);
+    background.forEach((element) => { element.inert = true; });
+    mobileMenu.current?.querySelector<HTMLAnchorElement>("a[href]")?.focus();
+    desktop.addEventListener("change", handleResize);
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
       document.body.classList.remove("mobile-menu-locked");
+      background.forEach((element, index) => { element.inert = previousInert[index]; });
+      desktop.removeEventListener("change", handleResize);
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [menuOpen]);
@@ -86,6 +112,7 @@ export function SiteHeader() {
       </nav>
 
       <button
+        ref={menuToggle}
         className="mobile-menu-toggle"
         type="button"
         aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
@@ -100,11 +127,12 @@ export function SiteHeader() {
         className="mobile-menu-backdrop"
         type="button"
         aria-label="Close navigation menu"
-        onClick={() => setMenuOpen(false)}
-        tabIndex={menuOpen ? 0 : -1}
+        onClick={() => { setMenuOpen(false); menuToggle.current?.focus(); }}
+        tabIndex={-1}
+        aria-hidden="true"
       />
 
-      <nav id="site-mobile-menu" className="mobile-command-nav" aria-label="Mobile navigation">
+      <nav ref={mobileMenu} id="site-mobile-menu" className="mobile-command-nav" aria-label="Mobile navigation" inert={!menuOpen}>
         {navItems.map((item) => (
           <Link
             key={item.href}
@@ -113,7 +141,7 @@ export function SiteHeader() {
             aria-current={isActive(item.href) ? "page" : undefined}
             onClick={() => setMenuOpen(false)}
           >
-            <span>{item.mobileLabel ?? item.label}</span>
+            <span>{item.label}</span>
           </Link>
         ))}
       </nav>

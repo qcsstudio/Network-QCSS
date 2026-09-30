@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, LogIn, ShieldCheck } from "lucide-react";
-import { CardVisual } from "@/components/card-visual";
+import { ArrowRight, Check, ChevronDown, LogIn, ShieldCheck } from "lucide-react";
 import { DomainHeroVisual, type DomainVisualVariant } from "@/components/domain-hero-visual";
 import { LeadForm } from "@/components/lead-form";
 import { SignalJourney } from "@/components/signal-journey";
@@ -13,27 +12,6 @@ import { createPageMetadata } from "@/lib/seo";
 type ServicePageProps = {
   params: Promise<{ slug: string }>;
 };
-
-const outcomeNarratives = [
-  "Establish the current state, accountable owner, and immediate priority.",
-  "Translate the target state into controlled engineering work and clear validation criteria.",
-  "Retain the decision, implementation evidence, and follow-up actions for the operating team.",
-  "Confirm service health, residual risk, and the signals the team should continue to monitor."
-];
-
-const scopeNarratives = [
-  "Baseline the configuration, dependencies, access path, and ownership before change.",
-  "Validate the control or service against the agreed operating requirement.",
-  "Document gaps, dependencies, and changes that need accountable approval.",
-  "Test the resulting state and preserve evidence for future operations."
-];
-
-const deliverableNarratives = [
-  "Written so engineers can act and service owners can govern the outcome.",
-  "Structured so the decision, evidence, and follow-up remain traceable.",
-  "Prepared for handoff into operations, audit, remediation, or retest.",
-  "Organized around ownership, timing, and the next measurable checkpoint."
-];
 
 function serviceVisualVariant(slug: string): DomainVisualVariant {
   if (slug.includes("cloud")) return "cloud";
@@ -122,18 +100,25 @@ export default async function ServicePage({ params }: ServicePageProps) {
           }
         ]}
       />
+      <nav className="service-breadcrumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><Link href="/">Home</Link></li>
+          <li><Link href="/#services">Services</Link></li>
+          <li aria-current="page">{service.title}</li>
+        </ol>
+      </nav>
       <section className="page-hero visual-page-hero">
         <div className="page-hero-copy">
           <p className="eyebrow">{service.kicker}</p>
           <h1>{service.title}</h1>
           <p>{service.summary}</p>
           <div className="button-row">
-            <Link className="button primary" href={`/tools/${service.tool}`}>
+            <a className="button primary" href="#request-review">
+              Discuss your requirements <ArrowRight aria-hidden="true" size={18} />
+            </a>
+            <Link className="button secondary" href={`/tools/${service.tool}`}>
               {service.cta}
             </Link>
-            <a className="button secondary" href="#request-review">
-              Request Engineering Review
-            </a>
           </div>
         </div>
         <DomainHeroVisual
@@ -143,6 +128,14 @@ export default async function ServicePage({ params }: ServicePageProps) {
           signals={service.outcomes}
         />
       </section>
+
+      <nav className="service-section-nav" aria-label="On this service page">
+        <a href="#service-overview">Overview</a>
+        <a href="#service-scope">Scope</a>
+        <a href="#service-deliverables">Deliverables</a>
+        <a href="#service-questions">Questions</a>
+        <a href="#request-review">Request review <ArrowRight aria-hidden="true" size={16} /></a>
+      </nav>
 
       <SignalJourney variant={service.slug === "penetration-testing" ? "assurance" : "service"} />
 
@@ -161,21 +154,19 @@ export default async function ServicePage({ params }: ServicePageProps) {
         </section>
       ) : null}
 
-      <section className="section split">
+      <section className="section split" id="service-overview" aria-labelledby="service-overview-title">
         <div className="answer-panel">
-          <Icon size={42} />
+          <Icon size={42} aria-hidden="true" />
           <p className="eyebrow">Best fit</p>
-          <h2>{service.bestFor}</h2>
+          <h2 id="service-overview-title">Who this service is for</h2>
+          <p>{service.bestFor}</p>
           <p>{service.proof}</p>
         </div>
-        <div className="outcome-list">
-          {service.outcomes.map((outcome, index) => (
-            <article key={outcome}>
-              <CardVisual title={outcome} context={service.title} />
-              <h3>{outcome}</h3>
-              <p>{outcomeNarratives[index % outcomeNarratives.length]}</p>
-            </article>
-          ))}
+        <div>
+          <h3>Outcomes to plan for</h3>
+          <ul className="service-checklist">
+            {service.outcomes.map((outcome) => <li key={outcome}><Check aria-hidden="true" size={20} /><span>{outcome}</span></li>)}
+          </ul>
         </div>
       </section>
 
@@ -191,50 +182,38 @@ export default async function ServicePage({ params }: ServicePageProps) {
         </div>
       </section>
 
-      <section className="section split">
+      <section className="section split" id="service-scope" aria-labelledby="service-scope-title">
         <div className="section-heading">
           <p className="eyebrow">Scope</p>
-          <h2>What we inspect, operate, or change.</h2>
+          <h2 id="service-scope-title">What we inspect, operate, or change.</h2>
+          <p>Agree the systems, access permissions and change boundaries before work starts. The engagement scope determines which activities are included.</p>
         </div>
-        <div className="outcome-list">
-          {service.scope.map((item, index) => (
-            <article key={item}>
-              <CardVisual title={item} context={service.title} />
-              <h3>{item}</h3>
-              <p>{scopeNarratives[index % scopeNarratives.length]}</p>
-            </article>
-          ))}
-        </div>
+        <ul className="service-checklist">
+          {service.scope.map((item) => <li key={item}><Check aria-hidden="true" size={20} /><span>{item}</span></li>)}
+        </ul>
       </section>
 
-      <section className="section">
+      <section className="section" id="service-deliverables" aria-labelledby="service-deliverables-title">
         <div className="section-heading">
           <p className="eyebrow">Deliverables</p>
-          <h2>What remains with your team after the work.</h2>
+          <h2 id="service-deliverables-title">What remains with your team after the work.</h2>
         </div>
-        <div className="pillar-grid">
-          {service.deliverables.map((deliverable, index) => (
-            <article className="pillar-card" key={deliverable}>
-              <CardVisual title={deliverable} context={service.title} />
-              <h3>{deliverable}</h3>
-              <p>{deliverableNarratives[index % deliverableNarratives.length]}</p>
-            </article>
-          ))}
-        </div>
+        <ul className="service-checklist service-deliverables">
+          {service.deliverables.map((deliverable) => <li key={deliverable}><Check aria-hidden="true" size={20} /><span>{deliverable}</span></li>)}
+        </ul>
       </section>
 
-      <section className="section">
+      <section className="section" id="service-questions" aria-labelledby="service-questions-title">
         <div className="section-heading">
           <p className="eyebrow">FAQ</p>
-          <h2>Questions to resolve before work begins.</h2>
+          <h2 id="service-questions-title">Questions to resolve before work begins.</h2>
         </div>
-        <div className="faq-grid">
+        <div className="service-faqs">
           {service.faqs.map((faq) => (
-            <article className="faq-card" key={faq.question}>
-              <CardVisual title={faq.question} context={service.title} />
-              <h3>{faq.question}</h3>
+            <details key={faq.question}>
+              <summary>{faq.question}<ChevronDown aria-hidden="true" size={20} /></summary>
               <p>{faq.answer}</p>
-            </article>
+            </details>
           ))}
         </div>
       </section>
@@ -242,7 +221,8 @@ export default async function ServicePage({ params }: ServicePageProps) {
       <section className="section split" id="request-review">
         <div className="section-heading">
           <p className="eyebrow">Request review</p>
-          <h2>Share the environment, pressure, and desired outcome for {service.title}.</h2>
+          <h2>Discuss {service.title.toLowerCase()}.</h2>
+          <p>Tell us about your environment, the issue or project, and the outcome you need. Do not include passwords or sensitive configuration details.</p>
         </div>
         <LeadForm interest={service.title} pipeline={service.title} />
       </section>

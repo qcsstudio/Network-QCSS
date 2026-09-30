@@ -10,18 +10,21 @@ import "@/components/consulting-home/production.css";
 
 export const revalidate = 300;
 
-export const metadata = createPageMetadata({
-  title: "Network, Security & Cloud Consulting",
-  description:
-    "QCS helps businesses in India and internationally troubleshoot networks, review security and connect cloud environments. Explore services and discuss your project.",
-  path: "/",
-  image: {
-    url: "/brand/consulting/network-architecture-v2.webp",
-    width: 1774,
-    height: 887,
-    alt: "QCS network, security and cloud consulting",
-  },
-});
+export const metadata = {
+  ...createPageMetadata({
+    title: "Network, Security & Cloud Consulting | QCS",
+    description:
+      "QCS helps businesses in India and internationally troubleshoot networks, review security and connect cloud environments. Explore services and discuss your project.",
+    path: "/",
+    image: {
+      url: "/brand/consulting/network-architecture-v2.webp",
+      width: 1774,
+      height: 887,
+      alt: "QCS network, security and cloud consulting",
+    },
+  }),
+  title: { absolute: "Network, Security & Cloud Consulting | QCS" },
+};
 
 async function LatestAdvisories() {
   const advisories = await listSecurityAdvisories(3).catch(() => []);
