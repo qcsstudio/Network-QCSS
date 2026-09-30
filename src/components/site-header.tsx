@@ -49,9 +49,12 @@ export function SiteHeader() {
     };
   }, [menuOpen]);
 
-  const isActive = (href: string) =>
-    href !== "/#services" &&
-    (pathname === href || (href === "/intelligence" && (pathname.startsWith("/resources") || pathname.startsWith("/security-advisories"))));
+  const isActive = (href: string) => {
+    if (href === "/#services") return pathname.startsWith("/services/");
+    if (href === "/institute" && pathname.startsWith("/courses/")) return true;
+    if (href === "/intelligence" && (pathname.startsWith("/resources") || pathname.startsWith("/security-advisories"))) return true;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   return (
     <header

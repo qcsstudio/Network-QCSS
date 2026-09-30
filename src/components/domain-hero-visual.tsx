@@ -1,9 +1,15 @@
-import Image from "next/image";
-import { Activity, BookOpenCheck, CloudCog, FileCheck2, Network, ShieldCheck } from "lucide-react";
+import { Activity, BookOpenCheck, CloudCog, FileCheck2, Network, ShieldCheck, Terminal } from "lucide-react";
+import { DomainScene, type DomainSceneVariant } from "./domain-scene";
 
-export type DomainVisualVariant = "network" | "operations" | "security" | "cloud" | "training" | "intelligence";
+export type DomainVisualVariant = DomainSceneVariant;
 
 const domainVisuals = {
+  tools: {
+    src: "/brand/consulting/operations-artwork.webp",
+    alt: "Network engineering tools and infrastructure",
+    Icon: Terminal,
+    status: "Diagnostic workspace"
+  },
   network: {
     src: "/brand/envato/library/data-center-platform.webp",
     alt: "Isometric network and data center platform",
@@ -55,28 +61,9 @@ export function DomainHeroVisual({ variant, label, title, signals }: DomainHeroV
 
   return (
     <figure className={`domain-hero-visual domain-${variant}`}>
-      <div className="domain-hero-media">
-        <Image
-          src={visual.src}
-          alt={visual.alt}
-          fill
-          priority
-          sizes="(max-width: 900px) 92vw, 42vw"
-        />
-        <span className="domain-hero-grid" aria-hidden="true" />
-        <span className="domain-hero-scan" aria-hidden="true" />
-        <span className="domain-hero-path" aria-hidden="true">
-          <i /><i /><i /><i /><i />
-        </span>
-        <span className="domain-hero-status"><Icon aria-hidden="true" size={18} /> {visual.status}</span>
-        <span className="domain-hero-readout" aria-hidden="true">
-          <small>Live model</small>
-          <strong>{String(signals.length).padStart(2, "0")}</strong>
-          <span>decision signals</span>
-        </span>
-      </div>
+      <DomainScene variant={variant} fallback={visual.src} alt={visual.alt} />
       <figcaption>
-        <span><i aria-hidden="true" /> {label}</span>
+        <span><Icon aria-hidden="true" size={16} /> {label}</span>
         <strong>{title}</strong>
         <div>
           {signals.slice(0, 3).map((signal) => <small key={signal}>{signal}</small>)}

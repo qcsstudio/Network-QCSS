@@ -70,3 +70,18 @@ READY and the production homepage before declaring release complete.
 Last production commit before this release:
 59c31556557abf1b2619a1b8d5c3433046a8f477
 Vercel rollback can restore the prior deployment without reverting user files.
+
+Live verification
+Commit 29b46fe reached READY and www.qcsstudio.com served the new homepage.
+Canonical URL, one H1, WebGL pixels and an empty browser error log were verified.
+Live-font measurement found the short-desktop H1 wrapping onto a fourth line;
+the heading width is widened to preserve the intended three-line composition.
+
+Production issue discovered outside the redesign
+The previous deployment already returned HTTP 500 for advisory pages. Vercel
+runtime logs confirm Prisma P2039, database code 53000: account or project quota
+exceeded. Some resource visuals are also affected. The provider quota must be
+restored by the account owner. No billing plan was changed. The homepage feed
+fails independently, so this database issue does not take down the new homepage.
+The lead form retains input and explains temporary server unavailability instead
+of incorrectly asking visitors to fix valid fields when the server returns 5xx.

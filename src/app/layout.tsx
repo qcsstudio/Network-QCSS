@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Orbitron, Rajdhani, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import { ConsentBanner } from "@/components/consent-banner";
 import { ExperienceLayer } from "@/components/experience-layer";
 import { MarketingScripts } from "@/components/marketing-scripts";
@@ -13,25 +13,19 @@ import "./globals.css";
 import "./visual-refresh.css";
 import "./visual-evolution.css";
 import "./experience-v2.css";
+import "./qcs-theme.css";
 
-const displayFont = Orbitron({
-  subsets: ["latin"],
-  weight: ["600", "700", "800", "900"],
-  variable: "--font-display",
+const bodyFont = localFont({
+  src: "../../public/brand/consulting/geist-latin.woff2",
+  weight: "100 900",
+  variable: "--font-qcs-sans",
   display: "swap"
 });
 
-const bodyFont = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-body",
-  display: "swap"
-});
-
-const techFont = Rajdhani({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-tech",
+const techFont = localFont({
+  src: "../../public/brand/consulting/geist-mono-latin.woff2",
+  weight: "100 900",
+  variable: "--font-qcs-mono",
   display: "swap"
 });
 
@@ -67,7 +61,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${bodyFont.variable} ${displayFont.variable} ${techFont.variable}`}>
+      <body className={`qcs-theme ${bodyFont.variable} ${techFont.variable}`}>
         <a className="skip-link" href="#main-content">
           Skip to content
         </a>

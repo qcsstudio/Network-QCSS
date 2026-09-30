@@ -85,7 +85,9 @@ export function LeadForm({
       setStatus(
         response.ok
           ? "Request received. QCS can review the details and respond with the right next step."
-          : "Please check the form fields and consent.",
+          : response.status >= 500
+            ? "Requests are temporarily unavailable. Your details are still here. Please try again later."
+            : "Please check the form fields and consent.",
       );
     } catch {
       setStatus(

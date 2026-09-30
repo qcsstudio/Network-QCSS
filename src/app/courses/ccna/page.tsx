@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BookOpenCheck, CalendarDays, FlaskConical, Route, ShieldCheck } from "lucide-react";
+import { ArrowRight, BookOpenCheck, CalendarDays, FlaskConical, ShieldCheck } from "lucide-react";
+import { DomainHeroVisual } from "@/components/domain-hero-visual";
 import { StructuredData } from "@/components/structured-data";
 import { ccnaCourseFacts, ccnaModules, ccnaOfficialSources, ccnaCurriculum, ccnaExamStatus } from "@/lib/ccna-curriculum";
 import { getPublishedCcnaLessons } from "@/lib/ccna-learning";
@@ -64,13 +64,7 @@ export default async function CcnaCoursePage() {
             <div><dt>Learning rhythm</dt><dd>Monday to Friday</dd></div>
           </dl>
         </div>
-        <div className="ccna-course-visual" aria-label="CCNA lab topology connecting users, switches, routers, security, and cloud services">
-          <Image alt="Isometric network lab connecting switches, routers, servers, and monitoring consoles" fill priority sizes="(max-width: 900px) 100vw, 48vw" src="/brand/envato/illustrations/isometric-data-center-network.svg" />
-          <div className="ccna-visual-console"><span>LESSON {String((latest?.sequence || 1)).padStart(2, "0")}</span><strong>{latest?.title || "Your first practice network"}</strong><i>UNDERSTAND / TRY / CHECK</i></div>
-          <div className="ccna-visual-node is-one"><Route aria-hidden="true" size={19} /> Route</div>
-          <div className="ccna-visual-node is-two"><ShieldCheck aria-hidden="true" size={19} /> Secure</div>
-          <div className="ccna-visual-node is-three"><FlaskConical aria-hidden="true" size={19} /> Prove</div>
-        </div>
+        <DomainHeroVisual variant="training" label="Understand / try / check" title="Follow a packet. Understand the connection." signals={["Clear explanations", "Guided labs", "Practice questions"]} />
       </section>
 
       <section className="ccna-zero-band">

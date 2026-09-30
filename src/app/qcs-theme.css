@@ -1,0 +1,439 @@
+/* Shared QCS identity. Route workflows retain their existing geometry and state. */
+body.qcs-theme {
+  --font-display: var(--font-qcs-sans), Arial, sans-serif;
+  --font-body: var(--font-qcs-sans), Arial, sans-serif;
+  --font-tech: var(--font-qcs-mono), monospace;
+  --ink: #242633;
+  --ink-strong: #242633;
+  --ink-body: #4a5063;
+  --muted: #5e6272;
+  --page: #fcfcfe;
+  --canvas: #fcfcfe;
+  --canvas-strong: #f0f1f6;
+  --surface: #fff;
+  --panel: #fff;
+  --panel-soft: #f5f5f9;
+  --soft: #f8eff4;
+  --line: #dcdde5;
+  --border: #dcdde5;
+  --line-strong: #b6b7c5;
+  --border-strong: #b6b7c5;
+  --accent: #ad2058;
+  --accent-dark: #861a45;
+  --brand-magenta: #ad2058;
+  --brand-blue: #285f8f;
+  --brand-orange: #b56129;
+  --deep-ink: #242633;
+  --deep-panel: #303342;
+  --navy: #242633;
+  --navy-soft: #303342;
+  --evolution-navy: #242633;
+  --evolution-panel: #303342;
+  --focus: #285f8f;
+  --shadow: 0 12px 28px #2426330a;
+  --shadow-soft: 0 8px 24px #24263308;
+  --shadow-lift: 0 15px 32px #24263312;
+  background: #fcfcfe;
+  color: #242633;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+  letter-spacing: 0;
+}
+
+.qcs-theme :is(h1, h2, h3, h4, button, input, select, textarea, .button, .status-pill, .main-nav) {
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}
+.qcs-theme :is(pre, code, kbd, samp) { font-family: var(--font-tech); }
+.qcs-theme :is(h1, h2, h3, h4) { font-weight: 600; text-wrap: balance; }
+.qcs-theme :is(button, .button) { text-transform: none; }
+.qcs-theme :is(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid #285f8f;
+  outline-offset: 4px;
+}
+.qcs-theme .eyebrow {
+  color: #982150;
+  font-family: var(--font-tech);
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 550;
+}
+.qcs-theme .experience-layer { display: none; }
+
+/* One header in every route and every scroll state. */
+.qcs-theme .site-header,
+.qcs-theme .site-header.is-scrolled,
+.qcs-theme .site-header.is-menu-open,
+.qcs-theme .site-header.is-light-context {
+  position: sticky;
+  top: 0;
+  min-height: 88px;
+  padding: 12px max(24px, calc((100% - 1280px) / 2));
+  background: #fcfcfef5;
+  border-bottom: 1px solid #dcdde5;
+  color: #242633;
+  box-shadow: 0 5px 20px #24263306;
+  backdrop-filter: blur(12px);
+}
+.qcs-theme .site-header::before,
+.qcs-theme .header-scanline { display: none; }
+.qcs-theme .main-nav { gap: 28px; }
+.qcs-theme .site-header .main-nav a {
+  color: #303443;
+  font-size: 20px;
+  font-weight: 550;
+  text-shadow: none;
+}
+.qcs-theme .main-nav a::after { background: #ad2058; height: 2px; }
+.qcs-theme .site-header .main-nav a:is(:hover, .is-active) { color: #ad2058; }
+.qcs-theme .mobile-menu-toggle {
+  color: #303443;
+  background: #fff;
+  border: 1px solid #dcdde5;
+  border-radius: 6px;
+  box-shadow: 0 3px 0 #e8e8ee;
+}
+.qcs-theme .mobile-command-nav {
+  background: #fcfcfe;
+  border-color: #dcdde5;
+  box-shadow: 0 18px 35px #24263318;
+}
+.qcs-theme .mobile-command-nav a { color: #242633; font-size: 18px; font-weight: 550; }
+.qcs-theme .mobile-command-nav a.is-active { color: #982150; background: #fbeff5; }
+
+/* Public-page introductions: open layouts, not floating hero cards. */
+.qcs-theme main:not(.consulting-home) { --route-accent: #ad2058; }
+.qcs-theme main.purpose-learning { --route-accent: #285f8f; }
+.qcs-theme main.purpose-tools { --route-accent: #8d4b20; }
+.qcs-theme main:not(.consulting-home) :is(.page-hero, .ccna-course-hero, .ccna-lesson-hero) {
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  padding: 48px max(24px, calc((100% - 1280px) / 2));
+  border: 0;
+  border-radius: 0;
+  background: #f3f3f8;
+  color: #242633;
+  box-shadow: none;
+  overflow: clip;
+}
+.qcs-theme main:not(.consulting-home) .page-hero::before,
+.qcs-theme main:not(.consulting-home) .page-hero::after,
+.qcs-theme .ccna-course-hero::before { display: none; }
+.qcs-theme .page-hero.visual-page-hero,
+.qcs-theme .ccna-course-hero {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
+}
+.qcs-theme main:not(.consulting-home) :is(.page-hero, .ccna-course-hero, .ccna-lesson-hero) h1 {
+  max-width: 23ch;
+  margin: 12px 0 22px;
+  font-size: 52px;
+  line-height: 1.12;
+  font-weight: 600;
+  color: #242633;
+  overflow-wrap: break-word;
+}
+.qcs-theme main:not(.consulting-home) :is(.page-hero-copy, .tool-hub-copy, .ccna-course-copy) > p:not(.eyebrow),
+.qcs-theme .ccna-lesson-hero-grid > div:first-child > p:not(.eyebrow),
+.qcs-theme .tool-page-hero > p:not(.eyebrow) {
+  max-width: 62ch;
+  color: #4a5063;
+  font-size: 18px;
+  line-height: 1.75;
+}
+.qcs-theme main.purpose-learning .page-hero,
+.qcs-theme .ccna-course-hero,
+.qcs-theme .ccna-lesson-hero { background: #edf5fa; }
+.qcs-theme main.purpose-resource .page-hero { background: #f9f0f5; }
+.qcs-theme main.purpose-tools .page-hero { background: #f5f5f9; }
+.qcs-theme main:not(.consulting-home) .tool-page-hero { padding-block: 32px; gap: 12px; }
+.qcs-theme main:not(.consulting-home) .tool-page-hero h1 { max-width: 30ch; font-size: 42px; margin: 0; }
+.qcs-theme main:not(.consulting-home) .tool-page-hero > p { margin: 0; }
+.qcs-theme main:not(.consulting-home) .tool-page-hero .button-row { margin-top: 8px; }
+.qcs-theme .tool-hub-hero { align-items: center; }
+
+/* The same real-time, lightweight renderer used on the homepage. */
+.qcs-theme .domain-hero-visual {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #242633;
+  margin: 0;
+}
+.qcs-theme .domain-hero-visual::before { display: none; }
+.qcs-domain-scene { position: relative; min-width: 0; }
+.qcs-domain-canvas {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  isolation: isolate;
+  overflow: clip;
+}
+.qcs-domain-canvas canvas { position: relative; z-index: 1; display: block; width: 100%; height: 100%; }
+.qcs-domain-canvas .qcs-scene-fallback { object-fit: contain; padding: 20px; }
+.qcs-domain-canvas.webgl-ready .qcs-scene-fallback { opacity: 0; }
+.qcs-domain-canvas .scene-labels { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.qcs-domain-canvas .scene-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: calc(100% - 16px);
+  border: 1px solid #dcdde5;
+  border-bottom: 2px solid #e2c4d1;
+  background: #fffffff0;
+  padding: 5px 8px;
+  color: #3e4150;
+  font-family: var(--font-tech);
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: nowrap;
+  box-shadow: 0 4px 0 #24263306;
+}
+.qcs-scene-controls { position: absolute; top: 0; right: 0; display: flex; gap: 7px; align-items: center; z-index: 3; }
+.qcs-scene-controls > span { margin-right: 6px; color: #5e6272; font: 10px/1.5 var(--font-tech); }
+.qcs-scene-controls button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid #dcdde5;
+  border-radius: 50%;
+  background: #fff;
+  color: #303443;
+  box-shadow: 0 3px 0 #24263309;
+}
+.qcs-scene-controls button:disabled { opacity: .65; }
+.qcs-theme .domain-hero-visual .qcs-scene-caption { margin: 8px 0 16px; color: #5e6272; font-size: 12px; line-height: 1.65; max-width: 68ch; }
+.qcs-theme .domain-hero-visual figcaption { border-top: 1px solid #dcdde5; background: none; padding: 18px 0 0; gap: 12px; }
+.qcs-theme .domain-hero-visual figcaption > span { display: flex; align-items: center; gap: 9px; color: #982150; font: 11px/1.5 var(--font-tech); }
+.qcs-theme .domain-hero-visual figcaption > strong { color: #303443; font-size: 20px; font-weight: 550; line-height: 1.5; }
+.qcs-theme .domain-hero-visual figcaption > div { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.qcs-theme .domain-hero-visual figcaption small { color: #5e6272; background: none; border: 0; padding: 0; font-size: 12px; }
+.qcs-theme .tool-hub-hero .qcs-domain-canvas { height: 250px; }
+.qcs-theme .tool-hub-hero .domain-hero-visual figcaption { display: none; }
+
+/* Repeated items have depth; page sections remain open and readable. */
+.qcs-theme main:not(.consulting-home) > .section {
+  max-width: 1328px;
+  padding: 64px 24px;
+  margin-inline: auto;
+  border-radius: 0;
+  box-shadow: none;
+}
+.qcs-theme main:not(.consulting-home) .section-heading { max-width: 840px; margin-bottom: 32px; }
+.qcs-theme main:not(.consulting-home) .section-heading h2 { max-width: 28ch; font-size: 38px; line-height: 1.2; font-weight: 550; }
+.qcs-theme main:not(.consulting-home) .section-heading > p:not(.eyebrow) { color: #4a5063; font-size: 17px; line-height: 1.75; }
+.qcs-theme main:not(.consulting-home) :is(.section, .page-hero, .service-card, .utility-card, .pillar-card, .faq-card, .resource-card, .journey-card, .blog-card) {
+  animation: none;
+  opacity: 1;
+  filter: none;
+}
+.qcs-theme main:not(.consulting-home) :is(.service-card, .utility-card, .pillar-card, .faq-card, .resource-card, .authority-card, .journey-card, .blog-card) {
+  border: 1px solid #dcdde5;
+  border-radius: 6px;
+  background: #fff;
+  color: #242633;
+  box-shadow: 0 4px 0 #ececf2;
+  overflow: hidden;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+.qcs-theme main:not(.consulting-home) :is(.service-card, .utility-card, .pillar-card, .faq-card, .resource-card) { padding: 26px; }
+.qcs-theme main:not(.consulting-home) :is(.service-card, .utility-card, .pillar-card, .faq-card)::before,
+.qcs-theme main:not(.consulting-home) :is(.service-card, .utility-card, .pillar-card, .faq-card)::after { display: none; }
+.qcs-theme main:not(.consulting-home) :is(a.service-card, a.utility-card, a.resource-card):is(:hover, :focus-visible) {
+  transform: translateY(-3px);
+  border-color: #b988a0;
+  box-shadow: 0 7px 0 #f0e3eb, 0 14px 26px #24263308;
+}
+.qcs-theme :is(.service-card, .utility-card, .pillar-card, .faq-card, .resource-card) h3 { color: #242633; font-size: 22px; line-height: 1.35; margin-block: 16px 12px; }
+.qcs-theme :is(.service-card, .utility-card, .pillar-card, .faq-card, .resource-card) p:not(.eyebrow) { color: #4a5063; font-size: 16px; line-height: 1.75; }
+.qcs-theme main:not(.consulting-home) .answer-panel { border: 0; border-left: 3px solid #ad2058; border-radius: 0; box-shadow: none; padding: 30px; background: #f9f0f5; color: #242633; }
+.qcs-theme main:not(.consulting-home) .answer-panel.muted { border-left-color: #285f8f; background: #edf5fa; }
+.qcs-theme main:not(.consulting-home) .answer-panel :is(h2, h3) { color: #242633; }
+.qcs-theme main:not(.consulting-home) .answer-panel h2 { font-size: 32px; line-height: 1.3; }
+.qcs-theme main:not(.consulting-home) .answer-panel p { color: #4a5063; }
+.qcs-theme .outcome-list > article { padding: 24px; background: white; border: 1px solid #dcdde5; border-radius: 6px; box-shadow: none; }
+.qcs-theme .outcome-list h3 { font-size: 22px; line-height: 1.4; }
+.qcs-theme .pill-cloud span,
+.qcs-theme .mini-chip-row span { background: #f5f5f9; color: #4a5063; border: 1px solid #dcdde5; box-shadow: none; }
+.qcs-theme .signal-journey { margin: 0 auto; border: 0; border-bottom: 1px solid #dcdde5; border-radius: 0; box-shadow: none; background: #fff; }
+.qcs-theme .signal-journey::before { display: none; }
+.qcs-theme .signal-journey-heading { background: #f7f7fa; }
+.qcs-theme .signal-journey :is(i, .signal-journey-node)::after { animation: none; }
+
+/* Controls keep semantics and generous touch targets, not decorative gradients. */
+.qcs-theme main:not(.consulting-home) .button,
+.qcs-theme .site-footer .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 12px 20px;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+  white-space: normal;
+  text-align: center;
+  box-shadow: none;
+  text-shadow: none;
+}
+.qcs-theme main:not(.consulting-home) .button.primary,
+.qcs-theme .site-footer .button.primary { background: #ad2058; border: 1px solid #ad2058; color: #fff; box-shadow: 0 3px 0 #861a45; }
+.qcs-theme main:not(.consulting-home) .button.secondary { background: #fff; border: 1px solid #c9cad5; color: #303443; }
+.qcs-theme main:not(.consulting-home) .button.primary:hover { background: #91204d; }
+.qcs-theme main:not(.consulting-home) .text-link { color: #982150; font-weight: 550; }
+.qcs-theme main:not(.consulting-home) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) {
+  max-width: 100%;
+  min-height: 44px;
+  border: 1px solid #b6b7c5;
+  border-radius: 4px;
+  background: #fff;
+  color: #242633;
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 11px 13px;
+  box-shadow: none;
+}
+.qcs-theme :is(input[type="checkbox"], input[type="radio"], input[type="range"]) { accent-color: #ad2058; }
+.qcs-theme main:not(.consulting-home) :is(.lead-form, .assessment-form, .network-tool-form, .network-tool-result) {
+  background: #fff;
+  border: 1px solid #dcdde5;
+  border-radius: 6px;
+  color: #242633;
+  box-shadow: 0 4px 0 #ececf2;
+  padding: 28px;
+}
+.qcs-theme main:not(.consulting-home) .lead-form::before { display: none; }
+.qcs-theme :is(.form-note, .muted-text) { color: #5e6272; }
+.qcs-theme .network-tool-result { align-content: start; }
+.qcs-theme :is(.network-tool-result h2, .network-tool-result h3) { color: #242633; font-size: 24px; }
+.qcs-theme .network-tool-result :is(.result-card, .result-grid > article) { background: #f5f5f9; color: #242633; border-color: #dcdde5; }
+.qcs-theme :is(.mini-row.head, th) { background: #f0f1f6; color: #303443; }
+.qcs-theme .password-studio { background: #fff; color: #242633; border: 1px solid #dcdde5; border-radius: 6px; box-shadow: 0 4px 0 #ececf2; }
+.qcs-theme .password-studio-header { background: #f5f5f9; border-bottom: 1px solid #dcdde5; }
+.qcs-theme :is(.password-control-panel, .password-output-panel) { background: #fff; border-color: #dcdde5; }
+.qcs-theme .password-scenario-tabs button.active,
+.qcs-theme .password-presets button.active { background: #f9eaf2; color: #982150; border-color: #ad2058; }
+.qcs-theme .password-output-row { background: #f5f5f9; color: #242633; border-color: #dcdde5; }
+
+/* Editorial imagery and technical diagrams stay topic-specific. */
+.qcs-theme .blog-card { overflow: hidden; }
+.qcs-theme .blog-card h2 { font-size: 25px; line-height: 1.35; }
+.qcs-theme .blog-card-media { background: #f0f1f6; }
+.qcs-theme .blog-card-body { padding: 26px; }
+.qcs-theme .blog-hero-media { background: #f0f1f6; border: 1px solid #dcdde5; border-radius: 6px; box-shadow: 0 6px 0 #e6e6ed; }
+.qcs-theme .blog-hero-media img { object-fit: contain; }
+.qcs-theme .blog-article,
+.qcs-theme .ccna-lesson-article { color: #303443; }
+.qcs-theme :is(.article-prose, .blog-article, .ccna-lesson-article) :is(p, li, dd) { color: #4a5063; font-size: 17px; line-height: 1.8; }
+.qcs-theme .blog-article h2,
+.qcs-theme .ccna-lesson-article h2 { font-size: 32px; line-height: 1.3; }
+.qcs-theme .ccna-lesson-article > section { padding: 30px 0; border: 0; border-top: 1px solid #dcdde5; border-radius: 0; background: transparent; }
+.qcs-theme :is(.blog-sidebar > section, .ccna-outline-panel, .ccna-lesson-sidebar > section) { background: #fff; border: 1px solid #dcdde5; border-radius: 6px; box-shadow: none; }
+.qcs-theme :is(.article-toc a, .ccna-lesson-sidebar a) { color: #285f8f; }
+.qcs-theme .ccna-course-copy h1 span { color: #285f8f; }
+.qcs-theme .ccna-course-stats { border-color: #c5d8e5; }
+.qcs-theme .ccna-course-stats dt { color: #5e6272; }
+.qcs-theme .ccna-course-stats dd { color: #242633; }
+.qcs-theme :is(.ccna-zero-band, .ccna-version-band) { background: #edf5fa; color: #242633; border-color: #c5d8e5; }
+.qcs-theme .ccna-zero-band h2 { color: #242633; }
+.qcs-theme .ccna-zero-band p { color: #4a5063; }
+.qcs-theme .ccna-lesson-breadcrumb,
+.qcs-theme .ccna-lesson-breadcrumb a { color: #285f8f; }
+.qcs-theme .ccna-lesson-map { background: #fff; border-top-color: #285f8f; }
+.qcs-theme .ccna-lesson-map :is(dd, dt) { color: #303443; }
+.qcs-theme .ccna-lesson-map dl div { border-color: #dcdde5; }
+.qcs-theme .ccna-module { background: #fff; border-color: #dcdde5; border-radius: 6px; }
+.qcs-theme .ccna-module > header { background: #edf5fa; color: #242633; }
+.qcs-theme .ccna-module > header :is(h2, h3, strong) { color: #242633; }
+.qcs-theme :is(.content-library-console, .content-library-metrics, .advisory-live-panel) { border-color: #dcdde5; background: #fff; color: #242633; box-shadow: none; }
+.qcs-theme .advisory-live-panel :is(strong, h2, h3) { color: #242633; }
+.qcs-theme .advisory-live-panel :is(p, dt, dd) { color: #4a5063; }
+
+/* Operator and client workspaces share the brand without ornamental motion. */
+.qcs-theme :is(.admin-page, .admin-login-page, .portal-access-page, .verifygrid-onboard-page) { background: #f5f5f9; }
+.qcs-theme :is(.admin-login-shell, .portal-access-panel) { border: 1px solid #dcdde5; border-radius: 8px; box-shadow: 0 12px 32px #2426330c; }
+.qcs-theme .admin-login-visual { background: #242633; color: #fff; }
+.qcs-theme .admin-login-visual::after { opacity: .18; }
+.qcs-theme .admin-login-visual h1 { color: #fff; font-size: 42px; line-height: 1.2; }
+.qcs-theme .admin-login-visual .eyebrow { color: #efacc7; }
+.qcs-theme .admin-login-access { background: #fff; padding: 36px; }
+.qcs-theme .admin-login-access h2 { font-size: 30px; color: #242633; }
+.qcs-theme .admin-tab-bar { background: #fffffff5; border: 1px solid #dcdde5; box-shadow: 0 6px 20px #24263308; }
+.qcs-theme .admin-primary-tabs button { border-radius: 4px; color: #4a5063; font-size: 15px; }
+.qcs-theme .admin-primary-tabs button[aria-selected="true"] { color: #982150; background: #f9eaf2; border-color: #ad2058; box-shadow: inset 0 -3px #ad2058; }
+.qcs-theme .admin-primary-tabs button[aria-selected="true"] > span:last-child { background: #ad2058; color: #fff; }
+.qcs-theme :is(.admin-panel, .admin-stat, .admin-tab-panel, .verifygrid-panel, .portal-panel) { background: #fff; color: #242633; border-color: #dcdde5; border-radius: 6px; box-shadow: none; }
+.qcs-theme :is(.admin-page, .portal-access-page, .verifygrid-onboard-page) h1 { font-size: 38px; line-height: 1.2; }
+.qcs-theme :is(.admin-page, .portal-access-page, .verifygrid-onboard-page) h2 { font-size: 26px; line-height: 1.3; }
+.qcs-theme .admin-page h3 { font-size: 21px; line-height: 1.4; }
+.qcs-theme .admin-page .section { padding-block: 28px; }
+.qcs-theme .admin-page .eyebrow { font-size: 11px; }
+.qcs-theme .admin-page :is(button, .button) { font-size: 14px; }
+.qcs-theme .verifygrid-service-cta { background: #edf5fa; color: #242633; border: 1px solid #c5d8e5; }
+.qcs-theme .verifygrid-service-cta :is(h2, h3) { color: #242633; }
+.qcs-theme .verifygrid-service-cta p { color: #4a5063; }
+
+.qcs-theme .site-footer { background: #242633; color: #fff; border-top: 1px solid #444654; box-shadow: none; }
+.qcs-theme .site-footer::before,
+.qcs-theme .site-footer::after { display: none; }
+.qcs-theme .site-footer :is(h2, h3, strong) { color: #fff; }
+.qcs-theme .site-footer p { color: #d0d1dc; }
+.qcs-theme .site-footer .eyebrow,
+.qcs-theme .footer-link-grid > div > span { color: #efacc7; }
+.qcs-theme .footer-action-panel { background: transparent; border: 0; box-shadow: none; }
+.qcs-theme .footer-action-panel h2 { font-size: 29px; line-height: 1.3; }
+.qcs-theme .site-footer .button.secondary { border: 1px solid #707280; background: transparent; color: #fff; }
+.qcs-theme .footer-link-grid a { color: #e1e1ea; }
+.qcs-theme .footer-signal-row span { background: #303342; color: #e1e1ea; border-color: #515362; }
+.qcs-theme .footer-bottom-bar { border-color: #515362; color: #c3c4cf; }
+
+@media (min-width: 761px) and (max-width: 1199px) {
+  .qcs-theme .site-header .main-nav a { font-size: 16px; }
+  .qcs-theme .main-nav { gap: 20px; }
+}
+@media (max-width: 1000px) {
+  .qcs-theme .page-hero.visual-page-hero,
+  .qcs-theme .ccna-course-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
+  .qcs-theme main:not(.consulting-home) :is(.page-hero, .ccna-course-hero, .ccna-lesson-hero) h1 { font-size: 42px; }
+  .qcs-domain-canvas { height: 300px; }
+  .qcs-theme .domain-hero-visual figcaption > strong { font-size: 18px; }
+}
+@media (max-width: 760px) {
+  .qcs-theme .site-header,
+  .qcs-theme .site-header.is-scrolled,
+  .qcs-theme .site-header.is-menu-open { min-height: 74px; padding: 10px 20px; }
+  .qcs-theme .page-hero.visual-page-hero,
+  .qcs-theme .ccna-course-hero { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .qcs-theme main:not(.consulting-home) :is(.page-hero, .ccna-course-hero, .ccna-lesson-hero) { padding: 38px 22px; }
+  .qcs-theme main:not(.consulting-home) :is(.page-hero, .ccna-course-hero, .ccna-lesson-hero) h1 { max-width: none; font-size: 36px; }
+  .qcs-theme main:not(.consulting-home) > .section { padding: 44px 22px; }
+  .qcs-theme main:not(.consulting-home) .section-heading h2 { font-size: 30px; }
+  .qcs-theme main:not(.consulting-home) :is(.page-hero-copy, .tool-hub-copy, .ccna-course-copy) > p:not(.eyebrow) { font-size: 17px; }
+  .qcs-theme main:not(.consulting-home) :is(.lead-form, .network-tool-form, .network-tool-result, .answer-panel) { padding: 22px; }
+  .qcs-theme :is(.blog-article, .ccna-lesson-article) h2 { font-size: 28px; }
+  .qcs-theme :is(.service-card, .utility-card, .pillar-card, .faq-card, .resource-card) h3 { font-size: 21px; }
+  .qcs-theme .admin-login-access { padding: 26px; }
+  .qcs-theme .admin-login-visual h1 { font-size: 34px; }
+  .qcs-domain-canvas { height: 280px; }
+  .qcs-theme .domain-hero-visual figcaption { padding-top: 16px; }
+}
+@media (max-width: 359px) {
+  .qcs-theme main:not(.consulting-home) :is(.page-hero, .ccna-course-hero, .ccna-lesson-hero) h1 { font-size: 30px; }
+  .qcs-theme main:not(.consulting-home) > .section { padding-inline: 18px; }
+  .qcs-theme .qcs-domain-canvas { height: 245px; }
+  .qcs-theme .qcs-domain-canvas .scene-label { font-size: 9px; padding: 4px 5px; }
+  .qcs-scene-controls > span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qcs-theme *, .qcs-theme *::before, .qcs-theme *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

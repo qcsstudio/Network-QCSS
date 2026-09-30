@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
+import { DomainHeroVisual } from "@/components/domain-hero-visual";
 import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
@@ -93,11 +93,10 @@ export default function NetworkToolsPage() {
       <section className="page-hero tool-page-hero tool-hub-hero">
         <div className="tool-hub-copy">
           <p className="eyebrow">Network utility hub</p>
-          <h1>Top 56 free online network tools for scripts, passwords, routing, cloud, security, and troubleshooting.</h1>
+          <h1>Free network tools.</h1>
           <p>
-            Start with the vendor task script generator, generate strong credentials when needed, then run prioritized
-            BGP/RPKI, cloud, DNS, email, TLS, HTTP, firewall, VPN, port, availability, and subnet checks before deeper
-            engineering work begins.
+            56 practical tools for network engineers. Plan vendor commands, generate strong passwords,
+            check DNS and routing, or review cloud and security settings. Choose the check you need below.
           </p>
           <div className="button-row">
             <a className="button primary" href="#network-tools">
@@ -109,29 +108,7 @@ export default function NetworkToolsPage() {
           </div>
         </div>
 
-        <div className="tool-hub-map" role="img" aria-label="Network utility coverage map">
-          <div className="tool-hub-core">
-            <Image src="/brand/envato/icons/global-cloud-network.svg" alt="" width={92} height={92} priority />
-            <strong>56</strong>
-            <span>focused utilities</span>
-          </div>
-          <span className="tool-hub-node hub-scripts">
-            <Image src="/brand/envato/icons/router-cloud-network.svg" alt="" width={34} height={34} />
-            Vendor scripts
-          </span>
-          <span className="tool-hub-node hub-security">
-            <Image src="/brand/envato/icons/protected-cloud-network.svg" alt="" width={34} height={34} />
-            Security
-          </span>
-          <span className="tool-hub-node hub-cloud">
-            <Image src="/brand/envato/icons/multicloud-network.svg" alt="" width={34} height={34} />
-            Cloud paths
-          </span>
-          <span className="tool-hub-node hub-diagnostics">
-            <Image src="/brand/envato/icons/server-cloud-network.svg" alt="" width={34} height={34} />
-            Diagnostics
-          </span>
-        </div>
+        <DomainHeroVisual variant="tools" label="Engineering utilities" title="A useful check before the next change." signals={["Vendor scripts", "Diagnostics", "Security"]} />
       </section>
 
       <SignalJourney variant="tools" />

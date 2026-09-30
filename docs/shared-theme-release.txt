@@ -1,0 +1,37 @@
+QCS shared homepage theme rollout - 2026-09-30
+
+Scope
+- Root-local Geist and Geist Mono fonts, QCS pink/charcoal/blue palette.
+- Shared header, footer, focus states, form controls and restrained repeated cards.
+- Service, solution, assessment, institute, resource and course introductions use
+  the homepage Three.js renderer with topic-specific scenes and static fallbacks.
+- Tools retain input-first workflows, compact introductions and existing logic.
+- Blog artwork and lesson-specific technical diagrams are not replaced.
+- Admin login, dashboard and client portal inherit compact operational styles.
+- No authentication, publishing, research, scheduling or testing policies changed.
+
+Verification
+- Next.js production build passed; 103 static pages generated.
+- TypeScript and targeted ESLint passed.
+- Nine Node tests passed: contrast token pairs, local fonts, motion lifecycle,
+  SSR navigation, renderer cleanup and packet path boundaries.
+- Browser checked homepage, security service, solutions, diagnose, tool directory,
+  password generator, CCNA course, beginner guide, resources, sample article,
+  admin login, client access, onboarding and privacy across selected widths:
+  320, 390, 768, 1280 and 1440 pixels. No horizontal overflow in checked views.
+- Password/passphrase scenario switching and regeneration passed (3 outputs).
+- 56 tool links remain in directory. Active navigation follows nested routes.
+- Security scene: 20,014 visible sampled pixels, 1,746 colors; packet progress
+  advances; pause changes to Play and stops advancing frames. One canvas per host.
+- No real leads, onboarding requests, credentials or publication jobs submitted.
+
+Limits and pre-existing production issue
+- Database quota exceeded (Prisma P2039 / database 53000) predates this rollout.
+  Advisory routes and generated article images fail when they require that data.
+  Restore database capacity separately; no billing change made in this release.
+- Authenticated dashboard and database-dependent end-to-end publishing could not
+  be verified while storage is unavailable. Styles are included but operational
+  success is not claimed.
+- Contrast tests cover named primary theme pairs, not a full accessibility audit.
+  No perfect readability, SEO ranking or WCAG conformance score is claimed.
+- Existing dependency audit findings are recorded in consulting-home-release.txt.
