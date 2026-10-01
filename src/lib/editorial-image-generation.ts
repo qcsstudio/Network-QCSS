@@ -21,9 +21,9 @@ import {
   buildEditorialImagePrompt
 } from "@/lib/editorial-image-prompt";
 import { shouldDeferEditorialImageGeneration } from "@/lib/editorial-image-state";
+import { editorialPerceptualHash, visuallyRepeated } from "@/lib/editorial-image-diversity";
 import { assertRetinaVariantDimensions, editorialVisualQualityPolicy } from "@/lib/editorial-quality-policy";
 import { getPrismaClient } from "@/lib/prisma";
-import { createProceduralEditorialVisual } from "@/lib/procedural-editorial-visual";
 import { resolveContentPostRevision, resolveSecurityAdvisoryRevision } from "@/lib/editorial-revision-snapshots";
 import {
   createEditorialLineage,
@@ -138,9 +138,7 @@ async function createContextualImages(
   previousTrace: EditorialAgentTrace | null,
   premiumAllowed: boolean
 ) {
-  let generated: Awaited<ReturnType<typeof runEditorialImageAgents>>;
-  if (input.contentType === "security_advisory") {
-    generated = await generateAdvisoryConceptImage({
+  const generated = await generateAdvisoryConceptImage({
       premiumAllowed,
       openAIConfigured: editorialAgentConfiguration().openAIConfigured,
       bflConfigured: bflImageConfiguration().configured,
@@ -149,29 +147,11 @@ async function createContextualImages(
       bfl: () => runBflEditorialImageAgents(prompt, recentConcepts, previousTrace),
       openAI: () => runEditorialImageAgents(prompt, recentConcepts, previousTrace)
     });
-  } else if (premiumAllowed && bflImageConfiguration().configured) {
-    try {
-      generated = await runBflEditorialImageAgents(prompt, recentConcepts, previousTrace);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : "FLUX generation was unavailable";
-      console.error(`Premium editorial image generation fell back to the QCS renderer for ${input.contentId}.`, error);
-      generated = await createProceduralEditorialVisual(input, reason);
-    }
-  } else if (premiumAllowed && process.env.EDITORIAL_IMAGE_OPENAI_FALLBACK?.trim() === "1") {
-    try {
-      generated = await runEditorialImageAgents(prompt, recentConcepts, previousTrace);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : "OpenAI image generation was unavailable";
-      console.error(`OpenAI editorial image generation fell back to the QCS renderer for ${input.contentId}.`, error);
-      generated = await createProceduralEditorialVisual(input, reason);
-    }
-  } else {
-    generated = await createProceduralEditorialVisual(
-      input,
-      premiumAllowed ? "No premium image provider is configured" : "The paid-image budget is exhausted"
-    );
-  }
   try {
+    const perceptualHash = await editorialPerceptualHash(generated.source);
+    if (visuallyRepeated(perceptualHash, recentConcepts.flatMap((concept) => concept.perceptualHash ? [concept.perceptualHash] : []))) {
+      throw new Error("The rendered image closely repeats recent artwork. Review the composition before another paid render.");
+    }
     const [heroImage, socialImage] = await Promise.all([
       brandedVariant(generated.source, editorialVisualQualityPolicy.hero.width, editorialVisualQualityPolicy.hero.height),
       brandedVariant(generated.source, editorialVisualQualityPolicy.social.width, editorialVisualQualityPolicy.social.height)
@@ -179,7 +159,7 @@ async function createContextualImages(
     const [heroMetadata, socialMetadata] = await Promise.all([sharp(heroImage).metadata(), sharp(socialImage).metadata()]);
     assertRetinaVariantDimensions("hero", heroMetadata.width || 0, heroMetadata.height || 0);
     assertRetinaVariantDimensions("social", socialMetadata.width || 0, socialMetadata.height || 0);
-    return { heroImage, socialImage, trace: generated.trace };
+    return { heroImage, socialImage, trace: { ...generated.trace, perceptualHash } };
   } catch (error) {
     throw new EditorialAgentError(
       `Image derivative preparation failed; review before regenerating: ${error instanceof Error ? error.message : "Unknown image error"}`,
@@ -226,7 +206,8 @@ function recentVisualConcepts(
       {
         contentId: asset.contentId,
         sceneConcept: direction.sceneConcept,
-        diversitySignature: direction.diversitySignature
+        diversitySignature: direction.diversitySignature,
+        perceptualHash: typeof trace?.perceptualHash === "string" ? trace.perceptualHash : undefined
       }
     ];
   });

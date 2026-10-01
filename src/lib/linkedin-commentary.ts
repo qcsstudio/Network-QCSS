@@ -2,6 +2,7 @@ type EditorialSection = {
   heading: string;
   body: string;
   bullets?: string[];
+  sourceUrls?: string[];
 };
 
 type EditorialSource = {
@@ -24,6 +25,8 @@ export type LinkedInEditorialPost = {
     sections?: EditorialSection[];
     sources?: EditorialSource[];
     takeaways?: string[];
+    definitions?: { term: string; definition: string }[];
+    questions?: { question: string; answer: string; sourceUrls?: string[] }[];
   };
 };
 

@@ -79,5 +79,5 @@ test("automation does not repeat a failed paid advisory render", () => {
   assert.equal(advisoryRenderNeedsManualRetry({ ...failure, promptChanged: true }), false);
   assert.equal(advisoryRenderNeedsManualRetry({ ...failure, renderAttempts: undefined }), false);
   assert.equal(advisoryRenderNeedsManualRetry({ ...failure, status: "ready" }), false);
-  assert.equal(advisoryRenderNeedsManualRetry({ ...failure, contentType: "content_post" }), false);
+  assert.equal(advisoryRenderNeedsManualRetry({ ...failure, contentType: "content_post" }), true);
 });

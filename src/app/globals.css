@@ -9850,6 +9850,10 @@ td span {
   color: var(--brand-magenta);
 }
 
+.distribution-delivery-heading {
+  flex-wrap: wrap;
+}
+
 .distribution-module-heading h3,
 .distribution-module-heading p {
   margin: 0;

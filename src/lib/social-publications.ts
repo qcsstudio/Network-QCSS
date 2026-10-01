@@ -3,11 +3,10 @@ import type { ContentPostRecord } from "@/lib/content-posts";
 import { getCcnaLessonById, type CcnaLessonRecord } from "@/lib/ccna-learning";
 import { siteConfig } from "@/lib/content";
 import { ensureEditorialImageForPublication } from "@/lib/editorial-image-generation";
+import { editorialDeliveryImageUrl, publishedRevision } from "@/lib/editorial-delivery";
 import { createAdvisoryLinkedInPost, createEditorialLinkedInPost } from "@/lib/linkedin-content-agents";
 import {
   advisoryLinkedInQualityIssues,
-  composeAdvisoryLinkedInPost,
-  composeEditorialLinkedInPost,
   composeLinkedInProtocolCommentary,
   editorialLinkedInQualityIssues,
   linkedInCommentaryPolicyVersion,
@@ -38,21 +37,7 @@ type EditorialPostRecord = Pick<ContentPostRecord, "content" | "slug" | "title">
 
 export function buildEditorialLinkedInCommentary(post: EditorialPostRecord) {
   const url = trackedUrl(`/resources/${post.slug}`, "weekly-intelligence", post.slug);
-  return createEditorialLinkedInPost(post, url).catch((agentError) => {
-    const commentary = composeEditorialLinkedInPost(post, url);
-    const issues = editorialLinkedInQualityIssues(commentary, url, post);
-    if (issues.length) throw agentError;
-    return {
-      commentary,
-      qualityScore: 88,
-      trace: {
-        provider: "deterministic-protocol",
-        policyVersion: linkedInCommentaryPolicyVersion,
-        generatedAt: new Date().toISOString(),
-        fallbackReason: agentError instanceof Error ? agentError.message.slice(0, 1_000) : "LinkedIn content agent failed"
-      }
-    };
-  });
+  return createEditorialLinkedInPost(post, url);
 }
 
 function jsonStrings(value: Prisma.JsonValue) {
@@ -83,21 +68,7 @@ function advisoryPost(advisory: SecurityAdvisory): LinkedInAdvisoryPost {
 export function buildAdvisoryLinkedInCommentary(advisory: SecurityAdvisory) {
   const url = trackedUrl(`/security-advisories/${advisory.slug}`, "security-advisory-desk", advisory.slug);
   const source = advisoryPost(advisory);
-  return createAdvisoryLinkedInPost(source, url).catch((agentError) => {
-    const commentary = composeAdvisoryLinkedInPost(source, url);
-    const issues = advisoryLinkedInQualityIssues(commentary, url, source);
-    if (issues.length) throw agentError;
-    return {
-      commentary,
-      qualityScore: 88,
-      trace: {
-        provider: "deterministic-protocol",
-        policyVersion: linkedInCommentaryPolicyVersion,
-        generatedAt: new Date().toISOString(),
-        fallbackReason: agentError instanceof Error ? agentError.message.slice(0, 1_000) : "LinkedIn content agent failed"
-      }
-    };
-  });
+  return createAdvisoryLinkedInPost(source, url);
 }
 
 function ccnaStorySpine(lesson: CcnaLessonRecord) {
@@ -216,7 +187,7 @@ async function enqueue(input: {
 
 export async function queueLinkedInForContentPost(post: ContentPostRecord) {
   const revision = String(post.revisions[0]?.version || post.updatedAt);
-  const generated = await buildEditorialLinkedInCommentary(post);
+  const generated = await buildEditorialLinkedInCommentary(post).catch(() => ({ commentary: "", qualityScore: 0, trace: { provider: "awaiting-independent-review" } }));
   const storySpine = storySpineForArticle(post.content);
   return enqueue({
     contentType: "content_post",
@@ -234,7 +205,7 @@ export async function queueLinkedInForContentPost(post: ContentPostRecord) {
 
 export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revision: number | string) {
   const revisionKey = String(revision);
-  const generated = await buildAdvisoryLinkedInCommentary(advisory);
+  const generated = await buildAdvisoryLinkedInCommentary(advisory).catch(() => ({ commentary: "", qualityScore: 0, trace: { provider: "awaiting-independent-review" } }));
   const commentary = generated.commentary;
   const canonicalUrl = `${siteConfig.url}/security-advisories/${advisory.slug}`;
   const storySpine = storySpineForAdvisory(advisory);
@@ -430,7 +401,8 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
       let publicationMetadata = metadataObject(job.metadata);
       const policyVersion = Number(publicationMetadata.commentaryPolicyVersion || 0);
       const commentaryQualityScore = Number(publicationMetadata.commentaryQualityScore || 0);
-      if (policyVersion < linkedInCommentaryPolicyVersion || commentaryQualityScore < 88 || !lineageFromMetadata(publicationMetadata)) {
+      const trace = metadataObject(publicationMetadata.commentaryTrace as Prisma.JsonValue);
+      if (policyVersion < linkedInCommentaryPolicyVersion || commentaryQualityScore < 88 || trace.provider === "deterministic-protocol" || !lineageFromMetadata(publicationMetadata)) {
         const material = await currentPublicationMaterial(job);
         commentary = material.commentary;
         publicationImageUrl = material.imageUrl;
@@ -453,6 +425,10 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
         });
       }
       const publicationLineage = lineageFromMetadata(publicationMetadata);
+      if (job.contentType !== "ccna_lesson") {
+        const current = await publishedRevision(job.contentType, job.contentId);
+        if (!current || current.revision !== job.contentRevision) throw new Error("LinkedIn delivery held: source is unpublished or its reviewed revision changed.");
+      }
       const generatedImage = job.contentType === "ccna_lesson" ? null : await ensureEditorialImageForPublication(job);
       if (job.contentType === "ccna_lesson") {
         const lesson = await getCcnaLessonById(job.contentId);
@@ -468,9 +444,8 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
         }
       }
       if (!publicationImageUrl) throw new Error("LinkedIn delivery is missing its canonical article image URL.");
-      const imageUrl = (() => {
+      const imageUrl = generatedImage ? editorialDeliveryImageUrl(siteConfig.url, generatedImage, "social") : (() => {
         const url = new URL(publicationImageUrl);
-        if (generatedImage?.generatedAt) url.searchParams.set("asset", generatedImage.generatedAt.toISOString());
         return url.toString();
       })();
       const result = await publishLinkedInPost({

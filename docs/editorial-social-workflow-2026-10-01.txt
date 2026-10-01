@@ -1,0 +1,309 @@
+QCS CONTENT AND SOCIAL WORKFLOW
+Research and implementation review: 1 October 2026
+
+DECISION
+
+One reviewed source article, one topic-specific visual concept, and separate
+platform adaptations. Reuse the evidence, not a generic paragraph or picture.
+Blogs/resources still require admin approval. Security advisories retain their
+automatic technical-review path. Social distribution cannot publish a draft,
+an obsolete revision, an unreviewed caption or a mismatched image.
+
+WHAT THE AUDIT FOUND AND CHANGED
+
+1. Blog artwork could fall back to a reusable procedural renderer even though
+   advisories had recently moved to contextual concepts. Both now require an
+   evidence-mapped concept, independent visual review and an approved master.
+   Provider failures and exhausted budgets do not become generic artwork.
+2. The image writer was still told to force every article into three frames.
+   Establish/explain/resolve now describes reasoning, not a prescribed layout.
+3. LinkedIn writer failures could receive a fabricated 88/100 fallback score.
+   This fallback is removed. Unfinished copy stays queued for actual review.
+4. LinkedIn research input silently excluded later sections and clipped their
+   bodies. It now includes the complete body and its late qualifications.
+5. Queued social images could resolve to the newest image instead of the
+   reviewed revision. Delivery now uses an asset-specific endpoint, generation
+   timestamp and current-publication check. No paid work occurs on that endpoint.
+6. Advisory share metadata used the generic homepage image. It now points to
+   the advisory image. QCS publication dates and vendor disclosure dates are
+   distinguished, including in article metadata.
+7. Facebook/Instagram previously had no delivery path. They now have separate
+   captions, account verification, durable jobs, previews and API receipts.
+
+BLOG / RESOURCE CREATION
+
+Discovery: rank relevant audience questions from vendor documentation, release
+notes, standards bodies, security authorities, engineering publications, news
+and search-demand signals. Trends suggest questions; they are not evidence.
+
+Research: read full primary material and relevant version-specific documents.
+Use related discussions to identify practical questions, disagreements and
+edge cases. Do not claim an exhaustive search of the internet. Preserve the
+source URL, retrieval date, key finding and evidence used for each claim.
+Unavailable pages and conflicting claims remain explicit gaps, not invented facts.
+
+Draft structure:
+- A literal title and a direct, self-contained answer.
+- Who this affects, prerequisites and a plain-English explanation of terms.
+- The mechanism or problem, with citations beside the claims they support.
+- A worked example with assumptions, not an invented customer success story.
+- Options and trade-offs, followed by safe implementation guidance.
+- Expected observations, validation, common failures and rollback boundaries.
+- A useful takeaway, genuinely relevant FAQs and authoritative references.
+
+Review: check accuracy, evidence coverage, practical value, first-use definitions,
+unsafe commands, contradictions, topic drift, repetition and unsupported claims.
+Keep independent critique, deterministic checks and the admin approval gate.
+AI scores are editorial signals, not a guarantee of factual perfection.
+
+Search: canonical URLs, meaningful headings, crawlable text, descriptive image
+alternatives, useful internal links and accurate Article/BlogPosting data.
+Do not claim that special AIO markup, fixed word counts or guaranteed rankings
+exist. The current 1,000-word QCS guide gate is an editorial format choice,
+not a Google requirement. Thin announcements should not be padded into guides.
+
+SECURITY ADVISORIES
+
+Keep vendor disclosure, hardening release, advance notice and confirmed
+vulnerability distinct. Preserve the exact affected-product/configuration and
+release-to-fix mapping. Do not turn an absent CVSS into zero or an unspecified
+workaround into a claim that no workaround exists.
+
+Explain: what happened; who is affected; why it matters; the technical mechanism;
+what is known about exploitation; what the team should do; how to verify the
+change; and what remains unknown. Separate a temporary mitigation from a fix.
+
+CVSS, vendor severity, KEV inclusion, EPSS probability and local exposure are
+different inputs. None is interchangeable with confirmed exploitation.
+Unknown ransomware involvement is not a statement that exploitation is unknown.
+Do not imply that applying a patch proves the environment was never compromised.
+
+Advisories may publish automatically only after existing source and technical
+gates pass. Failed checks are held visibly. Website availability must not depend
+on a social API succeeding. Corrections create a new reviewed revision.
+
+IMAGE CONCEPT AND CONSISTENCY
+
+Read the complete article and identify its actual subject, relationship,
+mechanism, uncertainty and operator decision. Propose distinct compositions,
+choose one and explain why it teaches this specific story.
+
+Examples of reasoning, NOT presets:
+- RPKI: origin authorization compared with an observed advertisement; do not
+  imply that origin validation proves the entire AS path or prevents all hijacks.
+- Firewall authentication flaw: the specific management/authentication boundary
+  in the source; do not invent a successful breach or vendor interface.
+- Cloud routing article: the relevant route/permission boundary and trade-off,
+  not a generic cloud icon surrounded by unrelated servers.
+- DNS cold start: the actual resolver/cache sequence and timing assumption,
+  not a security shield with DNS substituted into the headline.
+
+Require two to five exact evidence excerpts mapped to visible relationships.
+Reject a concept that only changes the title, CVE, vendor, colour or logo.
+Compare recent scene descriptions and signatures before rendering. Compare a
+256-bit perceptual hash after rendering, as an additional reuse warning.
+This heuristic is not a semantic proof; older assets without hashes are covered
+by their concept records and visual critique until new hashes accumulate.
+
+Generate a text-free master; add the authentic QCS logo in code. Keep exact CVEs,
+versions and factual wording in accessible captions/body text rather than asking
+a raster model to spell them. New artwork is not presented as an incident photo
+or tested network measurement. Instagram receives the supported AI disclosure.
+
+Web: 1440x810. LinkedIn/Facebook: 1200x627. Instagram: the complete 1440x810 JPEG
+master, which fits the documented ratio and width limits, instead of cutting
+the sides into a portrait. A portrait/carousel with custom annotation remains
+a later, separately reviewed composition, not a stretched version of this image.
+No extra image-generation charge is needed for these channel derivatives.
+
+There is one paid render per attempt. Failed paid renders require an explicit
+retry. Existing configurable daily/monthly limits remain in force. They count
+stored generation records rather than serving as a transactional billing ledger;
+concurrent attempts or manual retries can exceed an intended monetary ceiling.
+Keep provider-level spend limits too. This work does not silently raise budgets,
+generate the archive again, or call an image provider during testing.
+
+SOCIAL ADAPTATIONS
+
+LinkedIn: one operational point of view, source-supported specifics, implications,
+concrete actions and verification, with short paragraphs and a complete original
+QCS URL plus focused hashtags. Keep the existing lossless little-text escaping
+and 2,900-character safety limit. Native feed posts do not provide normal rich
+bold/italic formatting; avoid inaccessible Unicode pseudo-bold and raw Markdown.
+
+Facebook: a plain-language consequence for the team or business, a compact
+explanation and practical checks. Include the QCS link and three focused tags.
+
+Instagram: one understandable learning takeaway, useful actions and a clear
+qualification. Include 3-5 relevant tags and the original QCS URL, but do not
+promise that a caption link is clickable or claim the bio was updated. Readers
+are also directed to search the article title on qcsstudio.com.
+
+Meta captions have their own direct OpenAI writer and independent reviewer.
+Exact excerpt mappings plus the reviewer check the claims. Length validation
+rejects excessive text instead of cutting off the footer. A failed review does
+not receive an invented passing score or fall back to generic copy.
+
+META CONNECTION AND OPERATIONS
+
+Requested destinations:
+Facebook Page supplied by owner: https://www.facebook.com/share/19jarx75qT/
+Instagram: @qcsstudio, Business account, owner confirms it is linked to the Page.
+Existing Meta developer App ID supplied by owner: 528207910301806.
+Dashboard: https://developers.facebook.com/apps/528207910301806/dashboard/
+Verified in Meta: the existing app is ElevatrX, a Business app in Development
+mode. Ravi is an app administrator. Its business portfolio is verified and its
+data-access renewal is complete. These checks do not establish publishing access.
+Business Suite identifies QCS Page 428759466975905 and linked @qcsstudio account
+17841468939564779. Do not use Business Suite's internal Instagram asset selector
+ID as the Instagram Graph account ID.
+
+The initial short-lived Page token lacked required scopes and could not read
+the linked Instagram account. It was not saved. After owner authorization through
+Meta's documented desktop login flow, a replacement QCS Page token was derived
+from the returned long-lived user token. Selecting scopes in Graph API Explorer
+alone was not sufficient; the final token was checked independently.
+
+Meta's v26.0 Access Token Debugger confirmed a valid Page token for ElevatrX and
+QCS Page 428759466975905, with pages_show_list, pages_read_engagement,
+pages_manage_posts, instagram_basic and instagram_content_publish. It reports
+token expiry as Never, but data access expires on 2026-12-30 at 17:13:57 UTC.
+Renew authorization before that date and handle revocation at any time. Never
+interpret the token's expiry label as permanently guaranteed access.
+The app retains broader existing grants; the debugger reports granular access
+as applying to all objects. Do not describe the app authorization as exclusively
+QCS-scoped. The saved credential is a QCS Page token and application checks bind
+delivery to the configured Page and linked Instagram IDs. No revoke, uninstall,
+unlink or app-secret reset operation was performed.
+
+Read-only v26.0 verification using the final Page token:
+- GET /me returned the QCS Page and linked Instagram account 17841468939564779,
+  username qcsstudio.
+- The Instagram content_publishing_limit endpoint returned quota_usage 0 and
+  config quota_total 100 / quota_duration 86400. Quotas are checked at runtime.
+These checks confirm account and API access, not successful live publishing.
+
+Vercel network-qcs Production now has seven non-secret settings: the Page ID,
+Instagram account ID, Instagram username, Graph version, content model,
+META_PUBLISHING_START_AT=2026-10-01T17:19:17Z and META_PUBLISHING_ENABLED=0.
+The existing META_APP_SECRET and verified META_PAGE_ACCESS_TOKEN were saved as
+non-revealable Secrets, for nine settings total. No Preview or Development
+settings were added. Credentials were not written to source files; the app
+secret was not regenerated. Do not collect passwords or tokens through chat.
+The start timestamp is an eligibility cutoff, not a scheduled activation. Advance
+it at go-live if articles published during staging should stay out of the queue.
+Posting and the GitHub automation gate remain disabled. Deployment, a controlled
+live smoke test and explicit activation are still pending.
+
+Server environment, documented in .env.example:
+META_PAGE_ACCESS_TOKEN, META_APP_SECRET, META_FACEBOOK_PAGE_ID,
+META_INSTAGRAM_ACCOUNT_ID, META_INSTAGRAM_USERNAME=qcsstudio,
+META_GRAPH_VERSION=v26.0, META_CONTENT_MODEL=gpt-4.1-mini,
+META_PUBLISHING_START_AT=<explicit ISO timestamp with timezone>,
+META_PUBLISHING_ENABLED=0 initially.
+
+Never paste credentials into chat or client-side NEXT_PUBLIC variables.
+Use Vercel's private server environment settings, then redeploy.
+The Facebook share URL is not a numeric Graph API Page ID.
+
+Setup:
+1. Create/configure a Meta developer app for the QCS-owned accounts. Keep its
+   business details and privacy/deletion information accurate. Request only the
+   relevant permissions and complete any required App Review/access process.
+2. Authorize a Facebook Page token for an operator with CREATE_CONTENT or MANAGE.
+   Facebook photo posting requires pages_manage_posts, pages_read_engagement and
+   pages_show_list. Instagram Facebook Login requires instagram_basic and
+   instagram_content_publish as well as pages_read_engagement. Business Manager
+   role arrangements can add permission requirements; verify these in Meta.
+3. Obtain the Page ID and linked professional Instagram ID through Meta. Store
+   the token and app secret securely. Respect token expiration and revocation.
+   This release uses server-managed credentials, not a new OAuth setup wizard.
+4. Set the activation timestamp to avoid a historical-posting flood. Keep
+   automatic delivery disabled. In Admin > Distribution, Verify accounts checks
+   that the token's Page and its linked Instagram identity match the settings.
+5. Prepare next builds a preview for an eligible published article. Inspect the
+   entire caption and image. Fix any hold before proceeding.
+6. Set META_PUBLISHING_ENABLED=1 only after verification. Process the queue for
+   a controlled first delivery. Verify the API receipt and actual live post.
+7. Enable GitHub repository variable QCS_META_PUBLISHING_ENABLED=true to run the
+   added Meta job in the existing editorial workflow. It invokes the protected
+   /api/cron/social-publisher?channel=meta endpoint with the existing OIDC identity.
+   No extra Vercel cron entry, paid queue product or AI gateway was added.
+
+The scheduler advances one Meta job per invocation. Instagram upload and publish
+are separate invocations; the container ID is saved and reused. The API quota
+is checked at runtime instead of trusting inconsistent numeric examples in docs.
+Five bounded processing checks precede a hold. API rejection, expiry and token
+problems remain visible. A final-call timeout or interrupted dispatch requires
+manual reconciliation in Business Suite, not a blind repost. The admin cannot
+reset an uncertain delivery into the publishing queue.
+
+The current UI supports preview, prepare, process, cancel waiting delivery and
+retry pre-dispatch preparation. It does not delete live Meta posts or automatically
+backfill historical posts. It does not yet provide automated reconciliation of an
+uncertain receipt; inspect Business Suite and reconcile the record explicitly.
+
+Web publication precedes social delivery. Jobs are unique by channel/content/
+revision, and the first automatic Meta post per content item is discovered after
+activation. Article revisions do not trigger unsolicited duplicate reposts.
+Published source status, revision and matching image lineage are checked again
+before dispatch. Drafts and missing/deleted sources are not delivered.
+
+COST AND HONEST LIMITS
+
+No new paid hosting service is required by these changes. Existing database,
+GitHub Actions, Vercel, OpenAI and BFL usage limits still apply. This is not a
+promise of unlimited free operation. Each prepared Meta caption uses a writer
+and a critic call; successful copy is cached in the job. No new image is generated
+per platform. Scheduled jobs may be delayed; five-minute configuration is not a
+five-minute delivery SLA. No real Meta publishing or paid AI generation was run
+as part of local verification. Credential and account checks are complete;
+deployment and a controlled live smoke test are still required before calling
+the integration operational.
+
+LOCAL VERIFICATION
+
+68 focused tests passed, including six queue integration tests with mock storage,
+AI output and Graph responses. They cover full FAQ/fixed-release evidence,
+caption footers, missing accounts, quota handling, persisted Instagram containers,
+source changes, receipt recording and uncertain-delivery holds.
+TypeScript and changed-source ESLint passed. The production build completed.
+The GitHub Actions workflow parsed successfully.
+The actual admin component and production styles were rendered with an isolated
+QA fixture. Desktop 1440px, tablet 768px and mobile 390px/320px checks found no
+remaining text or control overflow after fixing the refresh button and status row.
+This is component-level visual QA, not an authenticated production acceptance test.
+The seven non-secret settings and both credentials described above have been
+saved in Production only. The repository automation variable was not enabled.
+No live Meta posts were created. These code changes have not been deployed in
+this work session; Vercel environment changes require a new deployment to take
+effect.
+
+PRIMARY RESEARCH REFERENCES
+
+Google people-first content and no preferred word count:
+https://developers.google.com/search/docs/fundamentals/creating-helpful-content
+Google AI features: normal SEO fundamentals, no special AI markup requirement:
+https://developers.google.com/search/docs/appearance/ai-features
+Google Article data, accurate dates/authors and representative images:
+https://developers.google.com/search/docs/appearance/structured-data/article
+LinkedIn Posts API, permissions, image URNs and creation receipts:
+https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api?view=li-lms-2026-09
+LinkedIn post length:
+https://www.linkedin.com/help/lms/answer/a528176
+Meta Instagram publishing, public media, permissions, containers and AI disclosure:
+https://developers.facebook.com/documentation/instagram-platform/content-publishing
+Meta Instagram media reference, JPEG dimensions, caption and accessibility fields:
+https://developers.facebook.com/documentation/instagram-platform/instagram-graph-api/reference/ig-user/media
+Meta Facebook Page photo posting, caption, alt text, permissions and receipts:
+https://developers.facebook.com/docs/graph-api/reference/page/photos/
+Meta manual Facebook Login flow, desktop callback, state and granted scopes:
+https://developers.facebook.com/documentation/facebook-login/guides/advanced/manual-flow
+CISA KEV, one input into vulnerability prioritization:
+https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+
+Meta documentation was inspected in a live browser because web fetching returned
+HTTP 429. The media reference displayed an update date of 28 September 2026 and
+the Page Photos reference displayed v26.0. Requirements must be rechecked when
+upgrading API versions or granting permissions; access is not guaranteed merely
+because a Page and Instagram account exist.

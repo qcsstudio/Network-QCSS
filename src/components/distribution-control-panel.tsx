@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, ImageIcon, Link2, PencilLine, RefreshCw, Rss, Send, ShieldAlert, Unlink } from "lucide-react";
+import { ExternalLink, ImageIcon, Link2, PencilLine, RefreshCw, Rss, Send, ShieldAlert, Unlink, Facebook, Instagram, Ban } from "lucide-react";
 import type { DistributionSnapshot } from "@/lib/distribution";
 
 export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot: DistributionSnapshot | null }) {
@@ -91,16 +91,32 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
     }
   }
 
+  async function runMeta(action: "verify" | "prepare" | "publish" | "retry" | "cancel", publicationId?: string) {
+    setBusy(`Meta ${action}`);
+    setMessage(`Meta ${action} is running...`);
+    try {
+      const response = await fetch("/api/admin/integrations/meta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, publicationId }) });
+      const data = await response.json() as { error?: string; result?: Array<{ status?: string; error?: string }> | { pageName?: string; instagramUsername?: string } };
+      if (!response.ok) throw new Error(data.error || "Meta action failed.");
+      await load();
+      if (Array.isArray(data.result)) setMessage(data.result.length ? data.result.map((item) => `${item.status}${item.error ? `: ${item.error}` : ""}`).join(" ") : "No eligible posts in the queue.");
+      else if (action === "verify" && data.result && "pageName" in data.result) setMessage(`Verified Facebook Page: ${data.result.pageName}. Linked Instagram: @${data.result.instagramUsername}.`);
+      else setMessage(`Meta ${action} saved.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Meta action failed.");
+    } finally { setBusy(""); }
+  }
+
   return (
     <section className="admin-panel distribution-panel" id="integrations">
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Intelligence distribution</p>
-          <h2>Source health, editorial automation, and LinkedIn delivery.</h2>
+          <h2>Editorial quality and social distribution</h2>
           <p>Website publication remains independent. Social failures stay queued and visible here.</p>
         </div>
-        <button className="button secondary" disabled={Boolean(busy)} onClick={() => load().catch((error) => setMessage(String(error)))} type="button">
-          <RefreshCw aria-hidden="true" size={17} /> Refresh
+        <button className="icon-button" aria-label="Refresh distribution" title="Refresh distribution" disabled={Boolean(busy)} onClick={() => load().catch((error) => setMessage(String(error)))} type="button">
+          <RefreshCw aria-hidden="true" size={17} />
         </button>
       </div>
       <p aria-live="polite" className="form-note">{message}</p>
@@ -130,7 +146,7 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
 
         <article className="distribution-module">
           <div className="distribution-module-heading"><ShieldAlert aria-hidden="true" /><div><p className="eyebrow">Security Advisory Desk</p><h3>{snapshot?.advisories.total || 0} public advisories</h3></div></div>
-          <p>Official sources publish automatically and queue a matching LinkedIn post without editorial approval.</p>
+          <p>Source-verified advisories publish after technical checks. Connected social channels use the same reviewed revision.</p>
           <div className="content-action-row">
             <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => run("/api/cron/advisory-discovery", "Advisory scan")} type="button"><RefreshCw aria-hidden="true" size={16} /> Scan now</button>
             <a className="icon-button" href="/security-advisories" rel="noreferrer" target="_blank" title="Open Security Advisory Desk"><ExternalLink aria-hidden="true" size={18} /></a>
@@ -156,9 +172,9 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
         <article className="distribution-module">
           <div className="distribution-module-heading"><ImageIcon aria-hidden="true" /><div><p className="eyebrow">QCS visual studio</p><h3>Contextual artwork with controlled spend</h3></div></div>
           <span className={`status-pill ${snapshot?.editorialImages.agent.configured ? "ready" : "missing"}`}>
-            {snapshot?.editorialImages.agent.premiumConfigured ? "Premium + fallback ready" : "QCS fallback ready"}
+            {snapshot?.editorialImages.agent.premiumConfigured ? "Contextual generation configured" : "Image provider required"}
           </span>
-          <p>Advisories use deterministic, evidence-led QCS graphics. Weekly articles use one premium contextual render when FLUX is configured, then fall back without blocking publication.</p>
+          <p>Each article and advisory receives an evidence-mapped concept and an independent visual review. Budget or review failures hold the social image; no generic template is substituted.</p>
           <div className="content-action-row">
             <button className="button primary compact-button" disabled={Boolean(busy) || !snapshot?.editorialImages.agent.configured} onClick={() => generateEditorialImage(false)} type="button"><ImageIcon aria-hidden="true" size={16} /> Generate next</button>
             {snapshot?.editorialImages.counts.failed ? <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => generateEditorialImage(true)} type="button"><RefreshCw aria-hidden="true" size={16} /> Retry latest</button> : null}
@@ -171,7 +187,37 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
           <p className="form-note">Writer: {snapshot?.editorialContent.writerModel} | Content critic: {snapshot?.editorialContent.criticModel} | Image: {snapshot?.editorialImages.agent.imageModel}</p>
           {snapshot?.editorialImages.latest[0]?.lastError ? <p className="form-note">{snapshot.editorialImages.latest[0].lastError}</p> : null}
         </article>
+
+        <article className="distribution-module">
+          <div className="distribution-module-heading"><Facebook aria-hidden="true" /><div><p className="eyebrow">Facebook + Instagram</p><h3>QCS / @{snapshot?.meta.configuration.instagramUsername || "qcsstudio"}</h3></div><Instagram aria-hidden="true" /></div>
+          <span className={`status-pill ${snapshot?.meta.configuration.configured ? "ready" : "missing"}`}>{!snapshot?.meta.configuration.configured ? "Connection required" : snapshot.meta.configuration.enabled ? "Automatic delivery enabled" : "Preview only"}</span>
+          <p>Page ID: {snapshot?.meta.configuration.pageId || "Not configured"} | Instagram ID: {snapshot?.meta.configuration.instagramId || "Not configured"}</p>
+          {snapshot?.meta.configuration.startAt ? <p className="form-note">Eligible website publications from {new Date(snapshot.meta.configuration.startAt).toLocaleString("en-IN")}.</p> : null}
+          <ul>{snapshot?.meta.configuration.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul>
+          <div className="content-action-row">
+            <button className="button secondary compact-button" disabled={Boolean(busy) || !snapshot?.meta.configuration.configured} onClick={() => runMeta("verify")} type="button"><Link2 size={16} aria-hidden="true" /> Verify accounts</button>
+            <button className="button secondary compact-button" disabled={Boolean(busy) || !snapshot?.meta.configuration.configured} onClick={() => runMeta("prepare")} type="button"><PencilLine size={16} aria-hidden="true" /> Prepare next</button>
+            <button className="button primary compact-button" disabled={Boolean(busy) || !snapshot?.meta.configuration.configured || !snapshot.meta.configuration.enabled} onClick={() => runMeta("publish")} type="button"><Send size={16} aria-hidden="true" /> Process Meta queue</button>
+          </div>
+        </article>
       </div>
+
+      {snapshot?.meta.latest.length ? <div className="linkedin-publication-list">
+        <h3>Facebook and Instagram delivery</h3>
+        {snapshot.meta.latest.map((job) => <article className="distribution-module" key={job.id}>
+          <div className="distribution-module-heading distribution-delivery-heading"><strong>{job.channel}</strong><span className={`status-pill ${job.status === "published" ? "ready" : ["blocked", "needs_review"].includes(job.status) ? "missing" : ""}`}>{job.status.replaceAll("_", " ")}</span></div>
+          <a href={job.sourceUrl} target="_blank" rel="noreferrer">Original QCS article</a>
+          {job.lastError ? <p role="status">{job.lastError}</p> : null}
+          {job.caption ? <details><summary>Caption preview</summary><p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{job.caption}</p></details> : null}
+          <div className="content-action-row">
+            {job.imageUrl ? <a className="button secondary compact-button" href={job.imageUrl} target="_blank" rel="noreferrer"><ImageIcon size={16} aria-hidden="true" /> Preview image</a> : null}
+            {job.permalink ? <a className="button secondary compact-button" href={job.permalink} target="_blank" rel="noreferrer"><ExternalLink size={16} aria-hidden="true" /> View published post</a> : null}
+            {job.status === "ready" ? <button className="button primary compact-button" disabled={Boolean(busy) || !snapshot.meta.configuration.enabled} onClick={() => runMeta("publish", job.id)} type="button"><Send size={16} aria-hidden="true" /> Publish</button> : null}
+            {job.status === "blocked" ? <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => runMeta("retry", job.id)} type="button"><RefreshCw size={16} aria-hidden="true" /> Retry preparation</button> : null}
+            {["queued", "retry", "ready", "blocked"].includes(job.status) ? <button className="button secondary compact-button" disabled={Boolean(busy)} onClick={() => runMeta("cancel", job.id)} type="button"><Ban size={16} aria-hidden="true" /> Cancel delivery</button> : null}
+          </div>
+        </article>)}
+      </div> : null}
 
       {snapshot?.social.latest.some((job) => job.status === "failed") ? (
         <div className="distribution-failures">

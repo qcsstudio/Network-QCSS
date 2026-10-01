@@ -46,6 +46,25 @@ jobs:
             -H "Authorization: Bearer ${token}" \
             "https://www.qcsstudio.com/api/cron/social-publisher"
 
+  publish-meta:
+    needs: [scan-advisories, complete-content]
+    if: ${{ always() && vars.QCS_META_PUBLISHING_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    concurrency:
+      group: qcs-editorial-meta
+      cancel-in-progress: false
+    steps:
+      - name: Process verified Facebook and Instagram queue
+        shell: bash
+        run: |
+          token="$(curl --fail --silent --show-error \
+            -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https%3A%2F%2Fwww.qcsstudio.com%2Fautomation" | jq -r '.value')"
+          curl --fail-with-body --silent --show-error --max-time 300 \
+            -H "Authorization: Bearer ${token}" \
+            "https://www.qcsstudio.com/api/cron/social-publisher?channel=meta"
+
   complete-content:
     needs: scan-advisories
     if: ${{ always() }}

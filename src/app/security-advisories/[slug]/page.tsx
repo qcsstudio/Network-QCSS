@@ -32,6 +32,8 @@ export async function generateMetadata({ params }: AdvisoryPageProps): Promise<M
     title: practicalMetaTitle(advisory.title),
     description: advisory.summary.slice(0, 160),
     path: `/security-advisories/${advisory.slug}`,
+    image: { url: `/security-advisories/${advisory.slug}/opengraph-image`, width: 1200, height: 627, alt: advisory.title },
+    article: { publishedTime: advisory.firstSeenAt.toISOString(), modifiedTime: (advisory.revisions[0]?.createdAt || advisory.updatedAt).toISOString() },
     keywords: [advisory.vendor, ...strings(advisory.cves), ...strings(advisory.products), "security advisory", "vendor patch"]
   });
 }
@@ -56,8 +58,8 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
             headline: advisory.title,
             description: advisory.summary,
             image: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image`,
-            datePublished: advisory.vendorPublishedAt.toISOString(),
-            dateModified: advisory.vendorUpdatedAt.toISOString(),
+            datePublished: advisory.firstSeenAt.toISOString(),
+            dateModified: (advisory.revisions[0]?.createdAt || advisory.updatedAt).toISOString(),
             mainEntityOfPage: `${siteConfig.url}/security-advisories/${advisory.slug}`,
             author: { "@type": "Organization", name: siteConfig.name, url: siteConfig.url },
             publisher: {
@@ -93,7 +95,8 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
             <h1>{advisory.title}</h1>
             <p>{advisory.summary}</p>
             <div className="blog-meta">
-              <span>Published {advisory.vendorPublishedAt.toLocaleString("en-IN")}</span>
+              <span>QCS published {advisory.firstSeenAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</span>
+              <span>Vendor disclosure {advisory.vendorPublishedAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</span>
               <span>Verified {advisory.lastVerifiedAt.toLocaleString("en-IN")}</span>
               <span>Revision {advisory.revisions[0]?.version || 1}</span>
             </div>
