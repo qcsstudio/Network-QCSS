@@ -3,11 +3,14 @@ import test from "node:test";
 import { firstNetworkVisualStory } from "../src/lib/ccna-visual-story.ts";
 import {
   buildImageRenderPrompt,
+  directVisualDirection,
   normalizeVisualQaScores,
   restoreEditorialAgentTrace,
+  runBflEditorialImageAgents,
   traceForEditorialRetry,
   visualQaPasses
 } from "../src/lib/editorial-image-agents.ts";
+import { buildEditorialImagePrompt } from "../src/lib/editorial-image-prompt.ts";
 
 const direction = {
   storyThesis: "An unauthorized route origin is checked against the operator's ROA evidence before policy changes.",
@@ -57,7 +60,7 @@ test("visual QA uses blocking violations and hard score thresholds as the author
   assert.equal(visualQaPasses(passing), true);
   assert.equal(visualQaPasses({ ...passing, specificityScore: 81 }), false);
   assert.equal(visualQaPasses({ ...passing, violations: ["Contains embedded text"] }), false);
-  assert.equal(visualQaPasses({ ...passing, approved: false }), true);
+  assert.equal(visualQaPasses({ ...passing, approved: false }), false);
 });
 
 test("ten-point critic scores are normalized to the required hundred-point scale", () => {
@@ -153,4 +156,78 @@ test("paid renders are never retried automatically", () => {
   const firstAttempt = { ...trace, renderAttempts: 1 };
   assert.equal(traceForEditorialRetry(firstAttempt), null);
   assert.equal(traceForEditorialRetry(trace), null);
+});
+
+function advisoryDirection() {
+  return {
+    ...direction,
+    conceptSelection: firstNetworkVisualStory.conceptSelection,
+    advisoryConcept: {
+      evidenceToVisual: direction.factualAnchors.map((fact) => ({ evidenceQuote: fact, visualElement: `A visible component represents ${fact}.` })),
+      compositionRationale: "The scene separates the observed route from the independent authorization evidence.",
+      differenceFromRecent: "No previous advisory compositions are present in this synthetic test."
+    }
+  };
+}
+
+function directorResponse(value) {
+  return new Response(JSON.stringify({
+    id: "resp_mock", object: "response", status: "completed", output_text: JSON.stringify(value),
+    output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: JSON.stringify(value), annotations: [] }] }]
+  }), { headers: { "content-type": "application/json" } });
+}
+
+async function withMockCredentials(callback) {
+  const saved = { OPENAI_API_KEY: process.env.OPENAI_API_KEY, BFL_API_KEY: process.env.BFL_API_KEY };
+  process.env.OPENAI_API_KEY = "sk-test-only-not-a-real-key";
+  process.env.BFL_API_KEY = "test-only-not-a-real-key";
+  try { return await callback(); }
+  finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+test("the actual director repairs missing advisory grounding before a paid render", async (t) => {
+  const bodies = [];
+  t.mock.method(globalThis, "fetch", async (input, init) => {
+    const request = new Request(input, init);
+    assert.match(request.url, /\/responses$/);
+    bodies.push(await request.json());
+    return directorResponse(bodies.length === 1 ? { ...advisoryDirection(), advisoryConcept: null } : advisoryDirection());
+  });
+  const prompt = buildEditorialImagePrompt({ contentType: "security_advisory", title: "Synthetic advisory", context: direction.factualAnchors.join("\n") });
+  const result = await withMockCredentials(() => directVisualDirection(prompt, []));
+  assert.deepEqual(result.advisoryConcept, advisoryDirection().advisoryConcept);
+  assert.equal(bodies.length, 2);
+  assert.match(bodies[1].input, /Create an evidence-mapped advisory concept/);
+  assert.ok(bodies[0].text.format.schema.required.includes("advisoryConcept"));
+});
+
+test("the actual director refuses repeated advisory concepts after bounded planning retries", async (t) => {
+  let calls = 0;
+  t.mock.method(globalThis, "fetch", async () => { calls++; return directorResponse(advisoryDirection()); });
+  const prompt = buildEditorialImagePrompt({ contentType: "security_advisory", title: "Synthetic advisory", context: direction.factualAnchors.join("\n") });
+  await withMockCredentials(() => assert.rejects(directVisualDirection(prompt, [direction]), /repeats recent work/));
+  assert.equal(calls, 2);
+});
+
+test("provider failures retain a paid-attempt trace for the automation retry guard", async (t) => {
+  let renders = 0;
+  t.mock.method(globalThis, "fetch", async (input, init) => {
+    const request = new Request(input, init);
+    if (request.url.endsWith("/responses")) return directorResponse(advisoryDirection());
+    assert.match(request.url, /^https:\/\/api\.bfl\.ai\//);
+    renders++;
+    return new Response("Provider unavailable", { status: 503 });
+  });
+  const prompt = buildEditorialImagePrompt({ contentType: "security_advisory", title: "Synthetic advisory", context: direction.factualAnchors.join("\n") });
+  await withMockCredentials(() => assert.rejects(runBflEditorialImageAgents(prompt, []), (error) => {
+    assert.equal(error.trace.provider, "black-forest-labs");
+    assert.equal(error.trace.renderAttempts, 1);
+    return true;
+  }));
+  assert.equal(renders, 1);
 });

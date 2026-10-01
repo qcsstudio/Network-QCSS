@@ -1,9 +1,7 @@
 import { ImageResponse } from "next/og";
-import { EditorialArtwork } from "@/components/editorial-artwork";
-import { getSecurityAdvisory } from "@/lib/advisories";
+import { AdvisoryImagePending } from "@/components/advisory-image-pending";
 import { editorialImageDataUrl, getContextualEditorialImage } from "@/lib/editorial-image-generation";
 import { qcsEditorialLogo } from "@/lib/editorial-logo";
-import { advisoryVisualProfile, fallbackVisualProfile } from "@/lib/editorial-visuals";
 
 export const runtime = "nodejs";
 export const alt = "QCS network security advisory";
@@ -12,7 +10,6 @@ export const contentType = "image/png";
 
 export default async function AdvisoryOpenGraphImage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const advisory = await getSecurityAdvisory(slug);
   const generated = await getContextualEditorialImage("security_advisory", slug, "social");
   if (generated) {
     return new ImageResponse(
@@ -24,13 +21,10 @@ export default async function AdvisoryOpenGraphImage({ params }: { params: Promi
       size
     );
   }
-  const title = advisory?.title || "QCS Network Security Advisory";
-  const severity = advisory?.severity || "unrated";
   const logo = await qcsEditorialLogo();
-  const profile = advisory ? advisoryVisualProfile(advisory) : fallbackVisualProfile(title);
 
   return new ImageResponse(
-    <EditorialArtwork format="social" logoUrl={logo} profile={profile} statusLabel={`${severity} advisory`} title={title} />,
-    size
+    <AdvisoryImagePending logoUrl={logo} />,
+    { ...size, headers: { "Cache-Control": "no-store" } }
   );
 }

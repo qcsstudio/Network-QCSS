@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Prisma, type SecurityAdvisory } from "@prisma/client";
 import sharp from "sharp";
+import { advisoryImagePolicyVersion, advisoryRenderNeedsManualRetry, generateAdvisoryConceptImage } from "@/lib/advisory-image-policy";
 import { blogPosts, type BlogPost } from "@/lib/blog";
 import {
   EditorialAgentError,
@@ -139,7 +140,15 @@ async function createContextualImages(
 ) {
   let generated: Awaited<ReturnType<typeof runEditorialImageAgents>>;
   if (input.contentType === "security_advisory") {
-    generated = await createProceduralEditorialVisual(input);
+    generated = await generateAdvisoryConceptImage({
+      premiumAllowed,
+      openAIConfigured: editorialAgentConfiguration().openAIConfigured,
+      bflConfigured: bflImageConfiguration().configured,
+      openAIFallbackEnabled: process.env.EDITORIAL_IMAGE_OPENAI_FALLBACK?.trim() === "1"
+    }, {
+      bfl: () => runBflEditorialImageAgents(prompt, recentConcepts, previousTrace),
+      openAI: () => runEditorialImageAgents(prompt, recentConcepts, previousTrace)
+    });
   } else if (premiumAllowed && bflImageConfiguration().configured) {
     try {
       generated = await runBflEditorialImageAgents(prompt, recentConcepts, previousTrace);
@@ -162,14 +171,21 @@ async function createContextualImages(
       premiumAllowed ? "No premium image provider is configured" : "The paid-image budget is exhausted"
     );
   }
-  const [heroImage, socialImage] = await Promise.all([
-    brandedVariant(generated.source, editorialVisualQualityPolicy.hero.width, editorialVisualQualityPolicy.hero.height),
-    brandedVariant(generated.source, editorialVisualQualityPolicy.social.width, editorialVisualQualityPolicy.social.height)
-  ]);
-  const [heroMetadata, socialMetadata] = await Promise.all([sharp(heroImage).metadata(), sharp(socialImage).metadata()]);
-  assertRetinaVariantDimensions("hero", heroMetadata.width || 0, heroMetadata.height || 0);
-  assertRetinaVariantDimensions("social", socialMetadata.width || 0, socialMetadata.height || 0);
-  return { heroImage, socialImage, trace: generated.trace };
+  try {
+    const [heroImage, socialImage] = await Promise.all([
+      brandedVariant(generated.source, editorialVisualQualityPolicy.hero.width, editorialVisualQualityPolicy.hero.height),
+      brandedVariant(generated.source, editorialVisualQualityPolicy.social.width, editorialVisualQualityPolicy.social.height)
+    ]);
+    const [heroMetadata, socialMetadata] = await Promise.all([sharp(heroImage).metadata(), sharp(socialImage).metadata()]);
+    assertRetinaVariantDimensions("hero", heroMetadata.width || 0, heroMetadata.height || 0);
+    assertRetinaVariantDimensions("social", socialMetadata.width || 0, socialMetadata.height || 0);
+    return { heroImage, socialImage, trace: generated.trace };
+  } catch (error) {
+    throw new EditorialAgentError(
+      `Image derivative preparation failed; review before regenerating: ${error instanceof Error ? error.message : "Unknown image error"}`,
+      generated.trace
+    );
+  }
 }
 
 function positiveLimit(name: string, fallback: number) {
@@ -183,7 +199,7 @@ async function premiumImageBudgetAvailable() {
   const now = new Date();
   const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const providers = config.configured ? ["black-forest-labs"] : ["openai-direct"];
+  const providers = ["black-forest-labs", "openai-direct"];
   const prisma = getPrismaClient();
   const [daily, monthly] = await Promise.all([
     prisma.editorialImage.count({ where: { provider: { in: providers }, updatedAt: { gte: startOfDay } } }),
@@ -272,6 +288,10 @@ export async function ensureEditorialImage(
     });
   }
   if (!force && asset.status === "ready" && asset.promptHash === promptHash && asset.heroImage && asset.socialImage) return asset;
+  if (advisoryRenderNeedsManualRetry({
+    contentType: input.contentType, status: asset.status, force, promptChanged,
+    renderAttempts: record(asset.agentTrace)?.renderAttempts
+  })) return null;
   const age = Date.now() - leaseUpdatedAt.getTime();
   if (
     shouldDeferEditorialImageGeneration({ ageMs: age, force, lastError: asset.lastError, promptChanged, status: asset.status })
@@ -303,7 +323,9 @@ export async function ensureEditorialImage(
       restoreEditorialAgentTrace(asset.agentTrace),
       premiumAllowed
     );
-    const trace = { ...generated.trace, lineage: input.lineage };
+    const trace = { ...generated.trace, lineage: input.lineage,
+      ...(input.contentType === "security_advisory" ? { advisoryImagePolicyVersion } : {})
+    };
     return await prisma.editorialImage.update({
       where: { id: asset.id },
       data: {
@@ -463,6 +485,10 @@ export async function generateMissingEditorialImages(
     });
     const currentPromptHash = crypto.createHash("sha256").update(buildEditorialImagePrompt(input)).digest("hex");
     const promptChanged = Boolean(existing && existing.promptHash !== currentPromptHash);
+    if (existing && advisoryRenderNeedsManualRetry({
+      contentType: input.contentType, status: existing.status, force, promptChanged,
+      renderAttempts: record(existing.agentTrace)?.renderAttempts
+    })) continue;
     const acceptedProviders = new Set(["openai-direct", "black-forest-labs", "qcs-procedural"]);
     const legacyAsset = existing?.status === "ready" && !acceptedProviders.has(existing.provider || "");
     if (!force && existing?.status === "ready" && !legacyAsset && !promptChanged) continue;

@@ -150,3 +150,21 @@ test("large advisory identifier sets are compacted before visual generation", ()
   assert.doesNotMatch(context, /CVE-2026-0500/);
   assert.ok(context.length < 3_000);
 });
+
+test("advisory concepts retain late qualifications instead of clipping technical evidence", () => {
+  const technicalExplanation = `${"The parser processes requests within this component. ".repeat(40)}Authentication is required and exploitation is not confirmed.`;
+  const context = buildAdvisoryImageContext({
+    affectedVersions: [], businessImpact: "Service availability may be affected.", cves: [], cvssScore: null,
+    evidenceChecklist: [], exploitationStatus: "Unknown", fixedVersions: [], products: ["Example gateway"],
+    remediation: "Apply the vendor-approved update.", severity: "high", sourceUrl: "https://example.com/advisory",
+    summary: "A request parser requires an update.", technicalExplanation, title: "Example parser update",
+    vendor: "Example", workaround: null
+  });
+  assert.ok(context.includes(technicalExplanation));
+  const prompt = buildEditorialImagePrompt({ contentType: "security_advisory", context, title: "Example parser update" });
+  assert.match(prompt, /advisory-concept-v1/);
+  assert.match(prompt, /evidence-to-visual mappings/);
+  assert.match(prompt, /not a mandatory three-panel layout/);
+  assert.match(prompt, /label-removal test/);
+  assert.match(prompt, /one approved master scene for both the website and LinkedIn/);
+});
