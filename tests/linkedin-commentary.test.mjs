@@ -8,6 +8,7 @@ import {
   composeEditorialLinkedInPost,
   composeLinkedInProtocolCommentary,
   editorialLinkedInQualityIssues,
+  linkedInWritingBudget,
   formatAgentLinkedInCommentary
 } from "../src/lib/linkedin-commentary.ts";
 import {
@@ -17,6 +18,25 @@ import {
 } from "../src/lib/linkedin-little-text.ts";
 
 const articleUrl = "https://www.qcsstudio.com/resources/example?utm_source=linkedin";
+
+test("writing budget reserves full QCS and vendor URLs before prose", () => {
+  const vendorUrl = "https://vendor.example/security/" + "long-advisory-".repeat(20);
+  assert.equal(linkedInWritingBudget(articleUrl) - linkedInWritingBudget(articleUrl, vendorUrl), vendorUrl.length + "Official vendor source: \n\n".length);
+  assert.equal(linkedInWritingBudget("x".repeat(3000)), 0);
+  const commentary = composeLinkedInProtocolCommentary({
+    hook: "The affected management interface requires a verified exposure check before remediation.",
+    evidence: "The vendor identifies an authentication boundary in the management interface; affected versions must be checked against its release table.",
+    interpretation: "Restricting management reachability reduces exposure but does not replace installing the vendor fix.",
+    actions: ["Inventory deployed versions", "Check management reachability", "Apply the applicable vendor fix", "Review authentication logs"],
+    verification: "Confirm the installed release and test management access after the change.",
+    linkLabel: "QCS technical brief", url: articleUrl, sourceUrl: vendorUrl,
+    hashtags: ["#Cisco", "#NetworkSecurity", "#PatchManagement", "#VulnerabilityManagement", "#CyberSecurity"], maxLength: 2700
+  });
+  assert.ok(commentary.includes(`QCS technical brief: ${articleUrl}`));
+  assert.ok(commentary.includes(`Official vendor source: ${vendorUrl}`));
+  assert.equal(commentary.match(/#\w+/g).length, 5);
+  assert.ok(commentary.length <= 2700);
+});
 
 function article(title, overrides = {}) {
   return {

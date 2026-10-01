@@ -5,6 +5,7 @@ import { editorialAgentConfiguration } from "@/lib/editorial-image-agents";
 import { generateMissingEditorialImages, getEditorialImageSummary } from "@/lib/editorial-image-generation";
 import { requestContext } from "@/lib/security";
 import { createAuditLog } from "@/lib/store";
+import { processEditorialImageQueue } from "@/lib/editorial-image-queue";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,7 +36,10 @@ export async function POST(request: Request) {
   const excludeContentIds = Array.isArray(body.excludeContentIds)
     ? body.excludeContentIds.filter((value): value is string => typeof value === "string" && value.length <= 160).slice(0, 100)
     : [];
-  const outcomes = await generateMissingEditorialImages(limit, force, excludeContentIds, contentId);
+  if (force && !contentId) return jsonError("Select the specific image to retry. Bulk regeneration is not permitted.", 400);
+  const outcomes = force
+    ? await generateMissingEditorialImages(1, true, excludeContentIds, contentId)
+    : [await processEditorialImageQueue(contentId)];
   const session = await getAdminSession();
   await createAuditLog(
     {

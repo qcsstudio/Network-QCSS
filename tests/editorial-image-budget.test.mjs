@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {registerHooks} from 'node:module';
+let records=[],lockCalls=0,tail=Promise.resolve();
+const prisma={$transaction:async fn=>{const previous=tail;let release;tail=new Promise(r=>{release=r});await previous;try{return await fn({$executeRaw:async()=>{lockCalls++},auditLog:{findMany:async()=>records,create:async({data})=>{records.push({...data,createdAt:new Date()});}},editorialImage:{findMany:async()=>[]}});}finally{release();}}};
+globalThis.__imageBudget=prisma;
+const hook=registerHooks({resolve(s,c,n){if(c.parentURL?.endsWith('/editorial-image-budget.ts')&&s==='./prisma.ts')return {url:'data:text/javascript,export const getPrismaClient=()=>globalThis.__imageBudget',shortCircuit:true};return n(s,c);}});
+const {imageBudgetLimit,reserveEditorialImageBudget}=await import('../src/lib/editorial-image-budget.ts');
+const oldDaily=process.env.EDITORIAL_PAID_IMAGES_DAILY_LIMIT, oldMonthly=process.env.EDITORIAL_PAID_IMAGES_MONTHLY_LIMIT;
+test('unset/blank limits use defaults, zero remains an explicit stop',()=>{assert.equal(imageBudgetLimit('',2),2);assert.equal(imageBudgetLimit(undefined,12),12);assert.equal(imageBudgetLimit('0',2),0);});
+test('concurrent reservations cannot exceed daily cap',async()=>{records=[];lockCalls=0;process.env.EDITORIAL_PAID_IMAGES_DAILY_LIMIT='1';process.env.EDITORIAL_PAID_IMAGES_MONTHLY_LIMIT='12';assert.deepEqual(await Promise.all([reserveEditorialImageBudget('a'),reserveEditorialImageBudget('b')]),[true,false]);assert.equal(lockCalls,2);assert.equal(records.length,1);});
+test('same asset retries each consume a separate reservation',async()=>{records=[];process.env.EDITORIAL_PAID_IMAGES_DAILY_LIMIT='3';process.env.EDITORIAL_PAID_IMAGES_MONTHLY_LIMIT='2';assert.equal(await reserveEditorialImageBudget('a'),true);assert.equal(await reserveEditorialImageBudget('a'),true);assert.equal(await reserveEditorialImageBudget('a'),false);});
+test.after(()=>{hook.deregister();delete globalThis.__imageBudget;if(oldDaily===undefined)delete process.env.EDITORIAL_PAID_IMAGES_DAILY_LIMIT;else process.env.EDITORIAL_PAID_IMAGES_DAILY_LIMIT=oldDaily;if(oldMonthly===undefined)delete process.env.EDITORIAL_PAID_IMAGES_MONTHLY_LIMIT;else process.env.EDITORIAL_PAID_IMAGES_MONTHLY_LIMIT=oldMonthly;});

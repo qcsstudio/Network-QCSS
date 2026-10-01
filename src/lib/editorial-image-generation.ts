@@ -22,6 +22,7 @@ import {
 } from "@/lib/editorial-image-prompt";
 import { shouldDeferEditorialImageGeneration } from "@/lib/editorial-image-state";
 import { editorialPerceptualHash, visuallyRepeated } from "@/lib/editorial-image-diversity";
+import { reserveEditorialImageBudget } from "./editorial-image-budget.ts";
 import { assertRetinaVariantDimensions, editorialVisualQualityPolicy } from "@/lib/editorial-quality-policy";
 import { getPrismaClient } from "@/lib/prisma";
 import { resolveContentPostRevision, resolveSecurityAdvisoryRevision } from "@/lib/editorial-revision-snapshots";
@@ -168,29 +169,6 @@ async function createContextualImages(
   }
 }
 
-function positiveLimit(name: string, fallback: number) {
-  const configured = Number(process.env[name]);
-  return Number.isFinite(configured) && configured >= 0 ? Math.floor(configured) : fallback;
-}
-
-async function premiumImageBudgetAvailable() {
-  const config = bflImageConfiguration();
-  if (!config.configured && process.env.EDITORIAL_IMAGE_OPENAI_FALLBACK?.trim() !== "1") return false;
-  const now = new Date();
-  const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const providers = ["black-forest-labs", "openai-direct"];
-  const prisma = getPrismaClient();
-  const [daily, monthly] = await Promise.all([
-    prisma.editorialImage.count({ where: { provider: { in: providers }, updatedAt: { gte: startOfDay } } }),
-    prisma.editorialImage.count({ where: { provider: { in: providers }, updatedAt: { gte: startOfMonth } } })
-  ]);
-  return (
-    daily < positiveLimit("EDITORIAL_PAID_IMAGES_DAILY_LIMIT", 2) &&
-    monthly < positiveLimit("EDITORIAL_PAID_IMAGES_MONTHLY_LIMIT", 12)
-  );
-}
-
 function record(value: Prisma.JsonValue | null | undefined) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : null;
 }
@@ -243,34 +221,13 @@ export async function ensureEditorialImage(
     update: {},
     create: { ...key, altText: input.altText, prompt, promptHash }
   });
+  if (asset.status === "generating" && Date.now() - asset.updatedAt.getTime() < 12 * 60_000) return null;
+  // Prompt improvements must not erase already published artwork or buy a replacement.
+  if (!force && asset.status === "ready" && asset.heroImage && asset.socialImage) return asset;
   const leaseUpdatedAt = asset.updatedAt;
   const promptChanged = asset.promptHash !== promptHash;
-  if (promptChanged || asset.altText !== input.altText || asset.prompt !== prompt) {
-    asset = await prisma.editorialImage.update({
-      where: { id: asset.id },
-      data: {
-        altText: input.altText,
-        prompt,
-        promptHash,
-        ...(promptChanged
-          ? {
-              agentTrace: Prisma.DbNull,
-              generatedAt: null,
-              heroImage: null,
-              lastError: null,
-              model: null,
-              provider: null,
-              qaScore: null,
-              socialImage: null,
-              status: "pending"
-            }
-          : {})
-      }
-    });
-  }
-  if (!force && asset.status === "ready" && asset.promptHash === promptHash && asset.heroImage && asset.socialImage) return asset;
   if (advisoryRenderNeedsManualRetry({
-    contentType: input.contentType, status: asset.status, force, promptChanged,
+    contentType: input.contentType, status: asset.status, force, promptChanged: false,
     renderAttempts: record(asset.agentTrace)?.renderAttempts
   })) return null;
   const age = Date.now() - leaseUpdatedAt.getTime();
@@ -282,27 +239,37 @@ export async function ensureEditorialImage(
   const claimed = await prisma.editorialImage.updateMany({
     where: {
       id: asset.id,
-      ...(force ? {} : { updatedAt: asset.updatedAt })
+      updatedAt: asset.updatedAt,
+      status: asset.status
     },
-    data: { status: "generating", attempts: { increment: 1 }, lastError: null }
+    data: {
+      status: "generating", attempts: { increment: 1 }, lastError: null,
+      altText: input.altText, prompt, promptHash,
+      ...(promptChanged ? { agentTrace: Prisma.DbNull } : {})
+    }
   });
   if (!claimed.count) return null;
   asset = await prisma.editorialImage.findUniqueOrThrow({ where: { id: asset.id } });
 
   try {
+    const providerConfigured = bflImageConfiguration().configured || process.env.EDITORIAL_IMAGE_OPENAI_FALLBACK?.trim() === "1";
+    if (!editorialAgentConfiguration().openAIConfigured || !providerConfigured) throw new Error("Image provider or planning credentials are unavailable. Configure them before retrying.");
+    if (options.premiumAllowed === false || !await reserveEditorialImageBudget(asset.id)) {
+      await prisma.editorialImage.update({ where: { id: asset.id }, data: { status: "budget_wait", lastError: "Image budget is reserved or exhausted. Waiting for the next available daily/monthly allowance; no provider call was made." } });
+      return null;
+    }
     const recentAssets = await prisma.editorialImage.findMany({
       where: { status: "ready", id: { not: asset.id }, agentTrace: { not: Prisma.JsonNull } },
       orderBy: { generatedAt: "desc" },
       take: 8,
       select: { agentTrace: true, contentId: true }
     });
-    const premiumAllowed = options.premiumAllowed ?? (await premiumImageBudgetAvailable());
     const generated = await createContextualImages(
       input,
       prompt,
       recentVisualConcepts(recentAssets),
       restoreEditorialAgentTrace(asset.agentTrace),
-      premiumAllowed
+      true
     );
     const trace = { ...generated.trace, lineage: input.lineage,
       ...(input.contentType === "security_advisory" ? { advisoryImagePolicyVersion } : {})

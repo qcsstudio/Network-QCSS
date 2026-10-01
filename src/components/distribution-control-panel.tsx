@@ -70,6 +70,8 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
   }
 
   async function generateEditorialImage(force = false) {
+    const retry = snapshot?.editorialImages.latest.find((item) => item.status === "failed");
+    if (force && (!retry || !window.confirm("Retry this failed image within the existing paid-image budget? A provider call can incur a charge."))) return;
     const action = force ? "Retrying contextual image" : "Generating contextual image";
     setBusy(action);
     setMessage(`${action}...`);
@@ -77,7 +79,7 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
       const response = await fetch("/api/admin/editorial-images", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ force, limit: 1 })
+        body: JSON.stringify({ force, limit: 1, ...(force && retry ? { contentId: retry.contentId } : {}) })
       });
       const result = (await response.json()) as { error?: string; outcomes?: Array<{ status: string }> };
       if (!response.ok) throw new Error(result.error || `${action} failed.`);
@@ -181,6 +183,8 @@ export function DistributionControlPanel({ initialSnapshot }: { initialSnapshot:
           </div>
           <div className="distribution-metrics">
             <span><strong>{snapshot?.editorialImages.counts.ready || 0}</strong> Ready</span>
+            <span><strong>{snapshot?.editorialImages.counts.pending || 0}</strong> Queued</span>
+            <span><strong>{snapshot?.editorialImages.counts.budget_wait || 0}</strong> Budget wait</span>
             <span><strong>{snapshot?.editorialImages.counts.generating || 0}</strong> Generating</span>
             <span><strong>{snapshot?.editorialImages.counts.failed || 0}</strong> Failed</span>
           </div>

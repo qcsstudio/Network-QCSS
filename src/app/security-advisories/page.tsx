@@ -9,6 +9,7 @@ import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
 import { loadSection } from "@/lib/section-availability";
 import { SectionUnavailable } from "@/components/section-unavailable";
+import { readyAdvisoryImages } from "@/lib/advisory-image-availability";
 
 export const dynamic = "force-dynamic";
 
@@ -22,9 +23,11 @@ export const metadata: Metadata = createPageMetadata({
 export default async function SecurityAdvisoryDeskPage() {
   const result = await loadSection("Public advisory desk", () => listSecurityAdvisories(100));
   const advisories = result.data ?? [];
+  const imagesResult = await loadSection("Advisory artwork", () => readyAdvisoryImages(advisories));
   const latestVerification = advisories.map((item) => item.lastVerifiedAt).sort((a, b) => b.getTime() - a.getTime())[0];
   const publicAdvisories: PublicAdvisoryRecord[] = advisories.map((advisory) => ({
     id: advisory.id,
+    image: imagesResult.data?.get(advisory.id) ?? null,
     slug: advisory.slug,
     title: advisory.title,
     vendor: advisory.vendor,

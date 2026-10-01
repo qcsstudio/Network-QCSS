@@ -1243,6 +1243,13 @@ main[class^="purpose-"] > .section:nth-of-type(even)::before {
 
 .advisory-command-list.view-list { grid-template-columns: 1fr; }
 
+.advisory-command-card.advisory-without-image,
+.advisory-command-list.view-list .advisory-command-card.advisory-without-image,
+.advisory-article-hero.advisory-without-image {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto;
+}
+
 .advisory-command-list.view-list .advisory-command-card {
   grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
   grid-template-rows: 1fr;

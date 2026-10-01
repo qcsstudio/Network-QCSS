@@ -187,16 +187,15 @@ async function enqueue(input: {
 
 export async function queueLinkedInForContentPost(post: ContentPostRecord) {
   const revision = String(post.revisions[0]?.version || post.updatedAt);
-  const generated = await buildEditorialLinkedInCommentary(post).catch(() => ({ commentary: "", qualityScore: 0, trace: { provider: "awaiting-independent-review" } }));
   const storySpine = storySpineForArticle(post.content);
   return enqueue({
     contentType: "content_post",
     contentId: post.id,
     contentRevision: revision,
     sourceUrl: `${siteConfig.url}/resources/${post.slug}`,
-    commentary: generated.commentary,
-    commentaryQualityScore: generated.qualityScore,
-    commentaryTrace: generated.trace as Prisma.InputJsonValue,
+    commentary: "",
+    commentaryQualityScore: 0,
+    commentaryTrace: { provider: "awaiting-independent-review" },
     imageUrl: `${siteConfig.url}/resources/${post.slug}/opengraph-image?v=${encodeURIComponent(revision)}`,
     imageAlt: post.content.imageAlt,
     lineage: createEditorialLineage({ contentType: "content_post", contentId: post.id, contentRevision: revision, storySpine })
@@ -205,24 +204,16 @@ export async function queueLinkedInForContentPost(post: ContentPostRecord) {
 
 export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revision: number | string) {
   const revisionKey = String(revision);
-  const generated = await buildAdvisoryLinkedInCommentary(advisory).catch(() => ({ commentary: "", qualityScore: 0, trace: { provider: "awaiting-independent-review" } }));
-  const commentary = generated.commentary;
   const canonicalUrl = `${siteConfig.url}/security-advisories/${advisory.slug}`;
   const storySpine = storySpineForAdvisory(advisory);
-  const qualityIssues = advisoryLinkedInQualityIssues(
-    commentary,
-    trackedUrl(`/security-advisories/${advisory.slug}`, "security-advisory-desk", advisory.slug),
-    advisoryPost(advisory)
-  );
-  if (qualityIssues.length) throw new Error(`LinkedIn advisory held by publication gate: ${qualityIssues.join(" ")}`);
   return enqueue({
     contentType: "security_advisory",
     contentId: advisory.id,
     contentRevision: revisionKey,
     sourceUrl: canonicalUrl,
-    commentary,
-    commentaryQualityScore: generated.qualityScore,
-    commentaryTrace: generated.trace as Prisma.InputJsonValue,
+    commentary: "",
+    commentaryQualityScore: 0,
+    commentaryTrace: { provider: "awaiting-independent-review" },
     imageUrl: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image?v=${encodeURIComponent(revisionKey)}`,
     imageAlt: `${advisory.severity} ${advisory.vendor} network security advisory: ${advisory.title}`,
     lineage: createEditorialLineage({
@@ -308,12 +299,11 @@ export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
     if (currentPublications.some((publication) => publication.contentRevision === revision)) continue;
     const pendingPublication = currentPublications.find((publication) => publication.status !== "published");
     if (pendingPublication) {
-      const generated = await buildAdvisoryLinkedInCommentary(advisory);
       const storySpine = storySpineForAdvisory(advisory);
       const material = {
-        commentary: generated.commentary,
-        commentaryQualityScore: generated.qualityScore,
-        commentaryTrace: generated.trace as Prisma.InputJsonValue,
+        commentary: "",
+        commentaryQualityScore: 0,
+        commentaryTrace: { provider: "awaiting-independent-review" },
         imageAlt: `${advisory.severity} ${advisory.vendor} network security advisory: ${advisory.title}`,
         imageUrl: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image?v=${encodeURIComponent(revision)}`,
         lineage: createEditorialLineage({

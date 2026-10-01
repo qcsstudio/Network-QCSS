@@ -1,10 +1,7 @@
-import { ImageResponse } from "next/og";
-import { AdvisoryImagePending } from "@/components/advisory-image-pending";
 import { getContextualEditorialImage } from "@/lib/editorial-image-generation";
-import { qcsEditorialLogo } from "@/lib/editorial-logo";
 
 export const runtime = "nodejs";
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -12,19 +9,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
   if (generated) {
     return new Response(generated.image, {
       headers: {
-        "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+        "Cache-Control": "no-store",
         "Content-Type": generated.mimeType
       }
     });
   }
-  const logo = await qcsEditorialLogo();
-
-  return new ImageResponse(
-    <AdvisoryImagePending logoUrl={logo} />,
-    {
-      width: 1440,
-      height: 810,
-      headers: { "Cache-Control": "no-store" }
-    }
-  );
+  return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
 }

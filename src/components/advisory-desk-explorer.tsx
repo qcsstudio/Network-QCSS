@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 export type PublicAdvisoryRecord = {
+  image?: { url: string; altText: string } | null;
   id: string;
   slug: string;
   title: string;
@@ -136,17 +137,17 @@ export function AdvisoryDeskExplorer({ advisories, asOf }: { advisories: PublicA
             const exploited = exploitationConfirmed(advisory.exploitationStatus);
             const tags = [...advisory.cves, ...advisory.products].slice(0, 4);
             return (
-              <article className="advisory-command-card" key={advisory.id}>
-                <Link className="advisory-command-media" href={`/security-advisories/${advisory.slug}`}>
+              <article className={`advisory-command-card${advisory.image ? "" : " advisory-without-image"}`} key={advisory.id}>
+                {advisory.image ? <Link className="advisory-command-media" href={`/security-advisories/${advisory.slug}`}>
                   <Image
-                    alt={`${advisory.vendor} ${advisory.severity} security advisory`}
+                    alt={advisory.image.altText}
                     fill
                     priority={index < 2}
                     sizes={view === "list" ? "(max-width: 760px) 100vw, 320px" : "(max-width: 760px) 100vw, (max-width: 1180px) 50vw, 33vw"}
-                    src={`/security-advisories/${advisory.slug}/visual`}
+                    src={advisory.image.url}
                     unoptimized
                   />
-                </Link>
+                </Link> : null}
                 <div className="advisory-command-body">
                   <div className="advisory-command-kicker">
                     <span className={`severity-pill severity-${advisory.severity}`}>{advisory.severity}</span>

@@ -6,6 +6,7 @@ import {
   editorialLinkedInQualityIssues,
   linkedInCommentaryPolicyVersion,
   linkedInProtocolIssues,
+  linkedInWritingBudget,
   type LinkedInAdvisoryPost,
   type LinkedInEditorialPost
 } from "@/lib/linkedin-commentary";
@@ -224,7 +225,7 @@ function writerInstructions(kind: LinkedInAgentInput["kind"]) {
   if (kind === "advisory") {
     shared.push(
       "For an advisory, include exploitation status, vendor severity and CVSS as separate facts, affected scope, the technical trust or execution path, business consequence, every supplied fixed release, workaround status, exactly four distinct defender actions, and a closure-validation step.",
-      "When a vendor source URL is supplied, place it on its own line as the official source in addition to the QCS technical brief.",
+      "Do not put the vendor URL in prose. The application appends it intact alongside the QCS technical brief.",
       "The result should read like a concise senior analyst briefing: evidence first, interpretation second, action third. Target 1,050 to 2,300 characters."
     );
   } else {
@@ -247,6 +248,7 @@ async function writePost(input: LinkedInAgentInput, correction = "") {
       `CONTENT TYPE: ${input.kind}`,
       `APPROVED SOURCE MATERIAL:\n${JSON.stringify(evidenceFor(input))}`,
       `QCS URL: ${input.url}`,
+      `HARD PROSE BUDGET: ${linkedInWritingBudget(input.url, input.kind === "advisory" ? input.advisory.sourceUrl : "")} characters TOTAL across hook, evidence, interpretation, all actions, verification and question. The application has already reserved space for full links, headings and hashtags. Use an empty question. Aim below this budget, preserve every required fact, and remove repeated context instead of clipping.`,
       correction ? `MANDATORY CORRECTION:\n${correction}` : ""
     ]
       .filter(Boolean)
@@ -360,10 +362,11 @@ async function createLinkedInPost(input: LinkedInAgentInput): Promise<LinkedInRe
         maxLength: 2_700,
         question: latestDraft.question,
         url: input.url,
+        sourceUrl: input.kind === "advisory" ? input.advisory.sourceUrl : undefined,
         verification: latestDraft.verification
       });
     } catch (error) {
-      correction = error instanceof Error ? error.message : "The LinkedIn protocol composition failed.";
+      correction = `${error instanceof Error ? error.message : "The LinkedIn protocol composition failed."}\nRewrite the previous draft within the hard prose budget. Keep identifiers, fixes, qualifications, all actions and verification. Remove repetition; never cut sentences or links. Previous draft:\n${JSON.stringify(latestDraft)}`;
       continue;
     }
     const hardIssues = [...linkedInProtocolIssues(commentary), ...deterministicIssues(input, commentary)];

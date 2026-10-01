@@ -62,6 +62,7 @@ export type LinkedInProtocolDraft = {
   maxLength: number;
   question?: string;
   url: string;
+  sourceUrl?: string;
   verification: string;
 };
 
@@ -408,6 +409,7 @@ export function composeLinkedInProtocolCommentary(input: LinkedInProtocolDraft) 
     ...(question ? ["", question] : []),
     "",
     `${input.linkLabel}: ${input.url}`,
+    ...(input.sourceUrl ? ["", `Official vendor source: ${input.sourceUrl}`] : []),
     "",
     hashtags.join(" ")
   ]).join("\n").trim();
@@ -415,6 +417,12 @@ export function composeLinkedInProtocolCommentary(input: LinkedInProtocolDraft) 
     throw new Error(`LinkedIn protocol composition is ${commentary.length} characters; revise the content blocks below ${input.maxLength} instead of truncating them.`);
   }
   return assertLinkedInProtocol(commentary);
+}
+
+export function linkedInWritingBudget(url: string, sourceUrl = "") {
+  const footer = `QCS technical brief: ${url}\n\n${sourceUrl ? `Official vendor source: ${sourceUrl}\n\n` : ""}`;
+  // Reserve labels, whitespace, numbering and five tags before budgeting prose.
+  return Math.max(0, 2_700 - footer.length - 320);
 }
 
 function keepOnlyFinalQuestion(lines: string[]) {

@@ -7,6 +7,8 @@ import { StructuredData } from "@/components/structured-data";
 import { getSecurityAdvisory } from "@/lib/advisories";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
+import { readyAdvisoryImages } from "@/lib/advisory-image-availability";
+import { loadSection } from "@/lib/section-availability";
 
 type AdvisoryPageProps = { params: Promise<{ slug: string }> };
 
@@ -28,14 +30,21 @@ export async function generateMetadata({ params }: AdvisoryPageProps): Promise<M
   const { slug } = await params;
   const advisory = await getSecurityAdvisory(slug);
   if (!advisory) return {};
-  return createPageMetadata({
+  const imageResult = await loadSection("Advisory artwork", () => readyAdvisoryImages([advisory]));
+  const image = imageResult.data?.get(advisory.id);
+  const metadata = createPageMetadata({
     title: practicalMetaTitle(advisory.title),
     description: advisory.summary.slice(0, 160),
     path: `/security-advisories/${advisory.slug}`,
-    image: { url: `/security-advisories/${advisory.slug}/opengraph-image`, width: 1200, height: 627, alt: advisory.title },
+    ...(image ? { image: { url: image.url.replace("variant=hero", "variant=social"), width: 1200, height: 627, alt: image.altText } } : {}),
     article: { publishedTime: advisory.firstSeenAt.toISOString(), modifiedTime: (advisory.revisions[0]?.createdAt || advisory.updatedAt).toISOString() },
     keywords: [advisory.vendor, ...strings(advisory.cves), ...strings(advisory.products), "security advisory", "vendor patch"]
   });
+  if (!image) {
+    metadata.openGraph = { ...metadata.openGraph, images: [] };
+    metadata.twitter = { ...metadata.twitter, card: "summary", images: [] };
+  }
+  return metadata;
 }
 
 export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps) {
@@ -47,6 +56,8 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
   const affectedVersions = strings(advisory.affectedVersions);
   const fixedVersions = strings(advisory.fixedVersions);
   const evidenceChecklist = strings(advisory.evidenceChecklist);
+  const imageResult = await loadSection("Advisory artwork", () => readyAdvisoryImages([advisory]));
+  const image = imageResult.data?.get(advisory.id);
 
   return (
     <main className="purpose-intelligence">
@@ -57,7 +68,7 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
             "@type": "TechArticle",
             headline: advisory.title,
             description: advisory.summary,
-            image: `${siteConfig.url}/security-advisories/${advisory.slug}/opengraph-image`,
+            ...(image ? { image: `${siteConfig.url}${image.url}` } : {}),
             datePublished: advisory.firstSeenAt.toISOString(),
             dateModified: (advisory.revisions[0]?.createdAt || advisory.updatedAt).toISOString(),
             mainEntityOfPage: `${siteConfig.url}/security-advisories/${advisory.slug}`,
@@ -84,7 +95,7 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
       />
 
       <article>
-        <section className="page-hero advisory-article-hero">
+        <section className={`page-hero advisory-article-hero${image ? "" : " advisory-without-image"}`}>
           <div>
             <Link className="text-link" href="/security-advisories">Security Advisory Desk</Link>
             <div className="advisory-card-meta">
@@ -101,16 +112,16 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
               <span>Revision {advisory.revisions[0]?.version || 1}</span>
             </div>
           </div>
-          <div className="advisory-article-media">
+          {image ? <div className="advisory-article-media">
             <Image
-              alt={`${advisory.vendor} ${advisory.severity} network security advisory visual`}
+              alt={image.altText}
               fill
               priority
               sizes="(max-width: 1080px) 100vw, 42vw"
-              src={`/security-advisories/${advisory.slug}/visual`}
+              src={image.url}
               unoptimized
             />
-          </div>
+          </div> : null}
         </section>
 
         <section className="section advisory-article-layout">
