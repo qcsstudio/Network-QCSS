@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Radio, ShieldAlert } from "lucide-react";
 import { AdvisoryDeskExplorer, type PublicAdvisoryRecord } from "@/components/advisory-desk-explorer";
 import { StructuredData } from "@/components/structured-data";
 import { SignalJourney } from "@/components/signal-journey";
-import { listSecurityAdvisories } from "@/lib/advisories";
+import { getPublicAdvisoryIndex } from "@/lib/public-advisory-index";
+import { advisoryArchiveHref, advisoryArchivePage, normalizeAdvisoryQuery, type AdvisoryArchiveQuery } from "@/lib/advisory-archive";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
 import { loadSection } from "@/lib/section-availability";
@@ -13,15 +15,26 @@ import { readyAdvisoryImages } from "@/lib/advisory-image-availability";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = createPageMetadata({
-  title: "Network Security Vulnerabilities and Vendor Patch Advisories",
-  description: "Track source-verified Cisco, Fortinet, Palo Alto and CISA vulnerability, exploitation, mitigation and patch advisories from the QCS Security Advisory Desk.",
-  path: "/security-advisories",
-  keywords: ["network security advisories", "firewall vulnerabilities", "vendor security patches", "CISA KEV", "Cisco PSIRT", "Fortinet PSIRT"]
-});
+const description = "Track source-verified vendor vulnerabilities, active exploitation, mitigations and patches for enterprise networks and cloud infrastructure with the QCS Security Advisory Desk.";
+type AdvisoryPageProps = { searchParams: Promise<AdvisoryArchiveQuery> };
 
-export default async function SecurityAdvisoryDeskPage() {
-  const result = await loadSection("Public advisory desk", () => listSecurityAdvisories(100));
+export async function generateMetadata({ searchParams }: AdvisoryPageProps): Promise<Metadata> {
+  const query = normalizeAdvisoryQuery(await searchParams);
+  const filtered = Boolean(query.q || query.severity !== "all" || query.vendor !== "all" || query.sort !== "priority");
+  const metadata = createPageMetadata({
+  title: "Network Security Vulnerabilities and Vendor Patch Advisories",
+  description,
+  path: advisoryArchiveHref(query),
+  keywords: ["network security advisories", "firewall vulnerabilities", "vendor security patches", "CISA KEV", "Cisco PSIRT", "Fortinet PSIRT"]
+  });
+  if (query.page > 1) metadata.title = `Security Advisory Desk - Page ${query.page}`;
+  if (filtered) metadata.robots = { index: false, follow: true };
+  return metadata;
+}
+
+export default async function SecurityAdvisoryDeskPage({ searchParams }: AdvisoryPageProps) {
+  const query = normalizeAdvisoryQuery(await searchParams);
+  const result = await loadSection("Public advisory desk", getPublicAdvisoryIndex);
   const advisories = result.data ?? [];
   const imagesResult = await loadSection("Advisory artwork", () => readyAdvisoryImages(advisories));
   const latestVerification = advisories.map((item) => item.lastVerifiedAt).sort((a, b) => b.getTime() - a.getTime())[0];
@@ -43,6 +56,8 @@ export default async function SecurityAdvisoryDeskPage() {
     vendorUpdatedAt: advisory.vendorUpdatedAt.toISOString(),
     lastVerifiedAt: advisory.lastVerifiedAt.toISOString()
   }));
+  const archive = advisoryArchivePage(publicAdvisories, query);
+  if (result.available && query.page > archive.totalPages) notFound();
 
   return (
     <main className="purpose-intelligence">
@@ -52,16 +67,16 @@ export default async function SecurityAdvisoryDeskPage() {
             "@context": "https://schema.org",
             "@type": "CollectionPage",
             name: "QCS Security Advisory Desk",
-            description: metadata.description,
-            url: `${siteConfig.url}/security-advisories`,
+            description,
+            url: `${siteConfig.url}${advisoryArchiveHref(query)}`,
             isPartOf: { "@type": "WebSite", name: siteConfig.name, url: siteConfig.url }
           },
           {
             "@context": "https://schema.org",
             "@type": "ItemList",
-            itemListElement: advisories.map((advisory, index) => ({
+            itemListElement: archive.items.map((advisory, index) => ({
               "@type": "ListItem",
-              position: index + 1,
+              position: archive.start + index + 1,
               name: advisory.title,
               url: `${siteConfig.url}/security-advisories/${advisory.slug}`
             }))
@@ -88,7 +103,7 @@ export default async function SecurityAdvisoryDeskPage() {
           <ShieldAlert aria-hidden="true" size={36} />
           <strong>{result.available ? advisories.length : "Unavailable"}</strong>
           <span>{result.available ? "source-verified records" : "Live counts cannot be confirmed"}</span>
-          <small>{latestVerification ? `Latest verification: ${latestVerification.toLocaleString("en-IN")}` : "No current verification time available."}</small>
+          <small>{latestVerification ? `Latest verification: ${latestVerification.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST` : "No current verification time available."}</small>
         </aside>
       </section>
 
@@ -102,7 +117,7 @@ export default async function SecurityAdvisoryDeskPage() {
         </div>
 
         {!result.available ? <SectionUnavailable title="Security advisory records" /> : advisories.length ? (
-          <AdvisoryDeskExplorer advisories={publicAdvisories} asOf={new Date().toISOString()} />
+          <AdvisoryDeskExplorer key={advisoryArchiveHref(query)} advisories={publicAdvisories} asOf={new Date().toISOString()} initialQuery={query} />
         ) : (
           <div className="content-empty-state">No published advisories are available in this view.</div>
         )}

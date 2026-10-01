@@ -865,11 +865,15 @@ export async function getPublishedDatabasePosts() {
   }
 }
 
-export async function getAllPublishedBlogPosts() {
+export async function getAllPublishedBlogPosts(options: { strict?: boolean } = {}) {
   const merged = new Map(blogPosts.map((post) => [post.slug, post]));
   if (process.env.STORE_DRIVER === "postgres" && process.env.DATABASE_URL) {
     try {
-      const records = await getPrismaClient().contentPost.findMany({ orderBy: { publishedAt: "desc" } });
+      const records = await getPrismaClient().contentPost.findMany({
+        where: { status: { in: ["published", "archived", "deleted"] } },
+        select: { id: true, slug: true, status: true, content: true },
+        orderBy: { publishedAt: "desc" }
+      });
       for (const record of records) {
         if (record.status === "archived" || record.status === "deleted") {
           merged.delete(record.slug);
@@ -882,6 +886,7 @@ export async function getAllPublishedBlogPosts() {
       }
     } catch (error) {
       console.error("Published database posts are unavailable.", error);
+      if (options.strict) throw error;
     }
   }
   return [...merged.values()].sort((left, right) => right.publishedAt.localeCompare(left.publishedAt));

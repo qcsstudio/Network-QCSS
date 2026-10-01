@@ -1,23 +1,38 @@
 import type { MetadataRoute } from "next";
+import { unstable_cache } from "next/cache";
 import { services, siteConfig, solutionPages, tools } from "@/lib/content";
 import { getAllPublishedBlogPosts } from "@/lib/content-posts";
 import { networkUtilityTools } from "@/lib/network-tools";
-import { listSecurityAdvisories } from "@/lib/advisories";
-import { getPublishedCcnaLessons } from "@/lib/ccna-learning";
-import { loadSection } from "@/lib/section-availability";
+import { getPublicAdvisoryIndex } from "@/lib/public-advisory-index";
+import { readyAdvisoryImages } from "@/lib/advisory-image-availability";
+import { getPrismaClient } from "@/lib/prisma";
+import { escapeSitemapUrl } from "@/lib/sitemap-policy";
 
 export const dynamic = "force-dynamic";
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [blogs, security, learning] = await Promise.all([
-    loadSection("Sitemap blog entries", getAllPublishedBlogPosts),
-    loadSection("Sitemap advisory entries", () => listSecurityAdvisories(250)),
-    loadSection("Sitemap lesson entries", getPublishedCcnaLessons)
+const publishedEntries = unstable_cache(async () => {
+  const [blogPosts, advisories, ccnaLessons] = await Promise.all([
+    getAllPublishedBlogPosts({ strict: true }),
+    getPublicAdvisoryIndex(),
+    process.env.DATABASE_URL ? getPrismaClient().ccnaLesson.findMany({
+      where: { status: "published" }, select: { slug: true, updatedAt: true }, orderBy: { sequence: "asc" }
+    }) : Promise.resolve([])
   ]);
-  // Preserve independently available URLs during a content-store outage.
-  const blogPosts = blogs.available ? blogs.data : [];
-  const advisories = security.available ? security.data : [];
-  const ccnaLessons = learning.available ? learning.data : [];
+  const images = await readyAdvisoryImages(advisories);
+  // A failed refresh must not replace the complete inventory with an empty subset.
+  return {
+    blogs: blogPosts.map((post) => ({ slug: post.slug, updatedAt: post.updatedAt })),
+    advisories: advisories.map((item) => ({
+      slug: item.slug, priorityScore: item.priorityScore,
+      modifiedAt: (item.revisions[0]?.createdAt || item.createdAt).toISOString(),
+      image: images.get(item.id)?.url
+    })),
+    lessons: ccnaLessons.map((item) => ({ slug: item.slug, updatedAt: item.updatedAt.toISOString() }))
+  };
+}, ["public-sitemap-inventory-v2"], { revalidate: 300 });
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const { blogs: blogPosts, advisories, lessons: ccnaLessons } = await publishedEntries();
   const staticRoutes = [
     { path: "", priority: 1, changeFrequency: "weekly" as const },
     { path: "/solutions", priority: 0.92, changeFrequency: "weekly" as const },
@@ -69,7 +84,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const advisoryRoutes = advisories.map((advisory) => ({
     url: `${siteConfig.url}/security-advisories/${advisory.slug}`,
-    lastModified: advisory.vendorUpdatedAt,
+    lastModified: new Date(advisory.modifiedAt),
+    images: advisory.image ? [escapeSitemapUrl(`${siteConfig.url}${advisory.image}`)] : undefined,
     changeFrequency: "daily" as const,
     priority: advisory.priorityScore >= 85 ? 0.94 : 0.86
   }));

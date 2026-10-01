@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { BlogArticle } from "@/components/blog-article";
 import { StructuredData } from "@/components/structured-data";
-import { getAllPublishedBlogPosts, getPublishedBlogPost } from "@/lib/content-posts";
+import { getAllPublishedBlogPosts } from "@/lib/content-posts";
 import { siteConfig } from "@/lib/content";
 import { relatedBlogPosts } from "@/lib/blog-presentation";
 import { createPageMetadata } from "@/lib/seo";
@@ -12,10 +13,11 @@ type BlogPageProps = {
 };
 
 export const dynamic = "force-dynamic";
+const loadPosts = cache(() => getAllPublishedBlogPosts());
 
 export async function generateMetadata({ params }: BlogPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getPublishedBlogPost(slug);
+  const post = (await loadPosts()).find((item) => item.slug === slug);
   if (!post) return {};
 
   return createPageMetadata({
@@ -38,7 +40,7 @@ export async function generateMetadata({ params }: BlogPageProps): Promise<Metad
 
 export default async function BlogPostPage({ params }: BlogPageProps) {
   const { slug } = await params;
-  const posts = await getAllPublishedBlogPosts();
+  const posts = await loadPosts();
   const post = posts.find((item) => item.slug === slug);
   if (!post) notFound();
   const relatedPosts = relatedBlogPosts(posts, post);

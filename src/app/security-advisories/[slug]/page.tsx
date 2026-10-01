@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,28 +14,26 @@ import { loadSection } from "@/lib/section-availability";
 type AdvisoryPageProps = { params: Promise<{ slug: string }> };
 
 export const dynamic = "force-dynamic";
+const loadAdvisory = cache(getSecurityAdvisory);
+const loadAdvisoryImage = cache(async (slug: string) => {
+  const advisory = await loadAdvisory(slug);
+  if (!advisory) return undefined;
+  const result = await loadSection("Advisory artwork", () => readyAdvisoryImages([advisory]));
+  return result.data?.get(advisory.id);
+});
 
 function strings(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
-function practicalMetaTitle(title: string) {
-  const suffix = " | Advisory";
-  if (`${title}${suffix}`.length <= 60) return `${title}${suffix}`;
-  const available = 60 - suffix.length;
-  const shortened = title.slice(0, available).replace(/\s+\S*$/, "").trim();
-  return `${shortened}${suffix}`;
-}
-
 export async function generateMetadata({ params }: AdvisoryPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const advisory = await getSecurityAdvisory(slug);
+  const advisory = await loadAdvisory(slug);
   if (!advisory) return {};
-  const imageResult = await loadSection("Advisory artwork", () => readyAdvisoryImages([advisory]));
-  const image = imageResult.data?.get(advisory.id);
+  const image = await loadAdvisoryImage(slug);
   const metadata = createPageMetadata({
-    title: practicalMetaTitle(advisory.title),
-    description: advisory.summary.slice(0, 160),
+    title: advisory.title,
+    description: advisory.summary,
     path: `/security-advisories/${advisory.slug}`,
     ...(image ? { image: { url: image.url.replace("variant=hero", "variant=social"), width: 1200, height: 627, alt: image.altText } } : {}),
     article: { publishedTime: advisory.firstSeenAt.toISOString(), modifiedTime: (advisory.revisions[0]?.createdAt || advisory.updatedAt).toISOString() },
@@ -49,15 +48,14 @@ export async function generateMetadata({ params }: AdvisoryPageProps): Promise<M
 
 export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps) {
   const { slug } = await params;
-  const advisory = await getSecurityAdvisory(slug);
+  const advisory = await loadAdvisory(slug);
   if (!advisory) notFound();
   const cves = strings(advisory.cves);
   const products = strings(advisory.products);
   const affectedVersions = strings(advisory.affectedVersions);
   const fixedVersions = strings(advisory.fixedVersions);
   const evidenceChecklist = strings(advisory.evidenceChecklist);
-  const imageResult = await loadSection("Advisory artwork", () => readyAdvisoryImages([advisory]));
-  const image = imageResult.data?.get(advisory.id);
+  const image = await loadAdvisoryImage(slug);
 
   return (
     <main className="purpose-intelligence">
@@ -108,7 +106,7 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
             <div className="blog-meta">
               <span>QCS published {advisory.firstSeenAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</span>
               <span>Vendor disclosure {advisory.vendorPublishedAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</span>
-              <span>Verified {advisory.lastVerifiedAt.toLocaleString("en-IN")}</span>
+              <span>Verified {advisory.lastVerifiedAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</span>
               <span>Revision {advisory.revisions[0]?.version || 1}</span>
             </div>
           </div>

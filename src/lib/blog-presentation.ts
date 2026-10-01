@@ -11,7 +11,7 @@ const firstPageCapacity = 9;
 const laterPageCapacity = 8;
 
 function normalize(value: string | undefined) {
-  return value?.replace(/\s+/g, " ").trim() || "";
+  return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
 }
 
 export function blogArchivePage(posts: BlogPost[], query: BlogArchiveQuery = {}) {

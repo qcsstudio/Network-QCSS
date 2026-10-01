@@ -5,7 +5,8 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: "/",
+      // These are published article images, not private API responses.
+      allow: ["/", "/api/editorial-media/"],
       disallow: ["/admin", "/api"]
     },
     sitemap: `${siteConfig.url}/sitemap.xml`

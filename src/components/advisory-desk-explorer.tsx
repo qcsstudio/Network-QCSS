@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { advisoryArchiveHref, advisoryArchivePage, advisoryPageSize, normalizeAdvisoryQuery, type AdvisoryArchiveQuery, type AdvisorySort } from "@/lib/advisory-archive";
 import {
   Activity,
   AlertTriangle,
@@ -37,10 +38,6 @@ export type PublicAdvisoryRecord = {
 };
 
 type AdvisoryView = "grid" | "list";
-type AdvisorySort = "priority" | "newest" | "vendor";
-
-const severityRank: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, unrated: 4 };
-const advisoryPageSize = 12;
 
 function exploitationConfirmed(value: string) {
   if (/no known|not aware|not known|no evidence/i.test(value)) return false;
@@ -53,13 +50,14 @@ function formatDate(value: string) {
   return `${date.getUTCDate()} ${months[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
 }
 
-export function AdvisoryDeskExplorer({ advisories, asOf }: { advisories: PublicAdvisoryRecord[]; asOf: string }) {
-  const [query, setQuery] = useState("");
-  const [severity, setSeverity] = useState("all");
-  const [vendor, setVendor] = useState("all");
-  const [sort, setSort] = useState<AdvisorySort>("priority");
+export function AdvisoryDeskExplorer({ advisories, asOf, initialQuery = {} }: { advisories: PublicAdvisoryRecord[]; asOf: string; initialQuery?: AdvisoryArchiveQuery }) {
+  const initial = normalizeAdvisoryQuery(initialQuery);
+  const [query, setQuery] = useState(initial.q);
+  const [severity, setSeverity] = useState(initial.severity);
+  const [vendor, setVendor] = useState(initial.vendor);
+  const [sort, setSort] = useState<AdvisorySort>(initial.sort);
   const [view, setView] = useState<AdvisoryView>("grid");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initial.page);
 
   const vendors = useMemo(
     () => [...new Set(advisories.map((item) => item.vendor))].sort((left, right) => left.localeCompare(right)),
@@ -72,24 +70,7 @@ export function AdvisoryDeskExplorer({ advisories, asOf }: { advisories: PublicA
     verified: advisories.filter((item) => new Date(asOf).getTime() - new Date(item.lastVerifiedAt).getTime() <= 24 * 60 * 60 * 1000).length
   }), [advisories, asOf, vendors.length]);
 
-  const visible = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    return advisories
-      .filter((item) => {
-        if (severity !== "all" && item.severity !== severity) return false;
-        if (vendor !== "all" && item.vendor !== vendor) return false;
-        if (!normalizedQuery) return true;
-        return [item.title, item.vendor, item.summary, item.exploitationStatus, ...item.cves, ...item.products]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedQuery);
-      })
-      .sort((left, right) => {
-        if (sort === "newest") return new Date(right.vendorPublishedAt).getTime() - new Date(left.vendorPublishedAt).getTime();
-        if (sort === "vendor") return left.vendor.localeCompare(right.vendor) || severityRank[left.severity] - severityRank[right.severity];
-        return right.priorityScore - left.priorityScore || severityRank[left.severity] - severityRank[right.severity];
-      });
-  }, [advisories, query, severity, sort, vendor]);
+  const archive = useMemo(() => advisoryArchivePage(advisories, { q: query, severity, vendor, sort, page }), [advisories, query, severity, sort, vendor, page]);
 
   function resetFilters() {
     setQuery("");
@@ -99,10 +80,8 @@ export function AdvisoryDeskExplorer({ advisories, asOf }: { advisories: PublicA
     setPage(1);
   }
 
-  const totalPages = Math.max(1, Math.ceil(visible.length / advisoryPageSize));
-  const currentPage = Math.min(page, totalPages);
-  const pageStart = (currentPage - 1) * advisoryPageSize;
-  const pageItems = visible.slice(pageStart, pageStart + advisoryPageSize);
+  const { totalPages, page: currentPage, start: pageStart, items: pageItems, total } = archive;
+  const pageHref = (next: number) => `${advisoryArchiveHref({ q: query, severity, vendor, sort }, next)}#latest-advisories`;
 
   return (
     <div className="advisory-desk-explorer">
@@ -113,27 +92,28 @@ export function AdvisoryDeskExplorer({ advisories, asOf }: { advisories: PublicA
         <article><CheckCircle2 aria-hidden="true" /><span>Verified in 24 hours</span><strong>{metrics.verified}</strong></article>
       </div>
 
-      <div className="advisory-desk-controls">
+      <form action="/security-advisories#latest-advisories" method="get" className="advisory-desk-controls">
         <label className="advisory-desk-search">
           <span>Search the advisory desk</span>
-          <div><Search aria-hidden="true" size={19} /><input onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="CVE, vendor, product, or vulnerability" type="search" value={query} /></div>
+          <div><Search aria-hidden="true" size={19} /><input name="q" maxLength={200} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder="CVE, vendor, product, or vulnerability" type="search" value={query} /></div>
         </label>
-        <label><span>Severity</span><select onChange={(event) => { setSeverity(event.target.value); setPage(1); }} value={severity}><option value="all">All severities</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option><option value="unrated">Unrated</option></select></label>
-        <label><span>Vendor</span><select onChange={(event) => { setVendor(event.target.value); setPage(1); }} value={vendor}><option value="all">All vendors</option>{vendors.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
-        <label><span>Order</span><select onChange={(event) => { setSort(event.target.value as AdvisorySort); setPage(1); }} value={sort}><option value="priority">Highest priority</option><option value="newest">Newest disclosure</option><option value="vendor">Vendor A-Z</option></select></label>
+        <label><span>Severity</span><select name="severity" onChange={(event) => { setSeverity(event.target.value); setPage(1); }} value={severity}><option value="all">All severities</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option><option value="unrated">Unrated</option></select></label>
+        <label><span>Vendor</span><select name="vendor" onChange={(event) => { setVendor(event.target.value); setPage(1); }} value={vendor}><option value="all">All vendors</option>{vendors.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+        <label><span>Order</span><select name="sort" onChange={(event) => { setSort(event.target.value as AdvisorySort); setPage(1); }} value={sort}><option value="priority">Highest priority</option><option value="newest">Newest disclosure</option><option value="vendor">Vendor A-Z</option></select></label>
         <div className="advisory-view-control" aria-label="Advisory view" role="group">
           <button aria-label="Grid view" aria-pressed={view === "grid"} onClick={() => setView("grid")} title="Grid view" type="button"><Grid2X2 aria-hidden="true" size={18} /></button>
           <button aria-label="List view" aria-pressed={view === "list"} onClick={() => setView("list")} title="List view" type="button"><List aria-hidden="true" size={19} /></button>
         </div>
-        <button className="icon-button" onClick={resetFilters} title="Reset advisory filters" type="button"><SlidersHorizontal aria-hidden="true" size={18} /></button>
-      </div>
+        <button aria-label="Reset advisory filters" className="icon-button" onClick={resetFilters} title="Reset advisory filters" type="button"><SlidersHorizontal aria-hidden="true" size={18} /></button>
+        <noscript><button className="button secondary" type="submit">Apply filters</button></noscript>
+      </form>
 
       <div className="advisory-results-bar" aria-live="polite">
-        <span><Activity aria-hidden="true" size={16} /> {visible.length ? `Showing ${pageStart + 1}-${Math.min(pageStart + advisoryPageSize, visible.length)} of ${visible.length}` : "No advisories"}</span>
+        <span><Activity aria-hidden="true" size={16} /> {total ? `Showing ${pageStart + 1}-${Math.min(pageStart + advisoryPageSize, total)} of ${total}` : "No advisories"}</span>
         <span>{sort === "priority" ? "Ordered by operational priority" : sort === "newest" ? "Ordered by disclosure date" : "Grouped by vendor"}</span>
       </div>
 
-      {visible.length ? (
+      {total ? (
         <div className={`advisory-command-list view-${view}`}>
           {pageItems.map((advisory, index) => {
             const exploited = exploitationConfirmed(advisory.exploitationStatus);
@@ -174,11 +154,11 @@ export function AdvisoryDeskExplorer({ advisories, asOf }: { advisories: PublicA
       ) : (
         <div className="content-empty-state"><Search aria-hidden="true" size={28} /><strong>No matching advisories</strong><span>Try a broader vendor, product, severity, or CVE search.</span><button className="button secondary" onClick={resetFilters} type="button">View all advisories</button></div>
       )}
-      {visible.length > advisoryPageSize ? (
+      {total > advisoryPageSize ? (
         <nav aria-label="Advisory pages" className="advisory-pagination">
-          <button disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} type="button"><ChevronLeft aria-hidden="true" size={17} /> Previous</button>
+          {currentPage > 1 ? <Link prefetch={false} href={pageHref(currentPage - 1)} rel="prev"><ChevronLeft aria-hidden="true" size={17} /> Previous</Link> : <span />}
           <span>Page {currentPage} of {totalPages}</span>
-          <button disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} type="button">Next <ChevronRight aria-hidden="true" size={17} /></button>
+          {currentPage < totalPages ? <Link prefetch={false} href={pageHref(currentPage + 1)} rel="next">Next <ChevronRight aria-hidden="true" size={17} /></Link> : <span />}
         </nav>
       ) : null}
     </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { BookOpen, FileCheck2, Library, Tags } from "lucide-react";
 import { ResourceDownloads } from "@/components/resource-downloads";
 import { DomainHeroVisual } from "@/components/domain-hero-visual";
@@ -8,6 +9,7 @@ import { SignalJourney } from "@/components/signal-journey";
 import { StructuredData } from "@/components/structured-data";
 import { weeklyBlogCadence, type BlogPost } from "@/lib/blog";
 import { blogArchiveHref, blogArchivePage } from "@/lib/blog-presentation";
+import { archivePageNumber } from "@/lib/advisory-archive";
 import { siteConfig } from "@/lib/content";
 import { getAllPublishedBlogPosts } from "@/lib/content-posts";
 import { createPageMetadata } from "@/lib/seo";
@@ -18,11 +20,15 @@ type ResourcesPageProps = {
   searchParams: Promise<{ format?: string; page?: string; q?: string; topic?: string }>;
 };
 
-export const metadata: Metadata = createPageMetadata({
+const description = "Read practical network security blogs and download checklists for cloud exposure, CISA KEV patching, BGP/RPKI, SASE, packet capture, firewall cleanup and troubleshooting.";
+
+export async function generateMetadata({ searchParams }: ResourcesPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const page = archivePageNumber(params.page);
+  const metadata = createPageMetadata({
   title: "Network Security Blog, Resources, Checklists and Troubleshooting Guides",
-  description:
-    "Read practical network security blogs and download checklists for cloud exposure, CISA KEV patching, BGP/RPKI, SASE, packet capture, firewall cleanup and troubleshooting.",
-  path: "/resources",
+  description,
+  path: blogArchiveHref({ query: params.q, topic: params.topic, format: params.format }, page).split("#")[0],
   keywords: [
     "network security blog",
     "network administration blog",
@@ -32,7 +38,11 @@ export const metadata: Metadata = createPageMetadata({
     "CISA KEV network patching",
     "packet capture runbook"
   ]
-});
+  });
+  if (page > 1) metadata.title = `Network Security Blog and Resources - Page ${page}`;
+  if (params.q || params.topic || params.format) metadata.robots = { index: false, follow: true };
+  return metadata;
+}
 
 function BlogCard({ featured = false, post, priority = false }: { featured?: boolean; post: BlogPost; priority?: boolean }) {
   return (
@@ -68,8 +78,10 @@ function BlogCard({ featured = false, post, priority = false }: { featured?: boo
 export default async function ResourcesPage({ searchParams }: ResourcesPageProps) {
   const posts = await getAllPublishedBlogPosts();
   const params = await searchParams;
-  const query = { format: params.format, page: params.page, query: params.q, topic: params.topic };
+  const query = { format: params.format, page: archivePageNumber(params.page), query: params.q, topic: params.topic };
   const archive = blogArchivePage(posts, query);
+  if (archivePageNumber(params.page) > archive.totalPages) notFound();
+  const visiblePosts = [...(archive.featured ? [archive.featured] : []), ...archive.items];
   const resourceCount = posts.filter((post) => post.contentType === "resource").length;
   const articleCount = posts.length - resourceCount;
   return (
@@ -80,8 +92,8 @@ export default async function ResourcesPage({ searchParams }: ResourcesPageProps
             "@context": "https://schema.org",
             "@type": "CollectionPage",
             name: "Network Security Resources",
-            description: metadata.description,
-            url: `${siteConfig.url}/resources`,
+            description,
+            url: `${siteConfig.url}${blogArchiveHref(query, archive.page).split("#")[0]}`,
             isPartOf: {
               "@type": "WebSite",
               name: siteConfig.name,
@@ -92,7 +104,7 @@ export default async function ResourcesPage({ searchParams }: ResourcesPageProps
             "@context": "https://schema.org",
             "@type": "ItemList",
             name: "Network Security Blog Posts",
-            itemListElement: posts.map((post, index) => ({
+            itemListElement: visiblePosts.map((post, index) => ({
               "@type": "ListItem",
               position: index + 1,
               name: post.title,

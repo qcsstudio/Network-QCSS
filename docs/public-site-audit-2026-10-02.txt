@@ -1,0 +1,138 @@
+QCS PUBLIC WEBSITE AUDIT
+Date: 2 October 2026
+Site: https://www.qcsstudio.com
+Scope: Public UI/UX, crawlability, metadata, structured data, search and AI discovery.
+
+VERIFIED COVERAGE
+
+- Baseline: all 271 sitemap URLs fetched, plus seven additional public links.
+  Every sitemap URL returned HTTP 200. No missing title, description, canonical,
+  document language, image alt attribute, or invalid JSON-LD was detected.
+- Local release: all 271 sitemap URLs fetched, plus eight additional public links.
+  Every sitemap URL returned HTTP 200 with the same metadata checks passing.
+- 17 representative route templates at 320px, 768px and 1440px: 51 DOM layout
+  checks. No horizontal page overflow or broken completed images was observed.
+  Screenshots were also visually inspected on selected mobile/desktop views.
+- Templates: home, solutions, service, assessment directory, toolbox, password
+  tool, cloud assessment, institute, course, beginner guide, lesson, resources,
+  article, intelligence, advisory archive, advisory detail and privacy.
+- Interactions: mobile navigation open/close and Escape, advisory next-page
+  navigation, CVE search, reset and grid/list switching.
+- 17 focused unit tests pass, including 301-record archive coverage and XML
+  serialization using the installed Next.js serializer.
+- Eight HTTP discovery-contract checks pass locally, including all 13 advisory
+  archive pages, crawler user-agent probes and private-route noindex headers.
+
+FINDINGS AND IMPLEMENTED FIXES
+
+HIGH: Published editorial artwork was blocked by robots.txt.
+  /api was disallowed even though ready public images use /api/editorial-media/.
+  Added a narrow Allow for the public media path. Admin and other API paths stay
+  disallowed; public media publication/revision checks remain intact.
+
+HIGH: The advisory archive stopped at 100 of 155 published records.
+  Added an uncapped, lightweight public index. The archive now displays all 155
+  records, nine vendors and 13 pages, without fetching full revision bodies.
+
+HIGH: Advisory pagination depended on JavaScript-only buttons.
+  Replaced pagination buttons with real links and server-rendered ?page=N pages.
+  Sorting has deterministic tie-breaks; query, vendor and severity survive page
+  navigation. A GET form is available when JavaScript is disabled.
+
+MEDIUM: Resource page two canonicalized to page one.
+  Both archives now self-canonicalize numbered pages. Filter/search variants are
+  noindex, follow. Out-of-range pages return the framework's not-found response
+  and noindex signal instead of endlessly duplicating the final page.
+
+MEDIUM: Archive ItemList markup described records not visible on that page.
+  Structured data now lists only the displayed page's articles/advisories.
+
+MEDIUM: Sitemap discovery was capped at 250 advisories and 100 lessons.
+  Removed these discovery caps. Added 61 real, version-pinned advisory images.
+  XML query-string escaping is regression-tested against Next's serializer.
+  Existing static, service, solution, tool and published-content routes remain.
+
+MEDIUM: A database outage could silently replace sitemap sections with empty lists.
+  Cache the complete inventory for five minutes. Failed refreshes throw instead
+  of writing a successful partial inventory. Cold-cache failures remain server
+  failures, which are more truthful than telling crawlers content disappeared.
+  Existing publication revalidation hooks are preserved.
+
+MEDIUM: Advisory lastmod represented vendor time rather than the QCS revision.
+  Sitemap lastmod now uses the latest stored editorial revision, falling back to
+  the QCS creation time. Routine source verification does not fake a new edit.
+
+MEDIUM: Public blog reads loaded draft records and article rendering repeated reads.
+  Public blog queries now select only needed fields from published/archived/deleted
+  records; drafts are not fetched. Article and advisory metadata/body reads are
+  deduplicated within each server request.
+
+MEDIUM: Search descriptions were hard-cut after 160 characters.
+  Advisory metadata now retains the complete title and summary. Search engines
+  choose their own snippets; an arbitrary character limit is not a ranking rule.
+
+LOW: The advisory search field had two nested borders and excess input padding.
+  Scoped the shared form theme so this compound search control has one border.
+  Kept keyboard focus styling, added an explicit reset label, styled page links
+  as accessible controls, and labeled verification timestamps consistently in IST.
+
+DEFENSE IN DEPTH: Private entry points rely on individual page metadata.
+  Added X-Robots-Tag: noindex, nofollow, noarchive to /admin, /portal and /verifygrid.
+  These routes are intentionally excluded from discovery. Robots directives do
+  not replace authentication; no authentication or security settings were removed.
+
+SEO / AIO / AEO ASSESSMENT
+
+- Important public text and links are present in server-rendered HTML.
+- Article/advisory templates expose summaries, technical detail, actions, dates,
+  source citations and structured data. No fabricated review scores or rankings
+  were added. This audit validates technical structure, not every factual claim.
+- Wildcard robots access permits Google, Bing and search-focused AI crawlers on
+  public routes. Five user-agent probes receive HTML, but these are not requests
+  from the providers' verified IP ranges and do not prove their indexing status.
+- Existing llms.txt is supplementary, not an indexing requirement or guarantee.
+- No extra paid service, image-generation call, or training-crawler policy change
+  was introduced for this audit.
+
+REMAINING ACCOUNT-LEVEL / EDITORIAL CHECKS
+
+1. Confirm verified Google Search Console and Bing Webmaster properties. The user
+   has been asked whether these already exist. Actual indexed/excluded counts,
+   crawl statistics, manual actions and field Core Web Vitals require these data.
+2. Submit https://www.qcsstudio.com/sitemap.xml in both dashboards. Request indexing
+   for important updated pages after live verification, not repeated bulk requests.
+3. IndexNow is not yet enabled. It is an optional free change-notification channel
+   for participating engines, not a Google indexing shortcut. Implement ownership
+   validation and deduplicated publish/update/delete events before enabling it.
+4. Review the DNS cold-start article's combined DNS/BGP/cloud search intent. Its
+   headline visibly spans several topics. Confirm each connection against the
+   cited primary sources before changing the published technical content.
+5. Representative screenshots and DOM checks are not a full WCAG audit. Complete
+   contrast, screen-reader and real-device testing before claiming conformance.
+6. Public content remains dependent on backend availability. The complete sitemap
+   cache helps discovery but does not remove the database provider's free-tier limits.
+
+IMPORTANT LIMITS
+
+No promise of immediate crawling, indexing, rankings, AI citations, or a 100%
+readability/accessibility score. No authenticated admin workflow, paid provider,
+social publisher, lead submission or intrusive network scan was executed.
+Audit response timings are observations, not Lighthouse or real-user CWV results.
+
+REPRODUCIBLE CHECKS
+
+python scripts/public-site-audit.py --output .tmp-site-audit/production.json
+python scripts/verify-public-discovery.py --origin https://www.qcsstudio.com
+node --experimental-strip-types --test tests/advisory-archive.test.mjs tests/public-advisory-index.test.mjs tests/sitemap-policy.test.mjs tests/blog-presentation.test.mjs tests/advisory-image-availability.test.mjs
+
+Local raw evidence: .tmp-site-audit/before.json, local-after.json,
+responsive-checks.json. These are test artifacts, not public website content.
+
+OFFICIAL REFERENCES CHECKED
+
+Google AI features: https://developers.google.com/search/docs/appearance/ai-features
+Google pagination: https://developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading
+Google sitemaps: https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap
+OpenAI crawlers: https://developers.openai.com/api/docs/bots
+Bing guidance: https://www.bing.com/webmasters/help/bing-webmaster-guidelines-30fba23a
+IndexNow protocol: https://www.indexnow.org/documentation
