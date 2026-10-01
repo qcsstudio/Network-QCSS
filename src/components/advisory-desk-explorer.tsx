@@ -48,7 +48,9 @@ function exploitationConfirmed(value: string) {
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const date = new Date(value);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${date.getUTCDate()} ${months[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
 }
 
 export function AdvisoryDeskExplorer({ advisories, asOf }: { advisories: PublicAdvisoryRecord[]; asOf: string }) {
