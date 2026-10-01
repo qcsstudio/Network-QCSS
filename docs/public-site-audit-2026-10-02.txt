@@ -22,6 +22,10 @@ VERIFIED COVERAGE
   serialization using the installed Next.js serializer.
 - Eight HTTP discovery-contract checks pass locally, including all 13 advisory
   archive pages, crawler user-agent probes and private-route noindex headers.
+- Production release aa27a2a: all 271 sitemap pages returned HTTP 200; no metadata
+  contract failures or orphan pages were detected. All eight discovery checks
+  also passed against the live domain. All 195 checked public image URLs returned
+  HTTP 200. Vercel reported the release READY with both production domains assigned.
 
 FINDINGS AND IMPLEMENTED FIXES
 
@@ -75,6 +79,11 @@ LOW: The advisory search field had two nested borders and excess input padding.
   Scoped the shared form theme so this compound search control has one border.
   Kept keyboard focus styling, added an explicit reset label, styled page links
   as accessible controls, and labeled verification timestamps consistently in IST.
+
+LOW: Advisory summary labels were ellipsized on small screens.
+  Labels now wrap in full. At mobile widths, each label occupies its own row
+  above the icon and value, keeping all four meanings readable without shrinking
+  the type. This is scoped to the public advisory summary.
 
 DEFENSE IN DEPTH: Private entry points rely on individual page metadata.
   Added X-Robots-Tag: noindex, nofollow, noarchive to /admin, /portal and /verifygrid.

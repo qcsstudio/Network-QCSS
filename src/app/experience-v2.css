@@ -924,6 +924,18 @@ main[class^="purpose-"] > .section:nth-of-type(even)::before {
   white-space: nowrap;
 }
 
+.advisory-desk-metrics article {
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+}
+
+.advisory-desk-metrics span {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.4;
+}
+
 .editorial-control-strip strong,
 .content-library-metrics strong,
 .advisory-desk-metrics strong {
@@ -1333,6 +1345,9 @@ main[class^="purpose-"] > .section:nth-of-type(even)::before {
   .editorial-control-strip svg,
   .content-library-metrics svg,
   .advisory-desk-metrics svg { grid-row: 1 / span 2; width: 29px; height: 29px; }
+  .advisory-desk-metrics article span { grid-column: 1 / -1; grid-row: 1; min-height: 2.8em; }
+  .advisory-desk-metrics article svg { grid-column: 1; grid-row: 2; }
+  .advisory-desk-metrics article strong { grid-column: 2; grid-row: 2; }
   .advisory-admin-toolbar,
   .advisory-desk-controls { grid-template-columns: 1fr; padding: 11px; }
   .advisory-admin-search,
