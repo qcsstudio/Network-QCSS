@@ -30,5 +30,5 @@ export async function reserveEditorialImageBudget(assetId: string) {
         monthly >= imageBudgetLimit(process.env.EDITORIAL_PAID_IMAGES_MONTHLY_LIMIT, 12)) return false;
     await tx.auditLog.create({ data: { action: reservationAction, actor: "image-worker", target: assetId, metadata: { dailyBefore: daily, monthlyBefore: monthly } } });
     return true;
-  }, { timeout: 15_000 });
+  }, { maxWait: 15_000, timeout: 15_000 });
 }
