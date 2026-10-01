@@ -27,7 +27,7 @@ const direction = {
   palette: ["cool blue", "white", "restrained coral accent"],
   avoid: ["padlock", "globe", "dashboard", "radial topology"],
   diversitySignature: "exchange-boundary-oblique-route-isolation",
-  altText: "Illustration of a disputed internet route being checked at an exchange boundary before a policy change"
+  altText: "Illustration of a disputed internet route being checked at an exchange boundary before a policy change."
 };
 
 test("render prompt preserves article facts and prohibits generated branding or labels", () => {
@@ -212,6 +212,21 @@ test("the actual director refuses repeated advisory concepts after bounded plann
   const prompt = buildEditorialImagePrompt({ contentType: "security_advisory", title: "Synthetic advisory", context: direction.factualAnchors.join("\n") });
   await withMockCredentials(() => assert.rejects(directVisualDirection(prompt, [direction]), /repeats recent work/));
   assert.equal(calls, 2);
+});
+
+test("clipped alt text is rewritten during planning before a paid render", async (t) => {
+  const bodies = [];
+  t.mock.method(globalThis, "fetch", async (input, init) => {
+    const request = new Request(input, init);
+    assert.match(request.url, /\/responses$/);
+    bodies.push(await request.json());
+    return directorResponse(bodies.length === 1 ? { ...advisoryDirection(), altText: "Illustration of a route boundary where the" } : advisoryDirection());
+  });
+  const prompt = buildEditorialImagePrompt({ contentType: "security_advisory", title: "Synthetic advisory", context: direction.factualAnchors.join("\n") });
+  const result = await withMockCredentials(() => directVisualDirection(prompt, []));
+  assert.equal(bodies.length, 2);
+  assert.match(bodies[1].input, /Rewrite altText/);
+  assert.match(result.altText, /\.$/);
 });
 
 test("provider failures retain a paid-attempt trace for the automation retry guard", async (t) => {
