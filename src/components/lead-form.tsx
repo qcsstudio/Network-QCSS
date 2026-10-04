@@ -114,6 +114,7 @@ export function LeadForm({
 
   return (
     <form
+      data-clarity-mask="true"
       className={compact ? "lead-form compact" : "lead-form"}
       onSubmit={submit}
     >

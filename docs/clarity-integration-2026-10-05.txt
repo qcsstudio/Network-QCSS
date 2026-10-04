@@ -1,0 +1,37 @@
+QCS Microsoft Clarity integration
+Project: tjdh7hfz98 (public identifier, not a secret)
+
+Scope
+- Code-owned integration. Do not install a second Clarity tag in GTM.
+- Production runs only on qcsstudio.com and www.qcsstudio.com, not deployment previews.
+- Explicit Analytics AND Session recordings consent is required. Old analytics consent does not imply recording consent.
+- Clarity advertising consent is always denied, independently of marketing pixel choices.
+- Allowed pages: home, services and solutions (excluding training), intelligence, resources and security advisories.
+- All other routes are excluded, including admin, client portals, VerifyGrid, tools, assessments and student/course pages.
+- Query strings, unknown fragments and sensitive same-site referrers fail closed. Campaign visits containing UTMs are therefore intentionally not recorded; GA4 remains the attribution tool.
+- A private navigation stops recording before the new page mounts and disables replay until the next full document visit.
+- A pending tag is unloaded with a document navigation on private navigation or consent withdrawal.
+- Withdrawing either relevant choice stops the SDK and expires QCS first-party Clarity cookies. Existing third-party cookies are controlled by Microsoft/browser policy.
+- Cookie settings is available in the footer. Recording can be re-enabled on the next full eligible visit.
+- Lead forms are explicitly masked. Only the fixed generate_lead event name is passed to Clarity after a successful form response. No identify API, personal fields or dynamic metadata are sent.
+- No server log integration, paid connector, ad campaign, or new subscription is enabled.
+
+Owner dashboard action
+Settings > Setup: turn OFF default cookie setting to enable Consent Mode globally.
+Keep masking at least Balanced; Strict is available for an even more conservative project policy.
+Review Microsoft terms and privacy settings. This technical implementation is not a legal compliance certification.
+
+Verification commands
+node node_modules/tsx/dist/cli.mjs --test tests/clarity-policy.test.mjs
+node node_modules/typescript/bin/tsc --noEmit
+npm run build
+Run tests/clarity-browser.spec.ts against a local production server using FRONTEND_QA_BASE and FRONTEND_QA_EXTERNAL=1.
+CLARITY_LIVE_SDK_QA=1 additionally downloads the real public Microsoft SDK, while intercepting all collection requests and mocking lead submissions locally.
+Browser tests proxy www.qcsstudio.com to the local server to exercise the production hostname guard. They must never forward test form submissions to production.
+
+References
+https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-consent-api-v2
+https://learn.microsoft.com/en-us/clarity/setup-and-installation/consent-mode
+https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-masking
+https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-csp
+https://github.com/microsoft/clarity/blob/master/packages/clarity-js/src/clarity.ts

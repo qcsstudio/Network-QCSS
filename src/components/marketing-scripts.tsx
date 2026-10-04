@@ -2,6 +2,7 @@
 
 import Script from "next/script";
 import { useEffect, useState } from "react";
+import { readBrowserConsent } from "@/lib/browser-consent";
 
 type OptionalConsent = {
   analytics: boolean;
@@ -11,15 +12,7 @@ type OptionalConsent = {
 const deniedConsent: OptionalConsent = { analytics: false, marketing: false };
 
 function readOptionalConsent(): OptionalConsent {
-  const stored = window.localStorage.getItem("network-qcss-consent");
-  if (!stored) return deniedConsent;
-
-  try {
-    const parsed = JSON.parse(stored) as Partial<OptionalConsent>;
-    return { analytics: Boolean(parsed.analytics), marketing: Boolean(parsed.marketing) };
-  } catch {
-    return deniedConsent;
-  }
+  return readBrowserConsent();
 }
 
 export function MarketingScripts() {

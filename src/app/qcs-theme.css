@@ -464,6 +464,8 @@ body.qcs-theme {
 .qcs-footer-bottom { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding: 20px 0; border-top: 1px solid #d6d7e1; }
 .qcs-theme .qcs-footer-bottom p { margin: 0; font-size: 13px; }
 .qcs-footer-bottom a { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; color: #285f8f; font-size: 14px; text-underline-offset: 4px; }
+.qcs-cookie-settings { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 0; border: 0; background: transparent; color: #285f8f; font: inherit; font-size: 14px; cursor: pointer; }
+.qcs-theme .cookie-panel { z-index: 140; overscroll-behavior: contain; }
 .qcs-footer :is(a, button):focus-visible { outline: 3px solid #285f8f; outline-offset: 4px; }
 @media (max-width: 1000px) {
   .qcs-footer-directory { grid-template-columns: minmax(0, 1fr); gap: 32px; }

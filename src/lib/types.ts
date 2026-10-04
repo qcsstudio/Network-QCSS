@@ -5,6 +5,7 @@ export type ConsentState = {
   analytics: boolean;
   marketing: boolean;
   personalization: boolean;
+  sessionReplay?: boolean;
   contact?: boolean;
 };
 

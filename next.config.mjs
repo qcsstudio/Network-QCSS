@@ -27,7 +27,9 @@ const contentSecurityPolicy = [
     "https://www.googletagmanager.com",
     "https://www.google-analytics.com",
     "https://connect.facebook.net",
-    "https://snap.licdn.com"
+    "https://snap.licdn.com",
+    "https://www.clarity.ms",
+    "https://scripts.clarity.ms"
   ]
     .filter(Boolean)
     .join(" "),
@@ -41,7 +43,9 @@ const contentSecurityPolicy = [
     "https://www.google-analytics.com",
     "https://www.googletagmanager.com",
     "https://www.facebook.com",
-    "https://px.ads.linkedin.com"
+    "https://px.ads.linkedin.com",
+    "https://*.clarity.ms",
+    "https://c.bing.com"
   ].join(" "),
   [
     "connect-src",
@@ -53,7 +57,8 @@ const contentSecurityPolicy = [
     "https://www.googletagmanager.com",
     "https://connect.facebook.net",
     "https://www.facebook.com",
-    "https://px.ads.linkedin.com"
+    "https://px.ads.linkedin.com",
+    "https://*.clarity.ms"
   ]
     .filter(Boolean)
     .join(" "),

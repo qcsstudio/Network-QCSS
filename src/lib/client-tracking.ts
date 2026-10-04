@@ -1,6 +1,7 @@
 "use client";
 
 import type { ConsentState, JsonRecord } from "@/lib/types";
+import { trackClarityLead } from "@/lib/clarity-client";
 
 type MetaPixelFn = ((...args: unknown[]) => void) & {
   queue?: unknown[];
@@ -90,6 +91,7 @@ export function trackBrowserEvent(event: string, params: JsonRecord = {}) {
   win.gtag?.("event", event, conversion);
 
   if (event === "generate_lead") {
+    trackClarityLead();
     const googleAdsSendTo = process.env.NEXT_PUBLIC_GOOGLE_ADS_LEAD_SEND_TO;
     const linkedInConversionId = process.env.NEXT_PUBLIC_LINKEDIN_LEAD_CONVERSION_ID;
     if (googleAdsSendTo) {

@@ -1,6 +1,7 @@
 import { ArrowRight, ArrowUp, Globe2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { CookieSettingsButton } from "@/components/consent-banner";
 
 const footerGroups = [
   {
@@ -73,6 +74,7 @@ export function SiteFooter() {
 
         <div className="qcs-footer-bottom">
           <p>&copy; {new Date().getFullYear()} QuantumCrafters Studio Pvt. Ltd.</p>
+          <CookieSettingsButton />
           <a href="#main-content">Back to top <ArrowUp size={18} aria-hidden="true" /></a>
         </div>
       </div>

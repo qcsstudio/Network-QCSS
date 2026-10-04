@@ -5,6 +5,7 @@ export const consentSchema = z.object({
   analytics: z.boolean().default(false),
   marketing: z.boolean().default(false),
   personalization: z.boolean().default(false),
+  sessionReplay: z.boolean().optional(),
   contact: z.boolean().optional()
 });
 

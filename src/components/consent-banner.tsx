@@ -1,19 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { Settings2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { trackBrowserEvent, updateConsentMode } from "@/lib/client-tracking";
+import { CONSENT_KEY, defaultConsent, readBrowserConsent } from "@/lib/browser-consent";
 import type { ConsentState } from "@/lib/types";
 
-const defaultConsent: ConsentState = {
-  necessary: true,
-  analytics: false,
-  marketing: false,
-  personalization: false
-};
-
 const optionalChoices: {
-  key: keyof Pick<ConsentState, "analytics" | "marketing" | "personalization">;
+  key: keyof Pick<ConsentState, "analytics" | "marketing" | "personalization" | "sessionReplay">;
   label: string;
   description: string;
 }[] = [
@@ -21,6 +16,11 @@ const optionalChoices: {
     key: "analytics",
     label: "Analytics",
     description: "Page and tool usage."
+  },
+  {
+    key: "sessionReplay",
+    label: "Session recordings",
+    description: "Microsoft Clarity heatmaps and masked interaction recordings on public business pages. Requires Analytics."
   },
   {
     key: "marketing",
@@ -35,15 +35,15 @@ const optionalChoices: {
 ];
 
 export function getStoredConsent(): ConsentState {
-  if (typeof window === "undefined") return defaultConsent;
-  const saved = window.localStorage.getItem("network-qcss-consent");
-  if (!saved) return defaultConsent;
+  return readBrowserConsent();
+}
 
-  try {
-    return { ...defaultConsent, ...(JSON.parse(saved) as Partial<ConsentState>) };
-  } catch {
-    return defaultConsent;
-  }
+export function CookieSettingsButton() {
+  return (
+    <button className="qcs-cookie-settings" type="button" onClick={() => window.dispatchEvent(new Event("qcs-open-consent"))}>
+      <Settings2 size={18} aria-hidden="true" /> Cookie settings
+    </button>
+  );
 }
 
 export function ConsentBanner() {
@@ -52,19 +52,31 @@ export function ConsentBanner() {
   const [showPreferences, setShowPreferences] = useState(false);
 
   useEffect(() => {
+    const openPreferences = () => {
+      setConsent(getStoredConsent());
+      setShowPreferences(true);
+      setVisible(true);
+      window.setTimeout(() => document.querySelector<HTMLButtonElement>(".cookie-save")?.focus(), 0);
+    };
+    window.addEventListener("qcs-open-consent", openPreferences);
     const timer = window.setTimeout(() => {
-      const saved = window.localStorage.getItem("network-qcss-consent");
+      let saved: string | null = null;
+      try { saved = window.localStorage.getItem(CONSENT_KEY); } catch { /* Keep optional consent off. */ }
       const storedConsent = getStoredConsent();
       setVisible(!saved);
       setConsent(storedConsent);
       updateConsentMode(storedConsent);
     }, 0);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("qcs-open-consent", openPreferences);
+    };
   }, []);
 
   function save(nextConsent: ConsentState) {
-    window.localStorage.setItem("network-qcss-consent", JSON.stringify(nextConsent));
+    nextConsent = { ...nextConsent, sessionReplay: nextConsent.analytics && nextConsent.sessionReplay === true };
+    try { window.localStorage.setItem(CONSENT_KEY, JSON.stringify(nextConsent)); } catch { nextConsent = { ...defaultConsent }; }
     window.dispatchEvent(new Event("qcs-consent-change"));
     setConsent(nextConsent);
     setVisible(false);
@@ -72,7 +84,8 @@ export function ConsentBanner() {
     trackBrowserEvent("consent_updated", {
       analytics: nextConsent.analytics,
       marketing: nextConsent.marketing,
-      personalization: nextConsent.personalization
+      personalization: nextConsent.personalization,
+      sessionReplay: nextConsent.sessionReplay === true
     });
 
     void fetch("/api/events", {
@@ -84,7 +97,7 @@ export function ConsentBanner() {
         requiresAnalytics: false,
         metadata: { source: "banner" }
       })
-    });
+    }).catch(() => undefined);
   }
 
   if (!visible) return null;
@@ -92,6 +105,7 @@ export function ConsentBanner() {
   return (
     <aside
       className="cookie-panel"
+      data-clarity-mask="true"
       role="dialog"
       aria-modal="false"
       aria-labelledby="cookie-consent-title"
@@ -102,7 +116,7 @@ export function ConsentBanner() {
         <h2 id="cookie-consent-title">Your privacy choices</h2>
         <p id="cookie-consent-summary">
           Essential storage keeps the site secure and functional. Optional analytics and marketing remain off unless
-          you allow them.
+          you allow them. Allow all also enables Microsoft Clarity heatmaps and masked session recordings on public business pages.
         </p>
       </div>
 
@@ -120,8 +134,13 @@ export function ConsentBanner() {
               <label className="cookie-option" key={choice.key}>
                 <input
                   checked={Boolean(consent[choice.key])}
+                  disabled={choice.key === "sessionReplay" && !consent.analytics}
                   type="checkbox"
-                  onChange={(event) => setConsent((current) => ({ ...current, [choice.key]: event.target.checked }))}
+                  onChange={(event) => setConsent((current) => ({
+                    ...current,
+                    [choice.key]: event.target.checked,
+                    ...(choice.key === "analytics" && !event.target.checked ? { sessionReplay: false } : {})
+                  }))}
                 />
                 <span>
                   <strong>{choice.label}</strong>
@@ -152,7 +171,7 @@ export function ConsentBanner() {
         <button
           className="button secondary cookie-choice"
           type="button"
-          onClick={() => save({ necessary: true, analytics: true, marketing: true, personalization: true })}
+          onClick={() => save({ necessary: true, analytics: true, marketing: true, personalization: true, sessionReplay: true })}
         >
           Allow all
         </button>
