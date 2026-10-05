@@ -2,8 +2,10 @@ import { getPrismaClient } from "./prisma.ts";
 import { ensureEditorialImageForPublication } from "./editorial-image-generation.ts";
 import { advisoryRenderNeedsManualRetry } from "./advisory-image-policy.ts";
 import { shouldDeferEditorialImageGeneration } from "./editorial-image-state.ts";
+import { editorialImageMode } from "./editorial-image-mode.ts";
 
 export async function discoverEditorialImageJobs() {
+  const status = editorialImageMode() === "codex-assisted" ? "awaiting_codex" : "pending";
   const prisma = getPrismaClient();
   const posts = await prisma.contentPost.findMany({ where: { status: "published" }, select: { id: true, updatedAt: true, revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true } } } });
   const advisories = await prisma.securityAdvisory.findMany({ where: { status: "published", deletedAt: null }, select: { id: true, priorityScore: true, vendorPublishedAt: true, updatedAt: true, revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true } } } });
@@ -12,7 +14,7 @@ export async function discoverEditorialImageJobs() {
     ...advisories.map((item) => ({ contentType: "security_advisory" as const, contentId: item.id, contentRevision: String(item.revisions[0]?.version || item.updatedAt.toISOString()), priority: item.priorityScore, date: item.vendorPublishedAt.getTime() }))
   ].sort((a, b) => b.priority - a.priority || b.date - a.date || a.contentId.localeCompare(b.contentId));
   if (jobs.length) await prisma.editorialImage.createMany({
-    data: jobs.map(({ contentType, contentId, contentRevision }) => ({ contentType, contentId, contentRevision, prompt: "", promptHash: "", altText: "", status: "pending" })),
+    data: jobs.map(({ contentType, contentId, contentRevision }) => ({ contentType, contentId, contentRevision, prompt: "", promptHash: "", altText: "", status })),
     skipDuplicates: true
   });
   return jobs;

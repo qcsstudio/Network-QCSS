@@ -6,6 +6,7 @@ import {
 } from "../src/lib/editorial-image-generation";
 import { buildEditorialImagePrompt } from "../src/lib/editorial-image-prompt";
 import { getPrismaClient } from "../src/lib/prisma";
+import { codexImageProvider } from "../src/lib/editorial-image-mode";
 
 type Publication = Pick<EditorialImageInput, "contentId" | "contentRevision" | "contentType">;
 
@@ -50,6 +51,10 @@ async function main() {
     const current = await prisma.editorialImage.findUnique({
       where: { contentType_contentId_contentRevision: publication }
     });
+    if (current?.status === "ready" && current.provider === codexImageProvider && current.heroImage && current.socialImage) {
+      outcomes.push({ ...publication, status: "preserved-reviewed-codex-image" });
+      continue;
+    }
     const input = await editorialImageInputForPublication(publication);
     const prompt = buildEditorialImagePrompt(input);
     const promptHash = crypto.createHash("sha256").update(prompt).digest("hex");

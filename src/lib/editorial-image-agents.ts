@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { z } from "zod";
+import { editorialImageMode } from "./editorial-image-mode.ts";
 import { advisoryConceptSchema, advisoryConceptIssues, advisoryImagePolicyMarker, articleImagePolicyMarker } from "./advisory-image-policy.ts";
 import { bflImageConfiguration, generateBflEditorialImage } from "./editorial-image-bfl.ts";
 import { editorialVisualQualityInstructions } from "./editorial-quality-policy.ts";
@@ -210,6 +211,11 @@ function usesReasoningControls(model: string) {
 }
 
 export function editorialAgentConfiguration() {
+  if (editorialImageMode() === "codex-assisted") return {
+    configured: true, credentialIssue: "", openAIConfigured: false, premiumConfigured: false,
+    provider: "Codex-assisted (session and reviewed import required)", directorModel: "Codex session",
+    imageModel: "built-in-imagegen", criticModel: "Explicit visual review; no paid API"
+  };
   const credential = openAIApiKeyStatus();
   const bfl = bflImageConfiguration();
   return {
@@ -225,6 +231,7 @@ export function editorialAgentConfiguration() {
 }
 
 function openAIClient() {
+  if (editorialImageMode() === "codex-assisted") throw new EditorialAgentError("Paid image planning is disabled in Codex-assisted mode.");
   const credential = openAIApiKeyStatus();
   if (!credential.configured) throw new EditorialAgentError(openAICredentialMessage(credential));
   return new OpenAI({
@@ -519,6 +526,7 @@ export async function runEditorialImageAgents(
   recentConcepts: RecentVisualConcept[],
   previousTrace: EditorialAgentTrace | null = null
 ) {
+  if (editorialImageMode() === "codex-assisted") throw new EditorialAgentError("Paid image generation is disabled in Codex-assisted mode.");
   const config = editorialAgentConfiguration();
   const retryTrace = traceForEditorialRetry(previousTrace);
   const direction = retryTrace?.direction || (await directVisualDirection(editorialPrompt, recentConcepts));
@@ -574,6 +582,7 @@ export async function runBflEditorialImageAgents(
   recentConcepts: RecentVisualConcept[],
   previousTrace: EditorialAgentTrace | null = null
 ) {
+  if (editorialImageMode() === "codex-assisted") throw new EditorialAgentError("Paid image generation is disabled in Codex-assisted mode.");
   const config = editorialAgentConfiguration();
   const bfl = bflImageConfiguration();
   if (!bfl.configured) throw new EditorialAgentError("BFL_API_KEY is not configured.");

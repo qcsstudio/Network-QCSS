@@ -1,0 +1,87 @@
+QCS CODEX-ASSISTED EDITORIAL IMAGES
+
+Purpose
+Generate contextual blog and advisory artwork in an authorized Codex session,
+then brand, validate and import locally. No separate OpenAI/BFL image API call is
+made by this workflow. Codex still uses cloud models, subscription usage and limits;
+this is not unlimited free generation or an offline model running on this laptop.
+
+The web server cannot invoke Codex's built-in image tool. A running Codex session
+must handle the handoff. No browser automation of ChatGPT, account credential
+sharing, paid fallback, or unattended image-generation schedule is installed.
+
+Enable for server jobs (requires a subsequent reviewed deployment)
+Set EDITORIAL_IMAGE_MODE=codex-assisted. Pending images become awaiting_codex,
+not failed. Forced retries cannot call paid image agents in this mode. Already
+ready images remain unchanged. The default provider-api mode preserves existing
+deployments until this setting is explicitly enabled. Content-writing APIs are
+separate and are not disabled by this image-only setting.
+
+Workflow from repository root
+Node 24 is required. If the machine's npm shim is broken, the tested PowerShell
+equivalent for every command below is:
+& "$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe" node_modules/tsx/dist/cli.mjs -r dotenv/config scripts/codex-editorial-images.ts COMMAND --option=value
+
+1. List jobs: npm run content:images:codex -- list
+2. Export full source and recent concepts:
+   npm run content:images:codex -- prepare --type=content_post --id=ID --out=.tmp-codex-images/UNIQUE-NAME
+   Use --type=security_advisory for advisories. For an offline test, use
+   --source=SOURCE.json instead of --type and --id. Source JSON uses the schema in
+   src/lib/codex-image-workflow.ts. Database commands load dotenv normally; use a
+   securely stored DOTENV_CONFIG_PATH if needed. Never include secrets in a pack.
+3. Ask Codex to read HANDOFF.txt, pack.json and the complete source.json. Inspect
+   recent compositions; verify current primary sources, then create concept.json
+   from concept.example.json. Anchor 2-5 exact excerpts to specific visible elements.
+   Unknown exploitation is not confirmed exploitation. An advance notice is not
+   a published vulnerability disclosure. Keep operational recommendations distinct
+   from vendor claims. Flag contradictory article content rather than illustrating it.
+4. Use Codex's BUILT-IN image generation tool, not the paid CLI/API. Generate a
+   landscape master >=1440 x 810 native pixels, preferably 2048 x 1152. Reserve a
+   quiet upper-left branding area. Do not generate the QCS logo or imitate product
+   interfaces. Choose layout and imagery from the subject, never a fixed security
+   template. Record the exact prompt in concept.json.
+5. Assemble (new package only; refuses to overwrite):
+   npm run content:images:codex -- assemble --pack=.tmp-codex-images/UNIQUE-NAME --image=ABSOLUTE-IMAGE-PATH --background=#f5f7fa
+   Produces 1440x810 web and 1200x627 LinkedIn JPEGs, using contain rather than
+   cropping or upscaling, plus 360px review previews. Branding uses the actual logo.
+   Choose a padding color suited to this individual composition.
+6. Inspect render/hero.jpg, social.jpg and both mobile previews. Check facts,
+   composition, logo, legibility, clipping, misleading connections and the alt text.
+   Copy review.example.json to review.json only after that inspection, recording
+   the real reviewer/method/time, findings and explicit completed checks. Never
+   automatically set the checks to true. There is no claimed 100% score or invented
+   independent reviewer. The review is tied to all source/concept/image hashes.
+7. Local validation: npm run content:images:codex -- check --pack=.tmp-codex-images/UNIQUE-NAME
+8. Database dry run: npm run content:images:codex -- import --pack=.tmp-codex-images/UNIQUE-NAME
+9. Only after explicit authorization, repeat import with --apply. The importer
+   rechecks current content/revision and recent artwork in a serializable database
+   transaction. It writes only EditorialImage and AuditLog. It does not approve or
+   publish articles or create/send/alter social posts. Same-image imports are
+   idempotent; different ready artwork is never overwritten. Concurrent jobs or
+   changed sources fail closed; export a new package rather than forcing a write.
+
+Safety and verification
+- Blog and advisory editorial gates remain unchanged.
+- LinkedIn images retain the source revision lineage expected by delivery checks.
+- No text truncation is performed. Oversized alt text must be rewritten.
+- Byte hashes and a perceptual hash detect tampering/exact or near duplicates;
+  they do not prove semantic accuracy or guarantee visual originality.
+- A 2x image export does not itself guarantee legibility. Inspect at display size.
+- Packages are private local work: .tmp-codex-images/ is ignored by Git.
+- Import into the live asset table can make the image public and can unblock
+  existing distribution jobs. It never edits a post already on LinkedIn. Treat
+  --apply as a production change, even for a previously published article.
+- Paid/provider mode remains supported separately. Imported Codex images are
+  protected from paid backfill, even when the prompt changes or force is used.
+
+Tests
+npm run test:codex-images
+npm run test:images
+npm run typecheck
+
+Local tests block fetch. They cover both content types, incomplete sources,
+clipped text, unsupported evidence, repeated concepts/artwork, bad image bytes,
+low resolution, missing/altered reviews, branding recipe tampering, stale revisions,
+live edits behind frozen revisions, deleted advisories, dry-run imports,
+idempotence, protected ready images and paid-provider entry-point guards.
+Database import tests use an in-memory transaction double, not production writes.

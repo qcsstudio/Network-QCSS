@@ -10,6 +10,7 @@ export function shouldDeferEditorialImageGeneration(input: {
   status: string;
 }) {
   if (input.force || input.promptChanged) return false;
+  if (input.status === "awaiting_codex") return true;
   if (input.status === "budget_wait") return input.ageMs < 60 * 60_000;
   if (input.status === "generating") return input.ageMs < editorialImageGenerationLeaseMs;
   if (input.status === "failed") {

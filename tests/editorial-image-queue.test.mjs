@@ -37,4 +37,12 @@ test('failed paid renders require explicit manual retry and do not starve other 
 test('active generation lease is not selected by another worker',async()=>{reset();assets=[{contentId:'urgent',contentType:'security_advisory',contentRevision:'2',status:'generating',updatedAt:now}];assert.equal((await processEditorialImageQueue()).contentId,'ordinary');});
 test('preparation failure is saved for one image and next invocation reaches other jobs',async()=>{reset();fail=true;assert.equal((await processEditorialImageQueue()).status,'failed');assert.equal(assets.find(a=>a.contentId==='urgent').status,'failed');fail=false;assert.equal((await processEditorialImageQueue()).contentId,'ordinary');});
 test('explicit selection does not generate an unrelated image',async()=>{reset();assert.equal((await processEditorialImageQueue('missing')).status,'idle');assert.equal(calls.length,0);});
+
+test('waiting Codex handoffs do not starve other pending jobs',async()=>{reset();assets=[{contentId:'urgent',contentType:'security_advisory',contentRevision:'2',status:'awaiting_codex',updatedAt:now}];assert.equal((await processEditorialImageQueue()).contentId,'ordinary');});
+
+test('Codex mode discovers every job as a handoff without invoking generation',async()=>{
+  reset();const previous=process.env.EDITORIAL_IMAGE_MODE;process.env.EDITORIAL_IMAGE_MODE='codex-assisted';
+  try{assert.equal((await processEditorialImageQueue()).status,'idle');assert.equal(assets.length,2);assert.ok(assets.every(asset=>asset.status==='awaiting_codex'));assert.equal(calls.length,0);}
+  finally{if(previous===undefined)delete process.env.EDITORIAL_IMAGE_MODE;else process.env.EDITORIAL_IMAGE_MODE=previous;}
+});
 test.after(()=>{hook.deregister();delete globalThis.__imageQueue;});

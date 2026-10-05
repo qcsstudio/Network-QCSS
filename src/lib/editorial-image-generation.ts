@@ -21,6 +21,7 @@ import {
   buildEditorialImagePrompt
 } from "@/lib/editorial-image-prompt";
 import { shouldDeferEditorialImageGeneration } from "@/lib/editorial-image-state";
+import { codexImageProvider, editorialImageAction, editorialImageMode } from "./editorial-image-mode.ts";
 import { editorialPerceptualHash, visuallyRepeated } from "@/lib/editorial-image-diversity";
 import { reserveEditorialImageBudget } from "./editorial-image-budget.ts";
 import { assertRetinaVariantDimensions, editorialVisualQualityPolicy } from "@/lib/editorial-quality-policy";
@@ -208,6 +209,7 @@ export async function ensureEditorialImage(
   force = false,
   options: EditorialImageGenerationOptions = {}
 ) {
+  const mode = editorialImageMode();
   const prisma = getPrismaClient();
   const prompt = buildEditorialImagePrompt(input);
   const promptHash = crypto.createHash("sha256").update(prompt).digest("hex");
@@ -222,8 +224,15 @@ export async function ensureEditorialImage(
     create: { ...key, altText: input.altText, prompt, promptHash }
   });
   if (asset.status === "generating" && Date.now() - asset.updatedAt.getTime() < 12 * 60_000) return null;
-  // Prompt improvements must not erase already published artwork or buy a replacement.
-  if (!force && asset.status === "ready" && asset.heroImage && asset.socialImage) return asset;
+  const action = editorialImageAction({ mode, status: asset.status, complete: Boolean(asset.heroImage && asset.socialImage), provider: asset.provider, force });
+  if (action === "preserve") return asset;
+  if (action === "handoff") {
+    if (asset.status !== "awaiting_codex" || asset.promptHash !== promptHash) await prisma.editorialImage.updateMany({
+      where: { id: asset.id, updatedAt: asset.updatedAt, status: asset.status },
+      data: { status: "awaiting_codex", prompt, promptHash, lastError: "Waiting for a Codex image session and reviewed import. No paid image API was called." }
+    });
+    return null;
+  }
   const leaseUpdatedAt = asset.updatedAt;
   const promptChanged = asset.promptHash !== promptHash;
   if (advisoryRenderNeedsManualRetry({
@@ -437,7 +446,8 @@ export async function generateMissingEditorialImages(
       contentType: input.contentType, status: existing.status, force, promptChanged,
       renderAttempts: record(existing.agentTrace)?.renderAttempts
     })) continue;
-    const acceptedProviders = new Set(["openai-direct", "black-forest-labs", "qcs-procedural"]);
+    if (existing?.status === "ready" && existing.provider === codexImageProvider && existing.heroImage && existing.socialImage) continue;
+    const acceptedProviders = new Set(["openai-direct", "black-forest-labs", "qcs-procedural", codexImageProvider]);
     const legacyAsset = existing?.status === "ready" && !acceptedProviders.has(existing.provider || "");
     if (!force && existing?.status === "ready" && !legacyAsset && !promptChanged) continue;
     if (

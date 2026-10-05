@@ -1,0 +1,52 @@
+QCS CODEX IMAGE WORKFLOW - LOCAL VERIFICATION
+Date: 2026-10-05
+
+Implemented
+- Full-revision evidence package and contextual concept handoff for articles and advisories.
+- Built-in Codex generation; local branding, contain-fit derivatives and review previews.
+- Source, concept, master, logo and derivative fingerprints tied to an explicit visual review.
+- Dry-run-by-default transactional importer with source/revision checks and duplicate checks.
+- Image-only writes plus audit record; no approval, publication or social-post mutations.
+- Preserved editorial lineage for existing social delivery checks.
+- Opt-in codex-assisted server mode: waiting jobs cannot invoke paid image providers.
+- Reviewed Codex assets protected from forced backfill and carry-forward replacement.
+
+Results
+- 12 new workflow tests passed, including transaction-double import, dry run and idempotence.
+- 25 existing agent, prompt and lineage tests passed.
+- 43 image budget, queue, availability, state, policy and LinkedIn protocol tests passed.
+- Total: 80 tests passed.
+- TypeScript check passed.
+- Next.js production build passed; 103 static pages generated.
+- ESLint passed for all new workflow files and touched image modules/scripts/tests.
+
+Real image test
+Input: local copy of the complete existing Cisco October 7 preparation article.
+Primary notice checked: https://www.cisco.com/c/en/us/support/docs/csa/cisco-sa-notice-fBn58ELx.html
+Generation: Codex built-in image tool, no OpenAI/BFL API call.
+Concept: device inventory and backups beside an isolated network rehearsal bench.
+Do not interpret the scene as a literal Cisco hardware test or exploitation evidence.
+Master: 1672 x 941 native pixels; exported without upscaling.
+Web: 1440 x 810 JPEG. LinkedIn: 1200 x 627 JPEG.
+Full-size and 360px derivatives were visually inspected. The same Codex session
+performed that review; no independent automated technical review or universal
+readability score is claimed. The small legal text in the authentic logo is not
+instructional content and is not expected to be read in a thumbnail.
+
+Local files (ignored by Git)
+.tmp-codex-images/cisco-readiness-test/source.json
+.tmp-codex-images/cisco-readiness-test/concept.json
+.tmp-codex-images/cisco-readiness-test/review.json
+.tmp-codex-images/cisco-readiness-test/render/hero.jpg
+.tmp-codex-images/cisco-readiness-test/render/social.jpg
+.tmp-codex-images/cisco-readiness-test/render/prompt.txt
+.tmp-codex-images/cisco-readiness-test/render/manifest.json
+
+Boundaries
+No production database import was performed. Transaction tests used an in-memory
+double, not a live PostgreSQL concurrency test. No deployment or environment change
+was made. No article, advisory, image or LinkedIn/Facebook/Instagram post was
+published or replaced. Production activation still requires the reviewed release
+and EDITORIAL_IMAGE_MODE=codex-assisted. This mode changes image generation only;
+other content-writing API costs and existing distribution schedules are unchanged.
+Codex generation is subscription-metered cloud generation, not free local inference.

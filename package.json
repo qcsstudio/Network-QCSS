@@ -26,6 +26,8 @@
     "content:seed": "node scripts/seed-content-studio.mjs",
     "content:audit": "tsx -r dotenv/config scripts/audit-editorial-library.ts",
     "content:images:backfill": "tsx -r dotenv/config scripts/backfill-editorial-images.ts",
+    "content:images:codex": "tsx -r dotenv/config scripts/codex-editorial-images.ts",
+    "test:codex-images": "tsx --test tests/codex-image-workflow.test.mjs",
     "content:images:carry-forward": "tsx -r dotenv/config scripts/carry-forward-editorial-images.ts",
     "content:upgrade-library": "tsx -r dotenv/config scripts/upgrade-editorial-library.ts",
     "advisories:verify-sources": "tsx scripts/verify-advisory-sources.ts",
