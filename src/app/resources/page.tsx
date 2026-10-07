@@ -117,7 +117,7 @@ export default async function ResourcesPage({ searchParams }: ResourcesPageProps
       <section className="page-hero visual-page-hero">
         <div className="page-hero-copy">
           <p className="eyebrow">Network security intelligence</p>
-          <h1>Practical guidance for infrastructure decisions that cannot wait for guesswork.</h1>
+          <h1>Network insights and resources.</h1>
           <p>
             Start with a direct answer. Run the supporting tools. Use each checklist to prepare evidence for a technical
             review, incident call, audit, or service request.

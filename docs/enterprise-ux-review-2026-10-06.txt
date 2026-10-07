@@ -1,0 +1,90 @@
+QCS enterprise UX implementation and review
+Date: 2026-10-06
+Status: release candidate; follow-up verification completed 2026-10-08
+
+DESIGN DIRECTION
+Keep QCS service-led, with consulting/services as the main conversion journey,
+training secondary and tools supporting acquisition. Preserve the approved
+80/15/5 strategic emphasis and India/international audience. This is an editorial
+priority, not a measured pixel allocation or conversion result.
+
+Use restrained QCS brand accents, legible type, explicit page titles, generous
+section gutters, predictable controls and relevant existing technical graphics.
+Avoid adding a second visual framework or new paid dependencies.
+
+IMPLEMENTED
+- Grouped desktop navigation, clear consultation action and client sign-in.
+- Mobile navigation with Escape, focus containment and background isolation.
+- Active navigation for courses, resources, advisories and service routes.
+- Searchable 56-tool directory: category, sort, grid/list, reset and empty states.
+- Preserve vendor task generator priority and crawlable individual tool links.
+- Simplified hub-page headings and consistent shared public-page styling.
+- Improved homepage hierarchy, section spacing and short-desktop hero fit.
+- Preserve interactive Three.js scenes and respect existing reduced-motion logic.
+- Separate marketing chrome from admin, portal and VerifyGrid workspaces.
+- Refined admin login fields, dashboard shell and compact tab navigation.
+- No changes to authentication, editorial gates, published content or social posts.
+
+VERIFIED
+- Next.js production build completed, including TypeScript and 103 static pages.
+- Focused ESLint completed with no errors for changed TypeScript/TSX files.
+- Eight regression tests passed in tests/enterprise-experience.test.mjs.
+- git diff --check passed; existing line-ending warnings remain informational.
+- Browser layout sweep: 15 routes at 320, 390, 768 and 1440 pixels (60 checks).
+  No horizontal document overflow or clipped button/link controls detected by
+  those geometry checks. These are not a comprehensive accessibility audit.
+- Desktop navigation opens by keyboard; Escape closes and returns focus.
+- Mobile navigation and grouped links inspected visually.
+- Tool search, combined filtering, reset, empty state, A-Z sorting and list mode
+  checked. Packet-capture search returns both relevant tools; DNS returns nine.
+- Homepage CTA/bottom-strip overlap corrected at 1280x720.
+- Hero WebGL canvas renders; changing the focus produces a changed scene image.
+- Admin login visually inspected after input icon-spacing correction.
+
+ROUTES IN RESPONSIVE SWEEP
+/
+/solutions
+/services/penetration-testing
+/network-tools
+/network-tools/vendor-task-script-generator
+/network-tools/strong-password-generator
+/institute
+/courses/ccna
+/intelligence
+/resources
+/security-advisories
+/diagnose
+/admin/login
+/portal/access
+/privacy
+
+LIMITATIONS AND RELEASE CHECKS
+- RESOLVED 2026-10-08: EACCES was the local execution network restriction.
+  The same read-only query with approved network access returned 183 advisories
+  and 34 article records. No database, credential or TLS changes were needed.
+  Restarted only the local preview with network access, bound to 127.0.0.1.
+  Advisory archive rendered 183 records, vendor filtering narrowed to the
+  matching Fortinet record, and the Intelligence page rendered published content.
+  Populated advisory layout had no horizontal overflow at 1440 and 390 pixels.
+- Authenticated dashboard, publishing and client workflows require a signed-in
+  review with working data. No login attempt or authentication bypass was made.
+- Dynamic article, advisory and lesson details were not exhaustively checked.
+- Screen-reader testing, complete WCAG audit, cross-browser certification and
+  Lighthouse/Core Web Vitals measurements were not performed in this pass.
+- No claim of perfect readability, universal accessibility or ranking improvement.
+- Signed-in workflows remain a separate verification gap; authentication and
+  publishing behavior are unchanged by this UI release.
+- Existing unrelated worktree changes remain untouched.
+
+PRIMARY RESEARCH REFERENCES
+IBM Carbon header navigation:
+https://v10.carbondesignsystem.com/components/UI-shell-header/usage/
+IBM Carbon navigation accessibility:
+https://www.carbondesignsystem.com/building-blocks/core/components/ui-shell-left-panel/accessibility
+W3C focus not obscured:
+https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum
+W3C WCAG 2.2 guidance:
+https://www.w3.org/WAI/WCAG22/Understanding/
+Industry service presentation reference:
+https://www.cloudflare.com/global-services/
+https://www.cloudflare.com/en-gb/professional-services/

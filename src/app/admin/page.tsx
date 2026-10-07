@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { LogOut, ShieldCheck } from "lucide-react";
 import { AdminDashboardTabs } from "@/components/admin-dashboard-tabs";
 import { ContentRadarPanel } from "@/components/content-radar-panel";
@@ -66,6 +67,7 @@ export default async function AdminPage() {
             </div>
           </div>
           <div className="admin-command-session">
+            <Link className="workspace-return" href="/">View website</Link>
             <ShieldCheck aria-hidden="true" size={20} />
             <div><span>Authenticated operator</span><strong>{session.email}</strong></div>
             <form method="post" action="/api/admin/logout">

@@ -55,7 +55,7 @@ export default function DiagnosePage() {
       <section className="page-hero visual-page-hero">
         <div className="page-hero-copy">
           <p className="eyebrow">Guided network assessment</p>
-          <h1>Build a decision-ready network snapshot before the next change or escalation.</h1>
+          <h1>Network readiness assessments.</h1>
           <p>
             Answer practical questions about topology, controls, exposure, evidence, and ownership. Receive a risk band,
             a collection checklist, and a recommended next action.

@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { DomainHeroVisual } from "@/components/domain-hero-visual";
 import { CardVisual } from "@/components/card-visual";
+import { ToolDirectory } from "@/components/tool-directory";
 import { LeadForm } from "@/components/lead-form";
 import { StructuredData } from "@/components/structured-data";
-import { SignalJourney } from "@/components/signal-journey";
 import { networkUtilityTools } from "@/lib/network-tools";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
@@ -95,47 +93,19 @@ export default function NetworkToolsPage() {
           <p className="eyebrow">Network utility hub</p>
           <h1>Free network tools.</h1>
           <p>
-            56 practical tools for network engineers. Plan vendor commands, generate strong passwords,
-            check DNS and routing, or review cloud and security settings. Choose the check you need below.
+            {networkUtilityTools.length} tools for DNS, routing, cloud and security.
+            Plan vendor commands, generate passwords or investigate a connection.
           </p>
-          <div className="button-row">
-            <a className="button primary" href="#network-tools">
-              Open Tools
-            </a>
-            <a className="button secondary" href="#tool-review">
-              Request Review
-            </a>
-          </div>
         </div>
 
-        <DomainHeroVisual variant="tools" label="Engineering utilities" title="A useful check before the next change." signals={["Vendor scripts", "Diagnostics", "Security"]} />
       </section>
-
-      <SignalJourney variant="tools" />
 
       <section className="section tool-run-section" id="network-tools">
         <div className="section-heading">
           <p className="eyebrow">Choose a tool</p>
-          <h2>Put the symptom in first. Read the signal before the explanation.</h2>
-          <p>
-            Each tool is built as a focused starting point: enter the domain, IP, URL, CIDR, report, rule, or vendor
-            context and use the result to decide the next engineering action.
-          </p>
+          <h2>Find the right check.</h2>
         </div>
-        <div className="utility-grid">
-          {networkUtilityTools.map((tool) => {
-            const Icon = tool.icon;
-            return (
-              <Link className="utility-card" href={`/network-tools/${tool.slug}`} key={tool.slug}>
-                <CardVisual title={tool.title} context={tool.category} icon={Icon} />
-                <p className="eyebrow">{tool.category}</p>
-                <h2>{tool.title}</h2>
-                <p>{tool.description}</p>
-                <span className="text-link">Open tool</span>
-              </Link>
-            );
-          })}
-        </div>
+        <ToolDirectory tools={networkUtilityTools.map(({ slug, title, description, category }) => ({ slug, title, description, category }))} />
       </section>
 
       <section className="section split">

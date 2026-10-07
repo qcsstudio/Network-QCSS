@@ -5,6 +5,7 @@ import { ExperienceLayer } from "@/components/experience-layer";
 import { MarketingScripts } from "@/components/marketing-scripts";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { PublicSiteChrome } from "@/components/site-chrome";
 import { StructuredData } from "@/components/structured-data";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata, defaultKeywords } from "@/lib/seo";
@@ -111,7 +112,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <div id="main-content" tabIndex={-1}>
           {children}
         </div>
-        <SiteFooter />
+        <PublicSiteChrome><SiteFooter /></PublicSiteChrome>
         <ConsentBanner />
       </body>
     </html>

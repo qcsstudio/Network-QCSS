@@ -56,8 +56,7 @@ export function HomeContent({ children }: { children: ReactNode }) {
       <section className="hero" aria-labelledby="hero-title">
         <div className="hero-copy">
           <p className="eyebrow">
-            <span className="status-dot"></span>QCS / Connected thinking.
-            Practical engineering.
+            QuantumCrafters Studio / Specialist consulting
           </p>
           <h1 id="hero-title">
             Network,
@@ -67,12 +66,12 @@ export function HomeContent({ children }: { children: ReactNode }) {
             <span>consulting.</span>
           </h1>
           <p className="intro">
-            Complex systems.
-            <br /> Clear next steps.
+            Infrastructure decisions.
+            <br /> Backed by evidence.
           </p>
           <p className="hero-description">
-            Find the fault. Understand the risk. Build a better path across your
-            connected business.
+            Troubleshoot critical connections, assess security exposure and plan
+            cloud connectivity. Start with your environment. Leave with a clear next step.
           </p>
           <div className="hero-actions">
             <a className="button primary" href="#contact">
@@ -208,7 +207,7 @@ export function HomeContent({ children }: { children: ReactNode }) {
             className="service-tabs"
             role="tablist"
             aria-label="Consulting services"
-            aria-orientation="vertical"
+            aria-orientation="horizontal"
           >
             <button
               role="tab"

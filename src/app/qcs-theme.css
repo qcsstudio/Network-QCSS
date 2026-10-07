@@ -7,8 +7,8 @@ body.qcs-theme {
   --ink-strong: #242633;
   --ink-body: #4a5063;
   --muted: #5e6272;
-  --page: #fcfcfe;
-  --canvas: #fcfcfe;
+  --page: #fff;
+  --canvas: #fff;
   --canvas-strong: #f0f1f6;
   --surface: #fff;
   --panel: #fff;
@@ -30,10 +30,10 @@ body.qcs-theme {
   --evolution-navy: #242633;
   --evolution-panel: #303342;
   --focus: #285f8f;
-  --shadow: 0 12px 28px #2426330a;
+  --shadow: 0 10px 30px #24263308;
   --shadow-soft: 0 8px 24px #24263308;
   --shadow-lift: 0 15px 32px #24263312;
-  background: #fcfcfe;
+  background: #fff;
   color: #242633;
   font-family: var(--font-body);
   font-size: 16px;
@@ -47,6 +47,7 @@ body.qcs-theme {
 }
 .qcs-theme :is(pre, code, kbd, samp) { font-family: var(--font-tech); }
 .qcs-theme :is(h1, h2, h3, h4) { font-weight: 600; text-wrap: balance; }
+.qcs-theme :is(a, button, input, select, textarea, summary, [tabindex]) { scroll-margin-block: 180px 36px; }
 .qcs-theme :is(button, .button) { text-transform: none; }
 .qcs-theme :is(a, button, input, select, textarea, summary):focus-visible {
   outline: 3px solid #285f8f;
@@ -274,9 +275,9 @@ body.qcs-theme {
 .qcs-theme main:not(.consulting-home) :is(.service-card, .utility-card, .pillar-card, .faq-card)::before,
 .qcs-theme main:not(.consulting-home) :is(.service-card, .utility-card, .pillar-card, .faq-card)::after { display: none; }
 .qcs-theme main:not(.consulting-home) :is(a.service-card, a.utility-card, a.resource-card):is(:hover, :focus-visible) {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   border-color: #b988a0;
-  box-shadow: 0 7px 0 #f0e3eb, 0 14px 26px #24263308;
+  box-shadow: 0 8px 24px #2426330c;
 }
 .qcs-theme :is(.service-card, .utility-card, .pillar-card, .faq-card, .resource-card) h3 { color: #242633; font-size: 22px; line-height: 1.35; margin-block: 16px 12px; }
 .qcs-theme :is(.service-card, .utility-card, .pillar-card, .faq-card, .resource-card) p:not(.eyebrow) { color: #4a5063; font-size: 16px; line-height: 1.75; }
@@ -317,7 +318,7 @@ body.qcs-theme {
 .qcs-theme main:not(.consulting-home) .button.secondary { background: #fff; border: 1px solid #c9cad5; color: #303443; }
 .qcs-theme main:not(.consulting-home) .button.primary:hover { background: #91204d; }
 .qcs-theme main:not(.consulting-home) .text-link { color: #982150; font-weight: 550; }
-.qcs-theme main:not(.consulting-home) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea):not(.advisory-desk-search input) {
+.qcs-theme main:not(.consulting-home) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea):not(.advisory-desk-search input, .directory-search input, .admin-login-input input) {
   max-width: 100%;
   min-height: 44px;
   border: 1px solid #b6b7c5;
@@ -521,6 +522,178 @@ body.qcs-theme {
   .qcs-theme .qcs-domain-canvas { height: 245px; }
   .qcs-theme .qcs-domain-canvas .scene-label { font-size: 9px; padding: 4px 5px; }
   .qcs-scene-controls > span { display: none; }
+}
+/* Enterprise navigation: one consistent shell, with explicit destinations. */
+.qcs-theme .site-header.enterprise-header {
+  display: block;
+  padding: 0 max(24px, calc((100% - 1280px) / 2));
+  min-height: 0;
+  background: #fffffff7;
+  box-shadow: none;
+  isolation: isolate;
+  z-index: 100;
+}
+.header-utility { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 34px; border-bottom: 1px solid #ededf1; font-size: 12px; color: #626573; }
+.header-utility > span, .header-utility > div, .header-utility a { display: flex; align-items: center; gap: 8px; }
+.header-utility > div { gap: 24px; }
+.header-utility a { min-height: 32px; text-underline-offset: 4px; }
+.header-utility a:hover { color: #982150; text-decoration: underline; }
+.header-main { display: grid; grid-template-columns: 184px 1fr auto; align-items: center; gap: 32px; min-height: 80px; }
+.enterprise-header .brand { width: 184px; padding: 0; margin: 0; }
+.enterprise-header .brand-logo { width: 184px; height: auto; }
+.qcs-theme .enterprise-navigation { justify-content: flex-end; gap: 26px; }
+.navigation-group { position: static; }
+.qcs-theme .enterprise-navigation .navigation-group > :is(a, button) { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 48px; padding: 8px 0; border: 0; background: transparent; color: #303443; font-family: inherit; font-size: 20px; font-weight: 550; cursor: pointer; }
+.enterprise-navigation .navigation-group > a::after { display: none; }
+.qcs-theme .enterprise-navigation .navigation-group > :is(a, button):is(:hover, .is-active, [aria-current], [aria-expanded="true"]) { color: #982150; }
+.navigation-group > button[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.qcs-theme .header-contact { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 46px; padding: 10px 17px; border: 1px solid #ad2058; border-radius: 4px; color: #fff; background: #ad2058; font-size: 15px; font-weight: 600; white-space: nowrap; }
+.header-contact:hover { background: #861a45; }
+.navigation-dropdown { position: absolute; top: 100%; left: 0; right: 0; display: grid; grid-template-columns: minmax(220px, 0.65fr) minmax(0, 1.7fr); gap: 48px; padding: 32px max(32px, calc((100% - 1280px) / 2)); background: #fff; border-block: 1px solid #dcdde5; box-shadow: 0 22px 32px #24263316; max-height: calc(100dvh - 130px); overflow-y: auto; }
+.navigation-dropdown[hidden] { display: none; }
+.navigation-context { border-right: 1px solid #e5e5ec; padding-right: 32px; display: flex; flex-direction: column; align-items: flex-start; }
+.navigation-context p { margin: 0 0 12px; color: #982150; font-size: 12px; text-transform: uppercase; }
+.qcs-theme .navigation-context > strong { max-width: 22ch; font-size: 24px; line-height: 1.35; font-weight: 550; color: #242633; }
+.qcs-theme .navigation-context a { margin-top: 20px; font-size: 14px; display: inline-flex; align-items: center; gap: 12px; min-height: 44px; color: #982150; }
+.navigation-destinations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 24px; }
+.qcs-theme .navigation-destinations a { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px; border-radius: 4px; color: #303443; font-size: 16px; text-align: left; }
+.navigation-destinations a::after, .navigation-context a::after { display: none; }
+.navigation-destinations a:hover { background: #f6f6f9; }
+.navigation-destinations a > svg { flex: 0 0 17px; margin-top: 4px; color: #982150; }
+.navigation-destinations strong { display: block; font-size: 16px; font-weight: 600; }
+.navigation-destinations small { display: block; margin-top: 5px; font-size: 13px; font-weight: 400; line-height: 1.6; color: #626573; }
+.qcs-theme .enterprise-mobile-nav { top: 100%; left: 0; right: 0; width: 100%; border-radius: 0; padding: 16px 22px 24px; max-height: calc(100dvh - 78px); overflow-y: auto; overscroll-behavior: contain; font-family: var(--font-body); }
+.enterprise-mobile-nav details { border-bottom: 1px solid #e5e5ec; }
+.enterprise-mobile-nav summary { list-style: none; display: flex; justify-content: space-between; align-items: center; min-height: 54px; gap: 16px; cursor: pointer; font-size: 18px; font-weight: 600; }
+.enterprise-mobile-nav summary::-webkit-details-marker { display: none; }
+.enterprise-mobile-nav details[open] summary { color: #982150; }
+.enterprise-mobile-nav details[open] summary svg { transform: rotate(180deg); }
+.qcs-theme .enterprise-mobile-nav a { display: flex; justify-content: space-between; gap: 12px; border-radius: 0; background: transparent; padding: 13px 0; min-height: 48px; font-family: var(--font-body); }
+.qcs-theme .enterprise-mobile-nav details a { padding: 12px 12px; font-size: 15px; font-weight: 450; color: #4a5063; }
+.qcs-theme .enterprise-mobile-nav a[aria-current] { color: #982150; font-weight: 650; }
+.mobile-nav-contact { margin-top: 20px; border-top: 1px solid #e5e5ec; padding-top: 12px; }
+.qcs-theme .mobile-nav-contact > a:first-child { color: #982150; font-weight: 650; }
+
+/* A fast, scannable directory. Rendered links also work without JavaScript. */
+.directory-toolbar { display: grid; grid-template-columns: minmax(240px, 1.8fr) minmax(170px, 1fr) minmax(130px, 0.7fr) auto; gap: 16px; padding: 24px 0; align-items: end; border-block: 1px solid #dcdde5; }
+.directory-toolbar label { display: grid; gap: 8px; min-width: 0; color: #4a5063; font-size: 13px; font-weight: 600; }
+.directory-toolbar select { width: 100%; }
+.directory-search { display: grid; gap: 8px; min-width: 0; }
+.directory-search > div { display: flex; align-items: center; gap: 10px; border: 1px solid #b6b7c5; border-radius: 4px; padding-inline: 12px; background: #fff; }
+.directory-search svg { flex: 0 0 19px; color: #626573; }
+.qcs-theme main.purpose-tools .directory-search input { border: 0; padding: 11px 0; outline-offset: 2px; min-width: 0; width: 100%; min-height: 46px; background: transparent; color: #242633; font-size: 16px; line-height: 1.5; box-shadow: none; }
+.directory-search button { display: grid; place-items: center; width: 36px; min-width: 36px; height: 42px; border: 0; background: transparent; color: #4a5063; cursor: pointer; }
+.directory-view { display: flex; align-items: center; height: 48px; border: 1px solid #b6b7c5; border-radius: 4px; overflow: hidden; }
+.directory-view button { display: grid; place-items: center; width: 46px; height: 46px; border: 0; background: #fff; color: #626573; cursor: pointer; }
+.directory-view button[aria-pressed="true"] { color: #982150; background: #f9eaf2; box-shadow: inset 0 -3px #ad2058; }
+.directory-summary { display: flex; align-items: center; justify-content: space-between; min-height: 64px; gap: 16px; font-size: 13px; color: #626573; }
+.directory-summary p { margin: 0; }
+.directory-summary button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; border: 0; padding: 0; background: none; color: #982150; font: inherit; cursor: pointer; }
+.directory-results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.directory-tool { display: flex; flex-direction: column; padding: 24px; border: 1px solid #dcdde5; border-radius: 6px; background: #fff; min-width: 0; transition: border-color 160ms, box-shadow 160ms; }
+.directory-tool:hover { border-color: #ad2058; box-shadow: 0 8px 24px #2426330a; }
+.directory-tool-heading { display: flex; gap: 12px; align-items: center; }
+.directory-tool-icon { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 42px; border-radius: 6px; color: #285f8f; background: #edf5fa; }
+.directory-tool-category { font-size: 12px; line-height: 1.45; color: #626573; flex: 1; }
+.directory-tool-heading > svg { color: #777986; flex-shrink: 0; }
+.qcs-theme .directory-tool h3 { margin: 20px 0 10px; font-size: 20px; line-height: 1.35; color: #242633; text-wrap: initial; }
+.directory-tool > p { margin: 0 0 24px; font-size: 14px; line-height: 1.7; color: #4a5063; }
+.directory-tool-action { display: flex; align-items: center; gap: 8px; margin-top: auto; font-size: 13px; font-weight: 650; color: #982150; }
+.directory-results.is-list { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.is-list .directory-tool { display: grid; grid-template-columns: minmax(150px, 0.8fr) minmax(160px, 1fr) minmax(200px, 1.4fr) auto; align-items: center; gap: 24px; border-radius: 0; border-width: 0 0 1px; padding: 20px 8px; }
+.is-list .directory-tool :is(h3, p) { margin: 0; }
+.is-list .directory-tool h3 { font-size: 17px; }
+.is-list .directory-tool-action { margin: 0; }
+.is-list .directory-tool-heading > svg { display: none; }
+.directory-empty { padding: 60px 24px; text-align: center; border-bottom: 1px solid #dcdde5; color: #626573; }
+.directory-empty h3 { color: #242633; font-size: 22px; }
+
+/* Reading and working surfaces have a quieter rhythm than consulting pages. */
+.qcs-theme main:not(.consulting-home) > .section { background: #fff; }
+.qcs-theme main:not(.consulting-home) > .section::before,
+.qcs-theme main:not(.consulting-home) > .section::after { display: none; }
+.qcs-theme main.purpose-tools .tool-hub-hero { display: block; padding-block: 36px; background: #f5f5f9; }
+.qcs-theme .tool-hub-copy { max-width: 850px; }
+.qcs-theme .tool-hub-copy .eyebrow { margin-bottom: 12px; }
+.qcs-theme .tool-hub-copy h1 { margin-bottom: 16px !important; }
+.qcs-theme main.purpose-tools > .tool-run-section { padding-top: 32px; }
+.qcs-theme main.purpose-tools .tool-run-section .section-heading { margin-bottom: 24px; }
+.qcs-theme main.purpose-tools .tool-run-section .section-heading h2 { font-size: 28px; margin: 0; }
+.qcs-theme .tool-run-section .section-heading > .eyebrow { display: none; }
+.qcs-theme main:not(.consulting-home) .section-heading { padding-left: 0; }
+.qcs-theme main:not(.consulting-home) .section-heading::before { display: none; }
+.qcs-theme main:not(.consulting-home) .page-hero { border-bottom: 1px solid #e5e5ec; }
+.qcs-theme :is(.blog-card, .advisory-card) { box-shadow: 0 2px 8px #24263305; border-radius: 6px; }
+.qcs-theme .blog-card h2 { font-size: 23px; text-wrap: initial; }
+.qcs-theme :is(.blog-card-body, .advisory-card-body) { padding: 24px; }
+.qcs-theme :is(.blog-article, .ccna-lesson-article) > section { scroll-margin-top: 150px; }
+.qcs-theme :is(.blog-article, .ccna-lesson-article) :is(p, li) { max-width: 76ch; }
+.qcs-theme :is(.blog-archive-controls, .advisory-desk-controls) { gap: 16px; }
+.qcs-theme :is(.content-library-console, .advisory-desk-toolbar) { border-radius: 4px; box-shadow: none; }
+.qcs-theme .intelligence-lane { border-radius: 0; border-width: 0 0 1px; box-shadow: none; background: #fff; padding: 32px 0; }
+.qcs-theme .intelligence-lane-icon { border-radius: 6px; background: #edf5fa; color: #285f8f; }
+.qcs-theme .admin-login-page { min-height: 100svh; display: grid; align-items: center; padding: 40px 24px; background: #f4f5f8; }
+.qcs-theme .admin-login-shell { width: min(1000px, 100%); margin: 0 auto; grid-template-columns: 1fr 1fr; min-height: 0; }
+.qcs-theme .admin-login-visual { padding: 36px; gap: 40px; min-height: 0; }
+.qcs-theme .admin-login-logo { width: 224px; height: auto; padding: 12px; background: #fff; border-radius: 4px; }
+.qcs-theme .admin-login-copy h1 { max-width: 18ch; font-size: 34px; }
+.qcs-theme .admin-login-copy > p:last-child { font-size: 15px; line-height: 1.7; }
+.qcs-theme .admin-login-access { gap: 24px; }
+.qcs-theme .admin-login-input { gap: 10px; border: 1px solid #b6b7c5; border-radius: 4px; background: #fff; }
+.qcs-theme .admin-login-input input { border: 0; background: transparent; box-shadow: none; border-radius: 0; min-height: 46px; min-width: 0; padding: 10px 0; font-size: 16px; color: #242633; }
+.qcs-theme .admin-login-input:focus-within { outline: 2px solid #285f8f; outline-offset: 3px; }
+.qcs-theme .admin-command-header { background: #fff; border-bottom: 1px solid #dcdde5; padding: 20px 24px; }
+.qcs-theme .admin-command-header :is(p, h1, strong) { color: #242633; }
+.qcs-theme .admin-command-header-inner { max-width: 1440px; margin: auto; }
+.qcs-theme .admin-command-brand h1 { font-size: 26px; }
+.qcs-theme .admin-command-session { color: #4a5063; }
+.qcs-theme .admin-tab-bar { top: 0; padding: 8px; border-radius: 0; box-shadow: 0 4px 12px #24263306; }
+.qcs-theme .admin-primary-tabs { display: flex; gap: 4px; overflow-x: auto; }
+.qcs-theme .admin-primary-tabs button { display: flex; flex: 1 0 auto; align-items: center; justify-content: center; gap: 10px; padding: 12px 16px; min-height: 52px; font-size: 14px; white-space: nowrap; }
+.qcs-theme .admin-primary-tabs button > strong { padding: 2px 7px; min-width: 24px; font-size: 11px; background: #f0f1f6; border-radius: 4px; }
+.qcs-theme .admin-tab-panel { border: 0; padding: 24px 0; background: transparent; }
+.qcs-theme .admin-dashboard-section { max-width: 1488px; margin-inline: auto; padding: 24px; }
+.workspace-return { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; color: #285f8f; text-underline-offset: 4px; }
+
+@media (max-width: 1199px) {
+  .header-main { gap: 22px; }
+  .qcs-theme .enterprise-navigation { gap: 20px; }
+  .qcs-theme .enterprise-navigation .navigation-group > :is(a, button) { font-size: 16px; }
+}
+@media (max-width: 1080px) {
+  .header-main { grid-template-columns: 1fr auto auto; min-height: 78px; gap: 16px; }
+  .header-utility { display: none; }
+  .qcs-theme .enterprise-navigation { display: none; }
+  .qcs-theme .enterprise-header .mobile-menu-backdrop { top: 78px; }
+  .directory-toolbar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .directory-search { grid-column: 1 / -1; }
+  .directory-results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .is-list .directory-tool { grid-template-columns: minmax(140px, 0.8fr) minmax(160px, 1fr) minmax(180px, 1.4fr); }
+  .is-list .directory-tool-action { display: none; }
+}
+@media (max-width: 760px) {
+  .qcs-theme .site-header.enterprise-header { padding-inline: 20px; }
+  .header-main { min-height: 74px; }
+  .qcs-theme .enterprise-header .mobile-menu-backdrop { top: 74px; }
+  .enterprise-header :is(.brand, .brand-logo) { width: 158px; }
+  .qcs-theme .header-contact { min-height: 42px; font-size: 13px; padding: 8px 12px; gap: 6px; }
+  .directory-toolbar { gap: 14px 12px; }
+  .directory-tool { padding: 20px; }
+  .is-list .directory-tool { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .is-list .directory-tool-action { display: flex; }
+  .qcs-theme .admin-dashboard-section { padding: 16px; }
+  .qcs-theme .admin-login-page { padding: 24px 16px; }
+  .qcs-theme .admin-login-shell { grid-template-columns: minmax(0, 1fr); }
+  .qcs-theme .admin-login-visual { padding: 28px; gap: 28px; }
+  .qcs-theme .admin-login-copy h1 { font-size: 28px; max-width: none; }
+}
+@media (max-width: 540px) {
+  .directory-results { grid-template-columns: minmax(0, 1fr); }
+  .directory-toolbar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .directory-view { grid-column: 2; justify-self: end; }
+  .directory-search { grid-column: 1 / -1; }
+  .header-main { grid-template-columns: 1fr auto; }
+  .qcs-theme .header-contact { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .qcs-theme *, .qcs-theme *::before, .qcs-theme *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }

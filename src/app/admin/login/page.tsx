@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { AdminLoginForm } from "@/components/admin-login-form";
 import { adminCredentialsConfigured, getAdminSession } from "@/lib/admin-auth";
@@ -51,6 +52,7 @@ export default async function AdminLoginPage({
         </div>
 
         <div className="admin-login-access">
+          <Link className="workspace-return" href="/">Back to QCS</Link>
           <div className="admin-login-heading">
             <span className="admin-login-shield"><ShieldCheck aria-hidden="true" size={24} /></span>
             <p className="eyebrow">Authorized access</p>

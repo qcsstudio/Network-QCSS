@@ -61,7 +61,7 @@ export default async function IntelligencePage() {
       <section className="page-hero visual-page-hero">
         <div className="page-hero-copy">
           <p className="eyebrow">QCS Network Security Intelligence</p>
-          <h1>Know what changed, whether it matters, and what to do next.</h1>
+          <h1>Network security intelligence.</h1>
           <p>Urgent vendor advisories move through an automatic official-source desk. Deeper analysis, runbooks, and resources are reviewed before publication.</p>
           <div className="button-row">
             <Link className="button primary" href="/security-advisories">Open live advisories</Link>

@@ -87,7 +87,7 @@ export default async function SecurityAdvisoryDeskPage({ searchParams }: Advisor
       <section className="page-hero advisory-desk-hero">
         <div>
           <p className="eyebrow">QCS Security Advisory Desk</p>
-          <h1>Network vulnerabilities and vendor patches, verified at the source.</h1>
+          <h1>Security Advisory Desk.</h1>
           <p>
             Monitor network-edge vulnerabilities, known exploitation, affected products, mitigations, and vendor patch
             guidance without waiting for a weekly editorial cycle.

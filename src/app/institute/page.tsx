@@ -57,7 +57,7 @@ export default function InstitutePage() {
       <section className="page-hero visual-page-hero">
         <div className="page-hero-copy">
           <p className="eyebrow">Institute</p>
-          <h1>Network and network security training built from real operations work.</h1>
+          <h1>Network and security training.</h1>
           <p>
             Build practical skills across networking, firewalls, cloud networking, SOC fundamentals, ethical hacking, and
             troubleshooting scenarios used by real infrastructure teams.

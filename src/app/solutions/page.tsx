@@ -54,7 +54,7 @@ export default function SolutionsPage() {
       <section className="page-hero visual-page-hero">
         <div className="page-hero-copy">
           <p className="eyebrow">Solution hub</p>
-          <h1>Start with the network or security problem blocking your team.</h1>
+          <h1>Network and security solutions.</h1>
           <p>
             Get a direct answer and understand the risk. Move into the right assessment, technical tool, or engineering
             service without sorting through a generic catalogue.

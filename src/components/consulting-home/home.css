@@ -2557,7 +2557,7 @@
 }
 .consulting-home .chapter-nav {
   position: sticky;
-  top: 0;
+  top: 115px;
   z-index: 18;
   display: flex;
   align-items: center;
@@ -3886,6 +3886,66 @@
 }
 
 /* Distinct technical backdrops. Foreground content never moves with the canvas. */
+.qcs-theme .consulting-home { --paper: #fff; --gap: max(32px, calc((100% - 1280px) / 2)); }
+.qcs-theme .consulting-home .hero { min-height: 680px; height: auto; max-height: none; background: #f5f5f9; }
+.qcs-theme .consulting-home .hero-copy { max-width: 760px; padding-top: 48px; }
+.qcs-theme .consulting-home .hero h1 { font-size: 64px; font-weight: 600; line-height: 1.07; }
+.qcs-theme .consulting-home .hero .intro { font-size: 23px; margin-top: 24px; }
+.qcs-theme .consulting-home .hero-description { max-width: 43ch; font-size: 16px; line-height: 1.7; }
+.qcs-theme .consulting-home .context-strip { background: #fff; border-block: 1px solid #e5e5ec; min-height: 82px; }
+.qcs-theme .consulting-home :is(.section, .motion-surface, h1, h2, h3) { opacity: 1; filter: none; }
+.qcs-theme .consulting-home > .section { border-radius: 0; box-shadow: none; }
+.qcs-theme .consulting-home .section-heading h2 { font-size: 42px; line-height: 1.18; }
+.qcs-theme .consulting-home .situations { background: #f4f5f8; }
+.qcs-theme .consulting-home .service-tabs button { min-height: 102px; padding-block: 18px; }
+.qcs-theme .consulting-home .service-tabs strong { font-size: 21px; }
+.qcs-theme .consulting-home .service-tabs button[aria-selected="true"] { background: #fcf1f6; }
+.qcs-theme .consulting-home .expertise-layout { margin-top: 40px; }
+.qcs-theme .consulting-home .situation-grid article { border-top: 2px solid #ad2058; padding-top: 20px; }
+.qcs-theme .consulting-home .situation-grid article:nth-child(2) { border-color: #285f8f; }
+.qcs-theme .consulting-home .situation-grid article:nth-child(3) { border-color: #8d4b20; }
+.qcs-theme .consulting-home .engagement-grid article { padding-top: 24px; border-top: 1px solid #dcdde5; }
+.qcs-theme .consulting-home .engagement-grid :is(h3, p) { min-height: 0; }
+.qcs-theme .consulting-home .engagement-grid article .text-link { margin-top: auto; }
+.qcs-theme .consulting-home .section-backdrop { opacity: .35; }
+@media (min-width: 1000px) and (max-height: 850px) {
+  .qcs-theme .consulting-home .hero { min-height: 580px; }
+  .qcs-theme .consulting-home .hero-copy { padding-block: 32px 96px; }
+  .qcs-theme .consulting-home .hero h1 { font-size: 52px; }
+  .qcs-theme .consulting-home .hero .eyebrow { margin-bottom: 16px; }
+  .qcs-theme .consulting-home .hero .intro { font-size: 20px; margin-top: 18px; max-width: 40ch; }
+  .qcs-theme .consulting-home .hero .intro br { display: none; }
+  .qcs-theme .consulting-home .hero-description { margin-top: 12px; max-width: 46ch; }
+  .qcs-theme .consulting-home .hero-actions { margin-top: 20px; }
+  .qcs-theme .consulting-home .market { margin-top: 12px; }
+}
+@media (max-width: 1080px) {
+  .qcs-theme .consulting-home .chapter-nav { top: 78px; }
+  .qcs-theme .consulting-home { --gap: 32px; }
+}
+@media (max-width: 999px) {
+  .qcs-theme .consulting-home .hero { height: auto; max-height: none; min-height: 0; }
+  .qcs-theme .consulting-home .hero-copy { padding: 40px 32px 16px; }
+  .qcs-theme .consulting-home .hero h1 { font-size: 52px; }
+  .qcs-theme .consulting-home .hero-scene { height: 340px; }
+  .qcs-theme .consulting-home .section-heading h2 { font-size: 36px; }
+}
+@media (max-width: 760px) {
+  .qcs-theme .consulting-home { --gap: 22px; }
+  .qcs-theme .consulting-home .hero-copy { padding: 36px 22px 12px; }
+  .qcs-theme .consulting-home .hero h1 { font-size: 44px; }
+  .qcs-theme .consulting-home .hero .intro { font-size: 21px; }
+  .qcs-theme .consulting-home .hero .intro br { display: none; }
+  .qcs-theme .consulting-home .hero-description { max-width: 50ch; }
+  .qcs-theme .consulting-home .hero-scene { height: 300px; }
+  .qcs-theme .consulting-home .chapter-nav { top: 74px; }
+  .qcs-theme .consulting-home .section-heading h2 { font-size: 32px; }
+  .qcs-theme .consulting-home .service-tabs strong { font-size: 17px; }
+}
+@media (max-width: 359px) {
+  .qcs-theme .consulting-home .hero h1 { font-size: 36px; }
+  .qcs-theme .consulting-home .hero .eyebrow { font-size: 10px; }
+}
 .consulting-home .has-backdrop {
   position: relative;
   isolation: isolate;
