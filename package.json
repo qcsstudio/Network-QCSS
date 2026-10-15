@@ -21,7 +21,7 @@
     "test:verifygrid": "node --experimental-strip-types --test tests/verifygrid-domain.test.mjs",
     "test:images": "node --experimental-strip-types --test tests/editorial-image-budget.test.mjs tests/editorial-image-queue.test.mjs tests/advisory-image-availability.test.mjs tests/editorial-image-state.test.mjs tests/advisory-image-policy.test.mjs tests/linkedin-commentary.test.mjs",
     "test:email": "node --experimental-strip-types --test tests/email-config.test.mjs",
-    "test:ccna": "tsx --test tests/ccna-learning.test.mjs tests/ccna-visuals.test.mjs tests/ccna-openai-requests.test.mjs tests/ccna-lesson-writer.test.mjs tests/ccna-generation-checkpoint.test.mjs tests/ccna-learning-capacity.test.mjs tests/ccna-openai-schema.test.mjs tests/ccna-topology-contract.test.mjs tests/ccna-layered-contract.test.mjs tests/ccna-publication-policy.test.mjs tests/ccna-independent-review.test.mjs",
+    "test:ccna": "tsx --test tests/ccna-learning.test.mjs tests/ccna-visuals.test.mjs tests/ccna-openai-requests.test.mjs tests/ccna-lesson-writer.test.mjs tests/ccna-generation-checkpoint.test.mjs tests/ccna-learning-capacity.test.mjs tests/ccna-openai-schema.test.mjs tests/ccna-topology-contract.test.mjs tests/ccna-layered-contract.test.mjs tests/ccna-publication-policy.test.mjs tests/ccna-independent-review.test.mjs tests/ccna-local-release.test.mjs tests/linkedin-native-schedule.test.mjs",
     "test:ccna-ui": "tsx --test tests/ccna-learning-desk.test.mjs tests/ccna-topology-ui.test.mjs",
     "content:seed": "node scripts/seed-content-studio.mjs",
     "content:audit": "tsx -r dotenv/config scripts/audit-editorial-library.ts",

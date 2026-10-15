@@ -2,13 +2,14 @@ import { Prisma, type CcnaLesson } from "@prisma/client";
 import { ccnaCurriculum, ccnaTopicBySlug } from "@/lib/ccna-curriculum";
 import { evaluateCcnaLessonForTopic, generateResearchedCcnaLesson } from "@/lib/ccna-content-agent";
 import { CcnaLessonOutputError } from "@/lib/ccna-lesson-writer";
-import { CcnaGenerationValidationError, ccnaReviewedRevisionIssues } from "@/lib/ccna-generation-pipeline";
+import { CcnaGenerationValidationError, ccnaContentDigest, ccnaReviewedRevisionIssues } from "@/lib/ccna-generation-pipeline";
 import { ccnaLessonContentSchema, type CcnaLessonContent } from "@/lib/ccna-lesson-schema";
 import { getPrismaClient } from "@/lib/prisma";
 import { visualStoryForLesson } from "@/lib/ccna-visual-story";
 import { ccnaCheckpointRunLimit, readCcnaGenerationCheckpoint, type CcnaGenerationCheckpoint } from "@/lib/ccna-generation-checkpoint";
 import { CcnaRequestDeferredError } from "@/lib/ccna-openai-requests";
 import { ccnaPublicationJob, ccnaFailureSummary } from "@/lib/ccna-publication-policy";
+import { hasNativeLinkedInOwnership } from "@/lib/linkedin-native-schedule";
 
 export type CcnaLessonStatus = "scheduled" | "generating" | "retry" | "needs_review" | "draft" | "published" | "skipped";
 
@@ -315,10 +316,14 @@ export async function generateCcnaLesson(id: string, actor: string, publishWhenR
   }
 }
 
-export async function publishCcnaLesson(id: string, actor: string, queuedPublication = false) {
-  const prisma = getPrismaClient();
+export async function publishCcnaLesson(id: string, actor: string, queuedPublication = false, expectedContentDigest?: string) {
+  return publishCcnaLessonOnClient(getPrismaClient(), id, actor, queuedPublication, expectedContentDigest);
+}
+
+async function publishCcnaLessonOnClient(prisma: Pick<Prisma.TransactionClient, "ccnaLesson">, id: string, actor: string, queuedPublication: boolean, expectedContentDigest?: string) {
   const existing = await prisma.ccnaLesson.findUnique({ where: { id } });
   if (!existing) throw new Error("CCNA lesson not found.");
+  if (expectedContentDigest && ccnaContentDigest(existing.content) !== expectedContentDigest) throw new Error("The lesson differs from the independently reviewed release candidate. Refresh and review before publishing.");
   if (existing.status === "published") return mapLesson(existing);
   if (existing.status === "skipped") throw new Error("Restore the skipped lesson to draft before publishing.");
   if (existing.status === "generating" || (existing.status === "retry" && !(queuedPublication && ccnaPublicationJob(existing.generationTrace)))) throw new Error("Finish the active CCNA generation and independent review before publishing.");
@@ -342,6 +347,45 @@ export async function publishCcnaLesson(id: string, actor: string, queuedPublica
   });
   if (!saved.count) throw new Error("The lesson changed during publication. Review its current revision before retrying.");
   return mapLesson(await prisma.ccnaLesson.findUniqueOrThrow({ where: { id } }));
+}
+
+export async function publishCcnaLessonForNativeLinkedIn(id: string, actor: string, input: {
+  expectedContentDigest: string;
+  commentary: string;
+  notBefore: string;
+}) {
+  if (!Number.isFinite(Date.parse(input.notBefore)) || Date.parse(input.notBefore) <= Date.now()) {
+    throw new Error("Choose a future native LinkedIn slot before publishing this release.");
+  }
+  const { siteConfig } = await import("@/lib/content");
+  // Website publication and its exclusive native-delivery reservation commit together.
+  return getPrismaClient().$transaction(async tx => {
+    const jobs = await tx.socialPublication.findMany({ where: { channel: "linkedin", contentType: "ccna_lesson", contentId: id } });
+    if (jobs.length > 1 || jobs.some(job => job.status !== "held" || job.externalId || !hasNativeLinkedInOwnership(job.metadata))) {
+      throw new Error("An existing LinkedIn delivery needs reconciliation before reserving a native schedule.");
+    }
+    const lesson = await publishCcnaLessonOnClient(tx, id, actor, false, input.expectedContentDigest);
+    const sourceUrl = `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}`;
+    if (jobs[0]) {
+      const prior = jobs[0];
+      const metadata = prior.metadata as Prisma.JsonObject;
+      const plan = metadata.plannedDelivery as Prisma.JsonObject;
+      if (prior.contentRevision !== lesson.updatedAt || prior.commentary !== input.commentary || prior.sourceUrl !== sourceUrl || plan?.notBefore !== input.notBefore) {
+        throw new Error("The existing native reservation differs from this release. Reconcile it without overwriting.");
+      }
+      return { lesson, job: prior };
+    }
+    const job = await tx.socialPublication.create({ data: {
+      channel: "linkedin", contentType: "ccna_lesson", contentId: id, contentRevision: lesson.updatedAt,
+      status: "held", sourceUrl, commentary: input.commentary, nextAttemptAt: new Date(input.notBefore),
+      imageUrl: `${sourceUrl}/social-image?v=${encodeURIComponent(lesson.updatedAt)}`,
+      metadata: {
+        commentaryTrace: { provider: "local-editorial", paidApiCalls: false, validatedWithExistingProtocol: true },
+        plannedDelivery: { provider: "linkedin-native-scheduler", status: "awaiting-browser-confirmation", notBefore: input.notBefore, timeZone: "Asia/Kolkata", userAuthorized: true }
+      }
+    } });
+    return { lesson, job };
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 }
 
 export async function queueCcnaPublication(id: string, actor: string) {

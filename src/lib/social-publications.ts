@@ -1,4 +1,4 @@
-import type { Prisma, SecurityAdvisory } from "@prisma/client";
+import { Prisma, type SecurityAdvisory } from "@prisma/client";
 import type { ContentPostRecord } from "@/lib/content-posts";
 import { getCcnaLessonById, type CcnaLessonRecord } from "@/lib/ccna-learning";
 import { siteConfig } from "@/lib/content";
@@ -15,6 +15,7 @@ import {
 import { deleteLinkedInPost, publishLinkedInPost, updateLinkedInPostCommentary } from "@/lib/linkedin";
 import { getPrismaClient } from "@/lib/prisma";
 import { editorialImageWaitMessage, socialPublicationFailurePolicy } from "@/lib/social-publication-state";
+import { assertApplicationLinkedInOwnership, hasNativeLinkedInOwnership, nativeLinkedInOwner } from "@/lib/linkedin-native-schedule";
 import { resolveContentPostRevision, resolveSecurityAdvisoryRevision } from "@/lib/editorial-revision-snapshots";
 import {
   createEditorialLineage,
@@ -125,7 +126,7 @@ export function buildCcnaLinkedInCommentary(lesson: CcnaLessonRecord) {
   });
 }
 
-async function enqueue(input: {
+type LinkedInEnqueueInput = {
   contentType: "ccna_lesson" | "content_post" | "security_advisory";
   contentId: string;
   contentRevision: string;
@@ -136,8 +137,23 @@ async function enqueue(input: {
   imageUrl: string;
   imageAlt: string;
   lineage: EditorialLineage;
-}) {
+};
+
+async function enqueue(input: LinkedInEnqueueInput) {
   const prisma = getPrismaClient();
+  if (input.contentType !== "ccna_lesson") return enqueueOnClient(prisma, input);
+  return prisma.$transaction(async tx => {
+    const native = await nativeLinkedInOwner(tx, input.contentType, input.contentId);
+    if (native) return native;
+    const lesson = await tx.ccnaLesson.findUnique({ where: { id: input.contentId } });
+    if (lesson?.status !== "published" || lesson.updatedAt.toISOString() !== input.contentRevision) {
+      throw new Error("The CCNA lesson changed or is unpublished. Refresh before queueing its reviewed revision.");
+    }
+    return enqueueOnClient(tx, input);
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+}
+
+async function enqueueOnClient(prisma: Pick<Prisma.TransactionClient, "socialPublication">, input: LinkedInEnqueueInput) {
   const key = {
     channel: "linkedin",
     contentType: input.contentType,
@@ -147,7 +163,7 @@ async function enqueue(input: {
   const existing = await prisma.socialPublication.findUnique({
     where: { channel_contentType_contentId_contentRevision: key }
   });
-  if (existing?.status === "published" || existing?.status === "publishing") return existing;
+  if (existing && (existing.status === "published" || existing.status === "publishing" || hasNativeLinkedInOwnership(existing.metadata))) return existing;
   if (existing) {
     return prisma.socialPublication.update({
       where: { id: existing.id },
@@ -227,6 +243,8 @@ export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revis
 
 export async function queueLinkedInForCcnaLesson(lesson: CcnaLessonRecord) {
   if (!lesson.content || lesson.status !== "published") throw new Error("Only a complete published CCNA lesson can enter distribution.");
+  const native = await nativeLinkedInOwner(getPrismaClient(), "ccna_lesson", lesson.id);
+  if (native) return native;
   const revision = lesson.updatedAt;
   const published = await getPrismaClient().socialPublication.findFirst({
     where: { channel: "linkedin", contentType: "ccna_lesson", contentId: lesson.id, status: "published" },
@@ -344,11 +362,18 @@ export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
 }
 
 export async function resetFailedLinkedInPublications() {
-  const result = await getPrismaClient().socialPublication.updateMany({
-    where: { channel: "linkedin", status: "failed" },
-    data: { status: "queued", attempts: 0, nextAttemptAt: new Date(), lastError: null }
-  });
-  return result.count;
+  const prisma = getPrismaClient();
+  const jobs = await prisma.socialPublication.findMany({ where: { channel: "linkedin", status: "failed" } });
+  let count = 0;
+  for (const job of jobs) {
+    if (await nativeLinkedInOwner(prisma, job.contentType, job.contentId)) continue;
+    const saved = await prisma.socialPublication.updateMany({
+      where: { id: job.id, updatedAt: job.updatedAt, status: "failed" },
+      data: { status: "queued", attempts: 0, nextAttemptAt: new Date(), lastError: null }
+    });
+    count += saved.count;
+  }
+  return count;
 }
 
 export async function processLinkedInQueue(limit = 5, publicationId = "") {
@@ -379,6 +404,14 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
   const outcomes: Array<{ id: string; status: string; externalId?: string; error?: string }> = [];
 
   for (const job of due) {
+    if (await nativeLinkedInOwner(prisma, job.contentType, job.contentId)) {
+      const held = await prisma.socialPublication.updateMany({
+        where: { id: job.id, updatedAt: job.updatedAt, status: { in: ["queued", "retry"] } },
+        data: { status: "held", lastError: "Native LinkedIn schedule owns this content; application delivery held to prevent a duplicate." }
+      });
+      if (held.count) outcomes.push({ id: job.id, status: "held" });
+      continue;
+    }
     const claimed = await prisma.socialPublication.updateMany({
       where: { id: job.id, status: { in: ["queued", "retry"] } },
       data: { status: "publishing", lastAttemptAt: new Date(), attempts: { increment: 1 } }
@@ -577,6 +610,7 @@ export async function refreshLinkedInPublication(
   const prisma = getPrismaClient();
   const publication = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
   if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
+  await assertApplicationLinkedInOwnership(prisma, publication.contentType, publication.contentId);
   if (publication.status !== "published" || !publication.externalId) {
     throw new Error("Only a published LinkedIn post can be refreshed.");
   }
@@ -673,6 +707,7 @@ export async function rebuildLinkedInPublication(publicationId: string) {
   const prisma = getPrismaClient();
   const publication = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
   if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
+  await assertApplicationLinkedInOwnership(prisma, publication.contentType, publication.contentId);
 
   if (publication.contentType === "security_advisory") {
     await ensureEditorialImageForPublication(publication, true);

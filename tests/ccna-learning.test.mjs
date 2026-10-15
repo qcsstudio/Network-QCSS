@@ -153,6 +153,64 @@ test("one-click publishes an exact reviewed revision atomically without calling 
   assert.equal(row.lastError, null);
 });
 
+test("native reservation failure rolls publication back and a successful retry records only the reviewed release", async t => {
+  const { applyCcnaTopicContract, evaluateCcnaLessonForTopic } = await import("../src/lib/ccna-content-agent.ts");
+  const { ccnaLayeredSources } = await import("../src/lib/ccna-layered-contract.ts");
+  const { inspectCcnaLessonCandidate, ccnaContentDigest } = await import("../src/lib/ccna-generation-pipeline.ts");
+  const { publishCcnaLessonForNativeLinkedIn } = await import("../src/lib/ccna-learning.ts");
+  const { recordCcnaNativeScheduleReceipt } = await import("../src/lib/linkedin-native-schedule.ts");
+  const draft = generationFixture(), topic = ccnaCurriculum[3];
+  const inspected = inspectCcnaLessonCandidate(JSON.stringify(draft), { allowedSources: [...draft.sources.map(s => s.url), ...ccnaLayeredSources.map(s => s.url)], prepare: c => applyCcnaTopicContract(topic, c), evaluate: c => evaluateCcnaLessonForTopic(topic, c) });
+  assert.equal(inspected.quality.ready, true);
+  const digest = ccnaContentDigest(inspected.content);
+  let row = { id: "reviewed", sequence: 4, slug: topic.slug, status: "draft", title: topic.title, content: inspected.content, updatedAt: new Date(), nextAttemptAt: new Date(0), attempts: 0, generationTrace: { editorialReview: { passed: true, issues: [] }, reviewedContentDigest: digest } };
+  let jobs = [], failCreate = true;
+  const previous = globalThis.prisma, previousUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  process.env.NEXT_PUBLIC_SITE_URL = "https://www.qcsstudio.com";
+  t.after(() => {
+    if (previous) globalThis.prisma = previous; else delete globalThis.prisma;
+    if (previousUrl === undefined) delete process.env.NEXT_PUBLIC_SITE_URL; else process.env.NEXT_PUBLIC_SITE_URL = previousUrl;
+  });
+  const tx = {
+    ccnaLesson: { findUnique: async () => structuredClone(row), findUniqueOrThrow: async () => structuredClone(row), updateMany: async ({ data }) => { row = { ...row, ...data, updatedAt: new Date(row.updatedAt.getTime() + 1) }; return { count: 1 }; } },
+    socialPublication: {
+      findMany: async () => structuredClone(jobs), findUniqueOrThrow: async () => structuredClone(jobs[0]),
+      create: async ({ data }) => {
+        assert.equal(row.status, "published", "Reservation must use the newly published revision in this transaction.");
+        if (failCreate) throw new Error("Synthetic reservation failure");
+        const job = { ...data, id: "native-job", externalId: null, updatedAt: new Date() }; jobs.push(job); return job;
+      },
+      updateMany: async ({ where, data }) => {
+        assert.equal(where.updatedAt.getTime(), jobs[0].updatedAt.getTime());
+        jobs[0] = { ...jobs[0], ...data }; return { count: 1 };
+      }
+    }
+  };
+  globalThis.prisma = { $transaction: async (action, options) => {
+    assert.equal(options.isolationLevel, "Serializable");
+    const before = structuredClone({ row, jobs });
+    try { return await action(tx); } catch (error) { row = before.row; jobs = before.jobs; throw error; }
+  } };
+  t.mock.method(globalThis, "fetch", async () => { throw new Error("No paid or social provider calls are permitted during local release."); });
+  const input = { expectedContentDigest: digest, commentary: "Exact reviewed caption", notBefore: "2099-10-19T05:30:00.000Z" };
+  await assert.rejects(publishCcnaLessonForNativeLinkedIn(row.id, "test", input), /Synthetic reservation failure/);
+  assert.equal(row.status, "draft");
+  assert.equal(jobs.length, 0);
+  failCreate = false;
+  const published = await publishCcnaLessonForNativeLinkedIn(row.id, "test", input);
+  assert.equal(published.lesson.status, "published");
+  assert.equal(published.job.status, "held");
+  assert.equal(published.job.contentRevision, published.lesson.updatedAt);
+  await publishCcnaLessonForNativeLinkedIn(row.id, "test", input);
+  assert.equal(jobs.length, 1, "A retry must reuse the native reservation.");
+  await recordCcnaNativeScheduleReceipt({ lessonId: row.id, jobId: published.job.id, publicationRevision: published.lesson.updatedAt,
+    contentDigest: digest, commentary: input.commentary, scheduledUtc: input.notBefore, confirmedAt: new Date().toISOString(),
+    receipt: { status: "scheduled", confirmation: "Synthetic native scheduler confirmation", applicationDeliveryHeldToPreventDuplicate: true }
+  });
+  assert.equal(jobs[0].metadata.nativeScheduleReceipt.status, "scheduled");
+  assert.equal(jobs[0].status, "held");
+});
+
 test("a full bibliography makes room for cited visual evidence without losing citations", async () => {
   const { consolidateCcnaCitations } = await import("../src/lib/ccna-citations.ts");
   const content = generationFixture();

@@ -1,0 +1,148 @@
+QCS COMPLETE CCNA SERIES - LOCAL RELEASE RUNBOOK
+Approved cadence: every day, including weekends, 11:00 AM Asia/Kolkata.
+Days 8-10 already have confirmed LinkedIn native schedules for 16-18 October 2026.
+Remaining targets: Day 11 on 19 October through Day 60 on 7 December 2026.
+These are target dates, NOT confirmation that all lessons or schedules exist.
+
+AUTHORIZATION AND COST
+The user authorized local preparation, a separate Codex reviewer, website
+publication and LinkedIn scheduling for the complete course. Do not invoke
+OpenAI, BFL, Vercel AI Gateway or other paid generation APIs. Local Codex work
+uses the user's Codex allowance. No bypass of review, authentication or image
+licensing is authorized. Published Days 1-10 and their schedules are protected.
+Use the existing authenticated database/server workflow; never expose secrets.
+
+CURRENT SOURCE BASELINE
+The independent curriculum audit on 15 October verified CCNA v1.1, its last
+test date 2 February 2027, and v2.0 launching 3 February 2027. See the official
+version-specific PDFs and Cisco's transition announcement, not search snippets.
+Recheck official changes at least every 30 days and before a version transition.
+The release CLI intentionally refuses publication with a stale source baseline.
+Update that baseline only after recording real source verification.
+
+Official sources:
+https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301-CCNA-v1.1.pdf
+https://learningcontent.cisco.com/documents/marketing/exam-topics/200-301_CCNA_v2.0_Exam_Topics_PDF.pdf
+https://blogs.cisco.com/learning/stay-on-track-get-certified-before-the-ccna-refresh
+https://developer.cisco.com/docs/modeling-labs/vm-images-for-cml-labs/
+
+START EACH RUN
+Read this runbook, src/lib/ccna-curriculum.ts and the exact topic contract.
+Inspect current DB lessons and LinkedIn jobs using the read-only local script
+test-results/ccna-full-course-inspect.ts. Keep private snapshots in test-results.
+An empty {} is not a draft. A DB status of scheduled is not a generated chapter
+and is not evidence of a LinkedIn schedule. A held job may be intentional when
+LinkedIn's native scheduler owns delivery; examine its receipt before any action.
+Select the earliest unfinished sequence, not the weekday field named day.
+Process one lesson per run, at most two if catching up. Never skip a blocked
+chapter or silently move later posts into its slot. Record the actual blocker.
+
+AUTHORING AND COVERAGE
+Read the full topic and relevant primary sources live. Author original useful
+teaching, not a title-swapped template. Preserve the stable curriculum slug.
+Define beginner vocabulary before use. State the lab platform and version,
+image entitlement, exact node/port mapping, commands and explanations, expected
+observations, safe fault, troubleshooting and rollback. Give paper alternatives
+where real hardware, licensed images or public cloud are unavailable, but never
+claim paper work establishes hands-on competence. Do not invent runtime output.
+Every diagram node and link must match its declared scope. Shorten phrases by
+rewriting, never by cutting to a character limit. Render and inspect the image.
+
+Coverage reservations from the independent audit must be assigned explicitly:
+12/14: IPv6 configuration, verification and prefix/assignment troubleshooting.
+17/22: normal/default VLANs and Layer 3 LACP, not just Layer 2 explanation.
+20/23/25: L2/L3 ports, root primary/secondary and relevant log interpretation.
+27: AP modes and WLC LAG; mark CAPWAP context correctly for each exam version.
+28: WLAN GUI, QoS/advanced settings, WPA/WPA3 and WPA2-PSK configuration.
+29: client inspection across Windows, macOS and Linux; physical RF boundaries.
+31/32/33: network/default/host/floating routes in both stacks, including faults.
+34/35/36: OSPF point-to-point and broadcast, v2 and v3 where applicable; do not
+invent an authentication requirement for the v2.0 objective.
+38: DHCP client/server/relay configuration and troubleshooting.
+40: static/pool NAT and IOS XE NAT/PAT; 41: NTP client/server.
+45: management access alternatives and SFTP/SCP, not only SSH.
+46/47: awareness, training, physical access, password handling, MFA,
+certificates and biometrics. A domain label is not a specific objective.
+48: local users and TACACS+/RADIUS clients; declare test-server prerequisites.
+53: IPsec protocols and modes, with lawful and realistic simulation boundaries.
+55: explicitly own v1.1 objective 6.1 automation impact, control/data planes,
+northbound/southbound APIs and management approaches.
+58: Ansible execution plus IaC concepts; 59: predictive/agentic AI and ML,
+prompt data classification, output format, role and instructions.
+41/42/56/57: retain supporting-context labels where not named in v2.0.
+60: integrate selected objectives; do not claim a capstone proves all coverage.
+For each chapter save content and assessment pointers for its actual outcomes.
+A whole-course completion claim needs a version-specific objective ledger,
+not just 60 titles or a score of 100 from structural checks.
+
+LOCAL COMMANDS (run from repository root with Node and tsx)
+node --import tsx scripts/ccna-local-release.ts plan
+node --import tsx scripts/ccna-local-release.ts check N
+node --import tsx scripts/ccna-local-release.ts preview N
+node --import tsx scripts/ccna-local-release.ts stage N
+node --import tsx scripts/ccna-local-release.ts review N
+node --import tsx scripts/ccna-local-release.ts publish N
+node --import tsx scripts/ccna-local-release.ts receipt N
+
+The plan command writes a target manifest, not delivery state. Database-changing
+modes require authorized DB connectivity; check/preview/plan need no paid API.
+Write test-results/ccna-dayN-corrected-content.json and a complete
+ccna-dayN-linkedin-caption.txt before preview. No published chapter is overwritten.
+Stage the final candidate; use the separately authorized Codex reviewer Harvey
+(01a13e77-9990-71d0-b15b-6295f9c59903), resuming if needed. Do not author its review.
+Ask for all nine categories in one pass and primary-source verification, saving
+ccna-dayN-independent-review.json with reviewerId, reviewedAt and lessons array.
+Each lesson entry needs day, raw-file sha256, evidence.checks/evidence.findings,
+verifiedSources [{url,verification}] and explicit limitations. Every listed
+source needs verification. Material fixes require a new exact-revision review.
+Do not use the curriculum coverage audit as a lesson approval receipt.
+
+VISUAL AND SOCIAL QA
+Render using ccnaSocialVisual at 1920x1080. Inspect real pixels at full and feed
+size: all names, complete phrases, all intended endpoints, contrast, no clipping,
+QCS logo and accurate scope. Choose a different relevant visual concept for each
+topic, not the same packet path for subjects that are tables or comparisons.
+Use the existing LinkedIn protocol: informative hook, what changed, why it
+matters, concrete actions, verification, a useful question, original QCS lesson
+URL and at least five relevant distinct hashtags. Preserve paragraphs and full
+sentences, not Unicode pseudo-bold or unsupported markdown. Do not remove the
+URL/footer to fit length. Preview the exact caption and attachment together.
+Save ccna-dayN-release-qa.json only after inspection, with day, checkedAt,
+contentSha256, captionSha256, imageSha256, visualChecked, sourceLinksChecked,
+and notes describing actual checks and limitations. Never pre-fill passed QA.
+
+PUBLISH AND SCHEDULE
+Review mode imports the actual independent receipt, not an invented score.
+Publish mode calls the existing publication gates with the expected digest,
+checks previous chapters are published, and atomically reserves a held LinkedIn
+job in the same serializable database transaction as website publication. A
+reservation failure rolls the website change back. A retry may reuse only the
+same held native reservation, never a queued or already delivered API job.
+It does NOT schedule or post to LinkedIn by itself. Check the public lesson:
+HTTP 200, canonical, indexability, headings, quizzes, source links, visual and
+course linkage. Do not claim runtime lab validation when only static review ran.
+
+Schedule natively in LinkedIn as Ravi K Sankhyan using the exact validated
+caption and image. Check the calendar date and 11:00 AM IST before committing.
+If the target passed, do not silently publish or shift the remaining series:
+ask for catch-up instructions. Keep existing confirmed posts unchanged.
+After native confirmation save ccna-dayN-linkedin-browser-receipt.json with
+day, account, status:'scheduled', scheduledUtc, confirmedAt, imageAttached,
+commentary and observed confirmation text. Save a screenshot of the result.
+Run receipt N to reconcile the held app job and prevent duplicate API posting.
+Receipt mode checks the current website status, reviewed content digest and
+publication revision inside its transaction. If any changed, retain the real
+browser receipt but reconcile the schedule before claiming the release complete.
+Native reservations and receipts own delivery across revisions. Application
+queue, rebuild, refresh and retry controls must not replace them or send duplicates.
+If already confirmed, verify the existing receipt/UI rather than scheduling twice.
+Never label a local manifest or held job as a confirmed schedule.
+
+AUTOMATION LIMITATIONS
+The local continuation needs this computer awake with Codex running and enough
+Codex usage. Expired admin/LinkedIn sessions or a stalled uploader may require
+the user. Ask only for the specific necessary interaction; never request secrets.
+Native LinkedIn delivery can run after confirmation without this computer on.
+Daily continuation is preparation work before delivery time, not a promise that
+an unreviewed lesson will be posted on time. If any gate fails, keep it held.
+Stop adding work after Day 60; do not invent Day 61 or restart the course.
