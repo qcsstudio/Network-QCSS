@@ -107,6 +107,12 @@ test("quiz retains authored prompts, two-digit numbers, selection, scoring and r
 });
 
 const css = await lessonCss();
+test("outline clears both enterprise-header rows, including the 1081-1100px breakpoint gap", () => {
+  for (const [width, offset] of [[1440, "128px"], [1090, "128px"], [1080, "90px"], [768, "90px"], [390, "86px"]]) {
+    assert.equal(declarationsAt(css, ".ccna-lesson-layout", width)["--ccna-header-offset"], offset);
+    assert.equal(declarationsAt(css, ".ccna-lesson-layout :is(.ccna-lesson-sidebar, .ccna-outline-restore)", width).top, "var(--ccna-header-offset)");
+  }
+});
 test("dark teaching panels retain readable text and mobile lab titles have full width", () => {
   assert.equal(declarationsAt(css, ".qcs-theme .ccna-lesson-article .ccna-lab-section > header p", 320).color, "#c0cede");
   assert.equal(declarationsAt(css, ".qcs-theme .ccna-lesson-article .ccna-scenario-section :is(p, li)", 320).color, "#c0cede");

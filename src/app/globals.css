@@ -8953,6 +8953,7 @@ td span {
 
 .ccna-lesson-layout { position: relative; display: grid; grid-template-columns: minmax(0, 980px) minmax(280px, 340px); gap: 52px; align-items: start; max-width: 1450px; margin: 0 auto; padding: 58px 24px 80px; overflow: clip; transition: grid-template-columns 260ms ease, gap 260ms ease; }
 .ccna-lesson-layout.is-outline-closed { grid-template-columns: minmax(0, 1fr) 46px; gap: 20px; }
+.ccna-lesson-layout { --ccna-header-offset: 128px; }
 .ccna-lesson-article { grid-column: 1; grid-row: 1; min-width: 0; }
 .ccna-lesson-layout.is-outline-closed .ccna-lesson-article :is(p, li, dd) { max-width: 82ch; }
 .ccna-lesson-page :is(h1, h2, h3, legend) { min-width: 0; overflow-wrap: anywhere; }
@@ -9085,6 +9086,7 @@ td span {
 .ccna-outline-backdrop { display: none; }
 .ccna-outline-restore { position: sticky; top: 102px; grid-column: 2; grid-row: 1; justify-self: end; z-index: 1; display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border: 1px solid #b8c8dc; border-radius: 7px; background: #102039; color: white; opacity: 0; pointer-events: none; visibility: hidden; transition: opacity 160ms ease; }
 .ccna-lesson-layout.is-outline-closed .ccna-outline-restore { opacity: 1; pointer-events: auto; visibility: visible; }
+.ccna-lesson-layout :is(.ccna-lesson-sidebar, .ccna-outline-restore) { top: var(--ccna-header-offset); }
 .ccna-lesson-sidebar dl { margin: 0; }
 .ccna-lesson-sidebar dl div { padding: 11px 0; border-top: 1px solid #e5ebf2; }
 .ccna-lesson-sidebar dt { color: #17243a; font-weight: 700; }
@@ -9113,6 +9115,12 @@ td span {
   .ccna-outline-panel,
   .ccna-lesson-sidebar > section { box-shadow: 0 14px 32px rgba(10, 25, 46, .1); }
   .ccna-outline-restore { top: 84px; }
+  .ccna-lesson-layout .ccna-lesson-sidebar { max-height: calc(100dvh - var(--ccna-header-offset) - 12px); }
+  .ccna-lesson-layout .ccna-outline-backdrop { inset-block-start: calc(var(--ccna-header-offset) - 12px); }
+}
+
+@media (max-width: 1080px) {
+  .ccna-lesson-layout { --ccna-header-offset: 90px; }
 }
 
 @media (max-width: 760px) {
@@ -9139,6 +9147,7 @@ td span {
   .ccna-lesson-hero h1 { font-size: 38px; }
   .ccna-lesson-map dl div { grid-template-columns: 105px 1fr; }
   .ccna-lesson-layout { padding: 28px 12px 52px; }
+  .ccna-lesson-layout { --ccna-header-offset: 86px; }
   .ccna-lesson-layout,
   .ccna-lesson-layout.is-outline-closed { gap: 8px; }
   .ccna-quiz-heading { grid-template-columns: minmax(0, 1fr); gap: 12px; }
@@ -9176,7 +9185,7 @@ td span {
   .ccna-lesson-article p,
   .ccna-lesson-article li,
   .ccna-lesson-article dd { font-size: 16px; }
-  .ccna-lesson-sidebar { right: 8px; bottom: 8px; width: calc(100vw - 16px); max-height: calc(100dvh - 86px); }
+  .ccna-lesson-sidebar { right: 8px; bottom: 8px; width: calc(100vw - 16px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
