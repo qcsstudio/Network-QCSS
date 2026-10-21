@@ -24,6 +24,24 @@ test("footer no longer uses legacy command-theme panels or chips", () => {
   assert.match(theme, /\.site-footer\.qcs-footer[^}]+font-family: var\(--font-qcs-sans\)/);
 });
 
+test("footer links to the verified company profiles, not personal or admin pages", () => {
+  for (const url of [
+    "https://www.linkedin.com/company/qcsstudio/",
+    "https://www.facebook.com/qcsstudio/",
+    "https://www.instagram.com/qcsstudio/",
+  ]) {
+    assert.equal(footer.split(url).length - 1, 1, url);
+  }
+  assert.doesNotMatch(footer, /linkedin\.com\/in\/|business\.facebook\.com|facebook\.com\/share\//);
+  assert.match(footer, /aria-label="QCS official social profiles"/);
+  assert.match(footer, /aria-label=\{`QCS on \$\{name\} \(opens in a new tab\)`\}/);
+  assert.match(footer, /target="_blank" rel="noopener noreferrer"/);
+  assert.match(footer, /<Icon size=\{20\} aria-hidden="true"/);
+  assert.match(footer, /<span>\{name\}<\/span>/);
+  assert.match(theme, /\.qcs-footer-social ul[^}]+flex-wrap: wrap/);
+  assert.match(theme, /\.qcs-footer-social a[^}]+min-height: 44px/);
+});
+
 test("footer has responsive columns, focus indicators and touch targets", () => {
   assert.match(theme, /\.qcs-footer-links[^}]+repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(theme, /\.qcs-footer-links[^}]+repeat\(2, minmax\(0, 1fr\)\)/);

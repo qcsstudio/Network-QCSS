@@ -1,7 +1,13 @@
-import { ArrowRight, ArrowUp, Globe2 } from "lucide-react";
+import { ArrowRight, ArrowUp, Facebook, Globe2, Instagram, Linkedin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { CookieSettingsButton } from "@/components/consent-banner";
+
+const socialProfiles = [
+  { name: "LinkedIn", href: "https://www.linkedin.com/company/qcsstudio/", Icon: Linkedin },
+  { name: "Facebook", href: "https://www.facebook.com/qcsstudio/", Icon: Facebook },
+  { name: "Instagram", href: "https://www.instagram.com/qcsstudio/", Icon: Instagram },
+];
 
 const footerGroups = [
   {
@@ -59,6 +65,19 @@ export function SiteFooter() {
             </Link>
             <p>Practical network, security and cloud consulting. Built around your team, your environment and your next decision.</p>
             <p className="qcs-footer-reach"><Globe2 size={18} aria-hidden="true" /> India and international clients</p>
+            <nav className="qcs-footer-social" aria-label="QCS official social profiles">
+              <h3>Follow QCS</h3>
+              <ul>
+                {socialProfiles.map(({ name, href, Icon }) => (
+                  <li key={name}>
+                    <a href={href} target="_blank" rel="noopener noreferrer" aria-label={`QCS on ${name} (opens in a new tab)`}>
+                      <Icon size={20} aria-hidden="true" />
+                      <span>{name}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
           </div>
           <nav className="qcs-footer-links" aria-label="Footer links">
             {footerGroups.map((group) => (
