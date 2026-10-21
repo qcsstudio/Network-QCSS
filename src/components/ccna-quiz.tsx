@@ -25,7 +25,10 @@ export function CcnaQuiz({ questions, slug }: { questions: CcnaLessonContent["qu
     <section className="ccna-quiz" aria-labelledby="lesson-quiz-title">
       <div className="ccna-quiz-heading">
         <div><p className="eyebrow">Knowledge check</p><h2 id="lesson-quiz-title">Quiz: prove the reasoning</h2></div>
-        {submitted ? <strong>{score}/{questions.length}</strong> : <span>{Object.keys(answers).length}/{questions.length} answered</span>}
+        <div aria-atomic="true" className="ccna-quiz-status" role="status">
+          <strong>{submitted ? score : Object.keys(answers).length}/{questions.length}</strong>
+          <span>{submitted ? "correct" : "answered"}</span>
+        </div>
       </div>
       <div className="ccna-quiz-list">
         {questions.map((question, questionIndex) => {
@@ -33,7 +36,12 @@ export function CcnaQuiz({ questions, slug }: { questions: CcnaLessonContent["qu
           const correct = submitted && selected === question.correctIndex;
           return (
             <fieldset className="ccna-quiz-question" key={question.question}>
-              <legend><span>{String(questionIndex + 1).padStart(2, "0")}</span>{question.question}</legend>
+              <legend>
+                <span className="ccna-quiz-legend">
+                  <span className="ccna-quiz-number">{String(questionIndex + 1).padStart(2, "0")}</span>
+                  <span className="ccna-quiz-prompt">{question.question}</span>
+                </span>
+              </legend>
               <div className="ccna-quiz-options">
                 {question.options.map((option, optionIndex) => {
                   const isCorrect = submitted && optionIndex === question.correctIndex;

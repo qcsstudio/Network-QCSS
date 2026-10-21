@@ -18,9 +18,10 @@ for (const { day, story, prelude } of [
   const bundle = await build({ stdin: {
     contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {CcnaTeachingPrelude} from './src/components/ccna-teaching-prelude'; import {CcnaVisualExplainer} from './src/components/ccna-visual-explainer'; createRoot(document.getElementById('root')).render(<><CcnaTeachingPrelude prelude={${JSON.stringify(prelude)}} /><CcnaVisualExplainer story={${JSON.stringify(story)}} artwork={null} /></>);`,
     resolveDir: process.cwd(), loader: "jsx"
-  }, bundle: true, write: false, platform: "browser", format: "iife", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": "{}" } });
+  }, bundle: true, write: false, outfile: path.join(tmpdir(), `ccna-topology-${day}.js`), platform: "browser", format: "iife", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": "{}" } });
   let css = "";
   for (const file of ["globals.css", "visual-refresh.css", "visual-evolution.css", "experience-v2.css"]) css += await readFile(`src/app/${file}`, "utf8");
+  css += bundle.outputFiles.filter(file => file.path.endsWith(".css")).map(file => file.text).join("\n");
   const fontVariables = new Map();
   const fontFaces = [];
   const chunks = ".next/static/chunks";
@@ -41,7 +42,8 @@ for (const { day, story, prelude } of [
   css += `:root{${[...fontVariables].map(([key, value]) => `${key}:${value}`).join(";")}}`;
   const directory = path.join(tmpdir(), `qcs-ccna-day${day}-qa`);
   await mkdir(directory, { recursive: true });
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QCS CCNA Day ${day} visual preview</title><style>${css}\nbody{margin:0;background:#fafbfc}main{max-width:1120px;margin:auto;padding:16px}h1{font-size:24px}</style></head><body><main><h1>CCNA Day ${day}: visual preview</h1><article class="ccna-lesson-article" id="root"></article></main><script>${bundle.outputFiles[0].text.replaceAll("</script", "<\\/script")}</script></body></html>`;
+  const script = bundle.outputFiles.find(file => file.path.endsWith(".js")).text;
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QCS CCNA Day ${day} visual preview</title><style>${css}\nbody{margin:0;background:#fafbfc}main{max-width:1120px;margin:auto;padding:16px}h1{font-size:24px}</style></head><body><main><h1>CCNA Day ${day}: visual preview</h1><article class="ccna-lesson-article" id="root"></article></main><script>${script.replaceAll("</script", "<\\/script")}</script></body></html>`;
   await writeFile(path.join(directory, "preview.html"), html);
   const browser = await chromium.launch({ headless: true });
   try {
@@ -61,9 +63,10 @@ for (const { day, story, prelude } of [
       await page.locator("#first-concepts").screenshot({ path: path.join(directory, `First-concepts-${width}.png`) });
       for (const scene of scenes) {
         if (story.comparisons) {
-          const select = page.getByRole("group", { name: "Network topologies", exact: true }).getByRole("button", { name: scene.title, exact: true });
+          const select = page.getByRole("group", { name: "Visual comparisons", exact: true }).getByRole("button", { name: scene.title, exact: true });
           await select.click();
           assert.equal(await select.getAttribute("aria-pressed"), "true");
+          assert.equal(await page.locator("#visual-walkthrough header h2").innerText(), scene.title);
         }
         for (let stage = 0; stage < 3; stage++) {
           await page.getByRole("group", { name: "Visual explanation steps", exact: true }).getByRole("button").nth(stage).click();
