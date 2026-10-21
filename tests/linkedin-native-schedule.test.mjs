@@ -9,6 +9,7 @@ const nativeJob = () => ({ id: "native-job", channel: "linkedin", contentType: "
 
 function mockPrisma(t, value) {
   const previous = globalThis.prisma;
+  value.$transaction ||= async action => action({ ...value, $queryRaw: async () => [] });
   globalThis.prisma = value;
   t.after(() => { if (previous) globalThis.prisma = previous; else delete globalThis.prisma; });
 }
@@ -30,6 +31,18 @@ test("queue preserves the exact native caption and receipt across lesson revisio
   assert.equal(job.metadata.nativeScheduleReceipt.confirmation, "Scheduled for 11:00 AM");
 });
 
+test("held native Days 39-60 retain every job byte without any dispatch reservation", async t => {
+  let job;
+  mockPrisma(t, { socialPublication: { findMany: async () => [job] } });
+  for (let day = 39; day <= 60; day++) {
+    job = { ...nativeJob(), contentId: `lesson-${day}`, id: `native-${day}` };
+    const before = structuredClone(job);
+    assert.equal(await queueLinkedInForCcnaLesson({ id: job.contentId, sequence: day,
+      status: "published", content: {}, updatedAt: "new-website-only-revision" }), job);
+    assert.deepEqual(job, before);
+  }
+});
+
 test("native rebuild and refresh fail before composition, media generation or delivery", async t => {
   const job = nativeJob();
   mockPrisma(t, { socialPublication: { findUnique: async () => job, findMany: async () => [job] } });
@@ -47,7 +60,7 @@ test("queue processor holds an accidentally queued native job without any API de
   const job = { ...nativeJob(), status: "queued" };
   const writes = [];
   mockPrisma(t, { socialPublication: {
-    findMany: async () => [job],
+    findMany: async ({ where }) => where.status === "publishing" ? [] : [job],
     updateMany: async args => { writes.push(args); return { count: 1 }; }
   } });
   assert.deepEqual(await processLinkedInQueue(1, job.id), [{ id: job.id, status: "held" }]);

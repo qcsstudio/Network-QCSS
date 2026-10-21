@@ -1,5 +1,5 @@
 import type { BlogPost } from "./blog.ts";
-import { storySpineQualityIssues } from "./editorial-story-lineage.ts";
+import { storySpineQualityIssues } from "./editorial-story-spine.ts";
 
 const placeholderPattern = /draft required|replace this|todo|placeholder/i;
 

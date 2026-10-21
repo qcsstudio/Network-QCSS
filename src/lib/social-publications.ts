@@ -1,4 +1,4 @@
-import { Prisma, type SecurityAdvisory } from "@prisma/client";
+import { Prisma, type PrismaClient, type SecurityAdvisory, type SocialPublication } from "@prisma/client";
 import type { ContentPostRecord } from "@/lib/content-posts";
 import { getCcnaLessonById, type CcnaLessonRecord } from "@/lib/ccna-learning";
 import { siteConfig } from "@/lib/content";
@@ -16,6 +16,7 @@ import { deleteLinkedInPost, publishLinkedInPost, updateLinkedInPostCommentary }
 import { getPrismaClient } from "@/lib/prisma";
 import { editorialImageWaitMessage, socialPublicationFailurePolicy } from "@/lib/social-publication-state";
 import { assertApplicationLinkedInOwnership, hasNativeLinkedInOwnership, nativeLinkedInOwner } from "@/lib/linkedin-native-schedule";
+import { completeCcnaApiDispatch, reserveCcnaApiDispatch, withCcnaSocialGuard, type CcnaApiReservation } from "@/lib/ccna-social-preservation";
 import { resolveContentPostRevision, resolveSecurityAdvisoryRevision } from "@/lib/editorial-revision-snapshots";
 import {
   createEditorialLineage,
@@ -142,7 +143,7 @@ type LinkedInEnqueueInput = {
 async function enqueue(input: LinkedInEnqueueInput) {
   const prisma = getPrismaClient();
   if (input.contentType !== "ccna_lesson") return enqueueOnClient(prisma, input);
-  return prisma.$transaction(async tx => {
+  return withCcnaSocialGuard(prisma, input, async tx => {
     const native = await nativeLinkedInOwner(tx, input.contentType, input.contentId);
     if (native) return native;
     const lesson = await tx.ccnaLesson.findUnique({ where: { id: input.contentId } });
@@ -150,7 +151,7 @@ async function enqueue(input: LinkedInEnqueueInput) {
       throw new Error("The CCNA lesson changed or is unpublished. Refresh before queueing its reviewed revision.");
     }
     return enqueueOnClient(tx, input);
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }, owner => owner);
 }
 
 async function enqueueOnClient(prisma: Pick<Prisma.TransactionClient, "socialPublication">, input: LinkedInEnqueueInput) {
@@ -243,35 +244,42 @@ export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revis
 
 export async function queueLinkedInForCcnaLesson(lesson: CcnaLessonRecord) {
   if (!lesson.content || lesson.status !== "published") throw new Error("Only a complete published CCNA lesson can enter distribution.");
-  const native = await nativeLinkedInOwner(getPrismaClient(), "ccna_lesson", lesson.id);
-  if (native) return native;
-  const revision = lesson.updatedAt;
-  const published = await getPrismaClient().socialPublication.findFirst({
-    where: { channel: "linkedin", contentType: "ccna_lesson", contentId: lesson.id, status: "published" },
-    orderBy: { publishedAt: "desc" }
-  });
-  if (published) {
-    if (published.contentRevision === revision) return published;
-    await refreshLinkedInPublication(published.id, true);
-    return getPrismaClient().socialPublication.update({ where: { id: published.id }, data: { contentRevision: revision } });
-  }
-  const storySpine = ccnaStorySpine(lesson);
-  return enqueue({
-    contentType: "ccna_lesson",
-    contentId: lesson.id,
-    contentRevision: revision,
-    sourceUrl: `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}`,
-    commentary: buildCcnaLinkedInCommentary(lesson),
-    commentaryQualityScore: 100,
-    commentaryTrace: {
-      provider: "ccna-learning-protocol",
-      policyVersion: linkedInCommentaryPolicyVersion,
-      generatedAt: new Date().toISOString()
-    },
-    imageUrl: `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}/social-image?v=${encodeURIComponent(revision)}`,
-    imageAlt: `QCS CCNA Daily lesson ${lesson.sequence}: ${lesson.title}`,
-    lineage: createEditorialLineage({ contentType: "ccna_lesson", contentId: lesson.id, contentRevision: revision, storySpine })
-  });
+  const prisma = getPrismaClient();
+  const selected = await withCcnaSocialGuard(prisma, { contentType: "ccna_lesson", contentId: lesson.id }, async client => {
+    const nativeAfterLock = await nativeLinkedInOwner(client, "ccna_lesson", lesson.id);
+    if (nativeAfterLock) return { job: nativeAfterLock, refresh: false };
+    const current = await client.ccnaLesson.findUnique({ where: { id: lesson.id } });
+    if (current?.status !== "published" || current.updatedAt.toISOString() !== lesson.updatedAt) {
+      throw new Error("The CCNA lesson changed or is unpublished. Refresh before queueing its reviewed revision.");
+    }
+    const revision = lesson.updatedAt;
+    const published = await client.socialPublication.findFirst({
+      where: { channel: "linkedin", contentType: "ccna_lesson", contentId: lesson.id, status: "published" },
+      orderBy: { publishedAt: "desc" }
+    });
+    if (published) {
+      return { job: published, refresh: published.contentRevision !== revision };
+    }
+    const storySpine = ccnaStorySpine(lesson);
+    const job = await enqueueOnClient(client, {
+      contentType: "ccna_lesson",
+      contentId: lesson.id,
+      contentRevision: revision,
+      sourceUrl: `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}`,
+      commentary: buildCcnaLinkedInCommentary(lesson),
+      commentaryQualityScore: 100,
+      commentaryTrace: {
+        provider: "ccna-learning-protocol",
+        policyVersion: linkedInCommentaryPolicyVersion,
+        generatedAt: new Date().toISOString()
+      },
+      imageUrl: `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}/social-image?v=${encodeURIComponent(revision)}`,
+      imageAlt: `QCS CCNA Daily lesson ${lesson.sequence}: ${lesson.title}`,
+      lineage: createEditorialLineage({ contentType: "ccna_lesson", contentId: lesson.id, contentRevision: revision, storySpine })
+    });
+    return { job, refresh: false };
+  }, owner => ({ job: owner, refresh: false }));
+  return selected.refresh ? refreshLinkedInPublication(selected.job.id, true) : selected.job;
 }
 
 export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
@@ -366,12 +374,14 @@ export async function resetFailedLinkedInPublications() {
   const jobs = await prisma.socialPublication.findMany({ where: { channel: "linkedin", status: "failed" } });
   let count = 0;
   for (const job of jobs) {
-    if (await nativeLinkedInOwner(prisma, job.contentType, job.contentId)) continue;
-    const saved = await prisma.socialPublication.updateMany({
-      where: { id: job.id, updatedAt: job.updatedAt, status: "failed" },
-      data: { status: "queued", attempts: 0, nextAttemptAt: new Date(), lastError: null }
-    });
-    count += saved.count;
+    count += await withCcnaSocialGuard(prisma, job, async client => {
+      if (await nativeLinkedInOwner(client, job.contentType, job.contentId)) return 0;
+      const saved = await client.socialPublication.updateMany({
+        where: { id: job.id, updatedAt: job.updatedAt, status: "failed" },
+        data: { status: "queued", attempts: 0, nextAttemptAt: new Date(), lastError: null }
+      });
+      return saved.count;
+    }, () => 0);
   }
   return count;
 }
@@ -381,6 +391,7 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
   await prisma.socialPublication.updateMany({
     where: {
       channel: "linkedin",
+      contentType: { not: "ccna_lesson" },
       ...(publicationId ? { id: publicationId } : {}),
       status: "publishing",
       lastAttemptAt: { lte: new Date(Date.now() - 15 * 60_000) }
@@ -391,120 +402,168 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
       lastError: "Recovered after an interrupted LinkedIn publication attempt."
     }
   });
-  const due = await prisma.socialPublication.findMany({
-    where: {
-      channel: "linkedin",
-      ...(publicationId ? { id: publicationId } : {}),
-      status: { in: ["queued", "retry"] },
-      nextAttemptAt: { lte: new Date() }
-    },
-    orderBy: [{ nextAttemptAt: "asc" }, { createdAt: "asc" }],
-    take: Math.max(1, Math.min(limit, 10))
-  });
+  // CCNA recovery also participates in the supplement lock and preservation check.
+  const interrupted = await prisma.socialPublication.findMany({ where: {
+    channel: "linkedin", contentType: "ccna_lesson",
+    ...(publicationId ? { id: publicationId } : {}),
+    status: "publishing", lastAttemptAt: { lte: new Date(Date.now() - 15 * 60_000) }
+  } });
+  for (const job of interrupted) {
+    await withCcnaSocialGuard(prisma, job, async client => {
+      if (await nativeLinkedInOwner(client, job.contentType, job.contentId)) return;
+      await reserveCcnaApiDispatch(client, job, "publish", true);
+    }, () => undefined);
+  }
   const outcomes: Array<{ id: string; status: string; externalId?: string; error?: string }> = [];
-
-  for (const job of due) {
-    if (await nativeLinkedInOwner(prisma, job.contentType, job.contentId)) {
-      const held = await prisma.socialPublication.updateMany({
-        where: { id: job.id, updatedAt: job.updatedAt, status: { in: ["queued", "retry"] } },
-        data: { status: "held", lastError: "Native LinkedIn schedule owns this content; application delivery held to prevent a duplicate." }
-      });
-      if (held.count) outcomes.push({ id: job.id, status: "held" });
-      continue;
+  const seen = new Set<string>();
+  const preservedContent = new Set<string>();
+  const deliveryLimit = Math.max(1, Math.min(limit, 10));
+  const dueAt = new Date();
+  let attempted = 0;
+  while (attempted < deliveryLimit) {
+    const due = await prisma.socialPublication.findMany({
+      where: {
+        channel: "linkedin",
+        id: publicationId || { notIn: [...seen] },
+        ...(preservedContent.size ? { NOT: { contentType: "ccna_lesson", contentId: { in: [...preservedContent] } } } : {}),
+        status: { in: ["queued", "retry"] }, nextAttemptAt: { lte: dueAt }
+      },
+      orderBy: [{ nextAttemptAt: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+      take: deliveryLimit - attempted
+    });
+    if (!due.length) break;
+    for (const job of due) {
+      if (seen.has(job.id)) throw new Error("LinkedIn due scan did not advance.");
+      seen.add(job.id);
+      const prepared = await withCcnaSocialGuard(prisma, job, async client => {
+        if (await nativeLinkedInOwner(client, job.contentType, job.contentId)) {
+          const held = await client.socialPublication.updateMany({
+            where: { id: job.id, updatedAt: job.updatedAt, status: { in: ["queued", "retry"] } },
+            data: { status: "held", lastError: "Native LinkedIn schedule owns this content; application delivery held to prevent a duplicate." }
+          });
+          return { kind: held.count ? "held" : "stale" } as const;
+        }
+        if (job.contentType !== "ccna_lesson") return { kind: "ordinary" } as const;
+        const reservation = await reserveCcnaApiDispatch(client, job, "publish");
+        return reservation ? { kind: "reserved", reservation } as const : { kind: "stale" } as const;
+      }, () => ({ kind: "preserved" } as const));
+      if (prepared.kind === "preserved") {
+        preservedContent.add(job.contentId);
+        outcomes.push({ id: job.id, status: "preserved" });
+        continue;
+      }
+      attempted++;
+      if (prepared.kind === "held") outcomes.push({ id: job.id, status: "held" });
+      if (prepared.kind === "reserved" || prepared.kind === "ordinary") {
+        const reservation = prepared.kind === "reserved" ? prepared.reservation : undefined;
+        const outcome = await deliverLinkedInQueueJob(prisma, reservation?.job || job, reservation);
+        if (outcome) outcomes.push(outcome);
+      }
     }
+    if (publicationId) break;
+  }
+  return outcomes;
+}
+
+async function deliverLinkedInQueueJob(prisma: PrismaClient, job: SocialPublication, reservation?: CcnaApiReservation) {
+  if (!reservation) {
     const claimed = await prisma.socialPublication.updateMany({
-      where: { id: job.id, status: { in: ["queued", "retry"] } },
+      where: { id: job.id, updatedAt: job.updatedAt, status: { in: ["queued", "retry"] } },
       data: { status: "publishing", lastAttemptAt: new Date(), attempts: { increment: 1 } }
     });
-    if (!claimed.count) continue;
-
-    try {
-      let commentary = job.commentary;
-      let publicationImageUrl = job.imageUrl;
-      let publicationMetadata = metadataObject(job.metadata);
-      const policyVersion = Number(publicationMetadata.commentaryPolicyVersion || 0);
-      const commentaryQualityScore = Number(publicationMetadata.commentaryQualityScore || 0);
-      const trace = metadataObject(publicationMetadata.commentaryTrace as Prisma.JsonValue);
-      if (policyVersion < linkedInCommentaryPolicyVersion || commentaryQualityScore < 88 || trace.provider === "deterministic-protocol" || !lineageFromMetadata(publicationMetadata)) {
-        const material = await currentPublicationMaterial(job);
-        commentary = material.commentary;
-        publicationImageUrl = material.imageUrl;
-        publicationMetadata = {
-          ...publicationMetadata,
-          commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
-          commentaryQualityScore: material.commentaryQualityScore,
-          commentaryTrace: material.commentaryTrace as unknown as Prisma.JsonValue,
-          imageAlt: material.imageAlt,
-          lineage: material.lineage as unknown as Prisma.JsonValue
-        };
-        await prisma.socialPublication.update({
-          where: { id: job.id },
-          data: {
-            commentary,
-            imageUrl: material.imageUrl,
-            metadata: publicationMetadata as Prisma.InputJsonValue,
-            sourceUrl: material.sourceUrl
-          }
-        });
-      }
-      const publicationLineage = lineageFromMetadata(publicationMetadata);
-      if (job.contentType !== "ccna_lesson") {
-        const current = await publishedRevision(job.contentType, job.contentId);
-        if (!current || current.revision !== job.contentRevision) throw new Error("LinkedIn delivery held: source is unpublished or its reviewed revision changed.");
-      }
-      const generatedImage = job.contentType === "ccna_lesson" ? null : await ensureEditorialImageForPublication(job);
-      if (job.contentType === "ccna_lesson") {
-        const lesson = await getCcnaLessonById(job.contentId);
-        if (lesson?.status !== "published" || lesson.updatedAt !== job.contentRevision) {
-          throw new Error("LinkedIn delivery was held because the CCNA lesson is unpublished or its reviewed revision has changed.");
-        }
-        if (!publicationLineage) throw new Error("LinkedIn delivery was held because the CCNA lesson lineage is missing.");
-      } else {
-        if (!generatedImage?.generatedAt) throw new Error(editorialImageWaitMessage);
-        const imageLineage = lineageFromMetadata(generatedImage.agentTrace);
-        if (!publicationLineage || !imageLineage || publicationLineage.hash !== imageLineage.hash) {
-          throw new Error("LinkedIn delivery was held because the article revision and contextual image do not share the same editorial lineage.");
-        }
-      }
-      if (!publicationImageUrl) throw new Error("LinkedIn delivery is missing its canonical article image URL.");
-      const imageUrl = generatedImage ? editorialDeliveryImageUrl(siteConfig.url, generatedImage, "social") : (() => {
-        const url = new URL(publicationImageUrl);
-        return url.toString();
-      })();
-      const result = await publishLinkedInPost({
-        commentary,
-        imageUrl: imageUrl || undefined,
-        imageAlt: typeof publicationMetadata.imageAlt === "string" ? publicationMetadata.imageAlt : undefined
-      });
-      await prisma.socialPublication.update({
-        where: { id: job.id },
-        data: {
-          status: "published",
-          externalId: result.externalId,
-          imageUrl,
-          publishedAt: new Date(),
-          lastError: null,
-          metadata: { ...publicationMetadata, deliveryReceipt: result.receipt, permalink: result.permalink } as Prisma.InputJsonValue
-        }
-      });
-      outcomes.push({ id: job.id, status: "published", externalId: result.externalId });
-    } catch (error) {
-      const attempts = job.attempts + 1;
-      const message = error instanceof Error ? error.message.slice(0, 1800) : "Unknown LinkedIn publication error";
-      const { delayMinutes, terminal } = socialPublicationFailurePolicy(attempts, message);
-      await prisma.socialPublication.update({
-        where: { id: job.id },
-        data: {
-          status: terminal ? "failed" : "retry",
-          nextAttemptAt: new Date(Date.now() + delayMinutes * 60_000),
-          lastError: message
-        }
-      });
-      outcomes.push({ id: job.id, status: terminal ? "failed" : "retry", error: message });
-    }
+    if (!claimed.count) return null;
   }
 
-  return outcomes;
+  try {
+    let commentary = job.commentary;
+    let publicationImageUrl = job.imageUrl;
+    let publicationSourceUrl = job.sourceUrl;
+    let publicationMetadata = metadataObject(job.metadata);
+    const policyVersion = Number(publicationMetadata.commentaryPolicyVersion || 0);
+    const commentaryQualityScore = Number(publicationMetadata.commentaryQualityScore || 0);
+    const trace = metadataObject(publicationMetadata.commentaryTrace as Prisma.JsonValue);
+    if (policyVersion < linkedInCommentaryPolicyVersion || commentaryQualityScore < 88 || trace.provider === "deterministic-protocol" || !lineageFromMetadata(publicationMetadata)) {
+      const material = await currentPublicationMaterial(job);
+      commentary = material.commentary;
+      publicationImageUrl = material.imageUrl;
+      publicationSourceUrl = material.sourceUrl;
+      publicationMetadata = {
+        ...publicationMetadata,
+        commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
+        commentaryQualityScore: material.commentaryQualityScore,
+        commentaryTrace: material.commentaryTrace as unknown as Prisma.JsonValue,
+        imageAlt: material.imageAlt,
+        lineage: material.lineage as unknown as Prisma.JsonValue
+      };
+      if (!reservation) await prisma.socialPublication.update({
+        where: { id: job.id },
+        data: {
+          commentary,
+          imageUrl: material.imageUrl,
+          metadata: publicationMetadata as Prisma.InputJsonValue,
+          sourceUrl: material.sourceUrl
+        }
+      });
+    }
+    const publicationLineage = lineageFromMetadata(publicationMetadata);
+    if (job.contentType !== "ccna_lesson") {
+      const current = await publishedRevision(job.contentType, job.contentId);
+      if (!current || current.revision !== job.contentRevision) throw new Error("LinkedIn delivery held: source is unpublished or its reviewed revision changed.");
+    }
+    const generatedImage = job.contentType === "ccna_lesson" ? null : await ensureEditorialImageForPublication(job);
+    if (job.contentType === "ccna_lesson") {
+      const lesson = await getCcnaLessonById(job.contentId);
+      if (lesson?.status !== "published" || lesson.updatedAt !== job.contentRevision) {
+        throw new Error("LinkedIn delivery was held because the CCNA lesson is unpublished or its reviewed revision has changed.");
+      }
+      if (!publicationLineage) throw new Error("LinkedIn delivery was held because the CCNA lesson lineage is missing.");
+    } else {
+      if (!generatedImage?.generatedAt) throw new Error(editorialImageWaitMessage);
+      const imageLineage = lineageFromMetadata(generatedImage.agentTrace);
+      if (!publicationLineage || !imageLineage || publicationLineage.hash !== imageLineage.hash) {
+        throw new Error("LinkedIn delivery was held because the article revision and contextual image do not share the same editorial lineage.");
+      }
+    }
+    if (!publicationImageUrl) throw new Error("LinkedIn delivery is missing its canonical article image URL.");
+    const imageUrl = generatedImage ? editorialDeliveryImageUrl(siteConfig.url, generatedImage, "social") : (() => {
+      const url = new URL(publicationImageUrl);
+      return url.toString();
+    })();
+    const result = await publishLinkedInPost({
+      commentary,
+      imageUrl: imageUrl || undefined,
+      imageAlt: typeof publicationMetadata.imageAlt === "string" ? publicationMetadata.imageAlt : undefined
+    });
+    const data = {
+      status: "published",
+      commentary,
+      sourceUrl: publicationSourceUrl,
+      externalId: result.externalId,
+      imageUrl,
+      publishedAt: new Date(),
+      lastError: null,
+      metadata: { ...publicationMetadata, deliveryReceipt: result.receipt, permalink: result.permalink } as Prisma.InputJsonValue
+    };
+    if (reservation) await completeCcnaApiDispatch(prisma, reservation, data);
+    else await prisma.socialPublication.update({ where: { id: job.id }, data });
+    return { id: job.id, status: "published", externalId: result.externalId };
+  } catch (error) {
+    const message = error instanceof Error ? error.message.slice(0, 1800) : "Unknown LinkedIn publication error";
+    // The pre-dispatch fence is already durable. Do not clear it, change
+    // status to retry, or hide a receipt-write failure with another write.
+    if (reservation) return { id: job.id, status: "needs_review", error: message };
+    const attempts = job.attempts + 1;
+    const { delayMinutes, terminal } = socialPublicationFailurePolicy(attempts, message);
+    await prisma.socialPublication.update({
+      where: { id: job.id },
+      data: {
+        status: terminal ? "failed" : "retry",
+        nextAttemptAt: new Date(Date.now() + delayMinutes * 60_000),
+        lastError: message
+      }
+    });
+    return { id: job.id, status: terminal ? "failed" : "retry", error: message };
+  }
 }
 
 function metadataObject(value: Prisma.JsonValue | null) {
@@ -610,8 +669,29 @@ export async function refreshLinkedInPublication(
   const prisma = getPrismaClient();
   const publication = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
   if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
+  if (publication.contentType === "ccna_lesson") {
+    const reservation = await withCcnaSocialGuard(prisma, publication, async client => {
+      await assertApplicationLinkedInOwnership(client, publication.contentType, publication.contentId);
+      const current = await client.socialPublication.findUniqueOrThrow({ where: { id: publicationId } });
+      if (current.status !== "published" || !current.externalId) throw new Error("Only a published LinkedIn post can be refreshed.");
+      return reserveCcnaApiDispatch(client, current, replaceMedia ? "replace-media" : "commentary");
+    });
+    if (!reservation) throw new Error("CCNA refresh reservation changed; nothing dispatched.");
+    return refreshLinkedInPublicationOnClient(prisma, publicationId, replaceMedia, commentaryOverride, forceProceduralImage, reservation);
+  }
   await assertApplicationLinkedInOwnership(prisma, publication.contentType, publication.contentId);
-  if (publication.status !== "published" || !publication.externalId) {
+  return refreshLinkedInPublicationOnClient(prisma, publicationId, replaceMedia, commentaryOverride, forceProceduralImage);
+}
+
+async function refreshLinkedInPublicationOnClient(
+  prisma: PrismaClient, publicationId: string, replaceMedia: boolean,
+  commentaryOverride?: string, forceProceduralImage = false, reservation?: CcnaApiReservation
+) {
+  const publication = reservation?.job || await prisma.socialPublication.findUnique({ where: { id: publicationId } });
+  if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
+  if (publication.contentType === "ccna_lesson" && !reservation) throw new Error("CCNA API refresh requires a committed dispatch reservation.");
+  await assertApplicationLinkedInOwnership(prisma, publication.contentType, publication.contentId);
+  if ((!reservation && publication.status !== "published") || !publication.externalId) {
     throw new Error("Only a published LinkedIn post can be refreshed.");
   }
 
@@ -621,27 +701,26 @@ export async function refreshLinkedInPublication(
     const commentary = material.commentary;
     const liveReceipt = await updateLinkedInPostCommentary(publication.externalId, commentary);
     const previousReceipt = metadataObject((metadata.deliveryReceipt as Prisma.JsonValue | undefined) || null);
-    return prisma.socialPublication.update({
-      where: { id: publication.id },
-      data: {
-        commentary,
-        contentRevision: publication.contentType === "ccna_lesson" ? material.lineage.contentRevision : publication.contentRevision,
-        lastError: null,
-        metadata: {
-          ...metadata,
-          commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
-          commentaryQualityScore: material.commentaryQualityScore,
-          commentaryTrace: material.commentaryTrace,
-          lineage: material.lineage,
-          commentaryRefreshedAt: new Date().toISOString(),
-          deliveryReceipt: {
-            ...previousReceipt,
-            ...liveReceipt
-          }
-        } as Prisma.InputJsonValue,
-        sourceUrl: material.sourceUrl
-      }
-    });
+    const data = {
+      commentary,
+      contentRevision: publication.contentType === "ccna_lesson" ? material.lineage.contentRevision : publication.contentRevision,
+      lastError: null,
+      metadata: {
+        ...metadata,
+        commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
+        commentaryQualityScore: material.commentaryQualityScore,
+        commentaryTrace: material.commentaryTrace,
+        lineage: material.lineage,
+        commentaryRefreshedAt: new Date().toISOString(),
+        deliveryReceipt: {
+          ...previousReceipt,
+          ...liveReceipt
+        }
+      } as Prisma.InputJsonValue,
+      sourceUrl: material.sourceUrl
+    };
+    return reservation ? completeCcnaApiDispatch(prisma, reservation, data)
+      : prisma.socialPublication.update({ where: { id: publication.id }, data });
   }
 
   const generatedImage = publication.contentType === "ccna_lesson"
@@ -677,34 +756,48 @@ export async function refreshLinkedInPublication(
   const previousExternalIds = Array.isArray(metadata.previousExternalIds)
     ? metadata.previousExternalIds.filter((value): value is string => typeof value === "string")
     : [];
-  return prisma.socialPublication.update({
-    where: { id: publication.id },
-    data: {
-      commentary: material.commentary,
-      contentRevision: publication.contentType === "ccna_lesson" ? material.lineage.contentRevision : publication.contentRevision,
-      externalId: replacement.externalId,
-      imageUrl: material.imageUrl,
-      lastError: null,
-      publishedAt: new Date(),
-      sourceUrl: material.sourceUrl,
-      metadata: {
-        ...metadata,
-        commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
-        commentaryQualityScore: material.commentaryQualityScore,
-        commentaryTrace: material.commentaryTrace,
-        imageAlt: material.imageAlt,
-        lineage: material.lineage,
-        mediaReplacedAt: new Date().toISOString(),
-        permalink: replacement.permalink,
-        deliveryReceipt: replacement.receipt,
-        previousExternalIds: [...previousExternalIds, publication.externalId]
-      } as Prisma.InputJsonValue
-    }
-  });
+  const data = {
+    commentary: material.commentary,
+    contentRevision: publication.contentType === "ccna_lesson" ? material.lineage.contentRevision : publication.contentRevision,
+    externalId: replacement.externalId,
+    imageUrl: material.imageUrl,
+    lastError: null,
+    publishedAt: new Date(),
+    sourceUrl: material.sourceUrl,
+    metadata: {
+      ...metadata,
+      commentaryPolicyVersion: linkedInCommentaryPolicyVersion,
+      commentaryQualityScore: material.commentaryQualityScore,
+      commentaryTrace: material.commentaryTrace,
+      imageAlt: material.imageAlt,
+      lineage: material.lineage,
+      mediaReplacedAt: new Date().toISOString(),
+      permalink: replacement.permalink,
+      deliveryReceipt: replacement.receipt,
+      previousExternalIds: [...previousExternalIds, publication.externalId]
+    } as Prisma.InputJsonValue
+  };
+  return reservation ? completeCcnaApiDispatch(prisma, reservation, data)
+    : prisma.socialPublication.update({ where: { id: publication.id }, data });
 }
 
 export async function rebuildLinkedInPublication(publicationId: string) {
   const prisma = getPrismaClient();
+  const publication = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
+  if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
+  const result = await withCcnaSocialGuard(prisma, publication, client => rebuildLinkedInPublicationOnClient(client, publicationId));
+  if (result.status === "refresh-required") {
+    const replaced = await refreshLinkedInPublication(publication.id, true);
+    return { id: publication.id, status: "replaced", contentType: publication.contentType,
+      commentaryLength: replaced.commentary.length, externalId: replaced.externalId || undefined };
+  }
+  if (publication.contentType !== "ccna_lesson" || result.status !== "queued") return result;
+  // Commit the rebuild before a worker takes its own preservation lock.
+  const [published] = await processLinkedInQueue(1, publication.id);
+  return { ...result, status: published?.status || "queued", externalId: published?.externalId, error: published?.error };
+}
+
+async function rebuildLinkedInPublicationOnClient(prisma: Prisma.TransactionClient | PrismaClient, publicationId: string) {
   const publication = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
   if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
   await assertApplicationLinkedInOwnership(prisma, publication.contentType, publication.contentId);
@@ -716,7 +809,12 @@ export async function rebuildLinkedInPublication(publicationId: string) {
   }
 
   if (publication.status === "published" && publication.externalId) {
-    const replaced = await refreshLinkedInPublication(publication.id, true);
+    if (publication.contentType === "ccna_lesson") return {
+      id: publication.id, status: "refresh-required", contentType: publication.contentType,
+      commentaryLength: publication.commentary.length, externalId: publication.externalId
+    };
+    // Non-CCNA calls do not use an interactive guard transaction.
+    const replaced = await refreshLinkedInPublicationOnClient(prisma as PrismaClient, publication.id, true);
     return {
       id: publication.id,
       status: "replaced",
@@ -749,7 +847,8 @@ export async function rebuildLinkedInPublication(publicationId: string) {
       status: "queued"
     }
   });
-  const [published] = await processLinkedInQueue(1, publication.id);
+  // A CCNA worker claims this queued job after the guard transaction commits.
+  const [published] = publication.contentType === "ccna_lesson" ? [] : await processLinkedInQueue(1, publication.id);
   return {
     id: publication.id,
     status: published?.status || "queued",
