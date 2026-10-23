@@ -12,6 +12,7 @@ import { createPageMetadata } from "@/lib/seo";
 import { loadSection } from "@/lib/section-availability";
 import { SectionUnavailable } from "@/components/section-unavailable";
 import { readyAdvisoryImages } from "@/lib/advisory-image-availability";
+import { fortinetHardeningGuide } from "@/lib/website-only-resources";
 
 export const dynamic = "force-dynamic";
 
@@ -108,6 +109,16 @@ export default async function SecurityAdvisoryDeskPage({ searchParams }: Advisor
       </section>
 
       <SignalJourney variant="intelligence" />
+
+      <section className="section" aria-labelledby="fortinet-hardening-guide">
+        <div className="section-heading">
+          <p className="eyebrow">Fortinet | October 22 hardening release</p>
+          <h2 id="fortinet-hardening-guide">Plan the upgrade. Verify the result.</h2>
+          <p>{fortinetHardeningGuide.excerpt}</p>
+          <p>Includes affected FortiOS branches, recovery preparation and service checks. Individual vulnerability disclosures remain pending in Fortinet&apos;s announcement.</p>
+          <Link className="text-link" href={`/resources/${fortinetHardeningGuide.slug}`}>Read the detailed FortiGate hardening guide</Link>
+        </div>
+      </section>
 
       <section className="section" id="latest-advisories">
         <div className="section-heading">

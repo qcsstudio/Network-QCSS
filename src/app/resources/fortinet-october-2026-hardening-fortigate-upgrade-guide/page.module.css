@@ -1,0 +1,20 @@
+.guide :global(.blog-hero) {
+  display: block;
+}
+
+.guide :global(.blog-hero-media) {
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 16 / 9;
+  margin-top: 2rem;
+}
+
+.guide :global(.blog-hero-media img) {
+  object-fit: contain;
+}
+
+.guide :global(.blog-sidebar),
+.guide :global(.blog-article) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

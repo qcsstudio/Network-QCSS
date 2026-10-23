@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "Harvey (Codex independent reviewer)",
+  "reviewerId": "01a13e77-9990-71d0-b15b-6295f9c59903",
+  "reviewedAt": "2026-10-23T18:54:29Z",
+  "status": "PASS",
+  "scope": "Independent exact-content technical review of the Fortinet hardening article, master PNG and primary sources. This is not publication, deployment, customer-appliance validation or a CCNA review.",
+  "file": "test-results/fortinet-hardening-2026-10-23/article.json",
+  "sha256": "603a17c97a215395948c954ee9c696bc3c06675439ca14b80f3e073537d08211",
+  "artifacts": {
+    "article": {
+      "file": "article.json",
+      "sha256": "603a17c97a215395948c954ee9c696bc3c06675439ca14b80f3e073537d08211"
+    },
+    "masterImage": {
+      "file": "fortinet-hardening.png",
+      "sha256": "ab8ad568b805ef6235609cc59ef8ee98186848465a33276b9d2b73ba7bc820d5",
+      "width": 2400,
+      "height": 1350,
+      "pixelInspection": "Performed by this reviewer using the actual PNG."
+    },
+    "manifest": {
+      "file": "manifest.json",
+      "sha256": "cfe0dc3d498c7d23f3d951ed6245a61b41360de382c06f4ea588d62dfa9d3ddb",
+      "scope": "Source inventory and target mapping; pending publication/workflow fields were not independently tested as external system state."
+    }
+  },
+  "evidence": {
+    "checks": [
+      {
+        "category": "complete_article_review",
+        "passed": true,
+        "verification": "Read the complete JSON, including definitions, all ten sections, all five FAQs, checklist, source mappings, metadata and visual brief."
+      },
+      {
+        "category": "vendor_notice_and_disclosure",
+        "passed": true,
+        "verification": "The announcement, affected ranges, product distinctions and pending-disclosure boundaries match the live primary evidence."
+      },
+      {
+        "category": "version_and_build_mapping",
+        "passed": true,
+        "verification": "All four FortiOS versions/builds were checked directly; general builds are distinguished from model-specific images."
+      },
+      {
+        "category": "command_accuracy",
+        "passed": true,
+        "verification": "All three literal commands match Fortinet's reference and are appropriately described as observational checks."
+      },
+      {
+        "category": "mtu_mss_and_ipsec",
+        "passed": true,
+        "verification": "The 7.6.8-specific behavior is accurately scoped; larger-transfer testing is explicitly a recommendation, not observed runtime."
+      },
+      {
+        "category": "operational_safety_and_recovery",
+        "passed": true,
+        "verification": "Recovery access, protected backups, model-specific paths, HA/Fabric boundaries, known issues and escalation are explicit; no generic destructive upgrade/downgrade command is supplied."
+      },
+      {
+        "category": "source_support",
+        "passed": true,
+        "verification": "All eleven article/manifest bibliography URLs were opened live and their relevant content read; section/FAQ mappings refer to listed sources."
+      },
+      {
+        "category": "visual_consistency",
+        "passed": true,
+        "verification": "Inspected the actual 2400x1350 master PNG. Four independent branch tracks, ranges, targets, disclosure date and supported-path caveats match the article. Text is readable with no observed overlap or clipping."
+      },
+      {
+        "category": "presentation_and_provenance",
+        "passed": true,
+        "verification": "Schema passes. Hypothetical and unexecuted tests are labelled honestly. The pending-review metadata is accurate for the submitted draft and may now be finalized truthfully."
+      }
+    ],
+    "findings": []
+  },
+  "verifiedSources": [
+    {
+      "label": "Fortinet: October 21 security-hardening announcement",
+      "url": "https://www.fortinet.com/blog/ciso-collective/fortinet-releases-security-hardening-release-for-multiple-products",
+      "method": "live web retrieval",
+      "verification": "Read the live October 21 announcement. Confirmed the October 22 coordinated release, critical/high characterization, all four affected FortiOS ranges and targets, distinct FortiManager/FortiAnalyzer target rows, temporary exposure controls, and planned November 10 advisories. It does not establish individual CVEs, scores, prerequisites or active exploitation."
+    },
+    {
+      "label": "FortiOS 7.2.14: introduction and supported models",
+      "url": "https://docs.fortinet.com/document/fortigate/7.2.14/fortios-release-notes/760203/introduction-and-supported-models",
+      "method": "live browser document reading",
+      "verification": "Read the live release introduction in the browser. Confirmed 7.2.14 general build 1778, supported models and separate special-branch builds; the article correctly requires model-specific checking."
+    },
+    {
+      "label": "FortiOS 7.4.13: introduction and supported models",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.13/fortios-release-notes/760203/introduction-and-supported-models",
+      "method": "live browser document reading",
+      "verification": "Read the live release introduction in the browser. Confirmed 7.4.13 general build 2933 and model-specific special builds; the hypothetical 7.4.12 example is within the announced affected range."
+    },
+    {
+      "label": "FortiOS 7.6.8: introduction and supported models",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.8/fortios-release-notes/760203/introduction-and-supported-models",
+      "method": "live browser document reading",
+      "verification": "Read the live release introduction in the browser. Confirmed 7.6.8 general build 3744, supported models and cloud-instance caveats; no universal appliance compatibility is claimed."
+    },
+    {
+      "label": "FortiOS 8.0.2: introduction and supported models",
+      "url": "https://docs.fortinet.com/document/fortigate/8.0.2/fortios-release-notes/760203/introduction-and-supported-models",
+      "method": "live browser document reading",
+      "verification": "Read the live release introduction in the browser. Confirmed 8.0.2 general build 0251 and supported-model restrictions. The article does not tell every device to move to this branch."
+    },
+    {
+      "label": "FortiOS 7.6.8: supported upgrade-path guidance",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.8/fortios-release-notes/832438/upgrade-information",
+      "method": "live browser document reading",
+      "verification": "Read the live upgrade guidance in the browser. Confirmed the Upgrade Path Tool takes product, model, current version and target; individual-device and Security Fabric procedures are distinguished."
+    },
+    {
+      "label": "FortiOS 7.6.8: changes in default behavior",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.8/fortios-release-notes/230510/changes-in-default-behavior",
+      "method": "live browser document reading",
+      "verification": "Read the live default-behavior note in the browser. Bug 1073893 documents the large-TCP/IPsec MSS behavior and ICMP_FRAG_NEEDED feedback. The article confines the claim to 7.6.8 and labels its transfer test as an inference, not a reproduced failure."
+    },
+    {
+      "label": "FortiOS 7.6.8: known issues",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.8/fortios-release-notes/236526/known-issues",
+      "method": "live browser document reading",
+      "verification": "Read the live known-issues page in the browser, including HA, IPsec, platform, system and VM entries. It supports checking deployment-specific limitations and does not establish that every upgrade fails."
+    },
+    {
+      "label": "Fortinet: CLI troubleshooting cheat sheet",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/cli-troubleshooting-cheat-sheet/420966/cli-troubleshooting-cheat-sheet",
+      "method": "live browser document reading",
+      "verification": "Read the live CLI cheat sheet in the browser. Confirmed get system status for system information, get system performance status for CPU/memory and get system ha status for HA information. These are the article's three literal CLI commands; none was executed."
+    },
+    {
+      "label": "Fortinet: troubleshooting methodology",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.5/administration-guide/321075",
+      "method": "live browser document reading",
+      "verification": "Read the live troubleshooting-methodology page in the browser. Confirmed permission checks, recording a normal baseline, the stated system-information commands, problem scoping, checklist/evidence collection and support escalation."
+    },
+    {
+      "label": "FortiGuard PSIRT advisory index",
+      "url": "https://fortiguard.fortinet.com/psirt",
+      "method": "live browser document reading",
+      "verification": "Read the live PSIRT index in the browser. The visible relevant October 13 records include FG-IR-26-178 SQL injection affecting FortiManager/FortiAnalyzer. This is distinct from the coordinated hardening notice; the index is not evidence of exploit status for the undisclosed fixes."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.8/administration-guide/596131/upgrading-individual-devices",
+      "method": "live browser document reading",
+      "verification": "Followed the release guidance to the individual-device procedure. Confirmed backup, intermediate-path advice, direct-upgrade configuration-loss warning and firmware signature validation."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.8/administration-guide/102085/downloading-a-firmware-image",
+      "method": "live browser document reading",
+      "verification": "Followed the documented download link. Confirmed authorized support-site acquisition, matching the model and release notes, HTTPS preference and integrity-checking references."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.8/administration-guide/929924/downgrading-individual-device-firmware",
+      "method": "live browser document reading",
+      "verification": "Followed the documented downgrade link. Confirmed downgrade is discouraged, HA interruption is possible and restoration compatibility is not guaranteed; the article appropriately defers to platform-specific recovery procedures."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/fortios-release-notes/399393/firmware-image-checksums",
+      "method": "live primary-domain search result",
+      "verification": "Read the primary-source search excerpt describing vendor firmware checksums available through the support portal. Used only to corroborate the general checksum recommendation; no firmware binary or portal checksum was obtained or tested."
+    }
+  ],
+  "deterministicChecks": {
+    "schema": "PASS",
+    "usefulWords": 1855,
+    "sourceListsEqual": true,
+    "unlistedClaimCitationUrls": [],
+    "remainingEditorialGate": "Name the technical review team; finalize only from this genuine review result."
+  },
+  "requiredSubstantiveCorrections": [],
+  "metadataFinalization": {
+    "permittedFields": [
+      "/reviewedBy",
+      "/editorialMethod",
+      "/publishedAt",
+      "/updatedAt"
+    ],
+    "conditions": "The author may record this actual independent source-based review, retain the no-runtime statement and use actual publication/update dates. Do not imply human, Fortinet, appliance-runtime or website-deployment approval. This receipt's raw SHA remains the reviewed input, not the hash of a subsequently edited file.",
+    "substantiveContentSha256": "a88cadf606bbc290ba5f93f85baec85232b9af360622b501c4904915689060ed",
+    "digestMethod": "Parse article JSON, remove only top-level reviewedBy, editorialMethod, publishedAt and updatedAt, recursively sort object keys lexicographically, preserve array order, JSON.stringify without whitespace, then SHA256 of UTF-8.",
+    "releaseHandoff": "Any metadata-finalized article must retain this substantive digest and the exact master-image hash; record its final raw hash separately. Any other change requires renewed content review."
+  },
+  "limitations": [
+    "No FortiGate appliance, emulator, GNS3, CML, HA failover, firmware installation, command execution, exploit test or application-network runtime was performed.",
+    "Source browsing and master-PNG pixel inspection were performed; live QCS page rendering, accessibility, publication HTTP checks and social-platform QA were not performed by this review.",
+    "The web retrieval tool returned access errors for Fortinet documentation and PSIRT pages; their contents were successfully verified through the live browser instead. The supplemental checksum reference was checked through a primary-domain search excerpt only.",
+    "No authenticated firmware download, model-specific customer upgrade-path computation, license entitlement or vendor checksum comparison was performed.",
+    "Security applicability remains bounded by the current vendor announcement. Detailed advisories are pending; no claim of active exploitation or absence of prior compromise is established.",
+    "No author content, manifest, captions, posts, schedules, CCNA files, production files or database records were changed. No paid API was called.",
+    "Only the two independent-review receipt files were written. Publication and metadata finalization remain with the author/parent."
+  ]
+}
+

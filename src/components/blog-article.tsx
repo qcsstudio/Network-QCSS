@@ -11,6 +11,7 @@ type BlogArticleProps = {
   relatedPosts?: BlogPost[];
   showLeadForm?: boolean;
   visualSrc?: string;
+  visualLinkLabel?: string;
 };
 
 function sectionId(heading: string, index: number) {
@@ -21,7 +22,7 @@ function sectionId(heading: string, index: number) {
   return `${slug || "section"}-${index + 1}`;
 }
 
-export function BlogArticle({ post, relatedPosts = [], showLeadForm = true, visualSrc }: BlogArticleProps) {
+export function BlogArticle({ post, relatedPosts = [], showLeadForm = true, visualSrc, visualLinkLabel }: BlogArticleProps) {
   const published = new Date(post.publishedAt).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
@@ -80,6 +81,9 @@ export function BlogArticle({ post, relatedPosts = [], showLeadForm = true, visu
               unoptimized
             />
           </div>
+          {visualLinkLabel && visualSrc ? (
+            <p><a className="text-link" href={visualSrc} target="_blank" rel="noreferrer">{visualLinkLabel} (opens in a new tab)</a></p>
+          ) : null}
         </section>
 
         <section className="section blog-layout">

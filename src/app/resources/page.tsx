@@ -12,6 +12,7 @@ import { blogArchiveHref, blogArchivePage } from "@/lib/blog-presentation";
 import { archivePageNumber } from "@/lib/advisory-archive";
 import { siteConfig } from "@/lib/content";
 import { getAllPublishedBlogPosts } from "@/lib/content-posts";
+import { resourceCardImage, withWebsiteOnlyResources } from "@/lib/website-only-resources";
 import { createPageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ function BlogCard({ featured = false, post, priority = false }: { featured?: boo
           fill
           priority={priority}
           sizes={featured ? "(max-width: 1080px) 100vw, 48vw" : "(max-width: 720px) 100vw, 44vw"}
-          src={`/resources/${post.slug}/visual`}
+          src={resourceCardImage(post)}
           unoptimized
         />
       </Link>
@@ -76,7 +77,7 @@ function BlogCard({ featured = false, post, priority = false }: { featured?: boo
 }
 
 export default async function ResourcesPage({ searchParams }: ResourcesPageProps) {
-  const posts = await getAllPublishedBlogPosts();
+  const posts = withWebsiteOnlyResources(await getAllPublishedBlogPosts());
   const params = await searchParams;
   const query = { format: params.format, page: archivePageNumber(params.page), query: params.q, topic: params.topic };
   const archive = blogArchivePage(posts, query);

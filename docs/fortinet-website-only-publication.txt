@@ -1,0 +1,27 @@
+FORTINET OCTOBER 22 HARDENING GUIDE - WEBSITE-ONLY PUBLICATION
+
+URL: /resources/fortinet-october-2026-hardening-fortigate-upgrade-guide
+Content: src/content/website-only/fortinet-october-2026-hardening.json
+Review: adjacent .review.json; independent Harvey PASS, source-based AI review.
+The original reviewed text and image hashes remain bound by tests. Only allowed
+review/date metadata was finalized. No appliance or networking-lab runtime ran.
+
+The exact static App Router page and public PNG do not read Neon. It is linked
+from the resource archive and the Advisory Desk. Its additive sitemap is at
+/resources/sitemap.xml; robots.txt retains the complete original
+sitemap as well. This does not repair database-dependent pages or claim indexing.
+
+Do not add this article to blogPosts, content seeds, editorial automation or a
+social delivery queue. Existing native LinkedIn, Facebook and Instagram posts
+already own delivery. Website publication does not authorize reposting or edits.
+The presentation-only registry is deliberately separate from content-posts.ts.
+
+After database access returns, reconcile any matching server job against the
+real receipts before resuming it. Do not infer queue completion from local state.
+Private receipts remain in test-results/fortinet-hardening-2026-10-23/standalone-social.
+Database migration, if later authorized, must preserve this canonical URL and
+publication date, remove duplicate website inventory, and remain social-silent.
+
+No paid generation API, database upgrade, new storage subscription or promotion
+is needed. Files are served by the existing website deployment within its plan.
+Private admin and draft behavior, original chapters and schedules are unchanged.

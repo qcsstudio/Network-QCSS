@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: ["/", "/api/editorial-media/"],
       disallow: ["/admin", "/api"]
     },
-    sitemap: `${siteConfig.url}/sitemap.xml`
+    sitemap: [`${siteConfig.url}/sitemap.xml`, `${siteConfig.url}/resources/sitemap.xml`]
   };
 }
