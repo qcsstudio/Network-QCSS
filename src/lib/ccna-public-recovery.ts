@@ -1,16 +1,13 @@
 import { z } from "zod";
 import { ccnaLessonContentSchema } from "./ccna-lesson-schema";
+import { ccnaCurriculum } from "./ccna-curriculum";
 import type { CcnaLessonRecord } from "./ccna-learning";
 
 export type PublicCcnaLesson = Pick<CcnaLessonRecord,
   "id" | "sequence" | "week" | "day" | "slug" | "title" | "moduleId" | "moduleTitle" |
   "examDomain" | "v11Blueprint" | "v20Blueprint" | "status" | "publishedAt" | "updatedAt" | "content">;
 
-const approvedSlugs = new Map([
-  [14, "slaac-eui64-and-neighbor-discovery"],
-  [15, "cisco-ios-cli-workflow"],
-  [16, "ethernet-switching-and-mac-learning"]
-]);
+const approvedSlugs = new Map(ccnaCurriculum.map(topic => [topic.sequence, topic.slug]));
 const timestamp = z.string().datetime();
 const publicLessonSchema = z.object({
   id: z.string().min(1), sequence: z.number().int(), week: z.number().int().positive(), day: z.number().int().min(1).max(5),
@@ -22,12 +19,14 @@ const publicLessonSchema = z.object({
 export const ccnaRecoveryDatabaseHoldUntil = "2026-11-01T00:00:00.000Z";
 
 export function validatePublicCcnaRecovery(input: unknown): PublicCcnaLesson[] {
-  const lessons = z.array(publicLessonSchema).length(3).parse(input);
-  if (new Set(lessons.map(lesson => lesson.sequence)).size !== 3 || lessons.some(lesson =>
+  const lessons = z.array(publicLessonSchema).length(60).parse(input);
+  if (new Set(lessons.map(lesson => lesson.sequence)).size !== 60 ||
+    new Set(lessons.map(lesson => lesson.id)).size !== 60 || lessons.some(lesson =>
+    lesson.sequence < 1 || lesson.sequence > 60 ||
     approvedSlugs.get(lesson.sequence) !== lesson.slug ||
     lesson.week !== Math.ceil(lesson.sequence / 5) || lesson.day !== (lesson.sequence - 1) % 5 + 1 ||
     Date.parse(lesson.updatedAt) < Date.parse(lesson.publishedAt)
-  )) throw new Error("The public recovery bundle must contain only verified Days 14-16.");
+  )) throw new Error("The public recovery bundle must contain exactly the published Days 1-60.");
   return lessons.sort((a, b) => a.sequence - b.sequence);
 }
 

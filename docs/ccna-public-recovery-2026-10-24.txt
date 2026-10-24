@@ -1,21 +1,24 @@
-CCNA Days 14-16 public recovery
+CCNA Days 1-60 public recovery
 
 Purpose: restore the exact already-published lessons during the Neon free-quota
 outage, without publishing a draft or consuming a generation/review API.
 
-Scope: a strict public-field bundle for three allowlisted lessons, their public
+Scope: a strict public-field bundle for all 60 published lessons, their public
 metadata, teaching page, quiz, outline, course links and generated OG/social
-image endpoints. Day 14 includes the applied and verified October 21 supplement;
-Days 15/16 use the verified published snapshot. Original IDs, publication dates,
+image endpoints. Days 3, 6, 14, 22 and 24 include their applied and verified
+October 21 supplements; the other lessons use the existing published snapshot.
+Pending supplements for Days 2, 17 and 29 are not included. Day 1 predates the
+current exact-revision review receipt and is restored solely as its already
+published legacy revision; this does not create a new technical approval.
+Original IDs, publication dates,
 modification dates, sources and content remain unchanged. Private traces, queue
 jobs, approval identities and operational errors are excluded from the bundle.
 
-During the approved wait until 1 November 2026 00:00 UTC these three public pages
+During the approved wait until 1 November 2026 00:00 UTC these 60 public pages
 and the public lesson listing use the bundled revisions without a database read.
-Unbundled and unknown lesson slugs return unavailable without contacting the
-suspended database during this hold. They resume live reads after it. The temporary list
-contains only the three recoverable lessons, not a claim that the other 57 are
-newly unpublished or restored. No sitemap inventory is replaced with this list.
+Unknown lesson slugs return 404 without contacting the suspended database during
+this hold. They resume live reads after it. The full course listing and previous/
+next navigation include all 60 chapters. No sitemap inventory is replaced.
 
 After that boundary, healthy DB reads take precedence, including a null/empty
 result for withdrawn content. Only recognized availability failures may serve
@@ -23,13 +26,21 @@ the last-known published recovery copies. Admin and social workers never import
 this reader. No job, schedule, approval, held delivery or DB row is changed.
 
 Withdrawal during the outage requires a code deployment removing the recovery
-entry and its allowlist/schema entry, or rolling back this scoped release. Admin
+entry and updating its strict bundle validation/tests, or rolling back this release. Admin
 draft changes cannot invalidate a disconnected bundle during the explicit hold.
 Do not extend the hold automatically. Once DB access is available, verify fresh
 publication state and retire the bundle if it is no longer needed. Do not use
 this recovery path to approve unpublished chapters or pending supplements.
 
 Private provenance, release checks and browser evidence belong under
-test-results/ccna-recovery-2026-10-24. Content hashes in the regression tests bind
+test-results/ccna-full-recovery-2026-10-24; the original three-lesson evidence stays
+under test-results/ccna-recovery-2026-10-24. Content hashes in the regression tests bind
 the payload to the reviewed publication evidence. These tests do not claim a
 GNS3, CML, hardware or networking-lab runtime test.
+
+Read-only regression check (no database credentials or social API):
+node scripts/ccna-public-health.mjs https://www.qcsstudio.com test-results/ccna-health
+It checks all 60 pages, exact canonicals, indexability, section/quiz presence,
+previous/next links, 120 full-resolution image endpoints, full course links and
+a genuine unknown-slug 404. Any failed check exits nonzero; an HTTP 200 alone
+does not pass. This is a command, not an always-on external monitoring service.
