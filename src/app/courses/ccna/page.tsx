@@ -4,7 +4,7 @@ import { ArrowRight, BookOpenCheck, CalendarDays, FlaskConical, ShieldCheck } fr
 import { DomainHeroVisual } from "@/components/domain-hero-visual";
 import { StructuredData } from "@/components/structured-data";
 import { ccnaCourseFacts, ccnaModules, ccnaOfficialSources, ccnaCurriculum, ccnaExamStatus } from "@/lib/ccna-curriculum";
-import { getPublishedCcnaLessons } from "@/lib/ccna-learning";
+import { getPublicCcnaLessons } from "@/lib/ccna-public-lessons";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
 import { ccnaFoundationUnits } from "@/lib/ccna-foundations";
@@ -19,7 +19,7 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default async function CcnaCoursePage() {
-  const published = await getPublishedCcnaLessons().catch(() => []);
+  const published = await getPublicCcnaLessons().catch(() => []);
   const publishedBySequence = new Map(published.map((lesson) => [lesson.sequence, lesson]));
   const latest = published.at(-1);
   return (
@@ -56,7 +56,7 @@ export default async function CcnaCoursePage() {
           <p>CCNA means Cisco Certified Network Associate. This free course helps you build the skills behind that certification. Read, try and repeat at your own pace.</p>
           <div className="button-row">
             <Link className="button primary" href="/courses/ccna/start-here">Start from zero <ArrowRight aria-hidden="true" size={17} /></Link>
-            {latest ? <Link className="button secondary" href={`/courses/ccna/lessons/${latest.slug}`}>Open latest lesson</Link> : <a className="button secondary" href="#syllabus">Explore syllabus</a>}
+            {latest ? <Link className="button secondary" href={`/courses/ccna/lessons/${latest.slug}`}>Open latest available lesson</Link> : <a className="button secondary" href="#syllabus">Explore syllabus</a>}
           </div>
           <dl className="ccna-course-stats">
             <div><dt>Exam by date</dt><dd>{ccnaExamStatus().activeVersion}</dd></div>
@@ -99,7 +99,7 @@ export default async function CcnaCoursePage() {
                   return <li key={topic.slug}>
                     <span>Day {String(topic.sequence).padStart(2, "0")}</span>
                     <div><strong>{topic.title}</strong><p>{topic.objective}</p><small>v1.1: {topic.v11} / v2.0: {topic.v20}</small></div>
-                    {lesson ? <Link aria-label={`Open ${topic.title}`} href={`/courses/ccna/lessons/${topic.slug}`}><ArrowRight aria-hidden="true" size={18} /></Link> : <i className="ccna-lesson-scheduled" role="img" aria-label="Scheduled lesson" title="Scheduled lesson"><CalendarDays aria-hidden="true" size={19} /></i>}
+                    {lesson ? <Link aria-label={`Open ${topic.title}`} href={`/courses/ccna/lessons/${topic.slug}`}><ArrowRight aria-hidden="true" size={18} /></Link> : <i className="ccna-lesson-scheduled" role="img" aria-label="Lesson currently unavailable" title="Lesson currently unavailable"><CalendarDays aria-hidden="true" size={19} /></i>}
                   </li>;
                 })}
               </ol>

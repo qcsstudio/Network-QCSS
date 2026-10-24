@@ -1,0 +1,35 @@
+CCNA Days 14-16 public recovery
+
+Purpose: restore the exact already-published lessons during the Neon free-quota
+outage, without publishing a draft or consuming a generation/review API.
+
+Scope: a strict public-field bundle for three allowlisted lessons, their public
+metadata, teaching page, quiz, outline, course links and generated OG/social
+image endpoints. Day 14 includes the applied and verified October 21 supplement;
+Days 15/16 use the verified published snapshot. Original IDs, publication dates,
+modification dates, sources and content remain unchanged. Private traces, queue
+jobs, approval identities and operational errors are excluded from the bundle.
+
+During the approved wait until 1 November 2026 00:00 UTC these three public pages
+and the public lesson listing use the bundled revisions without a database read.
+Unbundled and unknown lesson slugs return unavailable without contacting the
+suspended database during this hold. They resume live reads after it. The temporary list
+contains only the three recoverable lessons, not a claim that the other 57 are
+newly unpublished or restored. No sitemap inventory is replaced with this list.
+
+After that boundary, healthy DB reads take precedence, including a null/empty
+result for withdrawn content. Only recognized availability failures may serve
+the last-known published recovery copies. Admin and social workers never import
+this reader. No job, schedule, approval, held delivery or DB row is changed.
+
+Withdrawal during the outage requires a code deployment removing the recovery
+entry and its allowlist/schema entry, or rolling back this scoped release. Admin
+draft changes cannot invalidate a disconnected bundle during the explicit hold.
+Do not extend the hold automatically. Once DB access is available, verify fresh
+publication state and retire the bundle if it is no longer needed. Do not use
+this recovery path to approve unpublished chapters or pending supplements.
+
+Private provenance, release checks and browser evidence belong under
+test-results/ccna-recovery-2026-10-24. Content hashes in the regression tests bind
+the payload to the reviewed publication evidence. These tests do not claim a
+GNS3, CML, hardware or networking-lab runtime test.

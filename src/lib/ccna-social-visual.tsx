@@ -21,7 +21,7 @@ function SocialDiagram({ story, width, height }: { story: CcnaVisualStory; width
   </div>;
 }
 
-export async function ccnaSocialVisual(lesson: CcnaLessonRecord, width: number, height: number) {
+export async function ccnaSocialVisual(lesson: Pick<CcnaLessonRecord, "sequence" | "slug" | "title" | "moduleTitle" | "content">, width: number, height: number) {
   const scale = Math.min(width / 1920, height / 1080);
   const px = (value: number) => Math.round(value * scale);
   const story = visualStoryForLesson(lesson);

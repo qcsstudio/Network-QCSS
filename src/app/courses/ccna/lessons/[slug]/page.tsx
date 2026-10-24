@@ -12,7 +12,7 @@ import { ccnaComparisonBoundary, ccnaSectionBoundary } from "@/lib/ccna-lesson-p
 import { CcnaLabBoundary } from "@/components/ccna-lab-boundary";
 import { firstNetworkArtwork, visualStoryForLesson } from "@/lib/ccna-visual-story";
 import { StructuredData } from "@/components/structured-data";
-import { getPublishedCcnaLessonBySlug, getPublishedCcnaLessons } from "@/lib/ccna-learning";
+import { getPublicCcnaLessonBySlug, getPublicCcnaLessons } from "@/lib/ccna-public-lessons";
 import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -22,7 +22,7 @@ type PageProps = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const lesson = await getPublishedCcnaLessonBySlug(slug).catch(() => null);
+  const lesson = await getPublicCcnaLessonBySlug(slug).catch(() => null);
   if (!lesson?.content) return createPageMetadata({ title: "CCNA lesson", description: "QCS CCNA daily lesson.", path: `/courses/ccna/lessons/${slug}`, noIndex: true });
   return createPageMetadata({
     title: lesson.content.metaTitle,
@@ -36,9 +36,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CcnaLessonPage({ params }: PageProps) {
   const { slug } = await params;
-  const lesson = await getPublishedCcnaLessonBySlug(slug).catch(() => null);
+  const lesson = await getPublicCcnaLessonBySlug(slug).catch(() => null);
   if (!lesson?.content) notFound();
-  const lessons = await getPublishedCcnaLessons().catch(() => []);
+  const lessons = await getPublicCcnaLessons().catch(() => []);
   const index = lessons.findIndex((item) => item.id === lesson.id);
   const previous = index > 0 ? lessons[index - 1] : null;
   const next = index >= 0 ? lessons[index + 1] : null;
