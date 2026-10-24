@@ -31,7 +31,7 @@ function currentToolSlug(slug: string) {
 }
 
 export function generateStaticParams() {
-  return networkUtilityTools.map((tool) => ({ slug: tool.slug }));
+  return networkUtilityTools.filter((tool) => tool.slug !== "network-configuration-explainer").map((tool) => ({ slug: tool.slug }));
 }
 
 export async function generateMetadata({ params }: NetworkToolPageProps): Promise<Metadata> {

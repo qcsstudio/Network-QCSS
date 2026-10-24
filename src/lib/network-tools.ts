@@ -55,6 +55,20 @@ export type NetworkUtilityTool = {
 
 export const networkUtilityTools: NetworkUtilityTool[] = [
   {
+    slug: "network-configuration-explainer",
+    title: "Network Configuration Explainer",
+    shortTitle: "Config Lens",
+    category: "Network automation tools",
+    description: "Explain supported Cisco and Fortinet configurations in your browser, with plain-English guidance, source lines, configured relationships and secret masking. No configuration upload or paid API.",
+    inputLabel: "Configuration",
+    placeholder: "Choose vendor, device family and OS train",
+    serviceIntent: "Network Security",
+    searchIntent: ["Cisco configuration explained", "FortiGate configuration analyzer", "network configuration explainer", "FortiWeb configuration"],
+    outputPromise: "Local explanations of supported statements, explicit coverage limits, configuration-reference diagrams and reviewed masked downloads.",
+    cta: "Plan an authorized configuration review",
+    icon: FileCode2
+  },
+  {
     slug: "vendor-task-script-generator",
     title: "Vendor Task Script Generator",
     shortTitle: "Task Scripts",

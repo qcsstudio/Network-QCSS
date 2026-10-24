@@ -67,6 +67,7 @@ export default async function AdminPage() {
             </div>
           </div>
           <div className="admin-command-session">
+            <Link className="workspace-return" href="/admin/config-lens">Config Lens updates</Link>
             <Link className="workspace-return" href="/">View website</Link>
             <ShieldCheck aria-hidden="true" size={20} />
             <div><span>Authenticated operator</span><strong>{session.email}</strong></div>

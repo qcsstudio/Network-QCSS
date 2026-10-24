@@ -1,10 +1,13 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { getStoredConsent } from "@/components/consent-banner";
 import { StrongPasswordGenerator } from "@/components/strong-password-generator";
 import { trackBrowserEvent } from "@/lib/client-tracking";
 import { getNetworkUtilityTool } from "@/lib/network-tools";
+
+const ConfigLens = dynamic(() => import("@/components/config-lens").then(module => module.ConfigLens));
 
 type DetailValue = string | number | boolean | string[] | Record<string, string | number | boolean>[];
 
@@ -250,6 +253,7 @@ function GenericNetworkToolRunner({ slug }: { slug: string }) {
 }
 
 export function NetworkToolRunner({ slug }: { slug: string }) {
+  if (slug === "network-configuration-explainer") return <ConfigLens />;
   if (slug === "strong-password-generator") return <StrongPasswordGenerator />;
   return <GenericNetworkToolRunner slug={slug} />;
 }

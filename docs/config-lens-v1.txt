@@ -1,0 +1,123 @@
+QCS CONFIG LENS - VERSION 1
+
+Public route: /network-tools/network-configuration-explainer
+Admin route: /admin/config-lens
+
+Scope and privacy
+-----------------
+This is a deterministic, read-only, browser-local configuration explanation tool.
+It does not use paid generation, the QCS database, a language-model API, device
+credentials, packet probes or automatic configuration deployment.
+
+Select vendor, device family, OS train, optional exact build and export type.
+All selected versions describe syntax families, not recommended/current firmware
+or exhaustive tested command coverage. The exact build is operator-supplied context,
+not proof of the active firmware. Unknown statements are always surfaced.
+
+Included families: Cisco IOS/IOS XE router and Catalyst, NX-OS Nexus, ASA, partial
+FTD diagnostic output; FortiGate FortiOS, FortiWeb and standalone FortiSwitch.
+FTD running-config is ASA-style diagnostic data and cannot establish the complete
+FMC/FDM access-control, Snort, inspection or application policy.
+
+Import accepts UTF-8 CLI text, at most 512 KiB, 12,000 lines and 2,048 characters
+per line. Binary/encrypted backups, JSON/XML/YAML and archive files are rejected.
+No uploaded text is executed. A Web Worker keeps analysis off the main UI thread.
+Timeout, cancellation, file-read races and profile changes invalidate stale results.
+
+Masking happens before parsing or diagram generation. Known passwords, hashes,
+keys, communities, certificates, banners and free-text comments are removed.
+The original input is replaced with the masked form after successful analysis.
+Unknown secret formats, identities and addresses may remain. Downloads require a
+human preview/acknowledgment. Masked output is not a restorable device backup.
+No raw configuration, result or visitor search is stored in browser storage.
+
+The workspace requires a fresh document to unload previously loaded tracking
+listeners. Route-specific CSP blocks third-party scripts and connections. The
+existing Clarity allowlist excludes this tool. Browser extensions, compromised
+devices, browser caches and saved downloads are outside QCS control; no secure
+memory-erasure guarantee is made.
+
+Diagrams show parsed references, never invented cabling or proven packet paths.
+References are resolved only within an explicitly represented context. Built-in,
+external, missing and unsupported references remain unresolved, not automatically
+misconfiguration findings. The engine does not calculate inherited defaults,
+effective ACL/NAT precedence, routing convergence or vulnerability applicability.
+Counts represent supported statement coverage, not confidence or security scores.
+
+Admin vendor maintenance
+------------------------
+The authenticated update endpoint accepts no request body or visitor configuration.
+Same-origin POST and existing admin session checks are mandatory. It fetches only
+allowlisted official Cisco/Fortinet sources, bounds size and duration, validates
+redirects, rejects XML entities/DTDs, sanitizes links and never executes feed text.
+Public-source results are cached for 30 minutes per process; there is no cron or
+background paid service. The admin browser stores only the previous public-source
+report for comparison, never customer configurations.
+
+Check vendor updates retrieves PSIRT RSS, Fortinet firmware notices and selected
+product documentation. Unavailable sources are reported as unavailable. A successful
+fetch or changed document hash does not prove a new firmware version or vulnerability.
+Feed notices require original affected-version and feature applicability review.
+
+Download review package saves a JSON evidence snapshot. It does NOT silently update
+the production parser. Activation procedure:
+1. Review the original release notes/command reference/PSIRT affected-version table.
+2. Update src/lib/config-lens/catalog.ts and only the relevant parser/rule modules.
+3. Add synthetic or legally supplied sanitized fixtures for the changed syntax.
+4. Test positive, unknown, negated, nested, malformed and secret-containing cases.
+5. Re-run browser no-transmission, layout/accessibility and admin-auth tests.
+6. Review the exact diff and deploy. Never execute remote code or download firmware.
+
+Primary references reviewed 2026-10-24
+------------------------------------
+https://www.cisco.com/c/en/us/td/docs/security/firepower/command_ref/b_Command_Reference_for_Firepower_Threat_Defense/s_7.html
+https://www.cisco.com/site/ca/en/products/product-security-vulnerability-policy.html
+https://sec.cloudapps.cisco.com/security/center/rss.x?i=44
+https://community.fortinet.com/fortigate-3/technical-tip-fortinet-product-vulnerabilities-news-feeds-143896
+https://docs.fortinet.com/document/fortiweb/7.4.9/cli-reference/942687/server-policy-server-pool
+https://docs.fortinet.com/product/fortigate
+https://docs.fortinet.com/product/fortiweb
+https://docs.fortinet.com/product/fortiswitch
+https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/104x/unicast-routing-configuration/cisco-nexus-9000-series-nx-os-unicast-routing-configuration-guide/m_configuring_layer_3_virtualization.html
+
+Verification commands (Node 24 and existing local packages)
+----------------------------------------------------------
+node --import tsx --test tests/config-lens.test.mjs
+node node_modules/typescript/bin/tsc --project tests/tsconfig.config-lens.json
+node node_modules/eslint/bin/eslint.js src/lib/config-lens src/components/config-lens.tsx src/components/config-lens-admin.tsx src/components/config-lens.worker.ts src/app/admin/config-lens src/app/api/admin/config-lens src/app/network-tools/network-configuration-explainer
+FRONTEND_QA_EXTERNAL=1 FRONTEND_QA_BASE=http://127.0.0.1:3054 node node_modules/@playwright/test/cli.js test tests/config-lens.spec.ts
+
+Browser admin tests use an explicit local-test session secret and email on a
+disconnected local database. Do not use the test session with production.
+Synthetic fixtures and mocked hostile-feed tests are not hardware/emulator runtime
+validation. Do not claim support for all devices, complete redaction or zero errors.
+
+Verified local release checkpoint - 2026-10-24
+---------------------------------------------
+32 Config Lens parser/security/feed tests passed. The combined run including 15
+existing privacy/navigation regression tests passed 47/47. Scoped ESLint and
+TypeScript checks passed. A clean production copy based on repository HEAD
+0f03180dbcac9ff8e78fc242fe3cd7db206a00c3 plus only this feature built successfully
+with Next webpack, including its full TypeScript check and 107 generated pages.
+Unrelated policy, retention, consent and editorial changes were not copied into it.
+
+Five browser workflows passed against that isolated production build: all eight
+profiles, synthetic secret canary/no transmission, masked downloads, invalid input,
+stale result/status invalidation, diagram references, keyboard tabs, scoped workspace
+axe checks, 1440/768/390/320px layouts, fresh-document privacy/CSP, and authenticated
+admin checks (401 without auth, 403 for foreign Origin, 400 for non-empty input).
+Actual vendor requests retrieved all 10 configured sources, including Cisco PSIRT,
+Fortinet PSIRT and firmware RSS. Future vendor availability is not guaranteed.
+
+Final evidence: test-results/config-lens-release (screenshots, .last-run.json and
+official-source-report.json under the admin test folder). Earlier failed checks
+were investigated and repaired; they are not counted as passing evidence.
+The separate unfinished consent-banner accessibility issue is outside this feature's
+workspace-scoped axe checks. No hardware/emulator execution or independent external
+technical certification was performed.
+
+Preview: http://127.0.0.1:3055/network-tools/network-configuration-explainer
+Isolated build: C:/Users/rksankhyan/Documents/Codex/qcs-config-lens-20261024/app
+Local preview only; not committed, pushed or deployed by this task. No social post,
+schedule, production database or editorial record was modified. The isolated preview
+uses explicit test-only admin settings and a disconnected local database URL.

@@ -1,0 +1,6 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "incremental": false },
+  "include": ["../next-env.d.ts", "../src/lib/config-lens/**/*.ts", "../src/components/config-lens*.tsx", "../src/components/config-lens.worker.ts", "../src/app/network-tools/network-configuration-explainer/**/*.tsx", "../src/app/admin/config-lens/**/*.tsx", "../src/app/api/admin/config-lens/**/*.ts"],
+  "exclude": ["../node_modules", "../.next", "../test-results"]
+}

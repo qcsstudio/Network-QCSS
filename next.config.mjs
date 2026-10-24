@@ -116,6 +116,13 @@ const nextConfig = {
               ]
             : [])
         ]
+      },
+      {
+        source: "/network-tools/network-configuration-explainer",
+        headers: [
+          { key: "Content-Security-Policy", value: ["default-src 'self'", "base-uri 'self'", "object-src 'none'", "frame-ancestors 'self'", "form-action 'none'", `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`, "style-src 'self' 'unsafe-inline'", "font-src 'self' data:", "img-src 'self' data: blob:", `connect-src 'self'${isProduction ? "" : " ws: http://localhost:* http://127.0.0.1:*"}`, "worker-src 'self'", "frame-src 'none'"].join("; ") },
+          { key: "Referrer-Policy", value: "no-referrer" }
+        ]
       }
     ];
   }
