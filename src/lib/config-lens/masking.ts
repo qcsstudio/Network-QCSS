@@ -25,8 +25,11 @@ function maskFortinet(lines: string[]) {
     const sectionKeywords = start === end && /^config(?:\s+[\w-]+)+$/.test(text);
     const freeText = /^(?:set|append)\s+(?:buffer|script|certificate)\b/.test(text);
     const communityName = sections.at(-1) === "system snmp community" && /^(?:set|append)\s+name\b/.test(text);
+    // These fixed BGP choices are route attributes, never SNMP community values.
+    const routingCommunityChoice = start === end && sections.slice(-2).join(" ") === "router bgp neighbor"
+      && /^(?:set send-community (?:standard|extended|both|disable)|unset send-community)$/.test(text);
     const hide = pem || start !== end || maskedMarker.test(text) || maskedStructure.test(text)
-      || !sectionKeywords && sensitiveLine(text) || freeText || communityName;
+      || !sectionKeywords && !routingCommunityChoice && sensitiveLine(text) || freeText || communityName;
     if (hide) {
       for (let index = start; index <= end; index++) {
         const prefix = lines[index].match(/^\s*/)?.[0] || "";

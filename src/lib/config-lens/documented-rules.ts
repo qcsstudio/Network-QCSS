@@ -41,6 +41,8 @@ export const fortiosSections: Record<string, Section> = {
     allowaccess: field("Management protocols allowed at this secondary address by this setting. These reach the FortiGate itself; other management restrictions still apply.", values => values.length > 0 && values.every(v => ["ping", "https", "ssh", "snmp", "http", "telnet"].includes(v)), true),
   } },
   "firewall policy": { category: "Firewall", reference: "fortiPolicy", entry: true, fields: {
+    "anti-replay": { ...field("Controls this firewall policy's anti-replay checks. It is distinct from IPsec replay protection and does not prove that malicious traffic was blocked.", toggle), reference: "fortiPolicyCli" },
+    "tcp-session-without-syn": { ...field("Controls accepting a new TCP session without its usual opening SYN packet: all permits this, data-only limits it to data packets, and disable turns it off. Other policy checks still apply; this can relax normal connection tracking.", choices("all", "data-only", "disable")), reference: "fortiPolicyCli" },
     "srcaddr-negate": { ...field("When enabled, the source condition excludes the listed source addresses. This reverses a match, not the policy's allow/deny action.", toggle), reference: "fortiPolicyCli" },
     "dstaddr-negate": { ...field("When enabled, the destination condition excludes the listed destination addresses. Rule order and every other condition still matter.", toggle), reference: "fortiPolicyCli" },
     "service-negate": { ...field("When enabled, matches services outside the listed service definitions. This does not change those definitions or independently allow traffic.", toggle), reference: "fortiPolicyCli" },
@@ -61,12 +63,18 @@ export const fortiosSections: Record<string, Section> = {
     "graceful-restart": field("Controls BGP graceful-restart capability, which helps peers retain routing information during a restart. Uninterrupted forwarding is not guaranteed.", toggle),
   } },
   "router bgp neighbor": { category: "Routing", reference: "fortiBgp", entry: true, fields: {
+    "next-hop-self": field("Controls using this router as the IPv4 next hop advertised to this BGP neighbour. Reflected routes have a separate setting; this does not prove the next hop is reachable.", toggle),
+    "soft-reconfiguration": field("Controls inbound IPv4 soft reconfiguration, allowing route-policy changes to be reconsidered using retained updates. This is routing information, not a backup of device configuration.", toggle),
+    "route-reflector-client": field("Controls whether this internal BGP neighbour is an IPv4 route-reflector client. A route reflector shares routing information between internal peers; it is not a traffic-mirroring device.", toggle),
+    "send-community": field("Selects standard, extended, both, or no IPv4 BGP community attributes to send. Communities are route-policy tags, not passwords or user groups; delivery is not verified.", choices("standard", "extended", "both", "disable")),
     "prefix-list-in": field("Names the IPv4 prefix filter for route updates received from this neighbour. It is not a packet-filter rule.", values => one(values) && values[0].length <= 35),
     "prefix-list-out": field("Names the IPv4 prefix filter for route updates sent to this neighbour, not a list of current advertised routes.", values => one(values) && values[0].length <= 35),
     "route-map-in": field("Names the inbound IPv4 route policy for this neighbour. Its separate rules must be inspected; accepted routes are not calculated.", values => one(values) && values[0].length <= 35),
     "route-map-out": field("Names the outbound IPv4 route policy for this neighbour. This does not show which routes the peer received.", values => one(values) && values[0].length <= 35),
   } },
   "vpn ipsec phase1-interface": { category: "VPN", reference: "fortiPhase1", entry: true, fields: {
+    keylife: field("Phase 1 key lifetime in seconds. Phase 1 establishes the protected negotiation relationship; this is separate from the data-protection keys in phase 2.", integer(120, 172800)),
+    "ike-version": field("Selects IKEv1 or IKEv2, the protocol peers use to negotiate VPN protection. Matching versions alone do not establish a tunnel or validate its security.", choices("1", "2")),
     dpd: field("Dead Peer Detection checks the VPN peer: disable turns it off; on-idle checks during idle periods; on-demand checks when sent traffic gets no peer reply. No peer was tested here.", choices("disable", "on-idle", "on-demand")),
     "dpd-retrycount": field("Number of Dead Peer Detection retry attempts, not a count of lost data packets.", integer(0, 10)),
     nattraversal: field("NAT traversal carries IPsec through address translation using UDP encapsulation. enable permits it, forced requests it regardless of detected NAT, and disable turns it off. No tunnel is verified.", choices("enable", "disable", "forced")),
@@ -76,6 +84,7 @@ export const fortiosSections: Record<string, Section> = {
     "add-route": field("Controls adding a route toward the peer's destination selector. This is not proof of a route in the active routing table.", toggle),
   } },
   "vpn ipsec phase2-interface": { category: "VPN", reference: "fortiPhase2", entry: true, fields: {
+    keepalive: { ...field("Controls keeping phase 2 active during idle periods with no data traffic. This is a configured request, not a measured tunnel-health result; phase 1 Dead Peer Detection is separate.", toggle), reference: "fortiPhase2Guide" },
     pfs: field("Perfect Forward Secrecy requests a fresh key exchange for IPsec keys. Both peers need compatible settings; security is not verified.", toggle),
     replay: field("Controls detecting reused IPsec packets. This is replay protection, not session recording.", toggle),
     "auto-negotiate": field("Controls automatic negotiation of the IPsec security association. Enabled does not mean the tunnel is up.", toggle),
@@ -193,6 +202,10 @@ export function documentedFortiRule(section: string, key: string, dialect: strin
 
 type CiscoDefinition = DocumentedRule & { pattern: RegExp; context: RegExp; switchOnly?: boolean; routerOnly?: boolean; check?: (match: RegExpMatchArray) => boolean };
 export const documentedCiscoRules: CiscoDefinition[] = [
+  { pattern: /^peer \S+$/, context: /^crypto ikev2 keyring \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "Names a peer or peer group inside this IKEv2 keyring. A keyring organizes authentication keys; this declaration does not confirm an authenticated or connected peer." },
+  { pattern: /^keyring local \S+$/, context: /^crypto ikev2 profile \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "References a local IKEv2 keyring for this peer-authentication profile. It does not reveal key values or show that authentication succeeded." },
+  { pattern: /^authentication (?:local|remote) (?:pre-share|rsa-sig|ecdsa-sig)$/, context: /^crypto ikev2 profile \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "Selects authentication for this device (local) or its peer (remote): a shared secret, RSA signature, or ECDSA signature. Required keys or certificates and successful verification are not confirmed." },
+  { pattern: /^prf ((?:sha256|sha384|sha512)(?: (?:sha256|sha384|sha512))*)$/, context: /^crypto ikev2 proposal \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "SHA-2 pseudo-random functions derive IKEv2 key material. This is separate from encrypting traffic; peer compatibility and the negotiated choice remain unverified." },
   { pattern: /^log-adjacency-changes(?: detail)?$/, context: /^router ospf \d+(?: vrf \S+)?$/, category: "Routing", reference: "ciscoOspf", explanation: "Records OSPF neighbour up/down changes; detail records each state change. It does not enable OSPF or prove a neighbour is reachable." },
   { pattern: /^auto-cost reference-bandwidth (\d+)$/, context: /^router ospf \d+(?: vrf \S+)?$/, category: "Routing", reference: "ciscoOspf", check: m => integer(1, 4294967)([m[1]]), explanation: "Reference bandwidth in megabits per second for automatic OSPF cost calculation. It is not a speed setting; manual interface costs and other routes still matter." },
   { pattern: /^channel-protocol (?:lacp|pagp)$/, context: /^interface /, switchOnly: true, category: "Switching", reference: "ciscoLayer2", explanation: "Restricts port-bundle negotiation to LACP or Cisco PAgP. The channel-group settings and peer configuration are still required; a working bundle is not confirmed." },

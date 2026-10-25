@@ -3,16 +3,17 @@ import test from "node:test";
 import { analyzeConfiguration, reportText } from "../src/lib/config-lens/engine.ts";
 import { ciscoRule, fortiRule } from "../src/lib/config-lens/rules.ts";
 import { referenceRole } from "../src/lib/config-lens/results.ts";
+import { referenceForTrain } from "../src/lib/config-lens/references.ts";
 import { ciscoNetworking, ciscoSwitching, fortiNetworking } from "./fixtures/config-lens-networking.ts";
 const selection = (profileId, version) => ({ profileId, version, build: "", configType: "running" });
 const router = selection("cisco-router", "IOS XE 17.x"), sw = selection("cisco-switch", "IOS XE 17.x"), forti = selection("fortigate", "FortiOS 7.4");
 const command = (entry, rawValue, version = "FortiOS 7.4", operation = "set") => ({ entry, rawValue, version, operation });
 
 test("networking exports explain new commands in their actual blocks and mask VPN keys", () => {
-  for (const [input, chosen, refs] of [[ciscoNetworking, router, 9], [ciscoSwitching, sw, 4], [fortiNetworking, forti, 35]]) {
+  for (const [input, chosen, refs] of [[ciscoNetworking, router, 10], [ciscoSwitching, sw, 4], [fortiNetworking, forti, 35]]) {
     const result = analyzeConfiguration(input, chosen);
     assert.equal(result.lines.filter(l => l.reference).length, refs);
-    assert.equal(result.coverage.unknown, input === ciscoNetworking ? 1 : 0); // keyring peer remains unsupported
+    assert.equal(result.coverage.unknown, 0);
     assert.doesNotMatch(JSON.stringify(result) + reportText(result), /NetworkingSecretCanary/);
     assert.ok(result.coverage.total > refs);
     assert.match(reportText(result), /Vendor reference:/);
@@ -26,7 +27,7 @@ test("routing, switching, firewall and VPN each remain a separate category", () 
   assert.match(result.lines.find(l => l.text.includes("set protocol 6")).explanation, /not a TCP\/UDP port/);
 });
 
-test("new Cisco meanings require IOS XE 17, exact context, family and complete values", () => {
+test("Cisco meanings require a verified train, exact context, family and complete values", () => {
   const cases = [
     ["log-adjacency-changes detail", "router ospf 1", router],
     ["auto-cost reference-bandwidth 10000", "router ospf 1", router],
@@ -45,7 +46,8 @@ test("new Cisco meanings require IOS XE 17, exact context, family and complete v
   for (const [text, context, chosen] of cases) {
     assert.ok(ciscoRule(text, context, "ios", chosen)?.reference, text);
     for (const dialect of ["nxos", "asa", "ftd"]) assert.equal(ciscoRule(text, context, dialect, chosen), undefined, text);
-    for (const version of ["IOS 15.x", "IOS XE 16.x", "Other / unknown"]) assert.equal(ciscoRule(text, context, "ios", { ...chosen, version }), undefined, text);
+    const baseline = ciscoRule(text, context, "ios", chosen).reference;
+    for (const version of ["IOS 15.x", "IOS XE 16.x", "Other / unknown"]) assert.equal(ciscoRule(text, context, "ios", { ...chosen, version })?.reference, referenceForTrain(baseline, version), text);
     assert.equal(ciscoRule(text, "Global", "ios", chosen), undefined, text);
     assert.equal(ciscoRule(text + " trailing", context, "ios", chosen), undefined, text);
   }
@@ -64,7 +66,8 @@ test("FortiOS nesting, bounded values and per-field sources do not bleed into ot
     ["vpn ipsec phase2-interface", "replay", "enable", true],
   ]) {
     assert.ok(fortiRule(section, key, "fortios", command(entry, value))?.reference);
-    for (const version of ["FortiOS 7.2", "FortiOS 7.6", "Other / unknown"]) assert.equal(fortiRule(section, key, "fortios", command(entry, value, version)), undefined);
+    const baseline = fortiRule(section, key, "fortios", command(entry, value)).reference;
+    for (const version of ["FortiOS 7.2", "FortiOS 7.6", "Other / unknown"]) assert.equal(fortiRule(section, key, "fortios", command(entry, value, version))?.reference, referenceForTrain(baseline, version));
     for (const dialect of ["fortiweb", "fortiswitch"]) assert.equal(fortiRule(section, key, dialect, command(entry, value)), undefined);
     assert.equal(fortiRule(section, key, "fortios", command(!entry, value)), undefined);
   }

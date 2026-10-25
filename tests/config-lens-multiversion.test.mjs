@@ -66,7 +66,7 @@ test("new rules reject malformed values, invalid masks, wrong blocks and excessi
 });
 
 test("version expansion remains family-scoped and every selected reference is primary documentation", () => {
-  for (const ref of ["ciscoDns", "ciscoOspf", "ciscoStp", "ciscoIpServices"]) for (const version of ["IOS 15.x", "IOS XE 16.x"]) assert.equal(referenceForTrain(ref, version), undefined);
+  for (const ref of ["ciscoDns", "ciscoStp", "ciscoIpServices"]) for (const version of ["IOS 15.x", "IOS XE 16.x"]) assert.equal(referenceForTrain(ref, version), undefined);
   for (const ref of ["fortiNtp", "fortiPolicy", "fortiPickup", "fortiSdwan", "fortiHealth", "fortiLogs"]) for (const version of ["FortiOS 7.2", "FortiOS 7.6"]) assert.equal(referenceForTrain(ref, version), undefined);
   for (const rule of [...documentedCiscoRules, ...Object.values(fortiosSections)]) for (const version of ["IOS 15.x", "IOS XE 16.x", "IOS XE 17.x", "FortiOS 7.2", "FortiOS 7.4", "FortiOS 7.6"]) {
     const key = referenceForTrain(rule.reference, version);

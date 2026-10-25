@@ -644,3 +644,100 @@ the final passing tests use real category expansion and current interface labels
 No admin updater, database, social post, schedule or queue code was changed.
 Existing user previews and analyses remain untouched. This section records
 pre-release readiness; production confirmation must be recorded separately.
+
+Version 1.3.0 production verification: 26 October 2026 IST
+---------------------------------------------------------
+Only the eleven scoped files were committed and pushed as
+9717c5e3324e1f3089929c07ced5a25c8d57bcf0. Vercel confirmed READY for that exact
+SHA, production target, with www.qcsstudio.com/qcsstudio.com aliases and no
+alias error: dpl_FbWtvjuwdEBvQLzroipETng3Pf9M.
+Deployment URL: https://network-cm0h451l9-qcsstudios.vercel.app
+Live tool: https://www.qcsstudio.com/network-tools/network-configuration-explainer
+
+All ten read-only public workflows passed (1.3 minutes). New desktop/mobile
+checks verified the four categories, exact primary-source links, complete VPN/
+switch explanations, deliberate unknown rows, negation reference labels and
+masked 1.3.0 report exports. Existing selected-version/sample-profile coverage,
+worker/security headers, scoped filters, reverse references and accessibility
+checks passed. Synthetic 12,155-line Fortinet and 80,003-line Cisco exports
+retained their complete lines, 20,000 Cisco interfaces and masked secret canaries.
+Actual live 320px Cisco/Fortinet explanations and desktop negation diagrams were
+visually inspected. This is not networking-device or private-configuration QA.
+
+No API/mutation request, configuration canary, analytics, paid provider call or
+automatic vendor fetch was observed during the synthetic analyses. No live
+database/admin action, social post, schedule, queue or updater was changed.
+All 26 unrelated tracked modifications still match their pre-task SHA256 hashes.
+Existing user browser analyses and local previews remain in place.
+
+Evidence: test-results/config-lens-production-9717c5e, including public headers,
+desktop/mobile screenshots and .last-run.json (passed, no failed tests).
+This is a local post-deployment receipt, separate from the production commit.
+
+Version 1.4.0: release-specific routing, firewall and VPN coverage
+---------------------------------------------------------------
+Research and implementation: 26 October 2026. This is bounded syntax coverage,
+not a claim to explain every command, hardware model or patch release.
+
+Verified additional source families:
+- Cisco IOS 15M&T and IOS XE 16.12: six existing OSPF interface/process rules.
+- Catalyst 9200 IOS XE 16.12: channel-protocol, lacp rate, switchport nonegotiate
+  and spanning-tree guard. Other switches/patches still need platform checks.
+- IOS XE 16.12: the existing IKEv2 proposal/policy/tunnel protection subset.
+  IOS 15 IKEv2 and other Cisco dialects do not inherit this evidence.
+- FortiOS 7.2.11 and 7.6.4: 31 existing BGP, firewall policy CLI, phase 1 and
+  phase 2 field/context pairs, compared against the 7.4.9 reference.
+
+Four new Cisco rule patterns cover IKEv2 keyring peer declarations, local
+keyring references, local/remote pre-shared/RSA/ECDSA method selection (without
+inline keys), and SHA-2 PRFs, on IOS XE 16/17. Nine additional FortiOS fields
+cover neighbour next-hop-self, inbound soft reconfiguration, route-reflector
+clients, community attribute selection, firewall anti-replay/TCP-without-SYN,
+phase 1 lifetime/IKE version and phase 2 keepalive on the three checked trains.
+Some fields previously had only a generic explanation; these now have a
+specific, cited meaning. All rules retain exact section/profile/value checks.
+Unverified algorithms, syntax, versions and contexts stay Needs review.
+
+Source URLs and precise reference versions are bundled in references.ts and
+shown in explanations/reports. Fortinet's twelve CLI pages (four families,
+three releases) were read as public HTML; Cisco's IOS 15M&T, XE 16.12 OSPF,
+16.12 Catalyst command reference and XE 16/17 IKEv2 guides were read using
+live web retrieval. Direct Cisco downloads returned 403, not successful fetches.
+FortiOS phase-2 administration guides for 7.2.11, 7.4.9 and 7.6.4 additionally
+verify idle keepalive behavior; those field-specific guide links are shown in
+the app. Web-tool fetches returned 403, while direct public HTML retrieval
+succeeded with each exact version title and matching keepalive text.
+Private research copies remain ignored under test-results. No paid API,
+configuration upload, device command or live database was used.
+
+The masking regression caught BGP send-community being confused with an SNMP
+secret. Only exact fixed enum values (or unset) inside router bgp / neighbor
+are exempted from that broad sensitive-word match. SNMP names, unexpected
+values, wrong sections, multiline strings, keys and comments remain masked.
+This does not promise that all possible secrets or identifiers are detected.
+
+Pre-release unit suite: 111 passed; scoped TypeScript and ESLint passed.
+Final isolated production webpack build passed with synthetic environment
+values and no reachable database. All 17 public preview workflows passed after
+the final wording/reference corrections (2.7 minutes). Evidence is stored in
+test-results/config-lens-v14-final-preview; the earlier preview also passed but
+is not the final source receipt.
+
+Browser coverage includes all eight sample device profiles, eight additional
+selected-version/profile combinations at desktop and 320px, field-specific
+keepalive and BGP links, unknown statements, categories, diagrams, source
+filtering, complete masked downloads, cancellation, invalid UTF-8 and long lines.
+Large fixtures include 12,155 Fortinet lines and 80,003 Cisco lines with 20,000
+interfaces. New explanation panels passed accessibility/overflow checks;
+desktop/mobile screenshots were inspected, including the final keepalive copy.
+No analysis-time API/mutation, paid-provider, analytics, automatic vendor fetch
+or synthetic secret-canary transmission occurred in the new browser workflows.
+
+The scoped catalog contains 45 cited Cisco patterns and 123 FortiOS field/context
+pairs in 19 exact sections; these counts are not complete vendor support.
+All 12 implementation/test/fixture files match the isolated preview by SHA256.
+All 26 unrelated tracked modifications retain their original hashes.
+Preview: http://127.0.0.1:3062/network-tools/network-configuration-explainer
+Path: C:/Users/rksankhyan/Documents/Codex/qcs-config-lens-v14-20261026/app
+Production confirmation must be recorded separately after the exact SHA is live.
+No admin updater, database, social post, schedule or queue changes are included.
