@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { profiles } from "../src/lib/config-lens/catalog.ts";
+import { fortinetFullBackup } from "./fixtures/config-lens-fortinet.ts";
 
 const messages = [];
 globalThis.self = { postMessage: value => messages.push(value) };
@@ -24,6 +25,19 @@ test("file decoder rejects malformed and incomplete UTF-8 without exposing bytes
     assert.match(messages.at(-1).error, /UTF-8/);
     assert.ok(!messages.some(m => m.analysis));
   }
+});
+
+test("Fortinet file worker preserves nested blocks and never posts masked payloads", async () => {
+  const fortinet = { ...selection, profileId: "fortigate", version: "FortiOS 7.4" };
+  messages.length = 0;
+  await self.onmessage({ data: { input: "", file: new File([fortinetFullBackup], "synthetic.conf"), selection: fortinet } });
+  assert.equal(messages.at(-1).analysis.entities.length, 3);
+  assert.doesNotMatch(JSON.stringify(messages), /Hidden\w*Canary/);
+  messages.length = 0;
+  await self.onmessage({ data: { input: 'config system interface\n edit "HiddenValueCanary', selection: fortinet } });
+  assert.match(messages.at(-1).error, /starting at line 2/);
+  assert.doesNotMatch(JSON.stringify(messages), /HiddenValueCanary/);
+  assert.ok(!messages.some(message => message.analysis));
 });
 
 test("stream decoder handles multibyte text split across chunks", async () => {

@@ -4,6 +4,7 @@ import { createHmac } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { profiles } from "../src/lib/config-lens/catalog";
 import { samples } from "../src/lib/config-lens/samples";
+import { fortinetFullBackup } from "./fixtures/config-lens-fortinet";
 
 const path = "/network-tools/network-configuration-explainer";
 const secret = "LocalCanarySecret-NotForAnyRequest";
@@ -22,7 +23,10 @@ test("local analysis, masking, exports, all device selectors and no config trans
     await page.getByLabel("Export type").selectOption("running");
     await page.getByRole("button", { name: "Explain configuration" }).click();
     await expect(page.getByRole("heading", { name: `${profile.name} analysis`, exact: true })).toBeVisible();
-    if (profile.id === "cisco-ftd") await expect(page.getByText("FTD diagnostic output is partial", { exact: true })).toBeVisible();
+    if (profile.id === "cisco-ftd") {
+      await page.getByRole("tab", { name: "Checks", exact: true }).click();
+      await expect(page.getByText("FTD diagnostic output is partial", { exact: true })).toBeVisible();
+    }
   }
   await page.getByLabel("Device family").selectOption("fortigate");
   await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(`${samples.fortigate}\nconfig system admin\n edit extra\n set password ${secret}\n next\nend`);
@@ -62,6 +66,55 @@ test("file upload, invalid input and changed selection cannot retain stale resul
   await expect(page.getByRole("main").getByRole("alert")).toContainText("not supported");
 });
 
+test("Fortinet full backups parse locally and failures clear progress without leaking values", async ({ page }, testInfo) => {
+  const requests: string[] = [], errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await page.goto(path);
+  const consentRequest = page.waitForRequest(r => r.url().endsWith("/api/events") && r.postData()?.includes("consent_updated") === true);
+  await page.getByRole("button", { name: "Essential only", exact: true }).click();
+  await consentRequest;
+  page.on("request", r => requests.push(`${r.method()} ${r.url()} ${r.postData() || ""}`));
+  await page.getByRole("combobox", { name: "Vendor", exact: true }).selectOption("fortinet");
+  await page.getByLabel("Operating system / train").selectOption("FortiOS 7.4");
+  const input = `${fortinetFullBackup}\n${"# synthetic padding\n".repeat(12155 - fortinetFullBackup.split("\n").length - 1)}# last line`;
+  await page.getByLabel("Configuration file").setInputFiles({ name: "synthetic-full-fortigate.conf", mimeType: "text/plain", buffer: Buffer.from(input) });
+  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await expect(page.getByRole("heading", { name: "FortiGate firewall analysis", exact: true })).toBeVisible({ timeout: 60000 });
+  await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
+  await page.getByRole("tab", { name: "Diagram", exact: true }).click();
+  await expect(page.getByLabel("Configuration references for 10", { exact: true })).toBeVisible();
+  await expect(page.getByText(/\/ Declared in this export$/)).toHaveCount(2);
+  for (const width of [1440, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.getByLabel("Configuration references for 10", { exact: true }).scrollIntoViewIfNeeded();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`fortinet-full-backup-${width}.png`) });
+  }
+  await page.getByRole("button", { name: "Masked text", exact: true }).click();
+  await page.getByLabel("I reviewed this text").check();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download reviewed text" }).click();
+  const exported = await readFile((await (await download).path())!, "utf8");
+  expect(exported.split("\n")).toHaveLength(12155);
+  expect(exported).not.toMatch(/Hidden\w*Canary/);
+  await page.getByRole("button", { name: "Clear configuration and results" }).click();
+  for (const broken of ["config system interface\n next\nend", 'config system interface\n edit "HiddenValueCanary']) {
+    await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(broken);
+    await page.getByRole("button", { name: "Explain configuration" }).click();
+    await expect(page.getByRole("main").getByRole("alert")).toContainText("line 2");
+    await expect(page.getByRole("main").getByRole("alert")).not.toContainText("HiddenValueCanary");
+    await expect(page.getByRole("main").getByRole("status")).toBeEmpty();
+    await expect(page.getByRole("button", { name: "Explain configuration" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Cancel", exact: true })).toHaveCount(0);
+  }
+  await page.getByRole("button", { name: "Try an example" }).click();
+  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await expect(page.getByRole("heading", { name: "FortiGate firewall analysis", exact: true })).toBeVisible();
+  expect(requests.filter(r => /^POST|\/api\/network-tools|clarity\.ms|google-analytics|openai\.com/.test(r))).toEqual([]);
+  expect(requests.some(r => /Hidden\w*Canary/.test(r))).toBe(false);
+  expect(errors).toEqual([]);
+});
+
 test("large files retain all objects and exports while result views stay bounded", async ({ page }, testInfo) => {
   const requests: string[] = [], errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));
@@ -86,7 +139,7 @@ test("large files retain all objects and exports while result views stay bounded
   await page.getByLabel("Find object", { exact: true }).fill("GigabitEthernet0/19999");
   const option = page.getByRole("combobox", { name: "Object", exact: true }).getByRole("option", { name: /GigabitEthernet0\/19999/ });
   await page.getByRole("combobox", { name: "Object", exact: true }).selectOption((await option.getAttribute("value"))!);
-  await expect(page.getByText("Declared in this export", { exact: true })).toBeVisible();
+  await expect(page.getByText(/\/ Declared in this export$/)).toBeVisible();
   for (const width of [1440, 320]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.getByLabel("Configuration references for GigabitEthernet0/19999", { exact: true }).evaluate(element => window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 140));
@@ -142,7 +195,7 @@ test("large FortiGate address groups have paged references and complete long set
   await page.getByLabel("Find object").fill("AllHosts");
   const option = page.getByRole("combobox", { name: "Object", exact: true }).getByRole("option", { name: /AllHosts/ });
   await page.getByRole("combobox", { name: "Object", exact: true }).selectOption((await option.getAttribute("value"))!);
-  await expect(page.getByText("Declared in this export", { exact: true })).toHaveCount(60);
+  await expect(page.getByText(/\/ Declared in this export$/)).toHaveCount(60);
   await page.getByRole("button", { name: "Next references", exact: true }).click();
   await expect(page.getByText("Host60", { exact: true })).toBeVisible();
   await page.getByText(/^View complete text/).click();
@@ -173,6 +226,61 @@ test("diagram, keyboard navigation, accessibility and responsive viewports", asy
   await expect(page.getByRole("tab", { name: "Explanations", exact: true })).toHaveAttribute("aria-selected", "true");
   const axe = await new AxeBuilder({ page }).include('main [data-clarity-mask="true"]').analyze();
   expect(axe.violations.map(v => ({ id: v.id, impact: v.impact, nodes: v.nodes.map(n => n.target) }))).toEqual([]);
+});
+
+test("categories retain unknown statements, scoped filters, source access and reverse references", async ({ page }, testInfo) => {
+  const requests: string[] = [];
+  await page.goto(path);
+  const consentRequest = page.waitForRequest(r => r.url().endsWith("/api/events") && r.postData()?.includes("consent_updated") === true);
+  await page.getByRole("button", { name: "Essential only", exact: true }).click();
+  await consentRequest;
+  page.on("request", r => requests.push(`${r.method()} ${r.url()} ${r.postData() || ""}`));
+  await page.getByRole("combobox", { name: "Vendor", exact: true }).selectOption("fortinet");
+  const extra = 'config vdom\n edit Branch\n config system interface\n edit port1\n set unusual-setting enable\n next\n end\n next\nend\nconfig system admin\n edit demo-admin\n set password ' + secret + '\n next\nend';
+  await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(samples.fortigate + "\n" + extra);
+  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await expect(page.getByRole("tab", { name: "Categories", exact: true })).toHaveAttribute("aria-selected", "true");
+  const categories = page.getByRole("navigation", { name: "Configuration categories", exact: true });
+  await categories.getByRole("button", { name: /Interfaces & addressing/ }).click();
+  await page.getByRole("combobox", { name: "Context / VDOM", exact: true }).selectOption("VDOM Branch");
+  await page.getByRole("combobox", { name: "Review status", exact: true }).selectOption("unknown");
+  await expect(page.getByText(/^1 matching groups/)).toBeVisible();
+  await page.locator("#lens-panel details > summary").click();
+  await expect(page.locator("#lens-panel code").filter({ hasText: "set unusual-setting enable" })).toBeVisible();
+  await page.getByRole("button", { name: "Open all statements", exact: true }).click();
+  await expect(page.getByRole("tab", { name: "Explanations", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#lens-panel article")).toHaveCount(3);
+  await page.getByRole("combobox", { name: "Statement filter", exact: true }).selectOption("unknown");
+  await expect(page.locator("#lens-panel article")).toHaveCount(1);
+  await expect(page.locator("#lens-panel article")).toContainText("Needs review");
+  await page.getByRole("tab", { name: "Diagram", exact: true }).click();
+  await page.getByRole("button", { name: "Open object OfficeSubnet", exact: true }).click();
+  await expect(page.getByLabel("Configuration references for OfficeSubnet", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Used by/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("Source address match", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Open object 10", exact: true }).click();
+  await page.getByRole("button", { name: /^Source L/ }).click();
+  await expect(page.getByRole("combobox", { name: "Statement filter", exact: true })).toHaveValue("all");
+  await expect(page.getByRole("combobox", { name: "Statement context", exact: true })).toHaveValue("all");
+  await expect(page.getByRole("button", { name: "Clear group selection" })).toHaveCount(0);
+  await page.getByRole("tab", { name: "Categories", exact: true }).click();
+  for (const width of [1440, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    if (width <= 700) await page.getByRole("combobox", { name: "Configuration category", exact: true }).selectOption("Firewall");
+    else await categories.getByRole("button", { name: /Firewall policies & ACLs/ }).click();
+    const summary = page.locator("#lens-panel details > summary").filter({ hasText: "10" });
+    if ((await summary.locator("..").getAttribute("open")) === null) await summary.click();
+    await page.locator("#lens-panel").evaluate(e => window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 130));
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`categories-${width}.png`) });
+    expect((await new AxeBuilder({ page }).include('#lens-panel').analyze()).violations).toEqual([]);
+  }
+  await page.getByLabel("Search configuration", { exact: true }).fill("does-not-exist");
+  await expect(page.getByText("No groups match these filters.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Reset category filters", exact: true }).click();
+  await expect(page.locator("#lens-panel")).not.toContainText(secret);
+  expect(requests.filter(r => /^POST|clarity\.ms|google-analytics|openai\.com/.test(r))).toEqual([]);
+  expect(requests.some(r => r.includes(secret))).toBe(false);
 });
 
 test("full document isolation and route CSP protect entry from another page", async ({ page }) => {

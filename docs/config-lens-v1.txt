@@ -91,7 +91,7 @@ https://www.cisco.com/c/en/us/td/docs/dcn/nx-os/nexus9000/104x/unicast-routing-c
 
 Verification commands (Node 24 and existing local packages)
 ----------------------------------------------------------
-node --import tsx --test tests/config-lens.test.mjs
+node --import tsx --test tests/config-lens.test.mjs tests/config-lens-fortinet.test.mjs tests/config-lens-worker.test.mjs
 node node_modules/typescript/bin/tsc --project tests/tsconfig.config-lens.json
 node node_modules/eslint/bin/eslint.js src/lib/config-lens src/components/config-lens.tsx src/components/config-lens-admin.tsx src/components/config-lens.worker.ts src/app/admin/config-lens src/app/api/admin/config-lens src/app/network-tools/network-configuration-explainer
 FRONTEND_QA_EXTERNAL=1 FRONTEND_QA_BASE=http://127.0.0.1:3054 node node_modules/@playwright/test/cli.js test tests/config-lens.spec.ts
@@ -174,3 +174,131 @@ The admin updater was not changed and its live vendor-fetch browser workflow was
 not rerun for this patch; its existing auth/feed unit checks passed. No production
 database, device runtime, paid API, social post or schedule was accessed or changed.
 This checkpoint is locally verified, not committed, pushed or deployed.
+
+Fortinet full-backup parsing checkpoint - 2026-10-25
+--------------------------------------------------
+The user reported an unmatched next/end error for a 12,155-line FortiGate export.
+Only a screenshot was supplied, not the actual configuration. Reproduced the same
+error independently with a valid system password-policy section: the generic
+secret masker removed the config opener because it contained the word password,
+then the parser encountered an end with no matching section.
+
+The Fortinet path now scans quotes, escapes and line continuations before masking.
+Known sensitive values remain hidden; bare section keywords retain their boundary.
+Sensitive entry names use line-specific redacted placeholders without discarding
+their edit boundary. Multiline values, scripts, replacement-message buffers,
+certificates and SNMP community names are conservatively masked and not evaluated.
+next/end inside those values cannot create or close parsed sections. Escaped names
+resolve consistently in declarations and references. end can close its active
+entry and table as documented, without closing unrelated parent tables. Genuine
+unbalanced blocks and unfinished quotes still fail closed with safe line numbers.
+Analysis errors also clear the progress announcement and re-enable retry.
+
+Primary references checked (no command text executed on a device):
+- FortiOS CLI basics: quoting, escaping and multiline command continuation.
+  https://docs.fortinet.com/document/fortigate/7.4.4/administration-guide/896276/cli-basics
+- FortiOS command syntax: next vs end and nested table boundaries.
+  https://docs.fortinet.com/document/fortigate/7.2.7/administration-guide/508024/command-syntax
+- Password-policy configuration is a valid section, not a password value.
+  https://docs.fortinet.com/document/fortigate/7.6.0/new-features/548023/enhanced-administrator-password-security-7-6-1
+- Replacement message buffers and nested group configuration.
+  https://docs.fortinet.com/document/fortigate/7.4.0/cli-reference/51620/config-system-replacemsg-group
+
+51 local unit/security/boundary checks passed. These include all existing profile,
+large-file and worker regressions plus full Fortinet syntax and masking fixtures.
+The synthetic 12,155-line backup is not the user's actual file. Additional existing
+fixtures cover 80,003 Cisco lines, 15,000 FortiGate address objects, long lines and
+UTF-8 decoding. Scoped TypeScript and ESLint passed. The isolated Next webpack
+production build passed, including whole-build TypeScript and 107 static pages.
+
+Eight public-tool Playwright workflows passed against that build. Verified local
+file-to-worker-to-diagram/report flow, complete 12,155-line masked download, secret
+canary absence, retry after malformed structure/quotes, empty stale-progress status,
+large results, cancellation, keyboard navigation, workspace-scoped axe checks,
+route CSP and full-document isolation. Network observations found no configuration
+transmission or paid API calls. The separate essential-consent acknowledgement was
+completed before configuration entry in the new full-backup workflow. Its local
+database write is intentionally unavailable; no production database was contacted.
+Actual 1440px and 320px Fortinet screenshots were inspected with no horizontal
+overflow. Initial sandbox filesystem/network failures are not counted as passes.
+
+Evidence:
+C:/Users/rksankhyan/Documents/Codex/qcs-config-lens-fortinet-20261025/app/test-results/config-lens-fortinet-verified
+Preview: http://127.0.0.1:3057/network-tools/network-configuration-explainer
+Build base: ca7001fa04337da090ca4ab8d193bf70a9910105 plus only this parser/UI patch.
+Production credentials, unrelated policy changes and private content were not
+copied into the preview. No production database, hardware/emulator, paid API,
+social post or schedule was accessed or changed. Admin update code is unchanged;
+its auth/feed unit checks passed, but its browser workflow was not rerun here.
+This further fix is locally tested, not committed, pushed or deployed. Masking
+remains best-effort; neither synthetic tests nor parser output certify a device.
+
+Categorized results refinement - 2026-10-25
+------------------------------------------
+The user requested refinements to explanations, navigation and diagrams, with
+every configuration statement categorized. This is a local preview, not a release.
+The user's existing 3057 tab/analysis and server were preserved throughout.
+
+New Categories view groups every analyzed nonblank statement by function, section,
+scoped context and entry. Eighteen available categories cover interfaces, switching,
+routing, SD-WAN, firewall rules, objects, NAT, VPN, inspection profiles, application
+firewalls, wireless, network services, management, monitoring, HA, system settings,
+export structure and unclassified statements. Only present categories are shown.
+Classification is separate from semantic support: unsupported fields retain their
+unknown status, and masked data remains unevaluated. No vendor defaults, packet
+verdicts, physical neighbours or vulnerability results are invented.
+
+Local literal search, VDOM/context and status filters find groups while keeping
+their surrounding statements accessible. Groups expand lazily, with 24 groups per
+page and full statement access. Source and explanations have additional filters;
+source navigation clears stale filters. Every row is retained. Diagram objects use
+type-specific icons, named reference roles and reverse Used by navigation. Edges
+remain configuration references, not simulated traffic. Indexed incoming/outgoing
+lookups avoid repeated full scans. Text reports are grouped by function; masked
+configuration downloads preserve original line order.
+
+FortiOS explanations for existing interface, policy, route and IPsec fields now
+describe each field separately in beginner-friendly terms. Narrow new support for
+interface snmp-index and ip-managed-by-fortiipam does not spill into other contexts
+or other Fortinet product dialects. Sources reviewed for these meanings:
+https://docs.fortinet.com/document/fortigate/7.4.9/administration-guide/656084/firewall-policy
+https://docs.fortinet.com/document/fortigate/7.4.8/administration-guide/166728
+https://docs.fortinet.com/document/fortigate/6.2.11/cli-reference/008620/config-system-interface
+https://docs.fortinet.com/document/fortigate/7.0.0/cli-reference/10620/config-system-interface
+https://docs.fortinet.com/document/fortigate/7.4.9/administration-guide/626338/adding-a-static-route
+https://docs.fortinet.com/document/fortigate/7.0.0/cli-reference/557620/config-router-static
+https://docs.fortinet.com/document/fortigate/7.4.9/administration-guide/448790/central-dnat
+https://docs.fortinet.com/document/fortigate/7.4.9/administration-guide/790613/phase-1-configuration
+These version-specific references do not certify every product/train or establish
+runtime behavior. No device, VM or real network command was executed.
+
+Preview build is HEAD ca7001fa04337da090ca4ab8d193bf70a9910105 plus only the previous
+Fortinet parser patch and this refinement. Production secrets and unrelated dirty
+files were excluded. Browser processing still uses the local worker, no API or
+storage fallback; no production database or social job was accessed or modified.
+Preview: http://127.0.0.1:3058/network-tools/network-configuration-explainer
+
+Final validation: 59 unit/security/boundary tests passed, scoped ESLint and
+TypeScript passed, and the isolated webpack production build passed (107 static
+pages). Nine public-tool Playwright workflows passed against the final build,
+including all eight profiles, the synthetic 12,155-line Fortinet backup, 20,000
+Cisco interfaces, long fields, cancellation, complete exports, category/VDOM/status
+filters, source-filter reset, reverse-reference navigation and privacy isolation.
+Categories and diagrams were tested at 1440/768/390/320px with no horizontal
+overflow. Workspace-scoped axe checks passed. Desktop and 320px screenshots were
+visually inspected. No paid API or configuration-transmission request was observed.
+The separate essential-consent acknowledgement precedes config entry in applicable
+tests; its DB access points only to the deliberately unavailable local test URL.
+
+Evidence directory:
+C:/Users/rksankhyan/Documents/Codex/qcs-config-lens-categories-20261025/app/test-results/config-lens-categories-final
+Its .last-run.json reports passed with no failed tests. The earlier browser run's
+selector failure and the initial sandbox junction/build failure are preserved,
+not counted as passes. A real section-label issue was also corrected: unnamed
+section groups no longer inherit the enclosing VDOM entry's name.
+
+The customer's real export has not been supplied or analyzed by this verification;
+synthetic regression tests are not proof of complete vendor-command support.
+Admin updater code is unchanged, with auth/feed unit checks passing; the admin
+browser workflow was not rerun. No commit, push, deployment or social change was
+performed. The isolated port-3058 preview remains running for user review.

@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { ArrowDown, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Download, FileCode2, GitBranch, ListFilter, LockKeyhole, Network, Play, Router, ShieldCheck, Trash2, Upload, X } from "lucide-react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Download, FileCode2, GitBranch, ListFilter, LockKeyhole, Network, Play, Router, ShieldCheck, Trash2, Upload, X, Cable, MapPin, Shield, Workflow, Server } from "lucide-react";
 import { CATALOG_REVIEWED, getProfile, glossary, LENS_PATH, LENS_VERSION, profiles, type Selection, type Vendor } from "@/lib/config-lens/catalog";
 import { reportText, type Analysis, type AnalysisProgress } from "@/lib/config-lens/engine";
 import { samples } from "@/lib/config-lens/samples";
+import { categoryCatalog } from "@/lib/config-lens/categories";
+import { buildResultsIndex, matchesStatement, referenceRole, type StatementGroup } from "@/lib/config-lens/results";
+import { ConfigLensCategories } from "./config-lens-categories";
 import styles from "./config-lens.module.css";
 
-const tabs = ["Overview", "Diagram", "Explanations", "Checks", "Source", "Glossary"] as const;
+const tabs = ["Overview", "Categories", "Diagram", "Explanations", "Checks", "Source", "Glossary"] as const;
 type Tab = typeof tabs[number];
 const pageSize = 60;
 const exportPageSize = 16000;
@@ -19,6 +22,10 @@ function CompleteText({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   if (text.length <= 4096) return <>{text}</>;
   return <details onToggle={e => setOpen(e.currentTarget.open)}><summary>View complete text ({text.length.toLocaleString()} characters)</summary>{open && <span>{text}</span>}</details>;
+}
+function ObjectIcon({ kind, size = 22 }: { kind: string; size?: number }) {
+  const Icon = kind === "interface" ? Cable : kind === "VLAN" ? Network : /policy|ACL/.test(kind) ? Shield : /VPN/.test(kind) ? LockKeyhole : /address|object/.test(kind) ? MapPin : /server|service/.test(kind) ? Server : /route|routing|VRF/.test(kind) ? Router : Workflow;
+  return <Icon size={size} aria-hidden="true" />;
 }
 function saveText(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
@@ -53,6 +60,10 @@ function LocalConfigLens() {
   const [result, setResult] = useState<Analysis | null>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
   const [tab, setTab] = useState<Tab>("Overview"), [filter, setFilter] = useState("all"), [page, setPage] = useState(0);
+  const [statementCategory, setStatementCategory] = useState("all"), [statementScope, setStatementScope] = useState("all"), [statementQuery, setStatementQuery] = useState("");
+  const [statementGroup, setStatementGroup] = useState<StatementGroup | null>(null);
+  const deferredStatementQuery = useDeferredValue(statementQuery);
+  const [direction, setDirection] = useState<"outgoing" | "incoming">("outgoing");
   const [selectedEntity, setSelectedEntity] = useState("");
   const [objectQuery, setObjectQuery] = useState(""), [objectPage, setObjectPage] = useState(0);
   const [referencePage, setReferencePage] = useState(0), [settingPage, setSettingPage] = useState(0), [exportPage, setExportPage] = useState(0);
@@ -92,25 +103,28 @@ function LocalConfigLens() {
           return;
         }
         stop(); setBusy(false);
-        if (!event.data.analysis) { setError(event.data.error || "Local analysis failed."); return; }
+        if (!event.data.analysis) { setAnnouncement(""); setError(event.data.error || "Local analysis failed."); return; }
         const analysis = event.data.analysis;
-        setResult(analysis); if (!file) setInput(analysis.maskedSource); setTab("Overview"); setFilter("all"); setPage(0);
+        setResult(analysis); if (!file) setInput(analysis.maskedSource); setTab("Categories"); resetStatementFilters(); setDirection("outgoing");
         setObjectQuery(""); setObjectPage(0); setReferencePage(0); setSettingPage(0);
         setSelectedEntity(analysis.entities.find(e => e.kind.includes("policy"))?.id || analysis.entities[0]?.id || "");
-        setAnnouncement(`Analysis complete. ${analysis.coverage.unknown} statements need review. ${analysis.maskedCount} lines masked.`);
+        setAnnouncement(`Analysis complete. ${analysis.coverage.unknown} statement${analysis.coverage.unknown === 1 ? " needs" : "s need"} review. ${analysis.maskedCount} line${analysis.maskedCount === 1 ? "" : "s"} masked.`);
         setTimeout(() => resultHeading.current?.focus(), 0);
       };
-      w.onerror = () => { if (request === generation.current) { stop(); setBusy(false); setError("The local worker stopped or could not start. Check available browser memory and retry. No server fallback or API request was made."); } };
+      w.onerror = () => { if (request === generation.current) { stop(); setBusy(false); setAnnouncement(""); setError("The local worker stopped or could not start. Check available browser memory and retry. No server fallback or API request was made."); } };
       timer.current = setTimeout(() => { if (request === generation.current) setAnnouncement("Still processing locally. Large exports can take longer; you can cancel at any time."); }, 10000);
       w.postMessage({ input: file ? "" : input, file: file || undefined, selection });
-    } catch { stop(); setBusy(false); setError("This browser could not start the local worker. No configuration was uploaded."); }
+    } catch { stop(); setBusy(false); setAnnouncement(""); setError("This browser could not start the local worker. No configuration was uploaded."); }
   }
-  function showSource(line?: number) { setTab("Source"); setFilter("all"); setPage(line && result ? Math.floor(Math.max(0, result.lines.findIndex(l => l.line === line)) / pageSize) : 0); }
+  function resetStatementFilters() { setFilter("all"); setStatementCategory("all"); setStatementScope("all"); setStatementQuery(""); setStatementGroup(null); setPage(0); }
+  function showSource(line?: number) { setTab("Source"); resetStatementFilters(); setPage(line && result ? Math.floor(Math.max(0, result.lines.findIndex(l => l.line === line)) / pageSize) : 0); }
+  function inspectGroup(group: StatementGroup) { resetStatementFilters(); setStatementGroup(group); setTab("Explanations"); }
   function openExport(kind: "report" | "config") { setExportKind(kind); setExportApproved(false); setExportPage(0); }
   function selectEntity(id: string) { setSelectedEntity(id); setReferencePage(0); setSettingPage(0); }
-  const displayed = useMemo(() => result?.lines.filter(l => filter === "all" || l.status === filter) || [], [result, filter]);
-  const selected = useMemo(() => result?.entities.find(e => e.id === selectedEntity), [result, selectedEntity]);
-  const relationships = useMemo(() => result?.relationships.filter(r => r.from === selectedEntity) || [], [result, selectedEntity]);
+  const index = useMemo(() => result ? buildResultsIndex(result) : null, [result]);
+  const displayed = useMemo(() => result?.lines.filter(l => matchesStatement(l, { status: filter, category: statementCategory, scope: statementScope, query: deferredStatementQuery, groupId: statementGroup?.id })) || [], [result, filter, statementCategory, statementScope, deferredStatementQuery, statementGroup]);
+  const selected = index?.entities.get(selectedEntity);
+  const relationships = (direction === "outgoing" ? index?.outgoing : index?.incoming)?.get(selectedEntity) || [];
   const objects = useMemo(() => result?.entities.filter(e => `${e.kind} ${e.name} ${e.scope}`.toLowerCase().includes(objectQuery.toLowerCase())) || [], [result, objectQuery]);
   const visibleObjects = objects.slice(objectPage * pageSize, (objectPage + 1) * pageSize);
   const inventory = useMemo(() => {
@@ -159,18 +173,25 @@ function LocalConfigLens() {
           {!result.entities.length && <p>No supported named objects were declared. Read the individual statements and review the unsupported lines.</p>}
           <h3>What needs checking</h3>{result.findings.slice(0, 4).map(f => <div className={styles.finding} key={f.title}><strong>{f.title}</strong><p>{f.explanation}</p></div>)}
         </>}
+        {tab === "Categories" && index && <ConfigLensCategories index={index} onInspect={inspectGroup} onObject={id => { selectEntity(id); setDirection("outgoing"); setTab("Diagram"); }} />}
         {tab === "Diagram" && <>
           <h3>Configured relationships</h3><p>Arrows mean “references”, not packet direction, live traffic or physical cabling. Each view shows one declared object and all its parsed references.</p>
           <label>Find object<input value={objectQuery} onChange={e => { setObjectQuery(e.target.value); setObjectPage(0); }} autoComplete="off" /></label>
           <label>Object<select value={selectedEntity} onChange={e => selectEntity(e.target.value)}>{selected && !visibleObjects.some(e => e.id === selected.id) && <option value={selected.id}>{selected.kind}: {selected.name} ({selected.scope})</option>}{visibleObjects.map(e => <option key={e.id} value={e.id}>{e.kind}: {e.name} ({e.scope})</option>)}</select></label>
           <span>{objects.length.toLocaleString()} matching objects</span><Pages label="objects" page={objectPage} total={Math.ceil(objects.length / pageSize)} onChange={setObjectPage} />
+          <div className={styles.directionControl} role="group" aria-label="Reference direction"><button type="button" aria-pressed={direction === "outgoing"} onClick={() => { setDirection("outgoing"); setReferencePage(0); }}><ArrowRight size={16} aria-hidden="true" />References ({index?.outgoing.get(selectedEntity)?.length || 0})</button><button type="button" aria-pressed={direction === "incoming"} onClick={() => { setDirection("incoming"); setReferencePage(0); }}><ArrowLeft size={16} aria-hidden="true" />Used by ({index?.incoming.get(selectedEntity)?.length || 0})</button></div>
           {selected ? <><div className={styles.graph} aria-label={`Configuration references for ${selected.name}`}>
-            <div className={styles.graphRoot}><Router size={34} aria-hidden="true" /><span>{selected.kind}</span><strong>{selected.name}</strong><small>{selected.scope}</small><button type="button" onClick={() => showSource(selected.lines[0])}>Source L{selected.lines[0]}</button></div>
-            <ArrowRight className={styles.graphArrow} size={30} aria-hidden="true" />
-            <div className={styles.graphTargets}>{relationships.length ? relationships.slice(referencePage * pageSize, (referencePage + 1) * pageSize).map((r, i) => <div className={styles.graphTarget} key={`${r.line}-${i}`}><GitBranch size={20} aria-hidden="true" /><div><span>{r.kind} reference</span><strong><CompleteText text={r.target} /></strong><small>{r.to ? "Declared in this export" : "Built-in, external or unresolved"}</small></div><button type="button" onClick={() => showSource(r.line)}>L{r.line}</button></div>) : <div className={styles.graphTarget}><BookOpen size={22} aria-hidden="true" /><p>No supported references were extracted for this object. Its settings are listed below; no connection is invented.</p></div>}</div>
+            <div className={styles.graphRoot}><ObjectIcon kind={selected.kind} size={34} /><span>{selected.kind}</span><strong>{selected.name}</strong><small>{selected.scope}</small><button type="button" onClick={() => showSource(selected.lines[0])}>Source L{selected.lines[0]}</button></div>
+            {direction === "outgoing" ? <ArrowRight className={styles.graphArrow} size={30} aria-hidden="true" /> : <ArrowLeft className={styles.graphArrow} size={30} aria-hidden="true" />}
+            <div className={styles.graphTargets}>{relationships.length ? relationships.slice(referencePage * pageSize, (referencePage + 1) * pageSize).map((r, i) => {
+              const object = index?.entities.get(direction === "incoming" ? r.from : r.to || "");
+              return <div className={styles.graphTarget} key={`${r.line}-${i}`}><ObjectIcon kind={object?.kind || r.kind} size={20} /><div><span>{referenceRole(r)}</span><strong><CompleteText text={direction === "incoming" ? object?.name || r.from : r.target} /></strong><small>{object ? `${object.kind} / ${object.scope} / Declared in this export` : "Built-in, external or unresolved"}</small></div><div className={styles.referenceActions}><button type="button" onClick={() => showSource(r.line)}>L{r.line}</button>{object && <button type="button" className={styles.iconButton} title={`Open object ${object.name}`} aria-label={`Open object ${object.name}`} onClick={() => { selectEntity(object.id); setDirection(direction === "outgoing" ? "incoming" : "outgoing"); }}><GitBranch size={18} /></button>}</div></div>;
+            }) : <div className={styles.graphTarget}><BookOpen size={22} aria-hidden="true" /><p>{direction === "incoming" ? "No supported incoming references were resolved in this export. That does not prove the object is unused." : "No supported references were extracted for this object. Its settings are listed below; no connection is invented."}</p></div>}</div>
           </div><Pages label="references" page={referencePage} total={Math.ceil(relationships.length / pageSize)} onChange={setReferencePage} /><h3>Declared settings</h3><div className={styles.settingList}>{selected.settings.slice(settingPage * pageSize, (settingPage + 1) * pageSize).map((s, i) => <div key={`${s.line}-${i}`}><button type="button" onClick={() => showSource(s.line)}>L{s.line}</button><strong>{s.key}</strong><div><CompleteText text={s.value} /></div></div>)}</div><Pages label="settings" page={settingPage} total={Math.ceil(selected.settings.length / pageSize)} onChange={setSettingPage} /></> : <p>No supported objects are available to draw.</p>}
         </>}
         {(tab === "Explanations" || tab === "Source") && <>
+          {statementGroup && <div className={styles.groupScope}><strong>{statementGroup.section} / {statementGroup.entry || statementGroup.scope}</strong><button type="button" aria-label="Clear group selection" title="Clear group selection" className={styles.iconButton} onClick={() => { setStatementGroup(null); setPage(0); }}><X size={18} /></button></div>}
+          <div className={styles.resultFilters}><label>Search statements<input value={statementQuery} onChange={e => { setStatementQuery(e.target.value); setPage(0); }} autoComplete="off" /></label><label>Statement category<select value={statementCategory} onChange={e => { setStatementCategory(e.target.value); setPage(0); }}><option value="all">All categories</option>{index?.categories.map(c => <option key={c} value={c}>{categoryCatalog[c].label}</option>)}</select></label><label>Statement context<select value={statementScope} onChange={e => { setStatementScope(e.target.value); setPage(0); }}><option value="all">All contexts</option>{index?.scopes.map(s => <option key={s}>{s}</option>)}</select></label><button type="button" className={styles.iconButton} aria-label="Reset statement filters" title="Reset statement filters" onClick={resetStatementFilters}><X size={18} /></button></div>
           <div className={styles.toolbar}><ListFilter size={18} aria-hidden="true" /><label>Statement filter<select value={filter} onChange={e => { setFilter(e.target.value); setPage(0); }}><option value="all">All statements</option><option value="explained">Explained</option><option value="unknown">Needs review</option><option value="context">Structure</option><option value="masked">Masked</option></select></label><span>{displayed.length} statements</span></div>
           {displayed.slice(page * pageSize, (page + 1) * pageSize).map(l => <article className={styles.line} key={l.line}><div className={styles.lineMeta}><span>L{l.line}</span><span className={l.status === "unknown" ? styles.reviewBadge : styles.badge}>{l.status === "unknown" ? "Needs review" : l.status}</span><span>{l.category}</span></div><div className={styles.code}><CompleteText text={l.text} /></div><small>{l.context}</small>{tab === "Explanations" && <div className={styles.explanation}><CompleteText text={l.explanation} /></div>}</article>)}
           {!displayed.length && <p>No statements in this filter.</p>}
