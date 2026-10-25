@@ -542,3 +542,105 @@ Local URL: http://127.0.0.1:3060/network-tools/network-configuration-explainer
 The older preview and user analyses remain open. Admin UI and the production
 database were not exercised; no admin updater or social-delivery code changed.
 This entry records pre-deployment readiness, not a production verification.
+
+Version 1.2.0 production verification: 26 October 2026 IST
+---------------------------------------------------------
+The nine scoped files were committed and pushed as
+5f52d6aa1c83a8f02e43b4bc171a07be2a00fdbb. Vercel confirmed READY on the exact
+commit, production target, with www.qcsstudio.com/qcsstudio.com aliases and no
+alias error: dpl_JE3k2FXxfD6jnNdEGiBbfQ1cP5h6.
+Deployment URL: https://network-1q0pd4xyq-qcsstudios.vercel.app
+Live tool: https://www.qcsstudio.com/network-tools/network-configuration-explainer
+
+All eight read-only public browser workflows passed (1.2 minutes), including
+all six selected trains at 1440px/320px, exact-version reference links, 1.2.0
+masked report export, intentional unknown statements, all eight sample profiles,
+security/worker headers, categories, scoped filters, reverse references and
+diagram navigation. The synthetic 12,155-line Fortinet and 80,003-line Cisco
+exports passed; all 20,000 Cisco interfaces remained represented and the final
+interface remained searchable and included in the complete masked export.
+Scoped accessibility and horizontal-overflow checks passed at tested widths.
+
+Actual live IOS 15 mobile, FortiOS 7.2 desktop and final Cisco interface diagram
+screenshots were inspected. Explanations and their citations were readable and
+complete. These tests did not execute networking commands or validate real
+hardware, and did not use any private customer configuration.
+
+During synthetic analysis, no configuration canary, API/mutation request, paid
+provider request, analytics request or automatic vendor fetch was observed.
+No database, admin updater, LinkedIn, Facebook, Instagram, schedule or queue
+changes were made. All 26 unrelated tracked modified files still matched their
+pre-task hashes after deployment. User browser analyses and preview servers
+were left unchanged.
+
+Evidence: test-results/config-lens-production-5f52d6a, including headers, desktop/
+mobile screenshots and .last-run.json (passed, no failed tests). This is a local
+post-deployment receipt, not part of the already verified production commit.
+
+Routing, switching, firewall and VPN 1.3.0: 26 October 2026 IST
+------------------------------------------------------------
+This scoped expansion adds 13 documented Cisco patterns and 35 FortiOS section/
+field pairs. It does not claim complete coverage of every Needs-review command,
+product, release or runtime outcome. No configuration, vendor documentation or
+model API is fetched automatically during browser analysis.
+
+Cisco IOS XE 17.x additions cover OSPF neighbour-change logging and reference
+bandwidth, Catalyst bundle-protocol/LACP timing, DTP suppression and spanning-
+tree guards, router security-zone membership, IKEv2 AES-CBC/SHA-2/DH choices,
+proposal/profile references and tunnel IPsec attachment. Switch-only and router-
+only settings are bounded to their selected profiles and exact contexts. Other
+trains/dialects, unsupported algorithms, no-forms, values and syntax remain
+Needs review. Recognizing one algorithm does not validate a complete proposal.
+
+FortiOS 7.4 additions cover BGP multipath/graceful restart and neighbour filters,
+firewall match negation/NAT/logging controls, IPsec peer detection and negotiation,
+and phase-2 key lifetime/replay/selectors. Four aggregate/LACP interface fields
+are separately verified for FortiOS 7.2.11, 7.4.9 and 7.6.4. The other new FortiOS
+families are intentionally limited to the checked 7.4 reference. This does not
+extend FortiGate semantics to FortiWeb or FortiSwitchOS.
+
+Primary references: Cisco IOS XE 17 OSPF, zone-based firewall and IKEv2 guides;
+Catalyst 9200 IOS XE 17.15 command reference; FortiOS 7.4.9 BGP, firewall policy,
+phase1-interface and phase2-interface CLI references; and all three existing
+FortiOS interface reference versions. Exact public source URLs are bundled in
+src/lib/config-lens/references.ts and shown beside explanations and in reports.
+Official source text was checked for contexts, accepted values, numeric ranges
+and meanings. Public Fortinet HTML was retrieved directly where needed; research
+copies remain ignored under test-results/config-lens-v12-sources/v13-*. No paid
+API, private export, live network command or device runtime was used for research.
+
+Diagrams flag source/destination/service references when their policy mentions
+negation. This is deliberately mention-based, including unset/disabled/repeated
+settings, rather than pretending to compute an effective firewall match. Arrows
+remain configuration references, not packet paths, connectivity or permit/deny
+verdicts. Entity and VDOM scoping remain intact; unrecognized rows stay visible.
+
+Pre-release evidence for the final scoped source:
+- 102 automated checks passed, including exact context, profile/train mismatch,
+  values, ranges, unsupported syntax, category separation, negation references,
+  VPN secret masking, worker privacy and large-config regression coverage.
+- Scoped TypeScript and ESLint passed. The isolated production webpack build
+  passed with synthetic environment values and no reachable/live database.
+- All 15 public preview browser workflows passed (2.3 minutes), including the
+  six existing selected trains, eight sample profiles, 12,155-line Fortinet and
+  80,003-line Cisco fixtures with 20,000 interfaces, long lines, cancellation,
+  invalid UTF-8, complete masked downloads, categories and diagram navigation.
+- New desktop/320px tests check all four categories, complete explanations,
+  exact vendor citations, intentional unsupported rows, the negation diagram,
+  1.3.0 report exports, accessibility and absence of horizontal overflow.
+- Actual mobile/desktop VPN and diagram screenshots were inspected. Complete
+  explanations and long negation labels wrap without clipping or overlapping.
+- No configuration canary, API/mutation request, paid-provider request, analytics
+  or automatic vendor fetch was observed during the new synthetic analyses.
+- All 10 scoped implementation/test/fixture files match the preview by SHA256.
+  All 26 unrelated tracked modifications retain their pre-task hashes.
+
+Preview: C:/Users/rksankhyan/Documents/Codex/qcs-config-lens-v13-20261026/app
+URL: http://127.0.0.1:3061/network-tools/network-configuration-explainer
+Evidence: test-results/config-lens-v13-preview (15 passed) and focused screenshots
+in test-results/config-lens-v13-networking-preview (two passed). Earlier failed
+browser attempts encountered sandbox networking or incorrect test selectors;
+the final passing tests use real category expansion and current interface labels.
+No admin updater, database, social post, schedule or queue code was changed.
+Existing user previews and analyses remain untouched. This section records
+pre-release readiness; production confirmation must be recorded separately.

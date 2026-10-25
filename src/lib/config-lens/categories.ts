@@ -24,6 +24,7 @@ export const categoryOrder = Object.keys(categoryCatalog) as Category[];
 // Classification uses syntax/context only. It never upgrades an unknown statement's status.
 export function classifyCategory(vendor: string, text: string, section: string, fallback: Category): Category {
   if (vendor === "fortinet") {
+    if (section === "system interface" && /^(?:set|unset|append|unselect)\s+(?:lacp-mode|lacp-speed|min-links|min-links-down)\b/.test(text.trim())) return "Switching";
     if (/^system (?:sdwan|virtual-wan-link)\b/.test(section)) return "SD-WAN";
     if (/^system (?:switch-interface|virtual-switch)\b|^(?:switch|switch-controller)\b/.test(section)) return "Switching";
     if (/^system interface\b/.test(section)) return "Interfaces";

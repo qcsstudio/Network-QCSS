@@ -33,19 +33,20 @@ test("FortiOS nested DHCP, services, SD-WAN, logs and HA retain exact scope and 
   assert.match(reportText(result), /docs.fortinet.com/);
 });
 
-const candidates = ["enable", "local", "specify", "192.0.2.1", "255.255.255.0", "192.0.2.1 255.255.255.0", "reserved", "86400", "300", "1", "cleartext", "auto", "failover", "custom", "60", "ping", "default", "warning", "02:00:00:00:00:01", "port1"];
+const candidates = ["enable", "local", "specify", "192.0.2.1", "255.255.255.0", "192.0.2.1 255.255.255.0", "reserved", "86400", "300", "1", "cleartext", "auto", "failover", "custom", "60", "ping", "default", "warning", "02:00:00:00:00:01", "port1", "active", "fast", "operational", "on-demand", "seconds"];
 for (const [section, def] of Object.entries(fortiosSections)) {
   test(`${section}: all documented fields enforce product, train, entry, operation and complete values`, () => {
     for (const [key, field] of Object.entries(def.fields)) {
       const value = candidates.find(v => field.check(v.split(" ")));
       assert.ok(value, `Missing positive fixture for ${section}/${key}`);
       const good = command(def.entry, value);
-      assert.equal(documentedFortiRule(section, key, "fortios", good)?.reference, def.reference);
+      const reference = field.reference || def.reference;
+      assert.equal(documentedFortiRule(section, key, "fortios", good)?.reference, reference);
       for (const dialect of ["fortiweb", "fortiswitch", "ios", "nxos"]) assert.equal(documentedFortiRule(section, key, dialect, good), null);
-      for (const version of ["FortiOS 7.2", "FortiOS 7.6", "Other / unknown"]) assert.equal(fortiRule(section, key, "fortios", { ...good, version })?.reference, referenceForTrain(def.reference, version));
+      for (const version of ["FortiOS 7.2", "FortiOS 7.6", "Other / unknown"]) assert.equal(fortiRule(section, key, "fortios", { ...good, version })?.reference, referenceForTrain(reference, version));
       assert.equal(fortiRule(section, key, "fortios", { ...good, entry: !def.entry }), undefined);
       assert.equal(fortiRule(section, key, "fortios", { ...good, operation: "invented" }), undefined);
-      assert.equal(fortiRule(section, key, "fortios", command(def.entry, "", "unset"))?.reference, def.reference);
+      assert.equal(fortiRule(section, key, "fortios", command(def.entry, "", "unset"))?.reference, reference);
       assert.equal(fortiRule(section, key, "fortios", command(def.entry, value, "unset")), undefined);
       assert.equal(fortiRule(section, key, "fortios", command(def.entry, "")), undefined);
       if (!field.list) assert.equal(fortiRule(section, key, "fortios", command(def.entry, value, "append")), undefined);

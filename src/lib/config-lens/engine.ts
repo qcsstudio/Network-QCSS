@@ -175,10 +175,24 @@ export function analyzeConfiguration(input: string, selection: Selection, progre
   }
   if (stack.length) throw new Error(`The Fortinet export ends inside a configuration block opened at line ${stack.at(-1)!.line}. Include its closing next/end lines before analysis.`);
   progress?.({ phase: "references", completed: masked.lines.length, total: masked.lines.length });
+  // A reference graph must not imply a positive match when its policy mentions negation.
+  // Track mention, not effective state: unset/repeated statements need operator review too.
+  const negatedReferences = new Map<string, Set<string>>();
+  for (const line of explanations) {
+    const flag = line.section === "firewall policy" && line.text.trim().match(/^(?:set|unset|append|unselect) (srcaddr|dstaddr|service)-negate\b/);
+    if (flag && line.entityId) {
+      const fields = negatedReferences.get(line.entityId) || new Set<string>();
+      fields.add(flag[1]); negatedReferences.set(line.entityId, fields);
+    }
+  }
   // The same scoped identity used for declarations avoids rescanning every object per reference.
   for (const r of relationships) {
     const target = byId.get(JSON.stringify([r.scope, r.kind, r.target]));
     if (target) r.to = target.id;
+    if (r.role && negatedReferences.get(r.from)?.has(r.role)) {
+      const name = r.role === "srcaddr" ? "Source address" : r.role === "dstaddr" ? "Destination address" : "Service";
+      r.role = `${name} reference (review negation)`;
+    }
   }
   const unknown = explanations.filter(l => l.status === "unknown");
   if (unknown.length) findings.push({ level: "review", title: `${unknown.length} statement(s) need vendor review`, explanation: "Unsupported syntax remains in Source. Recognizing other statements is not evidence that these statements are safe or irrelevant.", lines: unknown.map(l => l.line) });

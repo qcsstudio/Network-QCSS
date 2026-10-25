@@ -5,7 +5,7 @@ import { fortinetWords } from "./fortinet-syntax";
 
 export type DocumentedRule = { category: Category; explanation: string; reference: CommandReference };
 type Check = (values: string[]) => boolean;
-type Field = { explanation: string; check: Check; list?: boolean };
+type Field = { explanation: string; check: Check; list?: boolean; reference?: CommandReference };
 type Section = { category: Category; reference: CommandReference; entry: boolean; fields: Record<string, Field> };
 const one: Check = values => values.length === 1 && values[0].length > 0;
 const choices = (...allowed: string[]): Check => values => values.length === 1 && allowed.includes(values[0]);
@@ -20,6 +20,10 @@ const field = (explanation: string, check: Check = one, list = false): Field => 
 // Exact sections are intentional: identical field names mean different things in nested tables.
 export const fortiosSections: Record<string, Section> = {
   "system interface": { category: "Interfaces", reference: "fortiInterface", entry: true, fields: {
+    "lacp-mode": field("Link Aggregation Control Protocol (LACP) negotiates a bundle of ports. active starts negotiation; passive waits; static does not use LACP. No working bundle is confirmed.", choices("active", "passive", "static")),
+    "lacp-speed": field("LACP control-message timing: fast is one second; slow is 30 seconds. This is not the bundle's traffic speed.", choices("fast", "slow")),
+    "min-links": field("Minimum active member ports required for an aggregate. It is a configured threshold, not a count of currently working links.", integer(1, 32)),
+    "min-links-down": field("How an aggregate is marked down below min-links: operational changes its operational state; administrative changes its administrative state.", choices("operational", "administrative")),
     defaultgw: field("Controls learning a gateway from DHCP or PPPoE, which supply connection settings. A learned gateway or installed default route is not confirmed.", toggle),
     "dns-server-override": field("Controls using DNS servers learned by this interface through DHCP or PPPoE. This is not a DNS server offered to LAN clients.", toggle),
     "dhcp-relay-service": field("Controls relaying clients' DHCP address requests to a server elsewhere. A relay forwards requests; it does not allocate addresses itself.", toggle),
@@ -37,11 +41,50 @@ export const fortiosSections: Record<string, Section> = {
     allowaccess: field("Management protocols allowed at this secondary address by this setting. These reach the FortiGate itself; other management restrictions still apply.", values => values.length > 0 && values.every(v => ["ping", "https", "ssh", "snmp", "http", "telnet"].includes(v)), true),
   } },
   "firewall policy": { category: "Firewall", reference: "fortiPolicy", entry: true, fields: {
+    "srcaddr-negate": { ...field("When enabled, the source condition excludes the listed source addresses. This reverses a match, not the policy's allow/deny action.", toggle), reference: "fortiPolicyCli" },
+    "dstaddr-negate": { ...field("When enabled, the destination condition excludes the listed destination addresses. Rule order and every other condition still matter.", toggle), reference: "fortiPolicyCli" },
+    "service-negate": { ...field("When enabled, matches services outside the listed service definitions. This does not change those definitions or independently allow traffic.", toggle), reference: "fortiPolicyCli" },
+    fixedport: { ...field("Prevents source NAT from changing the connection's source port when applicable. It is not destination port forwarding or permission to pass traffic.", toggle), reference: "fortiPolicyCli" },
+    "logtraffic-start": { ...field("Controls recording a log when a connection starts. Logging settings and destinations still matter; no delivery is confirmed.", toggle), reference: "fortiPolicyCli" },
+    "match-vip": { ...field("Controls matching traffic whose destination was translated by a virtual IP (VIP). It neither creates a VIP nor proves traffic is allowed.", toggle), reference: "fortiPolicyCli" },
+    "send-deny-packet": { ...field("Controls sending a reply when this policy denies or blocks a connection. It is not an allow rule.", toggle), reference: "fortiPolicyCli" },
     "internet-service": field("Controls Internet Service Database matching for the destination. When enabled, ordinary destination-address and service conditions are not used; inspect the selected Internet Services.", toggle),
     "tcp-mss-sender": field("Sets the sender-side TCP maximum segment size, a limit on TCP data per segment. This is not interface MTU or a bandwidth limit.", integer(1, 65535)),
     "tcp-mss-receiver": field("Sets the receiver-side TCP maximum segment size. Path suitability is not measured; this differs from the sender-side setting.", integer(1, 65535)),
     "session-ttl": field("Configured session lifetime in seconds for this policy, not the IP packet's hop limit. Effective timers and active sessions require separate checks.", integer(1, 604800)),
     "auto-asic-offload": field("Controls eligible hardware acceleration on supported FortiGate models. It neither enables a security profile nor proves traffic is offloaded.", toggle),
+  } },
+  "router bgp": { category: "Routing", reference: "fortiBgp", entry: false, fields: {
+    "ebgp-multipath": field("Controls using multiple eligible external BGP paths, learned across routing organizations. It does not guarantee equal traffic sharing.", toggle),
+    "ibgp-multipath": field("Controls multiple eligible internal BGP paths within one routing organization. Installed routes and active paths are not measured.", toggle),
+    "log-neighbour-changes": field("Controls recording BGP neighbour changes. A configured neighbour is not proof of an established session.", toggle),
+    "graceful-restart": field("Controls BGP graceful-restart capability, which helps peers retain routing information during a restart. Uninterrupted forwarding is not guaranteed.", toggle),
+  } },
+  "router bgp neighbor": { category: "Routing", reference: "fortiBgp", entry: true, fields: {
+    "prefix-list-in": field("Names the IPv4 prefix filter for route updates received from this neighbour. It is not a packet-filter rule.", values => one(values) && values[0].length <= 35),
+    "prefix-list-out": field("Names the IPv4 prefix filter for route updates sent to this neighbour, not a list of current advertised routes.", values => one(values) && values[0].length <= 35),
+    "route-map-in": field("Names the inbound IPv4 route policy for this neighbour. Its separate rules must be inspected; accepted routes are not calculated.", values => one(values) && values[0].length <= 35),
+    "route-map-out": field("Names the outbound IPv4 route policy for this neighbour. This does not show which routes the peer received.", values => one(values) && values[0].length <= 35),
+  } },
+  "vpn ipsec phase1-interface": { category: "VPN", reference: "fortiPhase1", entry: true, fields: {
+    dpd: field("Dead Peer Detection checks the VPN peer: disable turns it off; on-idle checks during idle periods; on-demand checks when sent traffic gets no peer reply. No peer was tested here.", choices("disable", "on-idle", "on-demand")),
+    "dpd-retrycount": field("Number of Dead Peer Detection retry attempts, not a count of lost data packets.", integer(0, 10)),
+    nattraversal: field("NAT traversal carries IPsec through address translation using UDP encapsulation. enable permits it, forced requests it regardless of detected NAT, and disable turns it off. No tunnel is verified.", choices("enable", "disable", "forced")),
+    fragmentation: field("Controls fragmenting IKE negotiation messages on retransmission. This is not a general setting for fragmenting application traffic.", toggle),
+    "negotiate-timeout": field("Maximum wait in seconds for IKE security-association negotiation. A security association is the peers' agreed protection state; success is not confirmed.", integer(1, 300)),
+    reauth: field("Controls authenticating again when the IKE security association expires. This does not verify either peer's identity.", toggle),
+    "add-route": field("Controls adding a route toward the peer's destination selector. This is not proof of a route in the active routing table.", toggle),
+  } },
+  "vpn ipsec phase2-interface": { category: "VPN", reference: "fortiPhase2", entry: true, fields: {
+    pfs: field("Perfect Forward Secrecy requests a fresh key exchange for IPsec keys. Both peers need compatible settings; security is not verified.", toggle),
+    replay: field("Controls detecting reused IPsec packets. This is replay protection, not session recording.", toggle),
+    "auto-negotiate": field("Controls automatic negotiation of the IPsec security association. Enabled does not mean the tunnel is up.", toggle),
+    "keylife-type": field("Chooses a key lifetime measured in seconds, kilobytes of traffic (kbs), or both. This is not a bandwidth limit.", choices("seconds", "kbs", "both")),
+    keylifeseconds: field("Phase 2 key lifetime in seconds, when selected by keylife-type. Actual negotiation and expiry are not observed.", integer(120, 172800)),
+    keylifekbs: field("Phase 2 key lifetime in kilobytes of traffic, when selected by keylife-type. It does not measure throughput.", integer(5120, 4294967295)),
+    protocol: field("IP protocol-number condition for the traffic selector; zero means all protocols. It is not a TCP/UDP port number.", integer(0, 255)),
+    "src-port": field("Source-port condition in this VPN selector; zero means all ports. The protocol condition and firewall policies still apply.", integer(0, 65535)),
+    "dst-port": field("Destination-port condition in this VPN selector; zero means all ports. This does not open a listening service.", integer(0, 65535)),
   } },
   "system dhcp server": { category: "Network services", reference: "fortiDhcp", entry: true, fields: {
     status: field("Controls this DHCP address service; it does not confirm any client received settings.", toggle),
@@ -136,7 +179,7 @@ export function documentedFortiRule(section: string, key: string, dialect: strin
   const setting = definition && Object.hasOwn(definition.fields, key) ? definition.fields[key] : undefined;
   if (!setting) return undefined;
   // null reserves a recognized field that failed validation: never fall back to a broader rule.
-  const reference = command && definition && referenceForTrain(definition.reference, command.version);
+  const reference = command && definition && referenceForTrain(setting.reference || definition.reference, command.version);
   if (!definition || dialect !== "fortios" || !reference || !command || definition.entry !== command.entry) return null;
   const values = fortinetWords(command.rawValue);
   if (command.operation === "unset") {
@@ -148,8 +191,21 @@ export function documentedFortiRule(section: string, key: string, dialect: strin
   return { category: definition.category, reference, explanation: setting.explanation };
 }
 
-type CiscoDefinition = DocumentedRule & { pattern: RegExp; context: RegExp; switchOnly?: boolean; check?: (match: RegExpMatchArray) => boolean };
+type CiscoDefinition = DocumentedRule & { pattern: RegExp; context: RegExp; switchOnly?: boolean; routerOnly?: boolean; check?: (match: RegExpMatchArray) => boolean };
 export const documentedCiscoRules: CiscoDefinition[] = [
+  { pattern: /^log-adjacency-changes(?: detail)?$/, context: /^router ospf \d+(?: vrf \S+)?$/, category: "Routing", reference: "ciscoOspf", explanation: "Records OSPF neighbour up/down changes; detail records each state change. It does not enable OSPF or prove a neighbour is reachable." },
+  { pattern: /^auto-cost reference-bandwidth (\d+)$/, context: /^router ospf \d+(?: vrf \S+)?$/, category: "Routing", reference: "ciscoOspf", check: m => integer(1, 4294967)([m[1]]), explanation: "Reference bandwidth in megabits per second for automatic OSPF cost calculation. It is not a speed setting; manual interface costs and other routes still matter." },
+  { pattern: /^channel-protocol (?:lacp|pagp)$/, context: /^interface /, switchOnly: true, category: "Switching", reference: "ciscoLayer2", explanation: "Restricts port-bundle negotiation to LACP or Cisco PAgP. The channel-group settings and peer configuration are still required; a working bundle is not confirmed." },
+  { pattern: /^lacp rate (?:fast|normal)$/, context: /^interface /, switchOnly: true, category: "Switching", reference: "ciscoLayer2", explanation: "LACP controls link-bundle negotiation. fast requests one-second control messages; normal uses 30 seconds. This is not data-transfer speed." },
+  { pattern: /^switchport nonegotiate$/, context: /^interface /, switchOnly: true, category: "Switching", reference: "ciscoLayer2", explanation: "Stops Dynamic Trunking Protocol (DTP) negotiation messages. Use with a configured access or trunk mode; it does not itself establish a trunk." },
+  { pattern: /^spanning-tree guard (?:root|loop|none)$/, context: /^interface /, switchOnly: true, category: "Switching", reference: "ciscoLayer2", explanation: "root prevents this port becoming a path to the spanning-tree root; loop guards against missing control messages; none selects neither guard. Current blocking state is unknown." },
+  { pattern: /^zone-member security \S+$/, context: /^interface /, routerOnly: true, category: "Firewall", reference: "ciscoZone", explanation: "Assigns this interface to a firewall security zone. Inter-zone traffic needs appropriate zone-pair policies; membership alone is not permission or a packet verdict." },
+  { pattern: /^encryption ((?:aes-cbc-(?:128|192|256))(?: aes-cbc-(?:128|192|256))*)$/, context: /^crypto ikev2 proposal \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "AES-CBC encryption choices for IKEv2 negotiation, with key sizes in bits. This protects negotiation, not proof of the data tunnel's negotiated encryption." },
+  { pattern: /^integrity ((?:sha256|sha384|sha512)(?: (?:sha256|sha384|sha512))*)$/, context: /^crypto ikev2 proposal \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "SHA-2 integrity choices detect changes to IKEv2 messages. They are not encryption; separate integrity is incompatible with AES-GCM proposals. Compatibility is not validated here." },
+  { pattern: /^group ((?:14|15|16|19|20|24)(?: (?:14|15|16|19|20|24))*)$/, context: /^crypto ikev2 proposal \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "Diffie-Hellman group choices for agreeing key material with the peer. Group numbers are identifiers, not tunnel counts or proof of a secure connection." },
+  { pattern: /^proposal \S+$/, context: /^crypto ikev2 policy \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "References a named IKEv2 proposal in this negotiation policy. Its algorithms and the peer's settings must be checked separately." },
+  { pattern: /^set ikev2-profile \S+$/, context: /^crypto ipsec profile \S+$/, routerOnly: true, category: "VPN", reference: "ciscoZone", explanation: "Connects this IPsec profile to a named IKEv2 profile for peer negotiation. It does not expose keys or establish a working tunnel." },
+  { pattern: /^tunnel protection ipsec profile \S+$/, context: /^interface (?:Tunnel\S+|Virtual-Template\S+ type tunnel)$/i, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "Attaches an IPsec protection profile to this tunnel interface. Profile definitions, routing and peer agreement still matter; encryption is not measured." },
   { pattern: /^(?:no )?ip redirects$/, context: /^interface /, category: "Interfaces", reference: "ciscoIpServices", explanation: "Controls sending ICMP redirect messages that tell a sender about another next hop. The no form disables them; this is not a firewall rule or proof of the route used." },
   { pattern: /^(?:no )?ip unreachables$/, context: /^interface /, category: "Interfaces", reference: "ciscoIpServices", explanation: "Controls ICMP unreachable error messages; the no form disables them. These messages can help troubleshooting and path-MTU discovery. This does not control whether all traffic is reachable." },
   { pattern: /^(?:no )?ip proxy-arp$/, context: /^interface /, category: "Interfaces", reference: "ciscoIpServices", explanation: "Controls answering ARP address-resolution requests on behalf of other hosts. The no form disables proxy ARP here. Routing and reachability are not verified." },
@@ -183,9 +239,9 @@ export const documentedCiscoRules: CiscoDefinition[] = [
 export function documentedCiscoRule(text: string, context: string, dialect: Dialect, selection?: Selection): DocumentedRule | null | undefined {
   // DHCP network syntax overlaps routing protocols, so it is claimed only inside its pool.
   const found = documentedCiscoRules.find(rule => rule.pattern.test(text) && (!/^network /.test(text) || context.startsWith("ip dhcp pool ")));
-  if (!found) return /^ip ospf (?:cost|hello-interval|dead-interval|priority)\b/.test(text) || context.startsWith("ip dhcp pool ") && /^(?:network|bootfile|next-server|netbios-name-server|netbios-node-type|utilization|import)\b/.test(text) || /^(?:no )?service dhcp\b/.test(text) ? null : undefined;
+  if (!found) return /^(?:no )?(?:channel-protocol|lacp rate|switchport nonegotiate|spanning-tree guard|zone-member security|log-adjacency-changes|auto-cost reference-bandwidth|set ikev2-profile|tunnel protection ipsec profile)\b/.test(text) || /^crypto ikev2 proposal /.test(context) && /^(?:encryption|integrity|group)\b/.test(text) || /^ip ospf (?:cost|hello-interval|dead-interval|priority)\b/.test(text) || context.startsWith("ip dhcp pool ") && /^(?:network|bootfile|next-server|netbios-name-server|netbios-node-type|utilization|import)\b/.test(text) || /^(?:no )?service dhcp\b/.test(text) ? null : undefined;
   const reference = selection && referenceForTrain(found.reference, selection.version);
-  if (dialect !== "ios" || !reference || !selection || found.switchOnly && selection.profileId !== "cisco-switch" || !found.context.test(context)) return null;
+  if (dialect !== "ios" || !reference || !selection || found.switchOnly && selection.profileId !== "cisco-switch" || found.routerOnly && selection.profileId !== "cisco-router" || !found.context.test(context)) return null;
   const match = text.match(found.pattern)!;
   if (found.check && !found.check(match)) return null;
   return { category: found.category, explanation: found.explanation, reference };
