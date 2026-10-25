@@ -1,4 +1,4 @@
-export const LENS_VERSION = "1.5.0";
+export const LENS_VERSION = "1.6.0";
 export const CATALOG_REVIEWED = "2026-10-26";
 export const LENS_PATH = "/network-tools/network-configuration-explainer";
 export type Vendor = "cisco" | "fortinet";

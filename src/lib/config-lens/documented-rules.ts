@@ -19,6 +19,21 @@ const field = (explanation: string, check: Check = one, list = false): Field => 
 
 // Exact sections are intentional: identical field names mean different things in nested tables.
 export const fortiosSections: Record<string, Section> = {
+  "system switch-interface": { category: "Switching", reference: "fortiSoftSwitch", entry: true, fields: {
+    "intra-switch-policy": field("implicit allows traffic between members without a firewall policy; explicit requires matching firewall policies. This applies inside this software switch, not to all firewall traffic.", choices("implicit", "explicit")),
+    member: field("Interfaces grouped into this software switch. Membership is configuration, not evidence that cables are connected or traffic is passing.", values => values.length > 0 && values.every(v => v.length > 0 && v.length <= 79), true),
+    span: field("Controls traffic mirroring: copies selected traffic to a monitoring port. This is not spanning-tree loop prevention and does not confirm a capture is running.", toggle),
+    "span-dest-port": field("Port receiving mirrored traffic for observation. It is not the original traffic's destination or a firewall permission.", values => one(values) && values[0].length <= 15),
+    "span-source-port": field("Ports whose traffic is selected for mirroring. Check span-direction and the destination port; no packets are captured by Config Lens.", values => values.length > 0 && values.every(v => v.length > 0 && v.length <= 79), true),
+    "span-direction": field("Mirroring direction: rx copies received traffic, tx copies transmitted traffic, and both copies both directions. This does not change normal routing.", choices("rx", "tx", "both")),
+    type: field("switch selects normal switching in NAT mode; hub duplicates packets to every member port. This describes software-switch behavior, not a physical hub detected on the network.", choices("switch", "hub")),
+  } },
+  "firewall vip": { category: "Firewall", reference: "fortiVip", entry: true, fields: {
+    "arp-reply": field("Controls replying to Address Resolution Protocol requests for this virtual IP. ARP maps an IPv4 address to a local hardware address; a reply does not prove application access is allowed.", toggle),
+    "nat-source-vip": field("When enabled, requests source-address translation from the mapped address to the VIP's external address across traffic. Disabled does not mean all source NAT is off; interface filters and other NAT settings still matter.", toggle),
+    "portmapping-type": field("Selects one-to-one or many-to-many port mapping. Ports identify transport endpoints; read the external and mapped ranges together. No effective translation or reachability is calculated.", choices("1-to-1", "m-to-n")),
+    "srcintf-filter": field("Limits the interfaces on which this virtual IP applies. It is an interface filter, not a list of allowed source addresses or an independent allow rule.", values => values.length > 0 && values.every(v => v.length > 0 && v.length <= 79), true),
+  } },
   "router prefix-list rule": { category: "Routing", reference: "fortiPrefix", entry: true, fields: {
     action: field("Accepts (permit) or rejects (deny) a matching route prefix in this filter. A prefix describes a network address range; this is not a firewall packet rule.", choices("permit", "deny")),
     prefix: field("The IPv4 network and mask tested by this route filter, or any network. ge and le refine prefix lengths; attachment and rule order still matter. No accepted routes are calculated.", values => values.length === 1 && values[0] === "any" || values.length === 2 && ipv4(values[0]) && mask(values[1])),
@@ -91,6 +106,8 @@ export const fortiosSections: Record<string, Section> = {
     "route-map-out": field("Names the outbound IPv4 route policy for this neighbour. This does not show which routes the peer received.", values => one(values) && values[0].length <= 35),
   } },
   "vpn ipsec phase1-interface": { category: "VPN", reference: "fortiPhase1", entry: true, fields: {
+    "passive-mode": field("When enabled, this static IPsec tunnel responds to peer initiation rather than starting the tunnel itself. Disabled does not prove negotiation succeeds; peer settings still matter.", toggle),
+    "fragmentation-mtu": field("Size limit in bytes for IKE negotiation fragmentation. IKE negotiates VPN protection; this is not the application's packet size or the physical interface MTU.", integer(500, 16000)),
     keylife: field("Phase 1 key lifetime in seconds. Phase 1 establishes the protected negotiation relationship; this is separate from the data-protection keys in phase 2.", integer(120, 172800)),
     "ike-version": field("Selects IKEv1 or IKEv2, the protocol peers use to negotiate VPN protection. Matching versions alone do not establish a tunnel or validate its security.", choices("1", "2")),
     dpd: field("Dead Peer Detection checks the VPN peer: disable turns it off; on-idle checks during idle periods; on-demand checks when sent traffic gets no peer reply. No peer was tested here.", choices("disable", "on-idle", "on-demand")),
@@ -228,6 +245,14 @@ const prefixListCheck = (m: RegExpMatchArray) => {
     (ge === undefined || le === undefined || ge <= le);
 };
 export const documentedCiscoRules: CiscoDefinition[] = [
+  { pattern: /^switchport port-security$/, context: /^interface /, switchOnly: true, category: "Switching", reference: "ciscoPortSecurity", explanation: "Enables source-MAC limits on this switch port. A MAC address identifies a network interface; this is not user authentication or proof of enforcement." },
+  { pattern: /^switchport port-security aging time (\d+)$/, context: /^interface /, switchOnly: true, category: "Switching", reference: "ciscoPortSecurity", check: m => integer(0, 1440)([m[1]]), explanation: "Secure-address aging time in minutes; zero disables aging. The aging type controls removal timing. This is not an IP packet hop limit." },
+  { pattern: /^switchport port-security aging type (?:absolute|inactivity)$/, context: /^interface /, switchOnly: true, category: "Switching", reference: "ciscoPortSecurity", explanation: "absolute expires eligible secure addresses after the timer; inactivity waits for that much idle time. No learned addresses are inspected." },
+  { pattern: /^(?:no )?switchport port-security aging static$/, context: /^interface /, switchOnly: true, category: "Switching", reference: "ciscoPortSecurity", explanation: "Includes manually configured secure MAC addresses in aging; the no form excludes them. Check the aging timer and type separately." },
+  { pattern: /^switchport port-security mac-address sticky$/, context: /^interface /, switchOnly: true, category: "Switching", reference: "ciscoPortSecurity", explanation: "Keeps learned secure MAC addresses in running configuration. Persistence after restart requires saving configuration; no connected device is authenticated here." },
+  { pattern: /^switchport port-security violation (?:protect|restrict|shutdown)$/, context: /^interface /, switchOnly: true, category: "Switching", reference: "ciscoPortSecurity", explanation: "protect drops offending traffic; restrict also reports violations; shutdown error-disables the port. This selects a response, not evidence a violation occurred." },
+  { pattern: /^lifetime (\d+)$/, context: /^crypto ikev2 profile \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", check: m => integer(60, 86400)([m[1]]), explanation: "Lifetime in seconds for this IKEv2 security association, the agreed state protecting peer negotiation. It is separate from IPsec data-key lifetime and does not show remaining live time." },
+  { pattern: /^pki trustpoint [A-Za-z0-9_.:-]+(?: sign| verify)?$/, context: /^crypto ikev2 profile \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "References certificate trust settings: sign for local signing, verify for peer verification, or both when omitted. A trustpoint reference does not prove a certificate is valid or a peer authenticated." },
   { pattern: /^ip prefix-list [A-Za-z0-9_.:-]+(?: seq (\d+))? (?:permit|deny) (\S+)\/(\d+)(?: ge (\d+))?(?: le (\d+))?$/, context: /^Global$/, category: "Routing", reference: "ciscoPrefix", check: prefixListCheck, explanation: "Defines an IPv4 route-prefix filter entry. Without ge/le it matches an exact network length; ge sets a lower length and le an upper length. Sequence orders entries. This declaration alone does not attach the filter or allow/block packets." },
   { pattern: routeMapContext, context: routeMapContext, category: "Routing", reference: "ciscoRoutePolicy", explanation: "Opens a named routing-policy entry; its sequence controls order. permit/deny affects the feature using this map. In policy-based routing, deny falls back to normal routing, not a firewall drop. No attachment or result is inferred." },
   { pattern: /^match ip address prefix-list [A-Za-z0-9_.:-]+(?: [A-Za-z0-9_.:-]+)*$/, context: routeMapContext, category: "Routing", reference: "ciscoRouteMatch", explanation: "Tests route destination prefixes against the named prefix lists. This is route-information matching, not an application packet filter; inspect all map entries and where the map is applied." },
@@ -283,6 +308,8 @@ export const documentedCiscoRules: CiscoDefinition[] = [
 ];
 
 export function documentedCiscoRule(text: string, context: string, dialect: Dialect, selection?: Selection): DocumentedRule | null | undefined {
+  // Reserve unsupported variants so generic switch/VPN rules cannot imply verified coverage.
+  if (/^(?:no )?switchport port-security\b/.test(text) && !documentedCiscoRules.some(rule => rule.reference === "ciscoPortSecurity" && rule.pattern.test(text))) return null;
   // DHCP network syntax overlaps routing protocols, so it is claimed only inside its pool.
   const found = documentedCiscoRules.find(rule => rule.pattern.test(text) && (!/^network /.test(text) || context.startsWith("ip dhcp pool ")));
   if (!found) return /^(?:no )?(?:channel-protocol|lacp rate|switchport nonegotiate|spanning-tree guard|zone-member security|log-adjacency-changes|auto-cost reference-bandwidth|set ikev2-profile|tunnel protection ipsec profile)\b/.test(text) || /^crypto ikev2 proposal /.test(context) && /^(?:encryption|integrity|group)\b/.test(text) || /^ip ospf (?:cost|hello-interval|dead-interval|priority)\b/.test(text) || context.startsWith("ip dhcp pool ") && /^(?:network|bootfile|next-server|netbios-name-server|netbios-node-type|utilization|import)\b/.test(text) || /^(?:no )?service dhcp\b/.test(text) ? null : undefined;

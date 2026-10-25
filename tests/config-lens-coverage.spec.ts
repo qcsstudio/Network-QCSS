@@ -101,7 +101,7 @@ for (const width of [1440, 320]) test(`documented command coverage and private e
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download reviewed text" }).click();
   const report = await readFile((await (await download).path())!, "utf8");
-  expect(report).toContain("QCS Config Lens 1.5.0");
+  expect(report).toContain("QCS Config Lens 1.6.0");
   expect(report).toContain("Vendor reference:");
   expect(report).toContain("system dhcp server ip-range");
   expect(report).not.toContain("CoverageSecretCanary");

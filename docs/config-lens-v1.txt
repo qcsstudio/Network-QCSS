@@ -1,5 +1,62 @@
 QCS CONFIG LENS - VERSION 1
 
+Version 1.6.0 switching/firewall/VPN expansion: 26 October 2026 IST
+----------------------------------------------------------------
+Adds eight exact Cisco patterns: port security enable, aging time/type/static,
+sticky learning, violation response, IKEv2 profile lifetime and certificate
+trustpoint roles. The six switch patterns are scoped to Cisco Switch IOS XE
+16/17; the two IKEv2 patterns are Router IOS XE 16/17 only. Unsupported syntax,
+other dialects, unknown trains and mismatched export versions remain Needs review.
+
+Adds thirteen FortiOS 7.2/7.4/7.6 fields: seven software-switch/mirroring settings,
+four IPv4 VIP controls, and passive-mode/fragmentation-mtu in phase1-interface.
+Exact table, edit context, value, operation and product checks are retained.
+SPAN is explained as traffic copying, not spanning tree. Disabled nat-source-vip
+does not imply no NAT. IKE fragmentation is not application/interface MTU.
+No effective packet outcome, active VPN or valid certificate is inferred.
+
+Primary references checked this turn:
+- Catalyst 9200 IOS XE 17.15 and 16.12 Security command references:
+  https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9200/software/release/17-15/command_reference/b_1715_9200_cr/security_commands.html
+  https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9200/software/release/16-12/command_reference/b_1612_9200_cr/security_commands.html
+- IOS XE 17.x and 16.12 IKEv2 guides, including trustpoint sign/verify and lifetime:
+  https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/sec-vpn/b-security-vpn/m_sec-cfg-ikev2-flex.html
+  https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/sec_conn_ike2vpn/configuration/xe-16-12/sec-flex-vpn-xe-16-12-book/sec-cfg-ikev2-flex.html
+- IKEv2 profile lifetime command reference verifies 60..86400 seconds:
+  https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/security/d1/sec-d1-cr-book/sec-cr-k1.html
+- FortiOS 7.2.11, 7.4.9 and 7.6.4 were fetched separately with matching titles:
+  /cli-reference/103147613/config-system-switch-interface
+  /cli-reference/939799654/config-firewall-vip
+  /cli-reference/305883427/config-vpn-ipsec-phase1-interface
+  under https://docs.fortinet.com/document/fortigate/<version>.
+  Passive behavior cross-checked in each train's administration guide 790613.
+  Local research evidence: test-results/config-lens-v12-sources/v16-*.
+
+Initial verification: 133 automated tests, scoped TypeScript and scoped ESLint
+passed. Includes all fields, wrong context/dialect/version/operation/value,
+masking, complete accounting, worker, references, categories and large inputs.
+No paid API, database access, device execution or social modification is added.
+This is syntax-family coverage, not an exhaustive device/patch compatibility
+claim.
+
+Pre-release verification: isolated HEAD plus only scoped Config Lens files built
+all 107 pages with dummy loopback database credentials. No live database access.
+The 19 existing browser workflows passed. Two new cases initially used an
+ambiguous search (aging time also matched aging timer in another explanation);
+the selector now uses the full command and both reruns passed. No application
+behavior was weakened. All 21 workflows therefore pass with the final tests.
+Evidence: test-results/config-lens-v16-preview (19 existing passes; original
+selector failures retained), test-results/config-lens-v16-security-final (2/2).
+Actual desktop Cisco and 320px FortiGate screenshots were inspected. Accessibility,
+layout, versioned links, unknowns, masks, exports, categories, diagrams, 12,155-line
+FortiGate and 80,003-line Cisco cases passed; no analysis-time API/mutation,
+analytics, paid-provider, vendor-document or canary transmission was observed
+in the new workflows. Counts are 60 cited Cisco patterns and 150 FortiOS fields
+across 23 exact sections. There was no network-device/emulator runtime test.
+All 26 unrelated tracked modifications match their pre-task hashes.
+Isolated preview: http://127.0.0.1:3064/network-tools/network-configuration-explainer
+Production verification will be recorded only after the exact release is live.
+
 Public route: /network-tools/network-configuration-explainer
 Admin route: /admin/config-lens
 
@@ -745,6 +802,31 @@ build by SHA256; all 26 unrelated tracked modifications retain original hashes.
 Preview: http://127.0.0.1:3063/network-tools/network-configuration-explainer
 Evidence: test-results/config-lens-v15-preview (.last-run.json and screenshots).
 Production status is not inferred from these local checks.
+
+Version 1.5.0 production verification: 26 October 2026 IST
+----------------------------------------------------------
+Scoped commit 3c6d80abc7be7720f3ee8f2952c02c6866ef61f6 is deployed and READY.
+Deployment dpl_5vK4WJcfes3QuibNWTosvXuQ5AYM has the exact commit SHA,
+production target and www.qcsstudio.com/qcsstudio.com aliases, no alias error.
+Deployment: https://network-efrsi7rs5-qcsstudios.vercel.app
+Live: https://www.qcsstudio.com/network-tools/network-configuration-explainer
+
+All 14 read-only production browser workflows passed in 2.2 minutes. They
+verified the new route-policy explanations across six trains and Catalyst,
+correct vendor links, deliberate Needs review cases, 1.5.0 exports, all eight
+sample profiles, local worker, security headers, categories, reverse references,
+diagrams, desktop/mobile accessibility and layout, and complete 12,155-line
+FortiGate / 80,003-line Cisco masked exports with 20,000 interfaces.
+Actual new live desktop and mobile explanation screenshots were inspected.
+No analysis-time API/mutation, analytics, paid-provider call, vendor-document
+fetch or synthetic secret-canary transmission was observed.
+
+Evidence: test-results/config-lens-production-3c6d80a, including passing
+.last-run.json, public headers and actual screenshots. This is synthetic
+parser/browser QA, not hardware/emulator runtime or universal syntax/security
+validation. No production database or authenticated admin update was invoked.
+No social post, caption, schedule, ownership or queue was changed.
+This local post-deployment receipt is separate from the production commit.
 
 Version 1.4.0: release-specific routing, firewall and VPN coverage
 ---------------------------------------------------------------

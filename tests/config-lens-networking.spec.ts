@@ -62,7 +62,7 @@ for (const width of [1440, 320]) test(`routing, switching, firewall and VPN stay
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download reviewed text" }).click();
   const report = await readFile((await (await download).path())!, "utf8");
-  expect(report).toContain("QCS Config Lens 1.5.0");
+  expect(report).toContain("QCS Config Lens 1.6.0");
   expect(report).not.toContain("NetworkingSecretCanary");
   expect(report).toContain("not a TCP/UDP port");
   await page.getByRole("button", { name: "Use pasted text", exact: true }).click();

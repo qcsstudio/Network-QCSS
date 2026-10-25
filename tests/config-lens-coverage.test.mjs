@@ -33,7 +33,7 @@ test("FortiOS nested DHCP, services, SD-WAN, logs and HA retain exact scope and 
   assert.match(reportText(result), /docs.fortinet.com/);
 });
 
-const candidates = ["enable", "local", "specify", "192.0.2.1", "255.255.255.0", "192.0.2.1 255.255.255.0", "reserved", "86400", "300", "1", "cleartext", "auto", "failover", "custom", "60", "ping", "default", "warning", "02:00:00:00:00:01", "port1", "active", "fast", "operational", "on-demand", "seconds", "both", "data-only", "permit"];
+const candidates = ["enable", "local", "specify", "192.0.2.1", "255.255.255.0", "192.0.2.1 255.255.255.0", "reserved", "86400", "300", "1", "cleartext", "auto", "failover", "custom", "60", "ping", "default", "warning", "02:00:00:00:00:01", "port1", "active", "fast", "operational", "on-demand", "seconds", "both", "data-only", "permit", "explicit", "switch", "1-to-1", "1200"];
 for (const [section, def] of Object.entries(fortiosSections)) {
   test(`${section}: all documented fields enforce product, train, entry, operation and complete values`, () => {
     for (const [key, field] of Object.entries(def.fields)) {

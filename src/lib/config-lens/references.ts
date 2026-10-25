@@ -1,5 +1,13 @@
 export const RULES_REVIEWED = "2026-10-26";
 export const commandReferences = {
+  ciscoPortSecurity: { title: "Catalyst 9200 IOS XE 17.15: port security", url: "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9200/software/release/17-15/command_reference/b_1715_9200_cr/security_commands.html" },
+  ciscoPortSecurity16: { title: "Catalyst 9200 IOS XE 16.12: port security", url: "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9200/software/release/16-12/command_reference/b_1612_9200_cr/security_commands.html" },
+  fortiSoftSwitch: { title: "FortiOS 7.4.9: software switch and mirroring", url: "https://docs.fortinet.com/document/fortigate/7.4.9/cli-reference/103147613/config-system-switch-interface" },
+  fortiSoftSwitch72: { title: "FortiOS 7.2.11: software switch and mirroring", url: "https://docs.fortinet.com/document/fortigate/7.2.11/cli-reference/103147613/config-system-switch-interface" },
+  fortiSoftSwitch76: { title: "FortiOS 7.6.4: software switch and mirroring", url: "https://docs.fortinet.com/document/fortigate/7.6.4/cli-reference/103147613/config-system-switch-interface" },
+  fortiVip: { title: "FortiOS 7.4.9: virtual IP controls", url: "https://docs.fortinet.com/document/fortigate/7.4.9/cli-reference/939799654/config-firewall-vip" },
+  fortiVip72: { title: "FortiOS 7.2.11: virtual IP controls", url: "https://docs.fortinet.com/document/fortigate/7.2.11/cli-reference/939799654/config-firewall-vip" },
+  fortiVip76: { title: "FortiOS 7.6.4: virtual IP controls", url: "https://docs.fortinet.com/document/fortigate/7.6.4/cli-reference/939799654/config-firewall-vip" },
   ciscoPrefix: { title: "Cisco IOS XE 17.13: IPv4 prefix lists", url: "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9600/software/release/17-13/command_reference/b_1713_9600_cr/ip_routing_commands.html" },
   ciscoRoutePolicy: { title: "Cisco IOS XE 17.x: route-map conditions and actions", url: "https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ip-routing/b-ip-routing/m_iri-ip-prot-indep-0.html" },
   ciscoRoutePolicy15: { title: "Cisco IOS 15M&T: route-map conditions and actions", url: "https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/iproute_pi/configuration/15-mt/iri-15-mt-book/iri-ip-prot-indep.html" },
@@ -61,6 +69,9 @@ export type CommandReference = keyof typeof commandReferences;
 
 // Only families checked against separate release documentation are shared.
 const additionalTrains: Partial<Record<CommandReference, Record<string, CommandReference>>> = {
+  ciscoPortSecurity: { "IOS XE 16.x": "ciscoPortSecurity16" },
+  fortiSoftSwitch: { "FortiOS 7.2": "fortiSoftSwitch72", "FortiOS 7.6": "fortiSoftSwitch76" },
+  fortiVip: { "FortiOS 7.2": "fortiVip72", "FortiOS 7.6": "fortiVip76" },
   ciscoRoutePolicy: { "IOS 15.x": "ciscoRoutePolicy15", "IOS XE 16.x": "ciscoRoutePolicy16" },
   ciscoRouteMatch: { "IOS 15.x": "ciscoRoutePolicy15", "IOS XE 16.x": "ciscoRouteMatch16" },
   fortiPrefix: { "FortiOS 7.2": "fortiPrefix72", "FortiOS 7.6": "fortiPrefix76" },
