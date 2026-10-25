@@ -146,7 +146,7 @@ function LocalConfigLens() {
         <label>Exact version / build (optional)<input maxLength={60} autoComplete="off" value={selection.build} onChange={e => changeSelection({ build: e.target.value })} placeholder="For example 17.9.4 or 7.4.7" /></label>
         <label>Export type<select value={selection.configType} onChange={e => changeSelection({ configType: e.target.value as Selection["configType"] })}><option value="unknown">Not sure</option><option value="running">Running configuration</option><option value="saved">Saved / startup configuration</option><option value="candidate">Candidate / proposed configuration</option></select></label>
       </div>
-      <aside className={styles.scope}><ShieldCheck size={22} aria-hidden="true" /><div><strong>{profile.os}: supported scope</strong><p>{profile.scope}</p><a href={profile.source} target="_blank" rel="noreferrer">Official product documentation</a><span>Catalog reviewed {CATALOG_REVIEWED}. Listed trains are not upgrade recommendations.</span></div></aside>
+      <aside className={styles.scope}><ShieldCheck size={22} aria-hidden="true" /><div><strong>{profile.os}: supported scope</strong><p>{profile.scope}</p><a href={profile.source} target="_blank" rel="noreferrer">Official product documentation</a><span>Catalog reviewed {CATALOG_REVIEWED}. Coverage is partial. References identify the documentation version; model and maintenance-release differences still need review. Listed trains are not upgrade recommendations.</span></div></aside>
     </section>
     <section className={styles.editorSection} aria-labelledby="lens-import">
       <div className={styles.sectionTitle}><span className={styles.step}>2</span><h2 id="lens-import">Add a text configuration</h2></div>

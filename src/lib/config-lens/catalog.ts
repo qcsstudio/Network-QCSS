@@ -1,5 +1,5 @@
-export const LENS_VERSION = "1.1.0";
-export const CATALOG_REVIEWED = "2026-10-24";
+export const LENS_VERSION = "1.2.0";
+export const CATALOG_REVIEWED = "2026-10-26";
 export const LENS_PATH = "/network-tools/network-configuration-explainer";
 export type Vendor = "cisco" | "fortinet";
 export type Dialect = "ios" | "nxos" | "asa" | "ftd" | "fortios" | "fortiweb" | "fortiswitch";

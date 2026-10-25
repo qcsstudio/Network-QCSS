@@ -3,7 +3,7 @@ import test from "node:test";
 import { analyzeConfiguration, reportText } from "../src/lib/config-lens/engine.ts";
 import { documentedFortiRule, fortiosSections, documentedCiscoRules } from "../src/lib/config-lens/documented-rules.ts";
 import { fortiRule, ciscoRule } from "../src/lib/config-lens/rules.ts";
-import { commandReferences } from "../src/lib/config-lens/references.ts";
+import { commandReferences, referenceForTrain } from "../src/lib/config-lens/references.ts";
 import { ciscoServices, fortiServices } from "./fixtures/config-lens-coverage.ts";
 const cisco = { profileId: "cisco-switch", version: "IOS XE 17.x", build: "", configType: "running" };
 const forti = { profileId: "fortigate", version: "FortiOS 7.4", build: "", configType: "running" };
@@ -33,16 +33,16 @@ test("FortiOS nested DHCP, services, SD-WAN, logs and HA retain exact scope and 
   assert.match(reportText(result), /docs.fortinet.com/);
 });
 
-const candidates = ["enable", "local", "specify", "192.0.2.1", "86400", "300", "1", "cleartext", "auto", "failover", "custom", "60", "ping", "default", "warning", "02:00:00:00:00:01", "port1"];
+const candidates = ["enable", "local", "specify", "192.0.2.1", "255.255.255.0", "192.0.2.1 255.255.255.0", "reserved", "86400", "300", "1", "cleartext", "auto", "failover", "custom", "60", "ping", "default", "warning", "02:00:00:00:00:01", "port1"];
 for (const [section, def] of Object.entries(fortiosSections)) {
   test(`${section}: all documented fields enforce product, train, entry, operation and complete values`, () => {
     for (const [key, field] of Object.entries(def.fields)) {
-      const value = candidates.find(v => field.check([v]));
+      const value = candidates.find(v => field.check(v.split(" ")));
       assert.ok(value, `Missing positive fixture for ${section}/${key}`);
       const good = command(def.entry, value);
       assert.equal(documentedFortiRule(section, key, "fortios", good)?.reference, def.reference);
       for (const dialect of ["fortiweb", "fortiswitch", "ios", "nxos"]) assert.equal(documentedFortiRule(section, key, dialect, good), null);
-      for (const version of ["FortiOS 7.2", "FortiOS 7.6", "Other / unknown"]) assert.equal(fortiRule(section, key, "fortios", { ...good, version }), undefined);
+      for (const version of ["FortiOS 7.2", "FortiOS 7.6", "Other / unknown"]) assert.equal(fortiRule(section, key, "fortios", { ...good, version })?.reference, referenceForTrain(def.reference, version));
       assert.equal(fortiRule(section, key, "fortios", { ...good, entry: !def.entry }), undefined);
       assert.equal(fortiRule(section, key, "fortios", { ...good, operation: "invented" }), undefined);
       assert.equal(fortiRule(section, key, "fortios", command(def.entry, "", "unset"))?.reference, def.reference);
@@ -71,7 +71,7 @@ test("invalid and unsupported values remain Needs review, never falling through 
 test("Cisco exact grammar and context prevent misleading DHCP and switch interpretations", () => {
   for (const [text, context] of [["network 192.0.2.0 255.255.255.0", "Global"], ["dns-server 192.0.2.53", "interface Gi0/0"], ["default-router 192.0.2.1", "router ospf 1"], ["ip address 192.0.2.1 255.255.255.0", "Global"], ["spanning-tree portfast", "Global"], ["ip name-server 999.0.2.1", "Global"], ["dns-server 192.0.2.1 trailing", "ip dhcp pool OFFICE"]]) assert.equal(ciscoRule(text, context, "ios", cisco), undefined, text);
   for (const dialect of ["asa", "ftd", "nxos"]) assert.equal(ciscoRule("lease 2", "ip dhcp pool OFFICE", dialect, cisco), undefined);
-  for (const version of ["IOS 15.x", "IOS XE 16.x", "Other / unknown"]) assert.equal(ciscoRule("lease 2", "ip dhcp pool OFFICE", "ios", { ...cisco, version }), undefined);
+  for (const version of ["IOS 15.x", "IOS XE 16.x", "Other / unknown"]) assert.equal(ciscoRule("lease 2", "ip dhcp pool OFFICE", "ios", { ...cisco, version })?.reference, referenceForTrain("ciscoDhcp", version));
   assert.equal(ciscoRule("spanning-tree portfast", "interface Gi0/0", "ios", { ...cisco, profileId: "cisco-router" }), undefined);
   assert.match(ciscoRule("network 192.0.2.0 0.0.0.255 area 0", "router ospf 1", "ios", cisco).explanation, /routing-process/);
 });
