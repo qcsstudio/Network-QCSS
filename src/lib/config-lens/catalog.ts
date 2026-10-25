@@ -1,4 +1,4 @@
-export const LENS_VERSION = "1.0.0";
+export const LENS_VERSION = "1.1.0";
 export const CATALOG_REVIEWED = "2026-10-24";
 export const LENS_PATH = "/network-tools/network-configuration-explainer";
 export type Vendor = "cisco" | "fortinet";
@@ -29,5 +29,11 @@ export const glossary = [
   ["VPN", "A mechanism for carrying traffic between peers, often with encryption. Configuration alone cannot prove a tunnel is established."],
   ["VRF / VDOM", "Separate routing or virtual firewall contexts. Identical names or addresses in different contexts need not refer to the same thing."],
   ["WAF", "A web application firewall examines application traffic. A referenced protection profile does not prove every attack is blocked."],
-  ["Running / candidate", "Running settings are intended to be active. Candidate settings are proposed changes that may not have been applied."]
+  ["Running / candidate", "Running settings are intended to be active. Candidate settings are proposed changes that may not have been applied."],
+  ["DHCP / lease", "DHCP offers a device its IP settings. A lease is how long it may borrow an address; configuration is not a list of current borrowers."],
+  ["DNS", "A service that looks up addresses for names. A device's own DNS settings are different from DNS settings it offers to clients."],
+  ["NTP", "Network Time Protocol synchronizes clocks. Being configured to use a time server does not prove the clock is synchronized."],
+  ["SD-WAN / health check", "SD-WAN selects network paths using configured rules and measurements. A health check tests a target, not every application on that path."],
+  ["HA / FGCP", "High availability groups devices for redundancy. FGCP is Fortinet's cluster protocol. Settings alone cannot show whether a peer is healthy or failover will succeed."],
+  ["BPDU", "A spanning-tree control message exchanged by switches. BPDU guard and BPDU filtering have different effects; neither is a general firewall rule."]
 ] as const;

@@ -156,7 +156,7 @@ test("very long unknown and secret lines are preserved or fully masked, never cl
   assert.ok(reportText(r).includes("TailMarker"));
 });
 test("forbidden server and storage dependencies are absent from browser analysis", () => {
-  for (const file of ["src/lib/config-lens/engine.ts", "src/lib/config-lens/masking.ts", "src/lib/config-lens/fortinet-syntax.ts", "src/lib/config-lens/rules.ts", "src/lib/config-lens/categories.ts", "src/lib/config-lens/results.ts", "src/components/config-lens.tsx", "src/components/config-lens-categories.tsx", "src/components/config-lens.worker.ts"]) {
+  for (const file of ["src/lib/config-lens/engine.ts", "src/lib/config-lens/masking.ts", "src/lib/config-lens/fortinet-syntax.ts", "src/lib/config-lens/rules.ts", "src/lib/config-lens/documented-rules.ts", "src/lib/config-lens/references.ts", "src/lib/config-lens/categories.ts", "src/lib/config-lens/results.ts", "src/components/config-lens.tsx", "src/components/config-lens-reference.tsx", "src/components/config-lens-categories.tsx", "src/components/config-lens.worker.ts"]) {
     const source = readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
     assert.doesNotMatch(source, /\b(?:fetch|XMLHttpRequest|WebSocket|sendBeacon|localStorage|sessionStorage|indexedDB|trackBrowserEvent|openai|prisma)\b/, file);
     assert.doesNotMatch(source, /dangerouslySetInnerHTML|\beval\s*\(/, file);

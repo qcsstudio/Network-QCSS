@@ -302,3 +302,145 @@ synthetic regression tests are not proof of complete vendor-command support.
 Admin updater code is unchanged, with auth/feed unit checks passing; the admin
 browser workflow was not rerun. No commit, push, deployment or social change was
 performed. The isolated port-3058 preview remains running for user review.
+
+Production release verification - 2026-10-25 18:31 UTC
+----------------------------------------------------
+This supersedes the local-only checkpoint above. Only 17 Config Lens source, test
+and documentation files were committed and pushed at the user's request. Unrelated
+policy, content, consent and analytics work remained unstaged.
+Commit: 252490aca77102cd411062018ebfd51a719cb7f8
+Vercel project: network-qcs / prj_NDXJxUIEmhZtBwa7oAfVrA0g5UeU
+Deployment: dpl_3rBV7E9T9sF9wY2kRnFMfuJzwnZc
+Deployment URL: https://network-rkm7f4f86-qcsstudios.vercel.app
+Production: https://www.qcsstudio.com/network-tools/network-configuration-explainer
+Vercel confirmed READY, production target, exact commit and both QCS aliases with
+no alias error. Remote compilation and TypeScript passed.
+
+All 59 local checks passed again before the push. All 15 implementation and prior
+test files matched the built/browser-tested preview. Four explicit read-only live
+workflows in tests/config-lens.production.spec.ts passed against the public domain:
+- HTTP 200, private worker CSP, no-referrer and all eight device profiles.
+- Category, VDOM and unknown-statement filters; full section access; reverse
+  references; source-filter reset; masked export and secret canaries.
+- A 12,155-line synthetic Fortinet full backup with complete masked download.
+- An 80,003-line synthetic Cisco file with 20,000 interfaces, bounded rendering,
+  correct final-object lookup and complete masked download.
+There were no observed API calls, state-changing requests, configuration uploads,
+paid-model endpoints, request secret canaries or browser page errors. Isolated test
+profiles declined optional tracking before load, avoiding the separate consent-write
+endpoint. No production database or social operations were attempted.
+
+Category layout checks passed at 1440/768/390/320px: no horizontal overflow or scoped
+axe violations. Desktop/mobile screenshots were inspected. A separate read-only
+normal-viewport diagram check passed at 1440/320px to verify header clearance;
+long element screenshots alone also capture sticky-page chrome.
+Evidence directories (local, excluded from Git):
+test-results/config-lens-production-252490a
+test-results/config-lens-production-252490a-viewport-final
+Both .last-run.json files report passed. The Vercel error/fatal log query for this
+route and deployment returned no matching logs in the latest 15-minute window;
+static/client-side execution need not generate function logs. This is not a full
+website audit, verification of the user's actual export, or a device-runtime test.
+
+No paid API, hosting upgrade, external service, cron, social post or schedule was
+changed. Existing local previews and user analyses were retained. This receipt is
+local post-deployment documentation, not a second deployment.
+The first normal-viewport screenshot caught a smooth-scroll transition. The final
+capture explicitly used instant scrolling and asserted the diagram's settled
+130px top offset before taking screenshots. The temporary test source was removed.
+Chrome still showed a transient repaint artifact after viewport resizing. A final
+fresh 320px browser context with reduced motion and settled paint passed, with
+the root's Source L17 button asserted in view. The complete root and reference
+labels were visually inspected without overlap. Evidence is saved separately in
+test-results/config-lens-production-252490a-mobile-settled; its temporary source
+was removed. No production styling or feature code changed during these checks.
+
+Documented command expansion - 26 October 2026 (local only)
+---------------------------------------------------------
+Engine revision 1.1.0 adds or refines 17 Cisco command patterns and 51 FortiOS
+section/field pairs across 12 exact contexts. This is a bounded expansion, not
+universal device support or a claim that every unknown statement is resolved.
+The actual customer export has not been supplied for this work. Tests use only
+synthetic configurations and cannot establish real device behavior.
+
+Scope: Cisco IOS XE 17.x DHCP pools/exclusions, device DNS, interface OSPF cost,
+timers/priority, and Catalyst PortFast/BPDU guard/filter. FortiOS 7.4 coverage:
+selected firewall policy options, DHCP servers/ranges/reservations, system DNS,
+NTP/client-server distinction, SD-WAN members/health checks, syslog and FGCP session
+pickup. The new reference-backed rules do not spill into IOS 15/16, NX-OS, ASA,
+FTD, FortiWeb, FortiSwitchOS, FortiOS 7.2/7.6 or unknown trains. No feature support
+for every model/build within a train is implied. Older conservative baseline
+rules remain separate and are not retroactively labelled as newly reviewed.
+
+Research used live primary-vendor documentation, including indexed document
+contents where direct retrieval was unavailable. The SD-WAN CLI page returned
+403 on direct retrieval; no successful retrieval of that page is claimed. Member
+explanations instead cite the versioned members/zones guide and health-check
+explanations cite the versioned link-health guide. Unverified special values and
+additional modes remain unsupported. Exact URLs and review date are bundled in
+src/lib/config-lens/references.ts, rendered next to matching explanations and
+included in the downloaded report. Citation links never carry configuration text
+and suppress referrers; vendor pages are not fetched during analysis.
+
+Key source groups:
+- Cisco IOS XE 17.x IP Addressing Configuration Guide: DHCP server and DNS.
+- Cisco IOS XE 17.x IP Routing Configuration Guide: OSPF interfaces.
+- Catalyst 9200 IOS XE 17.15 optional spanning-tree features.
+- FortiOS 7.4.9 DHCP server CLI reference and logging administration guide.
+- FortiOS 7.4.7 DNS commands, firewall policy and FGCP session pickup.
+- FortiOS 7.4.4 system-time guide; 7.4.5 SD-WAN members/zones.
+- FortiOS 7.4.9 link-health monitor guide.
+
+Safety and context:
+- Exact section, product, selected train and supported operation are required.
+- Explicit export-header/train mismatch withholds the new scoped explanations.
+- Known fields with unsupported values, nested contexts or operations cannot
+  fall back to a generic rule. Unknown syntax remains visible as Needs review.
+- A previously overbroad system-field table no longer explains DNS fields as HA
+  or HA fields as DNS. Cisco interface statements require an interface context.
+- DHCP network statements are not described as routing advertisements; DNS
+  offered to clients differs from the device's own DNS. Seconds, minutes and
+  milliseconds are stated explicitly for supported timers.
+- unset removes an explicit setting without inventing its default. Supported
+  list mutations do not claim a computed final list.
+- No implicit defaults, effective traffic/security verdicts, live adjacency,
+  HA availability, path quality or licensing entitlement are inferred.
+- Source, category metadata and downloads continue to derive from masked input.
+  This is not an exhaustive configuration validator or hardware/runtime test.
+
+Implementation remains deterministic in the local browser worker. No paid API,
+remote model, configuration upload, persistence or database dependency was added.
+No production deployment, social writes, schedule changes or admin updater
+changes are included in this task. Unrelated work remains untouched.
+
+Preview is isolated at:
+C:/Users/rksankhyan/Documents/Codex/qcs-config-lens-coverage-20261026/app
+It contains HEAD plus only the scoped Config Lens implementation/tests, no live
+environment files, and uses a deliberately unreachable local test database.
+The initial Windows sandbox junction denial was resolved with approved local
+permissions; it was not a successful build until the subsequent build passed.
+
+Final verification for the exact current scoped implementation:
+- 79 automated checks passed, including all existing Config Lens/parser/worker
+  regressions, 20 coverage-specific tests and the privacy-navigation guard.
+- Scoped TypeScript, ESLint and isolated production webpack build passed.
+- 11 browser workflows passed against the final built localhost preview: the
+  nine existing public workflows plus new documented-command checks at 1440px
+  and 320px. Admin UI was not rerun; existing auth/feed unit checks passed.
+- New-reference views passed scoped axe and overflow checks. Actual desktop and
+  mobile screenshots show complete explanations, readable wrapped citations and
+  preserved Needs-review rows. Masked reports include their primary sources.
+- Browser tests covered synthetic 12,155-line Fortinet and 80,003-line Cisco
+  exports, 20,000 interfaces, long member lines, cancellation, invalid UTF-8,
+  masked exports, categories, scopes, diagram navigation and privacy isolation.
+- During new-command analysis no API calls, mutation requests, paid-provider
+  requests, analytics, secret canaries or automatic vendor-document fetches were
+  observed. Vendor citations open only on explicit link activation.
+- All 12 scoped source/test files matched the built preview by SHA256. The
+  documentation receipt is intentionally separate from those runtime files.
+Final evidence: preview/test-results/config-lens-coverage-verified
+(.last-run.json: passed, no failed tests). Prior passing evidence is retained in
+config-lens-coverage-final, before final code cleanup and focused screenshots.
+Local preview: http://127.0.0.1:3059/network-tools/network-configuration-explainer
+Background preview PID at completion: 36432. Earlier previews and the user's
+production analysis were not replaced. No commit, push or deployment was made.

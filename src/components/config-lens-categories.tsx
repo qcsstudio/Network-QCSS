@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, FileSearch, GitBranch, Layers3, Search, X } 
 import { categoryCatalog } from "@/lib/config-lens/categories";
 import { matchesStatement, type ResultsIndex, type StatementGroup } from "@/lib/config-lens/results";
 import styles from "./config-lens.module.css";
+import { ConfigLensReference } from "./config-lens-reference";
 
 const groupPageSize = 24;
 function Group({ group, onInspect, onObject }: { group: StatementGroup; onInspect: (group: StatementGroup) => void; onObject: (id: string) => void }) {
@@ -14,7 +15,7 @@ function Group({ group, onInspect, onObject }: { group: StatementGroup; onInspec
     <summary><span><strong>{group.entry || group.section}</strong><small>{group.entry ? group.section : categoryCatalog[group.category].label} / {group.scope}</small></span><span className={styles.groupCount}>{group.lines.length} statements{unknown > 0 && <span className={styles.reviewBadge}>{unknown} need review</span>}</span></summary>
     {open && <div className={styles.groupBody}>
       <div className={styles.toolbar}><button type="button" onClick={() => onInspect(group)}><FileSearch size={17} aria-hidden="true" />Open all statements</button>{group.entityId && <button type="button" onClick={() => onObject(group.entityId!)}><GitBranch size={17} aria-hidden="true" />View relationships</button>}</div>
-      {group.lines.slice(0, 10).map(line => <div key={line.line} className={styles.groupStatement}><div className={styles.lineMeta}><span>L{line.line}</span><span className={line.status === "unknown" ? styles.reviewBadge : styles.badge}>{line.status === "unknown" ? "Needs review" : line.status}</span></div><code>{line.text.length > 4096 ? "Long statement: open all statements to read the complete text." : line.text}</code><p>{line.explanation.length > 4096 ? "Open all statements for the complete explanation." : line.explanation}</p></div>)}
+      {group.lines.slice(0, 10).map(line => <div key={line.line} className={styles.groupStatement}><div className={styles.lineMeta}><span>L{line.line}</span><span className={line.status === "unknown" ? styles.reviewBadge : styles.badge}>{line.status === "unknown" ? "Needs review" : line.status}</span></div><code>{line.text.length > 4096 ? "Long statement: open all statements to read the complete text." : line.text}</code><p>{line.explanation.length > 4096 ? "Open all statements for the complete explanation." : line.explanation}</p><ConfigLensReference reference={line.reference} /></div>)}
       {group.lines.length > 10 && <p>{group.lines.length - 10} more statements in this group. <button type="button" onClick={() => onInspect(group)}>Open all {group.lines.length}</button></p>}
     </div>}
   </details>;

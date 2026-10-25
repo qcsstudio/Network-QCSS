@@ -1,6 +1,10 @@
 import type { Category } from "./categories";
+import type { Dialect, Selection } from "./catalog";
+import type { CommandReference } from "./references";
+import { documentedCiscoRule, documentedFortiRule, type FortiCommand } from "./documented-rules";
 export type { Category } from "./categories";
-export type Rule = { pattern: RegExp; category: Category; explanation: string; caution?: string };
+export type RuleMatch = { category: Category; explanation: string; reference?: CommandReference };
+export type Rule = RuleMatch & { pattern: RegExp; caution?: string };
 export const ciscoRules: Rule[] = [
   { pattern: /^(?:no )?shutdown$/, category: "Interfaces", explanation: "Controls whether this interface is administratively disabled. 'no shutdown' removes that administrative disable; it does not prove the link is up." },
   { pattern: /^ip address\s/, category: "Interfaces", explanation: "Assigns an IPv4 address and mask, or requests an address dynamically, on this interface. An address identifies the connection in its network." },
@@ -28,14 +32,18 @@ export const ciscoRules: Rule[] = [
   { pattern: /^security-level\s/, category: "Firewall", explanation: "Sets an ASA-style interface trust value. Effective access also depends on ACLs, same-security settings, routing and platform behavior." },
   { pattern: /^(?:crypto (?:map|ipsec|ikev1|ikev2|isakmp)|tunnel-group|tunnel (?:source|destination|mode)|group-policy)\b/, category: "VPN", explanation: "Declares VPN, cryptographic or tunnel settings. Peers must agree and the path must work; this configuration does not prove encryption is active or the tunnel is up." },
   { pattern: /^encapsulation dot1[qQ]\s/, category: "Switching", explanation: "Associates this subinterface with an 802.1Q VLAN tag. The connected port must carry the corresponding VLAN." },
-  { pattern: /^(?:ip helper-address|ip dhcp|dns-server|default-router)\s/, category: "Management", explanation: "Configures DHCP address-service or relay settings. Relay forwards requests; it does not prove a reachable DHCP server will answer." },
+  { pattern: /^ip helper-address\s/, category: "Network services", explanation: "Configures a destination for relayed broadcasts, including DHCP requests. This does not prove a reachable DHCP server will answer; forwarding depends on protocol settings." },
   { pattern: /^(?:hostname|version|boot system|feature|name|mtu|speed|duplex)\s/, category: "Management", explanation: "Sets an identity, software, feature or link property. A configuration declaration is not a live hardware or software inventory." },
   { pattern: /^(?:no )?(?:ip http|ip ssh|ssh|http|telnet|transport input|login|aaa|snmp-server|ntp|logging|service)\b/, category: "Management", explanation: "Controls a management, authentication, time or logging service. Exposure depends on bindings, policy and reachability; verify access before making changes." }
 ];
 
-export function ciscoRule(text: string, context: string): Rule | undefined {
+export function ciscoRule(text: string, context: string, dialect: Dialect = "ios", selection?: Selection): RuleMatch | undefined {
+  const documented = documentedCiscoRule(text, context, dialect, selection);
+  if (documented !== undefined) return documented || undefined;
   const found = ciscoRules.find(rule => rule.pattern.test(text));
   if (!found) return;
+  if (/^(?:(?:no )?shutdown|ip address|ipv6 address|(?:no )?switchport|channel-group|nameif|security-level|encapsulation dot1[qQ]|ip helper-address)\b/.test(text) && !/^interface /.test(context)) return;
+  if (/^ip helper-address\b/.test(text) && dialect !== "ios") return;
   if (/^network\s|^neighbor\s|^(?:no )?passive-interface\s/.test(text) && !/^router /.test(context)) return;
   if (/^(?:\d+\s+)?(?:permit|deny|remark)\s/.test(text) && !/access-list/.test(context)) return;
   if (/^(?:host|subnet|range|network-object|group-object|service-object|port-object|fqdn)\s/.test(text) && !/^object/.test(context)) return;
@@ -55,7 +63,18 @@ const fortiFields: FieldDefinition[] = [
   { section: /^server-policy (?:policy|server-pool|vserver|virtual-server|server-pool pserver-list)$/, fields: ["vserver", "server-pool", "web-protection-profile", "service", "protocol", "ip", "interface", "port", "status", "deployment-mode", "operation-mode", "http-service", "https-service", "ssl", "certificate", "health", "lb-algo", "server-balance", "type", "domain"], category: "Application firewall", explanation: "Sets a web-policy, virtual endpoint or backend-pool property. Operating mode changes forwarding behavior; a profile reference alone does not prove application protection or backend health." },
   { section: /^system (?:global|settings|dns|ntp|admin|snmp.*|ha|central-management)$/, fields: ["hostname", "opmode", "vdom-mode", "central-nat", "primary", "secondary", "ntpsync", "server", "syncinterval", "accprofile", "trusthost1", "trusthost2", "trusthost3", "admin-sport", "admin-ssh-port", "mode", "group-name", "hbdev", "session-pickup", "override", "priority", "type"], category: "Management", explanation: "Sets a system, management, DNS, clock or availability property. Defaults, permissions and live peer state must be verified against this OS version." }
 ];
-export function fortiRule(section: string, field: string, dialect: string) {
+const systemFields: Record<string, string[]> = {
+  "system global": ["hostname", "vdom-mode", "admin-sport", "admin-ssh-port"],
+  "system settings": ["opmode", "central-nat"],
+  "system dns": ["primary", "secondary"],
+  "system ntp": ["ntpsync", "type", "syncinterval"],
+  "system admin": ["accprofile", "trusthost1", "trusthost2", "trusthost3"],
+  "system ha": ["mode", "group-name", "hbdev", "session-pickup", "override", "priority"],
+  "system central-management": ["type"],
+};
+export function fortiRule(section: string, field: string, dialect: string, command?: FortiCommand): RuleMatch | undefined {
+  const documented = documentedFortiRule(section, field, dialect, command);
+  if (documented !== undefined) return documented || undefined;
   if (dialect !== "fortiweb" && section.startsWith("server-policy")) return;
   if (dialect !== "fortios" && /^(?:firewall|vpn|router)/.test(section)) return;
   if (dialect === "fortios" && section.startsWith("switch ")) return;
@@ -64,6 +83,8 @@ export function fortiRule(section: string, field: string, dialect: string) {
   }
   const rule = fortiFields.find(def => def.section.test(section) && def.fields.includes(field));
   if (!rule) return;
+  // Previously one combined field list incorrectly explained DNS fields as HA and vice versa.
+  if (Object.hasOwn(systemFields, section) && !systemFields[section].includes(field)) return;
   const detail = fortiFieldDetail(section, field);
   return detail ? { ...rule, explanation: detail } : rule;
 }

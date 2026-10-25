@@ -3,8 +3,9 @@ import { maskConfiguration } from "./masking";
 import { fortinetWords as words } from "./fortinet-syntax";
 import { ciscoRule, fortiRule, type Category } from "./rules";
 import { categoryCatalog, categoryOrder, classifyCategory } from "./categories";
+import { commandReferences, RULES_REVIEWED, type CommandReference } from "./references";
 
-export type Explanation = { line: number; text: string; context: string; category: Category; section: string; scope: string; blockLine: number; entry: string; entityId?: string; status: "explained" | "context" | "unknown" | "masked"; explanation: string };
+export type Explanation = { line: number; text: string; context: string; category: Category; section: string; scope: string; blockLine: number; entry: string; entityId?: string; status: "explained" | "context" | "unknown" | "masked"; explanation: string; reference?: CommandReference };
 export type Entity = { id: string; name: string; kind: string; scope: string; lines: number[]; settings: { key: string; value: string; line: number }[] };
 export type Relationship = { from: string; to?: string; target: string; kind: string; role?: string; line: number; scope: string };
 export type Finding = { level: "review" | "information"; title: string; explanation: string; lines: number[] };
@@ -70,13 +71,13 @@ export function analyzeConfiguration(input: string, selection: Selection, progre
   function relation(from: Entity, target: string, kind: string, line: number, role?: string) {
     relationships.push({ from: from.id, target, kind, role, line, scope: from.scope });
   }
-  function add(line: number, text: string, context: string, category: Category, status: Explanation["status"], explanation: string) {
+  function add(line: number, text: string, context: string, category: Category, status: Explanation["status"], explanation: string, reference?: CommandReference) {
     const fortinet = profile!.vendor === "fortinet";
     const section = fortinet ? currentSection() || "Global" : context;
     const frame = stack.at(-1);
     const owner = fortinet ? [...stack].reverse().find(f => f.entity)?.entity : current;
     const entry = fortinet ? frame?.type === "edit" ? frame.name : "" : current?.name || "";
-    explanations.push({ line, text, context, category: classifyCategory(profile!.vendor, text, section, category), section, scope: fortinet ? fortinetScope() : scope, blockLine: fortinet ? frame?.line || 0 : current?.lines[0] || ciscoBlockLine, entry, entityId: owner?.id, status, explanation });
+    explanations.push({ line, text, context, category: classifyCategory(profile!.vendor, text, section, category), section, scope: fortinet ? fortinetScope() : scope, blockLine: fortinet ? frame?.line || 0 : current?.lines[0] || ciscoBlockLine, entry, entityId: owner?.id, status, explanation, reference });
   }
   findings.push({ level: "information", title: "Configuration, not live state", explanation: "This is a read-only explanation of supplied statements. It does not test packets, infer physical cabling, verify security compliance, check current vulnerabilities or prove any link, route, policy or VPN works.", lines: [] });
   if (selection.configType !== "running") findings.push({ level: "review", title: "Not confirmed as running configuration", explanation: "Saved, candidate or unknown exports may differ from the device's active settings. Confirm the export type before relying on this report.", lines: [] });
@@ -84,6 +85,11 @@ export function analyzeConfiguration(input: string, selection: Selection, progre
   if (profile.dialect === "ftd") findings.push({ level: "review", title: "FTD diagnostic output is partial", explanation: profile.scope, lines: [] });
   if (profile.dialect === "fortiweb") findings.push({ level: "review", title: "WAF scope and operating mode", explanation: profile.scope, lines: [] });
   const fortiVersion = input.match(/^#config-version=[^\r\n]*?-(\d+\.\d+\.\d+)-/m)?.[1];
+  const fortiVersionMismatch = !!fortiVersion && !fortiVersion.startsWith(selection.version.match(/\d+\.\d+/)?.[0] || "unmatched");
+  const ciscoVersion = input.match(/^version (\d+)\./m)?.[1];
+  const ciscoVersionMismatch = profile.dialect === "ios" && !!ciscoVersion && ciscoVersion !== selection.version.match(/\d+/)?.[0];
+  if (ciscoVersionMismatch) findings.push({ level: "review", title: "Export version differs from selection", explanation: "Select the OS train matching the export. Version-scoped explanations are withheld for this mismatch.", lines: [] });
+  const ruleSelection = ciscoVersionMismatch ? { ...selection, version: "Other / unknown" } : selection;
   if (fortiVersion && !selection.version.includes("unknown") && !fortiVersion.startsWith(selection.version.match(/\d+\.\d+/)?.[0] || "unmatched")) findings.push({ level: "review", title: "Export version differs from selection", explanation: "The Fortinet version header does not match the selected OS train. Select the matching train and analyze again; version-dependent behavior has not been evaluated.", lines: [] });
   for (let index = 0; index < masked.lines.length; index++) {
     if (index % 1000 === 0) progress?.({ phase: "explaining", completed: index, total: masked.lines.length });
@@ -123,7 +129,7 @@ export function analyzeConfiguration(input: string, selection: Selection, progre
       const setting = t.match(/^(set|unset|append|unselect)\s+(\S+)(?:\s+(.*))?$/);
       if (setting) {
         const [, operation, key, rawValue = ""] = setting, value = words(rawValue).join(", ");
-        const section = currentSection(), rule = fortiRule(section, key, profile.dialect);
+        const section = currentSection(), rule = fortiRule(section, key, profile.dialect, { version: fortiVersionMismatch ? "Other / unknown" : selection.version, operation, rawValue, entry: stack.at(-1)?.type === "edit" });
         current = [...stack].reverse().find(f => f.entity)?.entity;
         if (current && stack.at(-1)?.entity === current && operation === "set") {
           current.settings.push({ key, value, line }); current.lines.push(line);
@@ -132,7 +138,7 @@ export function analyzeConfiguration(input: string, selection: Selection, progre
           if (kind && rule) for (const target of words(rawValue)) relation(current, target, kind, line, key);
         }
         const summary = operation === "unset" ? "Removes an explicit setting; the version-specific default is not inferred." : operation !== "set" ? "Modifies an existing list; the final list is not calculated." : `${fieldMeaning[key] || key}: ${value}.`;
-        add(line, text, context, rule?.category || "Structure", rule ? "explained" : "unknown", rule ? `${summary} ${rule.explanation}` : "This field or context is not covered by the current parser. Do not infer its effect from another product's syntax.");
+        add(line, text, context, rule?.category || "Structure", rule ? "explained" : "unknown", rule ? `${summary} ${rule.explanation}` : "This field, value, operation, context or selected OS train is not covered by the current parser. Do not infer its effect from another product's syntax.", rule?.reference);
         continue;
       }
     } else {
@@ -163,8 +169,8 @@ export function analyzeConfiguration(input: string, selection: Selection, progre
         if ((match = t.match(/^switchport access vlan (\d+)/))) relation(current, match[1], "VLAN", line, "access VLAN");
         if ((match = t.match(/^(?:ip vrf forwarding|vrf forwarding|vrf member) (\S+)/))) relation(current, match[1], "VRF", line, "routing context");
       }
-      const rule = ciscoRule(t, context);
-      add(line, text, context, rule?.category || "Structure", rule ? "explained" : "unknown", rule?.explanation || "This statement or context is not covered by this parser. It remains visible for vendor-documentation review.");
+      const rule = ciscoRule(t, context, profile.dialect, ruleSelection);
+      add(line, text, context, rule?.category || "Structure", rule ? "explained" : "unknown", rule?.explanation || "This statement, value, context or selected OS train is not covered by this parser. It remains visible for vendor-documentation review.", rule?.reference);
     }
   }
   if (stack.length) throw new Error(`The Fortinet export ends inside a configuration block opened at line ${stack.at(-1)!.line}. Include its closing next/end lines before analysis.`);
@@ -192,6 +198,6 @@ export function reportText(result: Analysis) {
   for (const line of result.lines) { const lines = grouped.get(line.category) || []; lines.push(line); grouped.set(line.category, lines); }
   return [`QCS Config Lens ${result.engine}`, `${profile.name} / ${result.selection.version} / ${result.selection.configType}`, "Private local analysis. Review identifiers and unrecognized secrets before sharing.", "No runtime, vulnerability, compliance or reachability verification performed.", "Classification is not a claim of supported semantics. Needs-review and masked statements remain unevaluated.", "", ...result.findings.map(f => `${f.title}: ${f.explanation}`), ...categoryOrder.flatMap(category => {
     const lines = grouped.get(category);
-    return lines ? ["", `## ${categoryCatalog[category].label} (${lines.length} statements)`, categoryCatalog[category].purpose, ...lines.map(l => `L${l.line} [${l.status}] ${l.text}\n${l.scope} / ${l.section}${l.entry ? ` / ${l.entry}` : ""}: ${l.explanation}`)] : [];
+    return lines ? ["", `## ${categoryCatalog[category].label} (${lines.length} statements)`, categoryCatalog[category].purpose, ...lines.map(l => `L${l.line} [${l.status}] ${l.text}\n${l.scope} / ${l.section}${l.entry ? ` / ${l.entry}` : ""}: ${l.explanation}${l.reference ? `\nVendor reference: ${commandReferences[l.reference].title} (${RULES_REVIEWED}) ${commandReferences[l.reference].url}` : ""}`)] : [];
   })].join("\n");
 }
