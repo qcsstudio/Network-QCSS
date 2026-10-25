@@ -1,5 +1,17 @@
 export const RULES_REVIEWED = "2026-10-26";
 export const commandReferences = {
+  ciscoPrefix: { title: "Cisco IOS XE 17.13: IPv4 prefix lists", url: "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9600/software/release/17-13/command_reference/b_1713_9600_cr/ip_routing_commands.html" },
+  ciscoRoutePolicy: { title: "Cisco IOS XE 17.x: route-map conditions and actions", url: "https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ip-routing/b-ip-routing/m_iri-ip-prot-indep-0.html" },
+  ciscoRoutePolicy15: { title: "Cisco IOS 15M&T: route-map conditions and actions", url: "https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/iproute_pi/configuration/15-mt/iri-15-mt-book/iri-ip-prot-indep.html" },
+  ciscoRoutePolicy16: { title: "Cisco IOS XE 16.12: route-map conditions and actions", url: "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst3650/software/release/16-12/configuration_guide/rtng/b_1612_rtng_3650_cg/configuring_protocol_independent_features.html" },
+  ciscoRouteMatch: { title: "Cisco IOS XE 17.x: prefix-list matching in BGP route maps", url: "https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ip-routing/b-ip-routing/m_irg-route-map-continue-outbound.html" },
+  ciscoRouteMatch16: { title: "Cisco IOS XE 16.12: prefix-list matching in BGP route maps", url: "https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/iproute_bgp/configuration/xe-16-12/irg-xe-16-12-book/bgp-route-map-continue-support-for-outbound-policy.html" },
+  fortiPrefix: { title: "FortiOS 7.4.9: IPv4 prefix-list rules", url: "https://docs.fortinet.com/document/fortigate/7.4.9/cli-reference/197238270/config-router-prefix-list" },
+  fortiPrefix72: { title: "FortiOS 7.2.11: IPv4 prefix-list rules", url: "https://docs.fortinet.com/document/fortigate/7.2.11/cli-reference/197238270/config-router-prefix-list" },
+  fortiPrefix76: { title: "FortiOS 7.6.4: IPv4 prefix-list rules", url: "https://docs.fortinet.com/document/fortigate/7.6.4/cli-reference/197238270/config-router-prefix-list" },
+  fortiRoutePolicy: { title: "FortiOS 7.4.9: route-map rules", url: "https://docs.fortinet.com/document/fortigate/7.4.9/cli-reference/254669892/config-router-route-map" },
+  fortiRoutePolicy72: { title: "FortiOS 7.2.11: route-map rules", url: "https://docs.fortinet.com/document/fortigate/7.2.11/cli-reference/254669892/config-router-route-map" },
+  fortiRoutePolicy76: { title: "FortiOS 7.6.4: route-map rules", url: "https://docs.fortinet.com/document/fortigate/7.6.4/cli-reference/254669892/config-router-route-map" },
   ciscoDhcp: { title: "Cisco IOS XE 17.x: DHCP server", url: "https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ip-addressing/b-ip-addressing/m_config-dhcp-server-xe.html" },
   ciscoDhcp16: { title: "Cisco IOS XE 16.11: DHCP server", url: "https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/ipaddr_dhcp/configuration/xe-16-11/dhcp-xe-16-11-book/config-dhcp-server-xe.html" },
   ciscoDhcp15: { title: "Cisco IOS 15M&T: DHCP server", url: "https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/ipaddr_dhcp/configuration/15-mt/dhcp-15-mt-book/config-dhcp-server.html" },
@@ -49,6 +61,10 @@ export type CommandReference = keyof typeof commandReferences;
 
 // Only families checked against separate release documentation are shared.
 const additionalTrains: Partial<Record<CommandReference, Record<string, CommandReference>>> = {
+  ciscoRoutePolicy: { "IOS 15.x": "ciscoRoutePolicy15", "IOS XE 16.x": "ciscoRoutePolicy16" },
+  ciscoRouteMatch: { "IOS 15.x": "ciscoRoutePolicy15", "IOS XE 16.x": "ciscoRouteMatch16" },
+  fortiPrefix: { "FortiOS 7.2": "fortiPrefix72", "FortiOS 7.6": "fortiPrefix76" },
+  fortiRoutePolicy: { "FortiOS 7.2": "fortiRoutePolicy72", "FortiOS 7.6": "fortiRoutePolicy76" },
   ciscoDhcp: { "IOS 15.x": "ciscoDhcp15", "IOS XE 16.x": "ciscoDhcp16" },
   ciscoOspf: { "IOS 15.x": "ciscoOspf15", "IOS XE 16.x": "ciscoOspf16" },
   ciscoLayer2: { "IOS XE 16.x": "ciscoLayer216" },

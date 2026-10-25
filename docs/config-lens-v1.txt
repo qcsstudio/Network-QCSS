@@ -674,6 +674,78 @@ Evidence: test-results/config-lens-production-9717c5e, including public headers,
 desktop/mobile screenshots and .last-run.json (passed, no failed tests).
 This is a local post-deployment receipt, separate from the production commit.
 
+Version 1.5.0 routing-policy expansion: 26 October 2026 IST
+----------------------------------------------------------
+Adds seven narrowly matched Cisco command patterns and fourteen FortiOS
+field/context pairs. This is an additional verified subset, not a claim that
+every remaining Needs review command or platform variant is now supported.
+
+Cisco IOS 15 and IOS XE 16/17: bounded route-map declarations, prefix-list
+matching inside route maps, decimal metric/tag matches, decimal tag assignment
+and BGP local preference. IPv4 prefix-list declarations are additionally
+covered for XE 17, with complete sequence/address/prefix-length checks.
+Other syntax (including extended sequence forms and unsupported no forms)
+remains unevaluated. A route-map deny in policy-based routing is explicitly
+distinguished from a firewall drop. No map attachment, best path, route
+advertisement or packet outcome is calculated.
+
+FortiOS 7.2.11, 7.4.9 and 7.6.4 each independently expose the checked
+router prefix-list / rule and router route-map / rule fields: prefix,
+action, ge/le, address/next-hop filter names, tag/metric matching, local
+preference, weight, metric/tag assignment and IPv4 next hop. Explanations
+remain exact-section and edit-entry scoped. Numeric ranges, name lengths,
+operations, selected train and dialect are validated. Cross-field effective
+prefix matching, including zero/default bounds, is deliberately not inferred.
+
+Public vendor evidence was re-read before implementation:
+- Cisco XE 17.13 IP Routing Commands (prefix syntax/ranges);
+- Cisco XE 17.x and IOS 15M&T protocol-independent routing guides;
+- Cisco XE 16.12 Catalyst 3650 protocol-independent routing guide;
+- Cisco XE 16.12 and 17.x BGP route-map continue guides for prefix matching;
+- Cisco protocol-independent command references for decimal metric/tag and
+  local-preference forms and ranges;
+- Fortinet exact-version prefix-list and route-map CLI pages for all three
+  selected trains. All six public HTML fetches succeeded with matching titles.
+Exact source links are embedded in references.ts and each supported result.
+Private source captures are ignored under test-results/config-lens-v12-sources
+using v15-prefixed filenames. No production configuration was fetched or sent.
+
+No analysis endpoint, paid service, vendor fetch during analysis, database,
+authenticated admin updater, queue or social schedule is added or changed.
+The parser still runs locally in its worker after existing secret masking.
+Unsupported Cisco dialects, FortiWeb/FortiSwitch and unknown/mismatched trains
+do not borrow these explanations. No device or emulator runtime was executed.
+
+Initial verification: 123 automated tests passed; scoped TypeScript and
+ESLint passed. One initial assertion expected a report for a wholly unsupported
+Fortinet version mismatch; the engine correctly rejected that input instead.
+The test now verifies that existing fail-closed behavior, without changing it.
+Preview, build and production evidence are recorded below only after completion.
+
+Version 1.5.0 pre-release verification
+------------------------------------
+The isolated production webpack build passed with synthetic settings and no
+reachable database. All 19 public preview browser workflows passed in 3.0m.
+New route-policy cases covered six selected OS trains plus the Catalyst
+profile at desktop and 320px, with original source links, intentional unknowns,
+masking, no horizontal overflow and no accessibility violations in the tested
+panels. Actual FortiGate mobile and Cisco desktop/mobile screenshots were
+visually inspected. No analysis-time API/mutation, analytics, paid-provider,
+automatic vendor fetch or synthetic secret transmission was observed.
+
+The full browser regression retained the 12,155-line Fortinet backup and
+80,003-line Cisco export with 20,000 interfaces, complete masking/exports,
+categories, reference diagrams, filtering, cancellation, malformed UTF-8,
+long lines and isolated document/security headers. This remains synthetic
+parser/browser evidence, not network-device runtime testing.
+
+Catalog total: 52 cited Cisco patterns and 137 FortiOS field/context pairs
+across 21 exact sections. All nine source/test/fixture files match the isolated
+build by SHA256; all 26 unrelated tracked modifications retain original hashes.
+Preview: http://127.0.0.1:3063/network-tools/network-configuration-explainer
+Evidence: test-results/config-lens-v15-preview (.last-run.json and screenshots).
+Production status is not inferred from these local checks.
+
 Version 1.4.0: release-specific routing, firewall and VPN coverage
 ---------------------------------------------------------------
 Research and implementation: 26 October 2026. This is bounded syntax coverage,
@@ -741,3 +813,32 @@ Preview: http://127.0.0.1:3062/network-tools/network-configuration-explainer
 Path: C:/Users/rksankhyan/Documents/Codex/qcs-config-lens-v14-20261026/app
 Production confirmation must be recorded separately after the exact SHA is live.
 No admin updater, database, social post, schedule or queue changes are included.
+
+Version 1.4.0 production verification: 26 October 2026 IST
+---------------------------------------------------------
+Scoped commit edbd4013401466841bcc26e440cca3f4dd256f16 is deployed and READY.
+Vercel deployment dpl_ACPDfUcAyXyPK1AY1oWS2u9gq5Qw serves that exact SHA on
+www.qcsstudio.com and qcsstudio.com, production target, with no alias error.
+Deployment: https://network-55emxhjio-qcsstudios.vercel.app
+Live: https://www.qcsstudio.com/network-tools/network-configuration-explainer
+
+All 12 read-only public browser workflows passed (1.7 minutes), including the
+new cross-version cases and keepalive guide links, masked 1.4.0 report exports,
+intentional unknowns, categories, diagrams, reverse references, source filters,
+desktop/320px layout, accessibility, local worker and public security headers.
+The 12,155-line Fortinet backup and 80,003-line Cisco export retained complete
+line/object accounting, 20,000 Cisco interfaces and masking. Actual live mobile
+FortiOS keepalive and desktop Cisco IKEv2 screenshots were visually inspected.
+
+No analysis-time API/mutation, paid-provider, analytics, automatic vendor fetch
+or synthetic secret-canary transmission was observed in the new workflows.
+These are synthetic parser/browser checks, not network-device runtime testing
+or a guarantee that all possible secrets, syntax or patch variants are covered.
+Unknown or unverified behavior remains Needs review.
+
+All 26 unrelated tracked modifications still match their pre-task SHA256 hashes.
+No live database, authenticated admin update, post, schedule or queue was edited.
+Existing user previews and analyses remain untouched; the isolated 3062 preview
+is available separately. Evidence: test-results/config-lens-production-edbd401,
+including public headers, desktop/mobile screenshots and passing .last-run.json.
+This is a local post-deployment receipt, separate from the production commit.

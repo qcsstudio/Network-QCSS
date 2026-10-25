@@ -19,6 +19,24 @@ const field = (explanation: string, check: Check = one, list = false): Field => 
 
 // Exact sections are intentional: identical field names mean different things in nested tables.
 export const fortiosSections: Record<string, Section> = {
+  "router prefix-list rule": { category: "Routing", reference: "fortiPrefix", entry: true, fields: {
+    action: field("Accepts (permit) or rejects (deny) a matching route prefix in this filter. A prefix describes a network address range; this is not a firewall packet rule.", choices("permit", "deny")),
+    prefix: field("The IPv4 network and mask tested by this route filter, or any network. ge and le refine prefix lengths; attachment and rule order still matter. No accepted routes are calculated.", values => values.length === 1 && values[0] === "any" || values.length === 2 && ipv4(values[0]) && mask(values[1])),
+    ge: field("Lower prefix-length bound for the route filter, measured in network bits, not hops. Read it with prefix and le; the effective match, including zero/default values, is not calculated.", integer(0, 32)),
+    le: field("Upper prefix-length bound for the route filter, measured in network bits. Read it with prefix and ge; this does not report which routes were accepted.", integer(0, 32)),
+  } },
+  "router route-map rule": { category: "Routing", reference: "fortiRoutePolicy", entry: true, fields: {
+    action: field("Selects permit or deny for a matching routing-policy rule. A route map tests or changes route information; this is not a firewall allow/deny decision for application traffic.", choices("permit", "deny")),
+    "match-ip-address": field("Names an IPv4 access list or prefix list used to test a route's destination network. The named filter's contents and rule order still need review.", values => one(values) && values[0].length <= 35),
+    "match-ip-nexthop": field("Names an access list or prefix list that tests the route's next-hop address, the next router toward a destination. This does not set a new next hop.", values => one(values) && values[0].length <= 35),
+    "match-tag": field("Tests the route's numeric tag, a label used by routing policy. It is not a VLAN tag or a packet port number.", integer(0, 4294967295)),
+    "match-metric": field("Tests the metric of a route being redistributed between routing protocols. A metric is a protocol-specific path value, not a measured speed.", integer(0, 4294967295)),
+    "set-local-preference": field("Sets the BGP local-preference attribute for a matching route when this policy applies. BGP exchanges network routes; this preference is not a firewall priority or proof of the selected path.", integer(0, 4294967295)),
+    "set-weight": field("Sets a local BGP weight used when comparing routes on this device. It is a preference value, not bandwidth, and does not prove which route is installed.", integer(0, 4294967295)),
+    "set-tag": field("Sets a route-policy tag on matching route information when this map applies. This label is not an Ethernet VLAN tag.", integer(0, 4294967295)),
+    "set-metric": field("Sets the route metric when this policy applies. Its interpretation depends on the routing protocol; this is not a link-speed measurement or an installed-route result.", integer(0, 4294967295)),
+    "set-ip-nexthop": field("Sets the IPv4 next-hop attribute for matching route information when this map applies. This identifies another routing device, not proof that it is reachable.", address),
+  } },
   "system interface": { category: "Interfaces", reference: "fortiInterface", entry: true, fields: {
     "lacp-mode": field("Link Aggregation Control Protocol (LACP) negotiates a bundle of ports. active starts negotiation; passive waits; static does not use LACP. No working bundle is confirmed.", choices("active", "passive", "static")),
     "lacp-speed": field("LACP control-message timing: fast is one second; slow is 30 seconds. This is not the bundle's traffic speed.", choices("fast", "slow")),
@@ -201,7 +219,22 @@ export function documentedFortiRule(section: string, key: string, dialect: strin
 }
 
 type CiscoDefinition = DocumentedRule & { pattern: RegExp; context: RegExp; switchOnly?: boolean; routerOnly?: boolean; check?: (match: RegExpMatchArray) => boolean };
+const routeMapContext = /^route-map [A-Za-z0-9_.:-]+(?: (?:permit|deny)(?: \d+)?)?$/;
+const validRouteMapContext = (context: string) => routeMapContext.test(context) && (!/ (?:permit|deny) \d+$/.test(context) || integer(1, 65535)([context.split(" ").at(-1)!]));
+const prefixListCheck = (m: RegExpMatchArray) => {
+  const length = Number(m[3]), ge = m[4] === undefined ? undefined : Number(m[4]), le = m[5] === undefined ? undefined : Number(m[5]);
+  return (!m[1] || integer(1, 4294967294)([m[1]])) && ipv4(m[2]) && length <= 32 &&
+    (ge === undefined || ge > length && ge <= 32) && (le === undefined || le >= length && le <= 32) &&
+    (ge === undefined || le === undefined || ge <= le);
+};
 export const documentedCiscoRules: CiscoDefinition[] = [
+  { pattern: /^ip prefix-list [A-Za-z0-9_.:-]+(?: seq (\d+))? (?:permit|deny) (\S+)\/(\d+)(?: ge (\d+))?(?: le (\d+))?$/, context: /^Global$/, category: "Routing", reference: "ciscoPrefix", check: prefixListCheck, explanation: "Defines an IPv4 route-prefix filter entry. Without ge/le it matches an exact network length; ge sets a lower length and le an upper length. Sequence orders entries. This declaration alone does not attach the filter or allow/block packets." },
+  { pattern: routeMapContext, context: routeMapContext, category: "Routing", reference: "ciscoRoutePolicy", explanation: "Opens a named routing-policy entry; its sequence controls order. permit/deny affects the feature using this map. In policy-based routing, deny falls back to normal routing, not a firewall drop. No attachment or result is inferred." },
+  { pattern: /^match ip address prefix-list [A-Za-z0-9_.:-]+(?: [A-Za-z0-9_.:-]+)*$/, context: routeMapContext, category: "Routing", reference: "ciscoRouteMatch", explanation: "Tests route destination prefixes against the named prefix lists. This is route-information matching, not an application packet filter; inspect all map entries and where the map is applied." },
+  { pattern: /^set local-preference (\d+)$/, context: routeMapContext, category: "Routing", reference: "ciscoRoutePolicy", check: m => integer(0, 4294967295)([m[1]]), explanation: "Sets BGP local preference for a matching route when this map applies. Higher preference is favored at that comparison step within the routing organization; other selection steps still matter. No winning path is calculated." },
+  { pattern: /^match tag (\d+(?: \d+)*)$/, context: routeMapContext, category: "Routing", reference: "ciscoRoutePolicy", check: m => m[1].split(" ").every(v => integer(0, 4294967295)([v])), explanation: "Tests numeric route tags used by routing policy. A route tag labels route information; it is not an Ethernet VLAN identifier. Matching alone does not install or advertise a route." },
+  { pattern: /^set tag (\d+)$/, context: routeMapContext, category: "Routing", reference: "ciscoRoutePolicy", check: m => integer(0, 4294967295)([m[1]]), explanation: "Assigns a tag to matching redistributed route information when this map applies. The tag can be tested by another routing policy; it does not tag application packets or create a VLAN." },
+  { pattern: /^match metric (\d+)$/, context: routeMapContext, category: "Routing", reference: "ciscoRoutePolicy", check: m => integer(0, 4294967295)([m[1]]), explanation: "Tests a route's metric, a routing-protocol path value. It is not a measured speed, price or firewall priority; the rest of the map and its attachment still matter." },
   { pattern: /^peer \S+$/, context: /^crypto ikev2 keyring \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "Names a peer or peer group inside this IKEv2 keyring. A keyring organizes authentication keys; this declaration does not confirm an authenticated or connected peer." },
   { pattern: /^keyring local \S+$/, context: /^crypto ikev2 profile \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "References a local IKEv2 keyring for this peer-authentication profile. It does not reveal key values or show that authentication succeeded." },
   { pattern: /^authentication (?:local|remote) (?:pre-share|rsa-sig|ecdsa-sig)$/, context: /^crypto ikev2 profile \S+$/, routerOnly: true, category: "VPN", reference: "ciscoIkev2", explanation: "Selects authentication for this device (local) or its peer (remote): a shared secret, RSA signature, or ECDSA signature. Required keys or certificates and successful verification are not confirmed." },
@@ -254,6 +287,7 @@ export function documentedCiscoRule(text: string, context: string, dialect: Dial
   const found = documentedCiscoRules.find(rule => rule.pattern.test(text) && (!/^network /.test(text) || context.startsWith("ip dhcp pool ")));
   if (!found) return /^(?:no )?(?:channel-protocol|lacp rate|switchport nonegotiate|spanning-tree guard|zone-member security|log-adjacency-changes|auto-cost reference-bandwidth|set ikev2-profile|tunnel protection ipsec profile)\b/.test(text) || /^crypto ikev2 proposal /.test(context) && /^(?:encryption|integrity|group)\b/.test(text) || /^ip ospf (?:cost|hello-interval|dead-interval|priority)\b/.test(text) || context.startsWith("ip dhcp pool ") && /^(?:network|bootfile|next-server|netbios-name-server|netbios-node-type|utilization|import)\b/.test(text) || /^(?:no )?service dhcp\b/.test(text) ? null : undefined;
   const reference = selection && referenceForTrain(found.reference, selection.version);
+  if (found.context === routeMapContext && !validRouteMapContext(context)) return null;
   if (dialect !== "ios" || !reference || !selection || found.switchOnly && selection.profileId !== "cisco-switch" || found.routerOnly && selection.profileId !== "cisco-router" || !found.context.test(context)) return null;
   const match = text.match(found.pattern)!;
   if (found.check && !found.check(match)) return null;
