@@ -1,16 +1,11 @@
-export const MAX_BYTES = 512 * 1024;
-export const MAX_LINES = 12000;
-export const MAX_LINE_LENGTH = 2048;
 const maskedMarker = /^\s*\[MASKED: (?:sensitive or free-text line|banner content)\]\s*$/;
 
 export function validateInput(input: string) {
   if (!input.trim()) throw new Error("Select a text configuration or paste its contents first.");
-  if (new TextEncoder().encode(input).length > MAX_BYTES) throw new Error("This version accepts up to 512 KiB per configuration.");
   if (/[\x00-\x08\x0b\x0c\x0e-\x1f\ufffd]/.test(input)) throw new Error("Use a UTF-8 plain-text export, not an encrypted or binary backup.");
-  const header = input.split(/\r?\n/).slice(0, 3).filter(line => !maskedMarker.test(line)).join("\n");
-  if (/^\s*(?:<|\{|\[|---\s*$)/m.test(header)) throw new Error("XML, JSON and YAML exports are not supported. Choose a plain-text CLI configuration.");
   const lines = input.replace(/\r\n?/g, "\n").split("\n");
-  if (lines.length > MAX_LINES || lines.some(line => line.length > MAX_LINE_LENGTH)) throw new Error("Configuration exceeds the 12,000-line or 2,048-character line limit. Use a smaller scoped export.");
+  const header = lines.slice(0, 3).filter(line => !maskedMarker.test(line)).join("\n");
+  if (/^\s*(?:<|\{|\[|---\s*$)/m.test(header)) throw new Error("XML, JSON and YAML exports are not supported. Choose a plain-text CLI configuration.");
   return lines;
 }
 

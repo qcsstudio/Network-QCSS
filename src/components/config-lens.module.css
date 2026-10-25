@@ -53,7 +53,12 @@
 .reviewBadge { background: #fff1d5; color: #785013; }
 .line { padding: 20px 0; border-bottom: 1px solid #d3dce4; }
 .lineMeta { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; color: #4b5c70; font-size: .8rem; }
-.line code { display: block; white-space: pre-wrap; overflow-wrap: anywhere; background: #f1f5f9; padding: 12px; margin: 10px 0; font-size: .86rem; line-height: 1.65; color: #21394d; }
+.code { display: block; white-space: pre-wrap; overflow-wrap: anywhere; background: #f1f5f9; padding: 12px; margin: 10px 0; font: .86rem/1.65 var(--font-qcs-mono, ui-monospace), Consolas, monospace; color: #21394d; }
+.explanation { line-height: 1.65; overflow-wrap: anywhere; }
+.lens details summary { cursor: pointer; }
+.fileSelection { display: flex; align-items: center; gap: 16px; margin-top: 20px; padding: 16px; background: #f2f5f9; overflow-wrap: anywhere; flex-wrap: wrap; }
+.fileSelection > div { flex: 1; min-width: 120px; display: grid; gap: 6px; }
+.fileSelection span { font-size: .85rem; color: #4b5c70; }
 .line small { display: block; overflow-wrap: anywhere; color: #526075; }
 .line p { margin-bottom: 0; }
 .pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 22px; }
@@ -66,7 +71,8 @@
 .graphTarget div { flex: 1; display: grid; gap: 6px; overflow-wrap: anywhere; }
 .graphTarget small, .graphRoot small { color: #526075; }
 .graphTarget p { margin: 0; font-size: .9rem; }
-.settingList > div { display: grid; grid-template-columns: 60px minmax(100px, 1fr) minmax(0, 2fr); gap: 12px; padding: 12px 0; align-items: center; border-bottom: 1px solid #d3dce4; font-size: .9rem; overflow-wrap: anywhere; }
+.settingList > div { display: grid; grid-template-columns: max-content minmax(100px, 1fr) minmax(0, 2fr); gap: 12px; padding: 12px 0; align-items: center; border-bottom: 1px solid #d3dce4; font-size: .9rem; overflow-wrap: anywhere; }
+.settingList > div > button { white-space: nowrap; }
 .glossary > div { padding: 16px 0; border-bottom: 1px solid #d3dce4; }
 .glossary dt { font-weight: 700; }
 .glossary dd { margin: 8px 0 0; line-height: 1.7; color: #42546a; }
@@ -92,5 +98,5 @@
 .sources small { display: block; overflow-wrap: anywhere; }
 @media (max-width: 900px) { .selectors { grid-template-columns: repeat(2, minmax(0, 1fr)); } .inventory { grid-template-columns: repeat(2, minmax(0, 1fr)); } .editorFooter, .resultTitle { flex-wrap: wrap; } .editorFooter p { flex-basis: 100%; } .graph { padding: 16px; gap: 12px; grid-template-columns: minmax(130px, 1fr) 30px minmax(0, 2fr); } }
 @media (max-width: 600px) { .page { padding: 105px 12px 40px; } .heading h1 { font-size: 1.85rem; } .setup, .editorSection, .results { padding: 20px 14px; } .privacy { padding: 14px; gap: 10px 14px; font-size: .78rem; } .selectors { grid-template-columns: 1fr; } .scope { padding: 12px; } .tabs button { padding: 11px; font-size: .85rem; } .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .inventory { grid-template-columns: 1fr; } .graph { display: flex; flex-direction: column; align-items: stretch; } .graphArrow { transform: rotate(90deg); align-self: center; } .graphRoot { width: 100%; } .settingList > div { grid-template-columns: 54px minmax(0, 1fr); } .settingList span { grid-column: 2; } .exportPanel { padding: 12px; } .lens button { font-size: .9rem; } }
-@media (max-width: 600px) { .graphTarget { display: grid; grid-template-columns: 20px minmax(0, 1fr); } .graphTarget > button { grid-column: 2; justify-self: start; } }
+@media (max-width: 600px) { .graphTarget { display: grid; grid-template-columns: 20px minmax(0, 1fr); } .graphTarget > button { grid-column: 2; justify-self: start; } .settingList > div { grid-template-columns: max-content minmax(0, 1fr); } .settingList > div > div { grid-column: 2; } }
 @media print { .setup, .editorSection, .toolbar, .tabs, .pagination, .exportPanel { display: none; } .lens { border: 0; } .results { padding: 0; } }

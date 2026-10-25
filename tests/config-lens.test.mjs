@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { analyzeConfiguration, reportText } from "../src/lib/config-lens/engine.ts";
-import { maskConfiguration, MAX_BYTES } from "../src/lib/config-lens/masking.ts";
+import { maskConfiguration } from "../src/lib/config-lens/masking.ts";
 import { profiles } from "../src/lib/config-lens/catalog.ts";
 import { samples } from "../src/lib/config-lens/samples.ts";
 import { allowedSourceUrl, checkSource, parseUpdateFeed, readBounded } from "../src/lib/config-lens/vendor-updates.ts";
@@ -112,10 +112,48 @@ test("Cisco legacy IKE keys and SNMP destination communities are masked", () => 
   const r = maskConfiguration("hostname demo\ncrypto isakmp key HiddenIkeKey address 192.0.2.1\nsnmp-server host 192.0.2.10 version 2c HiddenTrapCommunity");
   assert.ok(!r.lines.join("\n").includes("Hidden"));
 });
-test("unsafe formats, large inputs and invalid selections are rejected", () => {
-  for (const input of ["<xml>value</xml>", '{"config":1}', "---\nkey: x", "host\x00name", "x".repeat(MAX_BYTES + 1), `hostname demo\n${"x".repeat(2049)}`]) assert.throws(() => analyzeConfiguration(input, select("cisco-router")));
+test("unsafe formats and invalid selections are rejected", () => {
+  for (const input of ["<xml>value</xml>", '{"config":1}', "---\nkey: x", "host\x00name"]) assert.throws(() => analyzeConfiguration(input, select("cisco-router")));
   assert.throws(() => analyzeConfiguration(samples.fortigate, { ...select("fortigate"), profileId: "__proto__" }), /valid/);
   assert.throws(() => analyzeConfiguration(samples.fortigate, { ...select("fortigate"), build: "<script>" }), /valid/);
+});
+
+test("large Cisco exports retain every statement and resolve every reference", () => {
+  const count = 20000;
+  const raw = `hostname large\nvlan 10\n${Array.from({ length: count }, (_, i) => `interface GigabitEthernet0/${i}\n switchport mode access\n switchport access vlan 10\n description SecretLarge${i}`).join("\n")}\nend`;
+  assert.ok(Buffer.byteLength(raw) > 512 * 1024);
+  const updates = [];
+  const r = analyzeConfiguration(raw, select("cisco-switch"), p => updates.push(p));
+  assert.equal(r.coverage.total, count * 4 + 3);
+  assert.equal(r.entities.length, count + 1);
+  assert.equal(r.relationships.length, count);
+  assert.ok(r.relationships.every(ref => ref.to));
+  assert.equal(r.maskedCount, count);
+  assert.ok(!JSON.stringify(r).includes("SecretLarge"));
+  assert.equal(r.lines.at(-1).line, count * 4 + 3);
+  assert.deepEqual(updates.at(-1), { phase: "references", completed: count * 4 + 3, total: count * 4 + 3 });
+});
+
+test("large FortiGate groups keep long member lines intact, with no missing targets", () => {
+  const count = 15000;
+  const names = Array.from({ length: count }, (_, i) => `Host${i}`);
+  const raw = `config firewall address\n${names.map(n => ` edit "${n}"\n set subnet 192.0.2.1 255.255.255.255\n next`).join("\n")}\nend\nconfig firewall addrgrp\n edit "AllHosts"\n set member ${names.map(n => `"${n}"`).join(" ")}\n next\nend`;
+  const r = analyzeConfiguration(raw, select("fortigate"));
+  assert.equal(r.entities.length, count + 1);
+  assert.equal(r.relationships.length, count);
+  assert.ok(r.relationships.every(ref => ref.to));
+  assert.ok(r.lines.find(l => l.text.includes("set member")).text.length > 2048);
+  assert.ok(reportText(r).includes('"Host14999"'));
+  assert.equal(r.lines.length, raw.split("\n").length);
+});
+
+test("very long unknown and secret lines are preserved or fully masked, never clipped", () => {
+  const long = `unknown-setting ${"x".repeat(2 * 1024 * 1024)} TailMarker`;
+  const r = analyzeConfiguration(`hostname demo\n${long}\nusername admin secret ${"S".repeat(100000)}SensitiveTail\nend`, select("cisco-router"));
+  assert.equal(r.lines[1].text, long);
+  assert.equal(r.lines[1].status, "unknown");
+  assert.ok(!JSON.stringify(r).includes("SensitiveTail"));
+  assert.ok(reportText(r).includes("TailMarker"));
 });
 test("forbidden server and storage dependencies are absent from browser analysis", () => {
   for (const file of ["src/lib/config-lens/engine.ts", "src/lib/config-lens/masking.ts", "src/lib/config-lens/rules.ts", "src/components/config-lens.tsx", "src/components/config-lens.worker.ts"]) {

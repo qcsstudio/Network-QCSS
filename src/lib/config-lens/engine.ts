@@ -40,9 +40,12 @@ function checkDialect(input: string, profileId: string) {
   if (p.dialect !== "nxos" && /NXOS: version|NX-OS|^version \d+\.\d+\(\d+\).*N\d/m.test(input)) throw new Error("NX-OS detected. Select Cisco > Nexus switch.");
 }
 
-export function analyzeConfiguration(input: string, selection: Selection): Analysis {
+export type AnalysisProgress = { phase: "masking" | "explaining" | "references"; completed: number; total: number };
+
+export function analyzeConfiguration(input: string, selection: Selection, progress?: (value: AnalysisProgress) => void): Analysis {
   const profile = getProfile(selection.profileId);
   if (!profile || ![...profile.versions, "Other / unknown"].includes(selection.version) || !["running", "saved", "candidate", "unknown"].includes(selection.configType) || !/^[\w.() /-]{0,60}$/.test(selection.build)) throw new Error("Select a valid device family, OS train and configuration type.");
+  progress?.({ phase: "masking", completed: 0, total: 0 });
   const masked = maskConfiguration(input);
   checkDialect(input, profile.id);
   const explanations: Explanation[] = [], entities: Entity[] = [], relationships: Relationship[] = [], findings: Finding[] = [];
@@ -51,7 +54,7 @@ export function analyzeConfiguration(input: string, selection: Selection): Analy
     const id = JSON.stringify([scope, kind, name]);
     let e = byId.get(id);
     if (!e) { e = { id, kind, name, scope, lines: [], settings: [] }; byId.set(id, e); entities.push(e); }
-    if (!e.lines.includes(line)) e.lines.push(line);
+    if (e.lines.at(-1) !== line) e.lines.push(line);
     return e;
   }
   function relation(from: Entity, target: string, kind: string, line: number) {
@@ -71,6 +74,7 @@ export function analyzeConfiguration(input: string, selection: Selection): Analy
   type Frame = { type: "config" | "edit"; name: string; entity?: Entity };
   const stack: Frame[] = [];
   for (let index = 0; index < masked.lines.length; index++) {
+    if (index % 1000 === 0) progress?.({ phase: "explaining", completed: index, total: masked.lines.length });
     const text = masked.lines[index], line = index + 1, t = text.trim();
     if (!t) continue;
     if (masked.maskedLines.has(line)) {
@@ -135,7 +139,7 @@ export function analyzeConfiguration(input: string, selection: Selection): Analy
       if (!/^\s/.test(text)) { current = undefined; context = "Global"; }
       if (/^access-list (\S+)/.test(t)) { current = entity("ACL", t.split(/\s+/)[1], scope, line); }
       if (/^(?:ip|ipv6) route\s|^route\s/.test(t)) current = entity("route", `Static route at L${line}`, scope, line);
-      if (current) { current.lines.push(line); current.settings.push({ key: t.split(/\s+/)[0], value: t, line }); }
+      if (current) { if (current.lines.at(-1) !== line) current.lines.push(line); current.settings.push({ key: t.split(/\s+/)[0], value: t, line }); }
       if (current?.kind === "interface") {
         if ((match = t.match(/^ip access-group (\S+)/))) relation(current, match[1], "ACL", line);
         if ((match = t.match(/^switchport access vlan (\d+)/))) relation(current, match[1], "VLAN", line);
@@ -146,9 +150,11 @@ export function analyzeConfiguration(input: string, selection: Selection): Analy
     }
   }
   if (stack.length) throw new Error("The Fortinet export ends inside a configuration block. Include its closing next/end lines before analysis.");
+  progress?.({ phase: "references", completed: masked.lines.length, total: masked.lines.length });
+  // The same scoped identity used for declarations avoids rescanning every object per reference.
   for (const r of relationships) {
-    const matches = entities.filter(e => e.kind === r.kind && e.name === r.target && e.scope === r.scope);
-    if (matches.length === 1) r.to = matches[0].id;
+    const target = byId.get(JSON.stringify([r.scope, r.kind, r.target]));
+    if (target) r.to = target.id;
   }
   const unknown = explanations.filter(l => l.status === "unknown");
   if (unknown.length) findings.push({ level: "review", title: `${unknown.length} statement(s) need vendor review`, explanation: "Unsupported syntax remains in Source. Recognizing other statements is not evidence that these statements are safe or irrelevant.", lines: unknown.map(l => l.line) });

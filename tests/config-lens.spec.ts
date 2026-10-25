@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { createHmac } from "node:crypto";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { profiles } from "../src/lib/config-lens/catalog";
 import { samples } from "../src/lib/config-lens/samples";
 
@@ -60,6 +60,93 @@ test("file upload, invalid input and changed selection cannot retain stale resul
   await page.getByRole("textbox", { name: "Configuration", exact: true }).fill("<script>alert('do-not-run')</script>");
   await page.getByRole("button", { name: "Explain configuration" }).click();
   await expect(page.getByRole("main").getByRole("alert")).toContainText("not supported");
+});
+
+test("large files retain all objects and exports while result views stay bounded", async ({ page }, testInfo) => {
+  const requests: string[] = [], errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await page.goto(path);
+  const consentRequest = page.waitForRequest(r => r.url().endsWith("/api/events") && r.postData()?.includes("consent_updated") === true);
+  await page.getByRole("button", { name: "Essential only", exact: true }).click();
+  await consentRequest;
+  // Observe the configuration workflow after the separate privacy-choice acknowledgement.
+  page.on("request", r => requests.push(`${r.method()} ${r.url()} ${r.postData() || ""}`));
+  const count = 20000;
+  const input = `hostname large\nvlan 10\n${Array.from({ length: count }, (_, i) => `interface GigabitEthernet0/${i}\n switchport mode access\n switchport access vlan 10\n description ${secret}${i}`).join("\n")}\nend`;
+  await page.getByLabel("Device family").selectOption("cisco-switch");
+  await page.getByLabel("Configuration file").setInputFiles({ name: "large-switch.cfg", mimeType: "text/plain", buffer: Buffer.from(input) });
+  await expect(page.getByText("large-switch.cfg", { exact: true })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Configuration", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await expect(page.getByRole("heading", { name: "Catalyst switch analysis", exact: true })).toBeVisible({ timeout: 60000 });
+  await page.getByRole("tab", { name: "Diagram", exact: true }).click();
+  await expect(page.getByRole("combobox", { name: "Object", exact: true }).locator("option")).toHaveCount(60);
+  await page.getByRole("button", { name: "Next objects", exact: true }).click();
+  await expect(page.getByRole("combobox", { name: "Object", exact: true }).locator("option")).toHaveCount(61);
+  await page.getByLabel("Find object", { exact: true }).fill("GigabitEthernet0/19999");
+  const option = page.getByRole("combobox", { name: "Object", exact: true }).getByRole("option", { name: /GigabitEthernet0\/19999/ });
+  await page.getByRole("combobox", { name: "Object", exact: true }).selectOption((await option.getAttribute("value"))!);
+  await expect(page.getByText("Declared in this export", { exact: true })).toBeVisible();
+  for (const width of [1440, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.getByLabel("Configuration references for GigabitEthernet0/19999", { exact: true }).evaluate(element => window.scrollTo(0, element.getBoundingClientRect().top + window.scrollY - 140));
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await expect(page.getByRole("button", { name: "L80000", exact: true })).toHaveCSS("white-space", "nowrap");
+    await page.screenshot({ path: testInfo.outputPath(`large-diagram-${width}.png`) });
+  }
+  await page.getByRole("button", { name: "Masked text", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Next export preview", exact: true })).toBeVisible();
+  expect((await page.locator("pre").innerText()).length).toBeLessThanOrEqual(16000);
+  await page.getByLabel("I reviewed this text").check();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download reviewed text" }).click();
+  const exported = await readFile((await (await download).path())!, "utf8");
+  expect(exported.split("\n")).toHaveLength(count * 4 + 3);
+  expect(exported).toContain("interface GigabitEthernet0/19999");
+  expect(exported).not.toContain(secret);
+  expect(requests.filter(r => /^POST|\/api\/network-tools|clarity\.ms|google-analytics|openai\.com/.test(r))).toEqual([]);
+  expect(requests.some(r => r.includes(secret))).toBe(false);
+  expect(errors).toEqual([]);
+});
+
+test("long lines, cancellation and invalid UTF-8 remain safe", async ({ page }) => {
+  await page.goto(path);
+  const big = `hostname demo\n${"ip route 192.0.2.0 255.255.255.0 198.51.100.1\n".repeat(500000)}end`;
+  await page.getByLabel("Configuration file").setInputFiles({ name: "cancel.cfg", mimeType: "text/plain", buffer: Buffer.from(big) });
+  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Explain configuration" })).toBeEnabled();
+  await expect(page.getByRole("heading", { name: "Router analysis", exact: true })).toHaveCount(0);
+  await page.getByLabel("Configuration file").setInputFiles({ name: "bad.cfg", mimeType: "text/plain", buffer: Buffer.from([0xff]) });
+  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("UTF-8");
+  await page.getByRole("button", { name: "Use pasted text", exact: true }).click();
+  const long = `unknown-command ${"x".repeat(10000)} END_OF_LONG_LINE`;
+  await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(`hostname demo\n${long}\nend`);
+  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await expect(page.getByRole("heading", { name: "Router analysis", exact: true })).toBeVisible();
+  await page.getByRole("tab", { name: "Source", exact: true }).click();
+  await page.getByText(/^View complete text/).click();
+  await expect(page.getByText(long, { exact: true })).toBeVisible();
+});
+
+test("large FortiGate address groups have paged references and complete long settings", async ({ page }) => {
+  await page.goto(path);
+  await page.getByRole("combobox", { name: "Vendor", exact: true }).selectOption("fortinet");
+  const names = Array.from({ length: 5000 }, (_, i) => `Host${i}`);
+  const input = `config firewall address\n${names.map(n => ` edit "${n}"\n set subnet 192.0.2.1 255.255.255.255\n next`).join("\n")}\nend\nconfig firewall addrgrp\n edit "AllHosts"\n set member ${names.map(n => `"${n}"`).join(" ")}\n next\nend`;
+  await page.getByLabel("Configuration file").setInputFiles({ name: "large-fortigate.conf", mimeType: "text/plain", buffer: Buffer.from(input) });
+  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await expect(page.getByRole("heading", { name: "FortiGate firewall analysis", exact: true })).toBeVisible({ timeout: 60000 });
+  await page.getByRole("tab", { name: "Diagram", exact: true }).click();
+  await page.getByLabel("Find object").fill("AllHosts");
+  const option = page.getByRole("combobox", { name: "Object", exact: true }).getByRole("option", { name: /AllHosts/ });
+  await page.getByRole("combobox", { name: "Object", exact: true }).selectOption((await option.getAttribute("value"))!);
+  await expect(page.getByText("Declared in this export", { exact: true })).toHaveCount(60);
+  await page.getByRole("button", { name: "Next references", exact: true }).click();
+  await expect(page.getByText("Host60", { exact: true })).toBeVisible();
+  await page.getByText(/^View complete text/).click();
+  await expect(page.getByText(names.join(", "), { exact: true })).toBeVisible();
 });
 
 test("diagram, keyboard navigation, accessibility and responsive viewports", async ({ page }, testInfo) => {

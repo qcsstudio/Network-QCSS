@@ -19,14 +19,23 @@ FTD diagnostic output; FortiGate FortiOS, FortiWeb and standalone FortiSwitch.
 FTD running-config is ASA-style diagnostic data and cannot establish the complete
 FMC/FDM access-control, Snort, inspection or application policy.
 
-Import accepts UTF-8 CLI text, at most 512 KiB, 12,000 lines and 2,048 characters
-per line. Binary/encrypted backups, JSON/XML/YAML and archive files are rejected.
-No uploaded text is executed. A Web Worker keeps analysis off the main UI thread.
-Timeout, cancellation, file-read races and profile changes invalidate stale results.
+Import accepts UTF-8 CLI text without an application-imposed file-size, line-count
+or line-length limit. Available browser memory and device capacity still apply;
+this is not a promise to process arbitrarily large input on every device.
+Binary/encrypted backups, JSON/XML/YAML and archive files remain rejected.
+No supplied text is executed. Files are decoded incrementally inside the local
+Web Worker, not copied into a huge textarea. Progress, cancellation and stale-result
+invalidation remain available. There is no elapsed-time rejection; after ten seconds
+the workspace reports continued processing. A terminated worker never falls back
+to a server. Scoped object references use indexed lookup instead of quadratic scans.
+Object choices, reference diagrams, settings, source lines and export previews are
+paged without discarding input. Long statement text can be expanded in full.
 
 Masking happens before parsing or diagram generation. Known passwords, hashes,
 keys, communities, certificates, banners and free-text comments are removed.
-The original input is replaced with the masked form after successful analysis.
+Pasted input is replaced with the masked form after successful analysis. A selected
+file remains an in-memory File reference for reanalysis until cleared or navigation;
+its raw contents are read only in the worker. Source and exports use masked output.
 Unknown secret formats, identities and addresses may remain. Downloads require a
 human preview/acknowledgment. Masked output is not a restorable device backup.
 No raw configuration, result or visitor search is stored in browser storage.
@@ -121,3 +130,47 @@ Isolated build: C:/Users/rksankhyan/Documents/Codex/qcs-config-lens-20261024/app
 Local preview only; not committed, pushed or deployed by this task. No social post,
 schedule, production database or editorial record was modified. The isolated preview
 uses explicit test-only admin settings and a disconnected local database URL.
+
+Large-configuration checkpoint - 2026-10-25
+------------------------------------------
+Removed the application-level 512 KiB, 12,000-line, 2,048-character-per-line
+rejections and the 10-second termination. This does not promise unlimited browser
+capacity. File decoding and analysis run in a cancellable worker with progress;
+available memory, JavaScript string limits and the device still determine capacity.
+No configuration is sent to an API or persisted in browser storage. Known-secret
+masking and format/dialect validation remain in place; unknown secrets can remain.
+
+Reference resolution uses scoped indexed identities instead of repeated full-object
+scans. Object selection, references, settings and export previews are paged, while
+downloads preserve the complete masked content. Long text is expandable without
+clipping. Selected file content is not copied into a large textarea. Source-line
+buttons now retain complete large line numbers on desktop and mobile.
+
+39 unit/security/boundary checks passed, including the worker tests. Synthetic
+fixtures verified 80,003 Cisco lines with 20,000 resolved references, a FortiGate
+group referencing 15,000 objects, a complete line exceeding 2 MiB, malformed and
+split UTF-8, and masking of long secret-bearing lines. Scoped lint and TypeScript
+checks passed. An isolated Next webpack production build passed with 107 pages.
+
+Seven final public-tool browser workflows passed against the isolated production
+build: all eight profiles, file selection, complete masked download, stale-state
+invalidation, large Cisco and FortiGate results, long-text expansion, cancellation
+of a 500,000-line input, invalid UTF-8, keyboard tabs, workspace-scoped axe checks,
+responsive layouts and route CSP/fresh-document isolation. The cancellation test
+does not claim successful full analysis of 500,000 lines. Network checks observed
+no configuration transmission or paid API calls. In the large-file visual test,
+the separate privacy-choice acknowledgement was completed before selecting input
+and monitoring the configuration workflow; it contains no configuration data.
+
+Fresh 1440px and 320px large-diagram screenshots were inspected; labels and source
+numbers are complete, with no horizontal page overflow. Evidence is under:
+C:/Users/rksankhyan/Documents/Codex/qcs-config-lens-large-20261025/app/test-results/config-lens-large-release
+Earlier failed sandbox and test-harness runs are not counted as passing evidence.
+The final build uses HEAD a0e5e4adfb646c612f83fa5508957424a40bf9da plus only the
+Config Lens changes, without unrelated work or production environment files.
+
+Preview: http://127.0.0.1:3056/network-tools/network-configuration-explainer
+The admin updater was not changed and its live vendor-fetch browser workflow was
+not rerun for this patch; its existing auth/feed unit checks passed. No production
+database, device runtime, paid API, social post or schedule was accessed or changed.
+This checkpoint is locally verified, not committed, pushed or deployed.
