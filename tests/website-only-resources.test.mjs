@@ -50,12 +50,12 @@ test("presentation merge is non-mutating, deduplicated and uses the static image
   const other = { ...post, slug: "other", publishedAt: "2026-10-01" };
   const existing = [other, { ...post, title: "Older record" }];
   const merged = withWebsiteOnlyResources(existing);
-  assert.equal(merged.length, 2);
-  assert.equal(merged[0].title, post.title);
+  assert.equal(merged.length, websiteOnlyResources.length + 1);
+  assert.equal(merged.find((item) => item.slug === post.slug).title, post.title);
   assert.equal(existing[1].title, "Older record");
   assert.equal(resourceCardImage(post), post.image);
   assert.equal(resourceCardImage(other), "/resources/other/visual");
-  assert.equal(websiteOnlyResources.length, 1);
+  assert.equal(new Set(websiteOnlyResources.map((item) => item.slug)).size, websiteOnlyResources.length);
 });
 
 test("exact route and additive sitemap are static and contain no database or publishing imports", () => {

@@ -1,6 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import type { BlogPost } from "@/lib/blog";
@@ -12,6 +13,7 @@ type BlogArticleProps = {
   showLeadForm?: boolean;
   visualSrc?: string;
   visualLinkLabel?: string;
+  sectionExtras?: Readonly<Record<string, ReactNode>>;
 };
 
 function sectionId(heading: string, index: number) {
@@ -22,7 +24,7 @@ function sectionId(heading: string, index: number) {
   return `${slug || "section"}-${index + 1}`;
 }
 
-export function BlogArticle({ post, relatedPosts = [], showLeadForm = true, visualSrc, visualLinkLabel }: BlogArticleProps) {
+export function BlogArticle({ post, relatedPosts = [], showLeadForm = true, visualSrc, visualLinkLabel, sectionExtras }: BlogArticleProps) {
   const published = new Date(post.publishedAt).toLocaleDateString("en-IN", {
     day: "numeric",
     month: "short",
@@ -137,6 +139,7 @@ export function BlogArticle({ post, relatedPosts = [], showLeadForm = true, visu
                     ))}
                   </ul>
                 ) : null}
+                {sectionExtras?.[section.heading]}
               </section>
             ))}
 

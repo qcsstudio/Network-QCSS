@@ -1,0 +1,22 @@
+.guide :global(.blog-hero) { display: block; }
+.guide :global(.blog-hero h1) { max-width: 28ch; }
+.guide :global(.blog-hero-media) { width: 100%; min-height: 0; aspect-ratio: 16 / 9; margin-top: 2rem; }
+.guide :global(.blog-hero-media img) { object-fit: contain; }
+.guide :global(.blog-sidebar), .guide :global(.blog-article) { min-width: 0; overflow-wrap: anywhere; }
+.guide :global(.blog-sidebar) { top: 128px; max-height: calc(100dvh - 144px); }
+@media (max-width: 1080px) {
+  .guide :global(.blog-sidebar) { position: static; max-height: none; }
+}
+.figure { margin: 2rem 0; }
+.figure img { display: block; width: 100%; height: auto; border: 1px solid #c4cfda; }
+.figure figcaption { margin: 1rem 0; color: #37465a; font-size: 1rem; line-height: 1.6; }
+.diagnostics { margin-top: 2rem; border-top: 2px solid #93264f; padding-top: 1.5rem; }
+.diagnostics ol { padding-left: 1.5rem; }
+.diagnostics li { margin: 1.5rem 0 2rem; }
+.diagnostics h3 { font-size: 1.4rem; }
+.diagnostics h4 { font-size: 1.1rem; line-height: 1.5; }
+.diagnostics pre { max-width: 100%; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 1rem; background: #edf1f7; color: #162536; border: 1px solid #c4cfda; border-radius: 4px; font-size: 1rem; line-height: 1.6; }
+.diagnostics pre:focus-visible { outline: 3px solid #93264f; outline-offset: 3px; }
+.guide :global(#practical-checklist .article-check-grid) { display: block; }
+.guide :global(#practical-checklist .article-check-grid article) { box-shadow: none; border: 0; border-bottom: 1px solid #c4cfda; border-radius: 0; padding: 0.75rem 0; background: transparent; }
+.guide :global(#practical-checklist .article-check-grid article > :first-child:not(p)) { display: none; }

@@ -1,5 +1,6 @@
 import type { BlogPost } from "./blog.ts";
 import fortinet from "../content/website-only/fortinet-october-2026-hardening.json";
+import ztna from "../content/website-only/fortigate-ztna-case-study.json";
 
 // Presentation-only inventory. Never seed these records into editorial/social jobs:
 // their social publication is already owned by separately recorded native posts.
@@ -17,7 +18,17 @@ export const fortinetHardeningGuide: BlogPost = {
   }
 };
 
-export const websiteOnlyResources: BlogPost[] = [fortinetHardeningGuide];
+export const fortigateZtnaCaseStudy: BlogPost = {
+  ...ztna,
+  contentVersion: 3,
+  contentType: "blog",
+  storySpine: {
+    ...ztna.storySpine,
+    visualSequence: [ztna.storySpine.visualSequence[0], ztna.storySpine.visualSequence[1], ztna.storySpine.visualSequence[2]]
+  }
+};
+
+export const websiteOnlyResources: BlogPost[] = [fortinetHardeningGuide, fortigateZtnaCaseStudy];
 
 export function withWebsiteOnlyResources(posts: BlogPost[]): BlogPost[] {
   const entries = new Map(posts.map((post) => [post.slug, post]));

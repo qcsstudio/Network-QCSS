@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "reviewer": "Harvey (Codex independent reviewer)",
+  "reviewerId": "01a13e77-9990-71d0-b15b-6295f9c59903",
+  "reviewedAt": "2026-10-27T11:21:07Z",
+  "status": "PASS",
+  "scope": "Independent exact-content review carried forward from the preserved same-day full source/code review, with bounded re-reviews of the repaired access-path SVG/PNG pixels and the page-scoped sidebar CSS. Since the original receipt, only those two image artifacts and page.module.css changed. This is not deployment authorization, customer verification or appliance-runtime evidence.",
+  "file": "src/content/website-only/fortigate-ztna-case-study.json",
+  "sha256": "bc9bad9dd166d5ae4dbfbd12bd21629d738b13650bff5ed5f4c4369fa3edd083",
+  "substantiveContentSha256": "062a428e590db33e930d76aa6ea79ee74bda9802be91ea067f892768e309f691",
+  "artifacts": [
+    {
+      "file": "src/content/website-only/fortigate-ztna-case-study.json",
+      "sha256": "bc9bad9dd166d5ae4dbfbd12bd21629d738b13650bff5ed5f4c4369fa3edd083"
+    },
+    {
+      "file": "src/content/website-only/fortigate-ztna-diagnostics.json",
+      "sha256": "7cea2a5e48a61ae7e4bf5fb0e7141e72bc579185a9f723f6c8fd33fdabfce038"
+    },
+    {
+      "file": "public/images/editorial/fortigate-ztna-access-path.svg",
+      "sha256": "ea339f2282e6b4d829aeeed01c5d616ea1e81c68c3751573e5e179e0ffc6a1af"
+    },
+    {
+      "file": "public/images/editorial/fortigate-ztna-access-path.png",
+      "sha256": "c03ef6bce9a188545ab6915d7e467f746b284d6506500b6e35a258211e32f971"
+    },
+    {
+      "file": "public/images/editorial/fortigate-ztna-evidence-map.svg",
+      "sha256": "d479fa1ad61af96df2dc911ae126096186aca337ec9c9e9c579b5c4ab32801a7"
+    },
+    {
+      "file": "public/images/editorial/fortigate-ztna-evidence-map.png",
+      "sha256": "50a2605c377aa147285bc5547bb85c8b78014f0e36e46e51238d3da30bcb3b43"
+    },
+    {
+      "file": "src/app/resources/fortigate-ztna-connected-ems-application-access-troubleshooting/page.tsx",
+      "sha256": "5c3743e384917df1ca2a108a4d513c49c1a21f6efc4c8721055327c8602be76c"
+    },
+    {
+      "file": "src/app/resources/fortigate-ztna-connected-ems-application-access-troubleshooting/page.module.css",
+      "sha256": "6c835f05d4a1fb11b4fe2e2a6b45b90de892a48a45930083a36c5230b7b07402"
+    },
+    {
+      "file": "src/components/blog-article.tsx",
+      "sha256": "956e477eaff6069fb89d97ebcde3a77f9c402f49a727c0b3a386c9d2ee3aa43b"
+    },
+    {
+      "file": "src/lib/website-only-resources.ts",
+      "sha256": "96292a5d44e400a4463c80688645cd140cb23469dc6646e043fd323ac0f4f846"
+    },
+    {
+      "file": "tests/fortigate-ztna-case-study.test.mjs",
+      "sha256": "5343db106cebb3de3f70d3a733c28b65d09b24d44442088d1951e1402a0080d9"
+    },
+    {
+      "file": "tests/website-only-resources.test.mjs",
+      "sha256": "bf52a68819e13e4248911da70ad0a5a4d324b5c3180f0e0c65c5e911bf0af8ff"
+    }
+  ],
+  "evidence": {
+    "checks": [
+      {
+        "category": "complete_article_review",
+        "passed": true,
+        "verification": "Read the complete current JSON including the revised story thesis and runbook/response headings, definitions, ten body sections, five FAQs, checklist, source mappings and pending-review metadata."
+      },
+      {
+        "category": "case_provenance",
+        "passed": true,
+        "verification": "Checked the exact public LinkedIn post live and the supplied transcript. Reported customer outcome is attributed, while missing versions, settings, logs and acceptance details remain undisclosed."
+      },
+      {
+        "category": "technical_accuracy",
+        "passed": true,
+        "verification": "Verified EMS's non-inline role, separate proxy connections, HTTP/TFAP distinction, full/simple policy behavior, certificate/posture/user-authentication distinctions, model limitation and bounded application-validation claims."
+      },
+      {
+        "category": "command_accuracy",
+        "passed": true,
+        "verification": "All three diagnostic commands and their observational meanings match the versioned primary reference. No configuration patch or destructive command is presented."
+      },
+      {
+        "category": "safety_and_beginner_clarity",
+        "passed": true,
+        "verification": "Terms and CLI use are explained. Authorization, protected evidence, baseline/rollback, management access, shared-object impact and narrowly authorized PAM tests are explicit. No guaranteed fix or bypass instruction is given."
+      },
+      {
+        "category": "source_support",
+        "passed": true,
+        "verification": "All ten bibliography URLs were retrieved successfully in the live browser and relevant content read. Initial web-tool failures are not counted as successful retrieval. Section and FAQ citations are listed bibliography members."
+      },
+      {
+        "category": "visual_consistency",
+        "passed": true,
+        "verification": "Inspected the regenerated access-path PNG: both upper request arrows point right, both lower reply arrows point left, and EMS context points down toward FortiGate. Explicit SVG polygons agree with those pixels. EMS remains outside the application path, labels are readable, and no overlap or clipping was observed. Evidence-map bytes are unchanged from the prior successful pixel review."
+      },
+      {
+        "category": "static_code_and_scope",
+        "passed": true,
+        "verification": "Exact route uses local JSON, dynamic=error, disabled lead form and no database/social publishing calls. The registry addition is presentation-only and sectionExtras is optional. Current extra keys match current article headings; no material scoped code defect found. Bounded CSS review confirms page-scoped top:128px/max-height:calc(100dvh - 144px) overrides the global sticky offset while preserving overflow:auto. The <=1080px rule restores position:static and max-height:none; the existing matching global breakpoint supplies overflow:visible. No source-level layout issue found; no new browser rendering is claimed."
+      },
+      {
+        "category": "presentation_and_review_claims",
+        "passed": true,
+        "verification": "The current pending-review metadata remains honest for the reviewed input. It may now be finalized solely under the metadataFinalization permission below. No human, vendor, appliance-runtime or deployment approval is implied."
+      }
+    ],
+    "findings": []
+  },
+  "verifiedSources": [
+    {
+      "url": "https://www.linkedin.com/feed/update/urn:li:activity:7520782304571719680/",
+      "method": "Live browser reading of the exact public post; compared with the supplied local transcript.",
+      "verification": "The post reports an EMS-connected endpoint, inaccessible PAM application, investigation of VIP/interface and associated policy, an application authentication response after correction, and subsequently confirmed working access. It provides no customer version, addresses, configuration diff or detailed acceptance test. The article preserves those limits.",
+      "verifiedAt": "2026-10-27T11:15:41Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. The source list and all article/diagnostic bytes are unchanged; no new retrieval is claimed for this bounded graphic re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/administration-guide/855420/zero-trust-network-access-introduction",
+      "method": "Live browser document reading, version 7.4.7.",
+      "verification": "Verified EMS telemetry, certificate and posture synchronization separately from the application gateway. Read HTTP reverse-proxy and TCP-forwarding descriptions. These support the separate management/context and application paths; they do not prove any customer deployment.",
+      "verifiedAt": "2026-10-27T11:15:41Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. The source list and all article/diagnostic bytes are unchanged; no new retrieval is claimed for this bounded graphic re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/administration-guide/194961/basic-ztna-configuration",
+      "method": "Live browser document reading, version 7.4.7.",
+      "verification": "Verified external interface/IP/port, management-listener conflict warning, gateway certificate, virtual host/path and real-server mapping. Checked full/simple policy locations, authentication scheme/rule distinction and HTTP-versus-TFAP client configuration. Supports independently checking backend service and TLS settings.",
+      "verifiedAt": "2026-10-27T11:15:41Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. The source list and all article/diagnostic bytes are unchanged; no new retrieval is claimed for this bounded graphic re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/administration-guide/25915/establish-device-identity-and-trust-context-with-forticlient-ems",
+      "method": "Live browser document reading, version 7.4.7.",
+      "verification": "Verified FortiClient registration, certificate issuance, UID/serial identity records, EMS tagging, FortiGate synchronization and WAD consumption. The source distinguishes the ZTNA CA from EMS's HTTPS server certificate; the article correctly separates identity, posture and user authentication.",
+      "verifiedAt": "2026-10-27T11:15:41Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. The source list and all article/diagnostic bytes are unchanged; no new retrieval is claimed for this bounded graphic re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/administration-guide/102072/ssl-certificate-based-authentication",
+      "method": "Live browser document reading, version 7.4.7.",
+      "verification": "Verified client UID/certificate serial matching and certificate checks before further ZTNA rule processing. The article does not instruct readers to disable checks or accept an empty certificate; it avoids treating certificate acceptance as application success.",
+      "verifiedAt": "2026-10-27T11:15:41Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. The source list and all article/diagnostic bytes are unchanged; no new retrieval is claimed for this bounded graphic re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/administration-guide/972568/full-versus-simple-ztna-policies",
+      "method": "Live browser document reading, version 7.4.7.",
+      "verification": "Verified full policies under Proxy Policy and simple policies under Firewall Policy. Simple policies cannot control destination interface or real-server destination address. Optional ztna-policy-redirect requires a subsequent full-policy match; the article accurately says some configurations redirect rather than claiming all do.",
+      "verifiedAt": "2026-10-27T11:15:41Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. The source list and all article/diagnostic bytes are unchanged; no new retrieval is claimed for this bounded graphic re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/administration-guide/286458/ztna-troubleshooting-and-debugging-commands",
+      "method": "Live browser document reading, version 7.4.7; initial web retrieval returned HTTP 403.",
+      "verification": "Verified each literal command: diagnose test application fcnacd 2 dumps EMS connectivity information; diagnose firewall dynamic list displays EMS posture-tag dynamic address information; diagnose wad worker policy list shows statistics associated with application gateway rules. No command was executed. Diagnostic text correctly limits what each observation proves.",
+      "verifiedAt": "2026-10-27T11:15:41Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. The source list and all article/diagnostic bytes are unchanged; no new retrieval is claimed for this bounded graphic re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/administration-guide/504818/ztna-troubleshooting-scenarios",
+      "method": "Live browser document reading, version 7.4.7.",
+      "verification": "Verified certificate mismatch, endpoint records, policy mismatch, log correlation and tag consistency checks. The article's broader baseline, rollback and acceptance method is explicitly original guidance, not a claim that all these recommendations were performed in the customer case. It excludes verbose debugging and forced synchronization from its beginner commands.",
+      "verifiedAt": "2026-10-27T11:15:41Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. The source list and all article/diagnostic bytes are unchanged; no new retrieval is claimed for this bounded graphic re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/administration-guide/101256/ztna-tcp-forwarding-access-proxy-example",
+      "method": "Live browser document reading, version 7.4.7.",
+      "verification": "Verified FortiClient destination rules, proxy gateway selection, mapped backend ports and HTTPS-established TCP forwarding. Read the encryption option and protocol-switch caveat; the article does not guarantee end-to-end encryption and requires identifying the actual deployed mode and backend protection.",
+      "verifiedAt": "2026-10-27T11:15:41Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. The source list and all article/diagnostic bytes are unchanged; no new retrieval is claimed for this bounded graphic re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/administration-guide/317228/zero-trust-network-access",
+      "method": "Live browser document reading, version 7.4.7.",
+      "verification": "Verified the explicit exclusion of FortiGate models with 2 GB RAM or less for this documented feature. The article scopes this to the named documentation baseline and does not recommend installing 7.4.7 or assert that the customer used it.",
+      "verifiedAt": "2026-10-27T11:15:41Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. The source list and all article/diagnostic bytes are unchanged; no new retrieval is claimed for this bounded graphic re-review."
+    }
+  ],
+  "deterministicChecks": {
+    "command": "node --import tsx --test --test-skip-pattern=\"final publication is bound\" tests/fortigate-ztna-case-study.test.mjs tests/website-only-resources.test.mjs",
+    "exitCode": 0,
+    "passedTests": 12,
+    "failedTests": 0,
+    "excludedTest": "final publication is bound to an independent exact-content PASS",
+    "reason": "The excluded final-publication test requires the author to copy this genuine PASS to the public review location and truthfully finalize the four permitted metadata fields. That handoff has not been performed by this reviewer; the test was not counted as passed.",
+    "scope": "Local read-only tests; no database, vendor device, paid API or deployment calls.",
+    "verification": "Reran the 12 pre-approval tests against the current CSS and final explicit-polygon graphics; all passed. Separate read-only source assertions confirmed scoped sidebar offset/height, mobile reset and inherited overflow rules. CSS/browser appearance was not inferred solely from these assertions."
+  },
+  "metadataFinalization": {
+    "allowed": true,
+    "permittedFields": [
+      "/reviewedBy",
+      "/editorialMethod",
+      "/publishedAt",
+      "/updatedAt"
+    ],
+    "substantiveContentSha256": "062a428e590db33e930d76aa6ea79ee74bda9802be91ea067f892768e309f691",
+    "digestMethod": "Parse article JSON; remove only top-level reviewedBy, editorialMethod, publishedAt and updatedAt; recursively sort object keys lexicographically, preserve array order, JSON.stringify without whitespace, then SHA256 of UTF-8.",
+    "conditions": "The author may truthfully record Harvey's independent Codex source-based AI review and actual publication/update dates. Retain the no-device-runtime statement and customer-evidence limits. Do not imply human, Fortinet, customer-appliance or deployment approval. Only these four top-level metadata fields may change without another substantive review.",
+    "releaseHandoff": "Keep the substantiveContentSha256 and every non-article artifact hash unchanged, record the metadata-finalized article raw hash separately, and run the final publication-binding test and parent page/image/release checks. This receipt does not itself publish, authorize a DB connection, or authorize social changes."
+  },
+  "limitations": [
+    "No FortiGate, FortiClient EMS, PAM system, emulator, GNS3, CML or hardware command/runtime execution was performed.",
+    "The live LinkedIn post establishes what QCS publicly reported, not independent evidence of the customer's undisclosed configuration or successful workflow.",
+    "All ten cited URLs were read live by this reviewer during the preceding full review. Several initial web-tool requests failed; successful browser retrieval, not those failed attempts, supported verification. Sources and article text remain byte-identical.",
+    "The corrected access-path PNG was independently inspected in this re-review. The evidence-map passed prior pixel review and remains byte-identical. No live QCS page/mobile-browser QA, production build, publication HTTP check or social-platform QA was executed by this reviewer.",
+    "The parent's reported production build and static prerender success were not independently executed or counted as reviewer evidence.",
+    "Local tests do not validate real appliance behavior or customer-specific version/model/licensing compatibility. The final publication-binding test remains for the metadata-finalized handoff.",
+    "No content, images, application source, original independent-review.json, database records, social posts, schedules or queues were changed. No paid API was called. Only the requested private independent-review-rereview.json receipt was updated.",
+    "The CSS follow-up is source-reviewed, not newly browser-verified by this reviewer. Private transcript evidence is referenced under sourceEvidence and excluded from artifacts; no private transcript contents are embedded."
+  ],
+  "priorReview": {
+    "file": "test-results/fortigate-ztna-2026-10-27/independent-review.json",
+    "sha256": "328ee1d340b27629e2f221fca36fb3d36b5bea41aa2d6a445477c8d8d9e194ee",
+    "status": "CHANGES_REQUESTED",
+    "reviewedAt": "2026-10-27T11:15:41Z",
+    "preserved": true
+  },
+  "revisionVerification": {
+    "changedFiles": [
+      "public/images/editorial/fortigate-ztna-access-path.svg",
+      "public/images/editorial/fortigate-ztna-access-path.png",
+      "src/app/resources/fortigate-ztna-connected-ems-application-access-troubleshooting/page.module.css"
+    ],
+    "allOtherReviewedArtifactHashesUnchanged": true,
+    "articleSubstantiveDigestUnchanged": true,
+    "method": "Recomputed raw SHA256 for every prior artifact. Since the original receipt, only access-path.svg, access-path.png and page.module.css differ. Since the preceding PASS, only page.module.css differs. Article, diagnostics, page JSX, evidence-map and tests are byte-identical. The private transcript remains unchanged and is now referenced under sourceEvidence, outside the publication artifact array."
+  },
+  "resolvedFindings": [
+    {
+      "id": "ZTNA-VIS-01",
+      "priorPriority": "P2",
+      "status": "RESOLVED",
+      "verification": "The separate-path intermediate version still had incorrect arrow orientation. The final current revision uses explicit polygons, with correct directions confirmed in the actual PNG. No article or diagnostic text repair was required.",
+      "files": [
+        "public/images/editorial/fortigate-ztna-access-path.svg",
+        "public/images/editorial/fortigate-ztna-access-path.png"
+      ]
+    }
+  ],
+  "sourceEvidence": [
+    {
+      "file": "test-results/meta-crossposting/2026-10-27/fortigate-ztna-case-study/linkedin-source.txt",
+      "sha256": "309999ec241b671067ab1f1044a9a70383213a3f95008481ba480326bc889edb",
+      "url": "https://www.linkedin.com/feed/update/urn:li:activity:7520782304571719680/",
+      "private": true,
+      "purpose": "Private source transcript reference only. The exact public post was independently read live. This local evidence file is not a publication artifact and must not be required in Git or the isolated release. No transcript contents are included here."
+    }
+  ],
+  "boundedFollowUp": {
+    "reviewedAt": "2026-10-27T11:21:07Z",
+    "precedingPassAt": "2026-10-27T11:18:42Z",
+    "status": "PASS",
+    "scope": "Sidebar CSS and receipt packaging only.",
+    "file": "src/app/resources/fortigate-ztna-connected-ems-application-access-troubleshooting/page.module.css",
+    "previousSha256": "9b0b0928177080f3f75b7b0edf70224e2bc14c2750297b120f48c3fe348ee3a0",
+    "sha256": "6c835f05d4a1fb11b4fe2e2a6b45b90de892a48a45930083a36c5230b7b07402",
+    "verification": "Read current page CSS and relevant global sidebar/header/breakpoint styles. Ran read-only assertions for desktop offset/height, mobile reset and inherited overflow; all passed. Reran 12 pre-approval tests; all passed.",
+    "findings": [],
+    "limitations": "Static CSS review only. Actual desktop/mobile browser QA and final release-binding checks remain with the parent."
+  }
+}

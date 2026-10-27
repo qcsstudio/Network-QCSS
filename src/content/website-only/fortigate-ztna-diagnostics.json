@@ -1,0 +1,11 @@
+{
+  "heading": "Three observational CLI checks",
+  "introduction": "These commands are documented for FortiOS 7.4.7. Use your authorized FortiGate CLI console or approved SSH session, in the correct administrative context. A CLI is a text interface: type one complete command at its prompt and inspect the result before continuing. Consult the matching reference if your version or permissions differ; stop on an unsupported-command error. These checks were not executed against the customer's system or a lab for this article.",
+  "privacyNote": "Output can expose endpoint identifiers, addresses, posture information and policy names. Keep it in an approved private record and sanitize it before sharing. Large listings can be verbose; prefer the relevant GUI view when you do not need a full listing. These are observation commands, not access-granting configuration changes.",
+  "sourceUrl": "https://docs.fortinet.com/document/fortigate/7.4.7/administration-guide/286458/ztna-troubleshooting-and-debugging-commands",
+  "checks": [
+    {"command": "diagnose test application fcnacd 2", "purpose": "Inspect FortiGate-to-EMS connectivity information.", "observation": "Identify the expected EMS and its reported connection state. The FortiClient NAC daemon (fcnacd) manages this connectivity.", "limit": "This does not establish that a specific endpoint is authorized or that PAM is reachable."},
+    {"command": "diagnose firewall dynamic list", "purpose": "Inspect dynamic address information associated with EMS posture tags.", "observation": "Compare the relevant tag and address entries with the endpoint and policy under investigation. Correlate identity separately, especially when addresses are shared or translated.", "limit": "A listed address or tag alone is not proof that the complete policy matched the test request."},
+    {"command": "diagnose wad worker policy list", "purpose": "Inspect statistics associated with application-gateway rules.", "observation": "WAD is the FortiGate process handling proxy work. Compare relevant statistics before and after the timestamped test, alongside the request logs.", "limit": "A counter can include unrelated traffic. It does not independently prove backend delivery or successful application login."}
+  ]
+}
