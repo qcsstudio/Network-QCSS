@@ -91,6 +91,19 @@ test("final publication is bound to an independent exact-content PASS", () => {
   assert.doesNotMatch(post.editorialMethod, /review is pending/i);
   for (const artifact of review.artifacts) {
     if (artifact.file === "src/content/website-only/fortigate-ztna-case-study.json") continue;
+    const addendumFiles = {
+      "src/lib/website-only-resources.ts": "src/content/website-only/fortigate-ztna-registry-review-2026-10-28.json",
+      "tests/fortigate-ztna-case-study.test.mjs": "src/content/website-only/fortigate-ztna-test-review-2026-10-28.json"
+    };
+    if (Object.hasOwn(addendumFiles, artifact.file) && hash(readFileSync(new URL(`../${artifact.file}`, import.meta.url))) !== artifact.sha256) {
+      const addendum = JSON.parse(read(addendumFiles[artifact.file]));
+      assert.equal(addendum.status, "PASS");
+      assert.equal(addendum.reviewerId, review.reviewerId);
+      assert.equal(addendum.file, artifact.file);
+      assert.equal(addendum.priorSha256, artifact.sha256);
+      assert.equal(addendum.sha256, hash(readFileSync(new URL(`../${artifact.file}`, import.meta.url))));
+      continue;
+    }
     assert.equal(hash(readFileSync(new URL(`../${artifact.file}`, import.meta.url))), artifact.sha256, artifact.file);
   }
 });

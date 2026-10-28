@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "reviewer": "Harvey (Codex independent reviewer)",
+  "reviewerId": "01a13e77-9990-71d0-b15b-6295f9c59903",
+  "reviewedAt": "2026-10-28T03:23:42Z",
+  "file": "tests/fortigate-ztna-case-study.test.mjs",
+  "priorSha256": "5343db106cebb3de3f70d3a733c28b65d09b24d44442088d1951e1402a0080d9",
+  "sha256": "123604ed7f5cb763ddfac736205bf200190ae287c5a58c0cd7a706d26a869089",
+  "scope": "Exact test-file-only addendum to the preserved FortiGate ZTNA review. Approves the two explicitly named addendum-path lookup entries and their status, reviewer, file, prior-hash and current-hash checks. No arbitrary artifact or addendum-path exception is added. This does not replace the old receipt, authorize other file changes, publish, access the database or alter social content.",
+  "verification": [
+    "Read the complete current test and its scoped diff. Existing substantive-content digest, original PASS/reviewer assertions, article-only metadata exception and all non-allowlisted artifact hash checks remain unchanged.",
+    "Confirmed the prior hash from the original public ZTNA receipt also equals the raw Git HEAD version of this test.",
+    "The allowlist has exactly src/lib/website-only-resources.ts and tests/fortigate-ztna-case-study.test.mjs, each mapped to its own literal public addendum path. Object.hasOwn prevents inherited-property lookup.",
+    "Each changed allowlisted artifact requires PASS, the original reviewerId, exact artifact file, original artifact hash as priorSha256, and actual current file hash as sha256. Unlisted changes retain direct original-hash equality.",
+    "Confirmed no article, diagnostics, renderer, route, image, caption, source evidence or other initially reviewed artifact changed since the initial loop review; only this test differs.",
+    "Reran 17 pre-approval loop, ZTNA and website-only tests successfully. The two installed final binding tests remain excluded pending genuine receipt handoff."
+  ],
+  "regressionVerification": {
+    "method": "Executed the current final-publication test callback read directly from the exact current test source in a Node VM, with actual local article/artifact bytes and two in-memory addendum fixtures. No fixture approval was written or installed. Assertions and callback body were unchanged; import.meta.url was supplied as the real test-file URL.",
+    "scenarios": 22,
+    "positiveScenariosPassed": 2,
+    "negativeScenariosCorrectlyRejected": 20,
+    "positive": [
+      "Exact current artifacts with both correct prior/current-hash addenda.",
+      "Permitted article updatedAt-only change retaining substantive digest."
+    ],
+    "negative": [
+      "For each of the two addenda: missing file, malformed JSON, non-PASS status, wrong reviewerId, wrong file, wrong priorSha256 and wrong current sha256 (14 cases).",
+      "Unlisted diagnostics artifact mutation; article substantive mutation; original receipt wrong reviewer; original receipt non-PASS; test mutation after its approved hash; registry mutation after its approved hash (6 cases)."
+    ],
+    "limitations": "This exercises the exact gate with fixtures; it is not the full installed 19-test release run. Parent must install literal genuine receipts, finalize permitted metadata, and run both final binding tests."
+  },
+  "findings": [],
+  "priorReceipt": {
+    "file": "src/content/website-only/fortigate-ztna-case-study.review.json",
+    "sha256": "ad0be865db3998b9a59d4657d60aec215c97bf3d4bbcb08b62aa2348a4458eb7",
+    "preserved": true
+  },
+  "limitations": [
+    "Only this exact test transition is approved; the separate registry addendum remains necessary and unchanged.",
+    "No full production build, page/browser QA, device runtime, database operation, paid API, deployment or social action was performed in this bounded re-review.",
+    "This receipt is independent review evidence, not cryptographic identity attestation or permission to bypass parent release checks."
+  ]
+}

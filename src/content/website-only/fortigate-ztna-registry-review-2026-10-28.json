@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "reviewer": "Harvey (Codex independent reviewer)",
+  "reviewerId": "01a13e77-9990-71d0-b15b-6295f9c59903",
+  "reviewedAt": "2026-10-28T03:13:44Z",
+  "file": "src/lib/website-only-resources.ts",
+  "priorSha256": "96292a5d44e400a4463c80688645cd140cb23469dc6646e043fd323ac0f4f846",
+  "sha256": "613c9f130d1aec1344c87d36875f25b4e3322226234da08e793ee28c1ee491b6",
+  "scope": "Exact registry-only addendum to the preserved FortiGate ZTNA review. Reviewed the additive Layer 2 loop import, its typed BlogPost export and registry entry. The existing ZTNA and hardening exports and merge/image helpers are unchanged. This approves only this file transition, not any article, test-file change, publication, database access or social action.",
+  "verification": [
+    "Read the complete current registry and its scoped Git diff.",
+    "Confirmed Git HEAD registry raw SHA256 equals the supplied prior hash. Removing only the new import/export/array entry from current text reproduces the prior source after line-ending normalization.",
+    "Read existing ZTNA export and tuple reconstruction unchanged; all additions are local JSON presentation data with no runtime publishing or database imports.",
+    "Ran the 17 pre-approval loop, ZTNA and website-only tests; all passed. Final approval-binding tests were excluded pending genuine receipts and final metadata."
+  ],
+  "findings": [],
+  "limitations": [
+    "The original ZTNA approval receipt remains untouched.",
+    "This registry-only addendum does not authorize the separately changed tests/fortigate-ztna-case-study.test.mjs hash. That test is itself pinned in the prior receipt and needs its own exact independently reviewed transition before the full release test can pass.",
+    "No browser page QA, deployment, database call, device command execution or social operation was performed."
+  ]
+}

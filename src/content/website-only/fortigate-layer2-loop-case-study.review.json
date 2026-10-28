@@ -1,0 +1,314 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "reviewer": "Harvey (Codex independent reviewer)",
+  "reviewerId": "01a13e77-9990-71d0-b15b-6295f9c59903",
+  "reviewedAt": "2026-10-28T03:23:42Z",
+  "scope": "Independent exact-revision PASS carrying forward the preserved full Layer 2 loop article, commands, sources, graphics, route and caption review. This bounded re-review resolves LOOP-RELEASE-01 by independently reviewing and adversarially testing the exact two-file ZTNA addendum gate. Only the ZTNA test changed; all other reviewed bytes remain unchanged. Not publication, deployment or distribution execution.",
+  "contentOutcome": "PASS",
+  "releaseGateOutcome": "PASS",
+  "substantiveContentSha256": "0a5be0245ef789cc67e0e43a7b681a67070a1e66ecf2da52013d2783d4878d10",
+  "substantiveHashMethod": "Parse the article JSON; exclude only root reviewedBy, editorialMethod, publishedAt and updatedAt; recursively sort object keys while retaining array order; SHA256 compact JSON encoded as UTF-8.",
+  "artifacts": [
+    {
+      "file": "src/content/website-only/fortigate-layer2-loop-case-study.json",
+      "sha256": "8a53c994c8e6413f3c80e285d65221ba875d40aec28cca9c8609b31f0db9e2bb"
+    },
+    {
+      "file": "src/content/website-only/fortigate-layer2-loop-diagnostics.json",
+      "sha256": "aad76eac7e5bce6d8b08557a21d3111b46944732cc478065aee77c152d2f7fae"
+    },
+    {
+      "file": "src/app/resources/fortigate-high-cpu-fortiswitch-fortiap-offline-layer2-loop/page.tsx",
+      "sha256": "2a30568c043d11036aea34dc9ff89dd7459d7b90d934d200bbd7e764deb57e25"
+    },
+    {
+      "file": "scripts/render-fortigate-loop-case-study.mjs",
+      "sha256": "3fbeb1d26aa7842a198098e99c986423e93b7201610e8113e8c440d9677d7e30"
+    },
+    {
+      "file": "public/images/editorial/fortigate-loop-evidence.png",
+      "sha256": "ffbd3d1aa2fd9ea55d95f286b73ff3451af44d99afd042edc718a49db8058859"
+    },
+    {
+      "file": "public/images/editorial/fortigate-loop-evidence.svg",
+      "sha256": "4ddc4262438cc2cf08a745a24eda235c04f302723521806065f4ace64b7b8a3d"
+    },
+    {
+      "file": "public/images/editorial/fortigate-loop-topology.png",
+      "sha256": "47ee35164661c9129aee03e7da56b1d11ba9a35af8a727167f8ce6b471f8bff3"
+    },
+    {
+      "file": "public/images/editorial/fortigate-loop-topology.svg",
+      "sha256": "4b200f9484b2caf9498c748a13e0b2a3e28c1ed51047723f1c6c8e382357308a"
+    },
+    {
+      "file": "public/images/editorial/fortigate-loop-social.png",
+      "sha256": "541d6da43e3ba5707a4c24fcdc16bc345b3f7e3d1a6efa93c87321adbc14b968"
+    },
+    {
+      "file": "public/images/editorial/fortigate-loop-social.svg",
+      "sha256": "536d0259a66c118f75087f2d919da1496678aafba69b9eafbcd32978f6d800cb"
+    },
+    {
+      "file": "src/lib/website-only-resources.ts",
+      "sha256": "613c9f130d1aec1344c87d36875f25b4e3322226234da08e793ee28c1ee491b6"
+    },
+    {
+      "file": "src/app/resources/fortigate-ztna-connected-ems-application-access-troubleshooting/page.module.css",
+      "sha256": "6c835f05d4a1fb11b4fe2e2a6b45b90de892a48a45930083a36c5230b7b07402"
+    },
+    {
+      "file": "tests/fortigate-loop-case-study.test.mjs",
+      "sha256": "ebd012cf5d1fde7f9e3f0d862b8b5d2ce612de6130e01756d2a7ce76be7c68c6"
+    },
+    {
+      "file": "tests/fortigate-ztna-case-study.test.mjs",
+      "sha256": "123604ed7f5cb763ddfac736205bf200190ae287c5a58c0cd7a706d26a869089"
+    }
+  ],
+  "socialArtifacts": [
+    {
+      "platform": "facebook",
+      "file": "test-results/fortigate-loop-2026-10-28/facebook-caption.txt",
+      "sha256": "8955d9039c9431cab36dc8eeb0e9a559d61f1a18e608cb8221628878a85fad24",
+      "verification": "Read complete caption. Reported incident facts and subsequent planned upgrade match the public source; general guidance is not represented as executed customer work. Intended new article URL is correct. No platform preview, scheduling or publication performed."
+    },
+    {
+      "platform": "instagram",
+      "file": "test-results/fortigate-loop-2026-10-28/instagram-caption.txt",
+      "sha256": "afee82b9f1e34fd44673fd9907172318acc649e1641a218b1f8b1983c1b68d28",
+      "verification": "Read complete caption. Reported incident facts and subsequent planned upgrade match the public source; general guidance is not represented as executed customer work. Intended new article URL is correct. No platform preview, scheduling or publication performed."
+    }
+  ],
+  "sourceEvidence": [
+    {
+      "file": "test-results/fortigate-loop-2026-10-28/linkedin-source.txt",
+      "sha256": "bce251f06e4ef8816de6c52d28a1a3b6f5e202333ed2cef809dc7ad04a8fbddf",
+      "private": true,
+      "verification": "Read complete saved transcript and compared it with the independently retrieved live LinkedIn post."
+    },
+    {
+      "file": "test-results/fortigate-loop-2026-10-28/linkedin-source.png",
+      "sha256": "e712dd8521ec858e9a2b8b8d0c1273279bfd4624b4deccf93ddc35879e2a7d63",
+      "private": true,
+      "verification": "Inspected saved source screenshot pixels; visible text corroborates the case, with the full transcript and live post covering text beyond the screenshot."
+    }
+  ],
+  "checks": [
+    {
+      "category": "source_provenance",
+      "passed": true,
+      "verification": "Read the complete article and exact public QCS post, compared saved transcript, and verified all nine bibliography URLs live using the successful methods recorded below."
+    },
+    {
+      "category": "technical_accuracy_and_commands",
+      "passed": true,
+      "verification": "Verified six observational commands, command context, stop instructions, CPU/interrupt/process distinctions, packet-rate interpretation, LLDP versus loop prevention, STP and guard distinctions, build and upgrade-path scope."
+    },
+    {
+      "category": "production_safety",
+      "passed": true,
+      "verification": "Article requires authorization, backup and recovery access, scoped evidence, dependency checks and verification. It forbids creating a production loop or blindly disabling protection; rollback does not deliberately recreate a known loop."
+    },
+    {
+      "category": "case_and_runtime_boundaries",
+      "passed": true,
+      "verification": "Customer versions before the final planned upgrade, exact topology, ports, CPU percentage and durations remain unknown. Reference versions and hypothetical topology are clearly distinguished from observed customer evidence. No appliance or lab execution is claimed."
+    },
+    {
+      "category": "beginner_clarity_and_presentation",
+      "passed": true,
+      "verification": "Runbook, response choices, bounded command cards and explanations distinguish symptoms, hypotheses, physical investigation, recovery and later maintenance. The final visualSequence wording is consistent with the reported sequence."
+    },
+    {
+      "category": "visual_consistency_and_accessibility",
+      "passed": true,
+      "verification": "Inspected all three current PNGs at original resolution and SVG source. Complete readable labels and correct topology arrows; before triangle closes A-to-B-to-C-to-A and after the isolated edge leaves A-B-C connected. Illustrative boundaries and omissions are explicit. Source route provides image alt/caption, scalable diagram link and labeled keyboard-focusable command blocks."
+    },
+    {
+      "category": "caption_consistency",
+      "passed": true,
+      "verification": "Read both exact private captions. Counts, root-cause attribution, planned upgrade sequence and technical scope match the article and public source. No invented customer measurements or guaranteed fix."
+    },
+    {
+      "category": "static_route_and_registry_isolation",
+      "passed": true,
+      "verification": "Reviewed static route, local registry integration and scoped dependencies. No new database, paid API, social publishing or scheduling path; lead form disabled. Registry additions preserve existing ZTNA and hardening exports/helpers. Separate registry addendum records the exact permitted transition."
+    },
+    {
+      "category": "exact_release_gate_integrity",
+      "passed": true,
+      "verification": "Resolved the original test self-hash failure through an explicitly named test addendum alongside the existing registry addendum. Both transitions enforce PASS, same reviewer, exact artifact and prior/current hashes. The unmodified current callback accepted 2 valid scenarios and rejected 20 invalid scenarios in a read-only fixture harness. Full installed final-binding tests remain a parent handoff requirement."
+    }
+  ],
+  "findings": [],
+  "verifiedSources": [
+    {
+      "url": "https://www.linkedin.com/feed/update/urn:li:activity:7521041223168684032/",
+      "method": "Live browser retrieval; local exact transcript and screenshot cross-check.",
+      "verification": "Verified reported three switches and nine access points offline after upgrade, high CPU, CPU and packet-rate investigation, targeted FortiLink debugging, LLDP/topology checks, access-side loop correction, stable restoration and subsequently completed planned 7.6.8 upgrade. No undisclosed topology, pre-upgrade versions, exact CPU percentage or duration inferred.",
+      "verifiedAt": "2026-10-28T03:19:20Z",
+      "reviewContinuity": "Verified live by this independent reviewer during the preceding full review. Article and bibliography remain byte-identical; no fresh source retrieval is claimed for this test-only re-review."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/troubleshooting-tip-how-high-cpu-usage-should-be-investigated-171700",
+      "method": "Successful live web retrieval of Fortinet staff technical note.",
+      "verification": "Verified user/system/IRQ CPU distinction, get system performance status, diagnose sys mpstat 2 with two-second sampling and any-key exit, and that IRQ load can have causes beyond a loop.",
+      "verifiedAt": "2026-10-28T03:19:20Z",
+      "reviewContinuity": "Verified live by this independent reviewer during the preceding full review. Article and bibliography remain byte-identical; no fresh source retrieval is claimed for this test-only re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.8/administration-guide/232929/troubleshooting-high-cpu-usage",
+      "method": "Successful live browser retrieval of versioned Fortinet documentation.",
+      "verification": "Verified diagnose sys top, p to sort by CPU, q to quit, and process/summary scope. Article omits disruptive troubleshooting actions from the vendor page rather than presenting them as routine first steps.",
+      "verifiedAt": "2026-10-28T03:19:20Z",
+      "reviewContinuity": "Verified live by this independent reviewer during the preceding full review. Article and bibliography remain byte-identical; no fresh source retrieval is claimed for this test-only re-review."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/troubleshooting-tip-how-to-monitor-incoming-rx-and-outgoing-tx-packets-per-second-pps-on-fortigate-interfaces-182885",
+      "method": "Successful live web retrieval of Fortinet staff technical note.",
+      "verification": "Verified diagnose netlink interface packet-rate and incoming RX/outgoing TX packets-per-second interpretation. A high packet rate does not uniquely identify a loop or faulty cable.",
+      "verifiedAt": "2026-10-28T03:19:20Z",
+      "reviewContinuity": "Verified live by this independent reviewer during the preceding full review. Article and bibliography remain byte-identical; no fresh source retrieval is claimed for this test-only re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortiswitch/7.6.2/fortiswitchos-administration-guide/585557/checking-the-lldp-configuration",
+      "method": "Successful live browser retrieval of versioned Fortinet documentation.",
+      "verification": "Verified get switch lldp neighbors-summary on FortiSwitch and its neighbor-discovery scope, not loop prevention.",
+      "verifiedAt": "2026-10-28T03:19:20Z",
+      "reviewContinuity": "Verified live by this independent reviewer during the preceding full review. Article and bibliography remain byte-identical; no fresh source retrieval is claimed for this test-only re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortiswitch/7.6.4/fortiswitchos-administration-guide/300619/viewing-the-mstp-configuration",
+      "method": "Initial direct web fetch returned 403; subsequent live browser retrieval succeeded.",
+      "verification": "Verified diagnose stp instance list on FortiSwitch and related MSTP inspection context. Legitimate blocking/discarding of redundant links is distinguished from a fault.",
+      "verifiedAt": "2026-10-28T03:19:20Z",
+      "reviewContinuity": "Verified live by this independent reviewer during the preceding full review. Article and bibliography remain byte-identical; no fresh source retrieval is claimed for this test-only re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortiswitch/7.6.5/fortilink-guide/801175/configuring-dhcp-blocking-stp-and-loop-guard-on-managed-fortiswitch-ports",
+      "method": "Successful live browser retrieval of versioned Fortinet documentation.",
+      "verification": "Verified STP loop-free Layer 2 purpose, Fortinet loop guard working with rather than replacing STP, and BPDU guard for appropriate edge ports with shutdown upon BPDU receipt. No blanket production configuration is prescribed.",
+      "verifiedAt": "2026-10-28T03:19:20Z",
+      "reviewContinuity": "Verified live by this independent reviewer during the preceding full review. Article and bibliography remain byte-identical; no fresh source retrieval is claimed for this test-only re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.8/fortios-release-notes/760203/introduction-and-supported-models",
+      "method": "Successful live browser retrieval of versioned Fortinet release notes.",
+      "verification": "Verified general FortiOS 7.6.8 build 3744 and model-specific support boundaries. Does not establish the undisclosed customer model or installed build.",
+      "verifiedAt": "2026-10-28T03:19:20Z",
+      "reviewContinuity": "Verified live by this independent reviewer during the preceding full review. Article and bibliography remain byte-identical; no fresh source retrieval is claimed for this test-only re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.8/fortios-release-notes/832438/upgrade-information",
+      "method": "Successful live browser retrieval of versioned Fortinet release notes.",
+      "verification": "Verified upgrade planning uses model, current release and target release with the Upgrade Path Tool and distinguishes individual-device and Security Fabric context; 7.6.8 is not recommended universally.",
+      "verifiedAt": "2026-10-28T03:19:20Z",
+      "reviewContinuity": "Verified live by this independent reviewer during the preceding full review. Article and bibliography remain byte-identical; no fresh source retrieval is claimed for this test-only re-review."
+    }
+  ],
+  "visualInspection": [
+    {
+      "file": "public/images/editorial/fortigate-loop-evidence.png",
+      "width": 2400,
+      "height": 1350,
+      "method": "Original-resolution local pixel inspection",
+      "result": "PASS: three readable evidence panels with coherent rightward sequence, reported outcomes and no fabricated quantitative chart."
+    },
+    {
+      "file": "public/images/editorial/fortigate-loop-topology.png",
+      "width": 2400,
+      "height": 1600,
+      "method": "Original-resolution local pixel inspection and SVG source read",
+      "result": "PASS: complete before triangle and after connected chain; isolated edge explicit; hypothetical topology and production safety labels readable."
+    },
+    {
+      "file": "public/images/editorial/fortigate-loop-social.png",
+      "width": 2400,
+      "height": 1500,
+      "method": "Original-resolution local pixel inspection",
+      "result": "PASS: legible branded summary, accurately attributed device counts and root cause, no customer topology claim."
+    }
+  ],
+  "tests": {
+    "command": "node --import tsx --test --test-skip-pattern=\"release requires genuine|final publication is bound\" tests/fortigate-loop-case-study.test.mjs tests/fortigate-ztna-case-study.test.mjs tests/website-only-resources.test.mjs",
+    "passed": 17,
+    "failed": 0,
+    "excluded": [
+      "Loop final approval-binding test",
+      "ZTNA final approval-binding test"
+    ],
+    "reason": "Reran all 17 pre-approval tests successfully against the current test. The two full installed final-binding tests require literal genuine receipts and metadata-finalized article handoff; they were not counted as passed. The separately executed current callback passed the bounded fixture regressions.",
+    "additionalVerification": "Confirmed Git HEAD test raw SHA256 equals the test hash pinned in the preserved ZTNA receipt; recomputed all initial loop-review artifact, caption and source-evidence hashes. Registry addendum remains exact and unchanged."
+  },
+  "registryAddendum": "test-results/fortigate-loop-2026-10-28/ztna-registry-addendum.json",
+  "metadataFinalization": {
+    "allowed": true,
+    "permittedFields": [
+      "/reviewedBy",
+      "/editorialMethod",
+      "/publishedAt",
+      "/updatedAt"
+    ],
+    "substantiveContentSha256": "0a5be0245ef789cc67e0e43a7b681a67070a1e66ecf2da52013d2783d4878d10",
+    "digestMethod": "Parse the article JSON; exclude only root reviewedBy, editorialMethod, publishedAt and updatedAt; recursively sort object keys while retaining array order; SHA256 compact JSON encoded as UTF-8.",
+    "conditions": "The author may truthfully record Harvey's independent Codex source-based AI review and actual publication/update dates. Retain the no-device-runtime statement, attributed case facts and unknown-customer-detail boundaries. Do not imply human, Fortinet, customer-appliance, production-runtime or deployment approval. Only these four top-level metadata fields may change without another substantive review.",
+    "releaseHandoff": "Preserve the substantiveContentSha256 and every non-article artifact hash. Record metadata-finalized article raw SHA256 separately. Copy this genuine overall PASS and both genuine exact-file addenda to their declared public locations without altering their content; run the complete final release-binding suite and parent page/image/live-URL checks before publication or crossposting. No private source/caption contents need to be copied into Git."
+  },
+  "limitations": [
+    "No FortiGate, FortiSwitch, FortiAP, emulator or networking lab was operated; all command review is source-based and static.",
+    "No database connection, paid API, deployment, social post, queue or schedule mutation was performed.",
+    "No customer configuration, logs or undisclosed topology were available; the case facts remain attributed to the public QCS post.",
+    "Reviewer inspected actual local PNG pixels but did not execute website desktop/mobile, lazy-loading, production-build or live-page QA. Parent-reported build and browser results are not claimed as this reviewer's execution.",
+    "No Meta composer preview or crosspost was performed; parent must validate the live article URL before distribution.",
+    "Original ZTNA receipt and other prior review artifacts remain unchanged.",
+    "This bounded re-review newly executed local tests and hash checks only. Prior full source reading and PNG inspection are carried forward by unchanged raw hashes, not presented as repeated runtime or browser work."
+  ],
+  "resolvedFindings": [
+    {
+      "id": "LOOP-RELEASE-01",
+      "priorPriority": "P2",
+      "status": "RESOLVED",
+      "file": "tests/fortigate-ztna-case-study.test.mjs",
+      "sha256": "123604ed7f5cb763ddfac736205bf200190ae287c5a58c0cd7a706d26a869089",
+      "verification": "The exact test now permits only two explicit reviewed transitions, including its own old-to-current hash. Separate genuine addenda bind each transition; no blanket bypass was introduced."
+    }
+  ],
+  "priorReview": {
+    "file": "test-results/fortigate-loop-2026-10-28/independent-review.json",
+    "sha256": "b5d45068f5943d0a26ed820732ced8709ad2e3155ae85b38a564009092ab31a7",
+    "status": "CHANGES_REQUESTED",
+    "preserved": true
+  },
+  "revisionVerification": {
+    "changedArtifacts": [
+      {
+        "file": "tests/fortigate-ztna-case-study.test.mjs",
+        "priorReviewSha256": "5c30452a92d27477f6523bcb5549005aa6968f0d8a78e3260f1a41b9238303d1",
+        "sha256": "123604ed7f5cb763ddfac736205bf200190ae287c5a58c0cd7a706d26a869089"
+      }
+    ],
+    "allOtherReviewedArtifactHashesUnchanged": true,
+    "socialArtifactHashesUnchanged": true,
+    "sourceEvidenceHashesUnchanged": true,
+    "substantiveDigestUnchanged": true,
+    "method": "Recomputed raw SHA256 against the initial review for all 14 publication artifacts, both private captions and both private source-evidence files. Only the ZTNA test differs. Reverified original ZTNA receipt hash and test prior hash."
+  },
+  "testAddendum": "test-results/fortigate-loop-2026-10-28/ztna-test-addendum.json",
+  "regressionVerification": {
+    "method": "Executed the current final-publication test callback read directly from the exact current test source in a Node VM, with actual local article/artifact bytes and two in-memory addendum fixtures. No fixture approval was written or installed. Assertions and callback body were unchanged; import.meta.url was supplied as the real test-file URL.",
+    "scenarios": 22,
+    "positiveScenariosPassed": 2,
+    "negativeScenariosCorrectlyRejected": 20,
+    "positive": [
+      "Exact current artifacts with both correct prior/current-hash addenda.",
+      "Permitted article updatedAt-only change retaining substantive digest."
+    ],
+    "negative": [
+      "For each of the two addenda: missing file, malformed JSON, non-PASS status, wrong reviewerId, wrong file, wrong priorSha256 and wrong current sha256 (14 cases).",
+      "Unlisted diagnostics artifact mutation; article substantive mutation; original receipt wrong reviewer; original receipt non-PASS; test mutation after its approved hash; registry mutation after its approved hash (6 cases)."
+    ],
+    "limitations": "This exercises the exact gate with fixtures; it is not the full installed 19-test release run. Parent must install literal genuine receipts, finalize permitted metadata, and run both final binding tests."
+  }
+}
