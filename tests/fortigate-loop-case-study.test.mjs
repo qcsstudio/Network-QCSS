@@ -54,6 +54,24 @@ test("release requires genuine exact-content independent approval",()=>{
   assert.equal(review.status,"PASS");assert.equal(review.reviewerId,"01a13e77-9990-71d0-b15b-6295f9c59903");
   const content={...post};for(const key of ["reviewedBy","editorialMethod","publishedAt","updatedAt"]) delete content[key];
   assert.equal(hash(JSON.stringify(sorted(content))),review.substantiveContentSha256);
-  for(const a of review.artifacts){if(a.file.endsWith("fortigate-layer2-loop-case-study.json"))continue;assert.equal(hash(read(a.file)),a.sha256,a.file);}
+  const transitions = {
+    "src/lib/website-only-resources.ts": "fortigate-loop-registry-review-2026-10-29",
+    "tests/fortigate-ztna-case-study.test.mjs": "fortigate-loop-ztna-test-review-2026-10-29",
+    "tests/fortigate-loop-case-study.test.mjs": "fortigate-loop-test-review-2026-10-29"
+  };
+  for(const a of review.artifacts){
+    if(a.file.endsWith("fortigate-layer2-loop-case-study.json"))continue;
+    const current = hash(read(a.file));
+    if(current !== a.sha256 && Object.hasOwn(transitions, a.file)){
+      const addendum = JSON.parse(read(`src/content/website-only/${transitions[a.file]}.json`));
+      assert.equal(addendum.status, "PASS");
+      assert.equal(addendum.reviewerId, review.reviewerId);
+      assert.equal(addendum.file, a.file);
+      assert.equal(addendum.priorSha256, a.sha256);
+      assert.equal(addendum.sha256, current);
+      continue;
+    }
+    assert.equal(current,a.sha256,a.file);
+  }
   assert.doesNotMatch(post.editorialMethod,/review is pending/);
 });

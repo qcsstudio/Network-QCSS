@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "reviewerId": "01a13e77-9990-71d0-b15b-6295f9c59903",
+  "file": "src/lib/website-only-resources.ts",
+  "priorSha256": "96292a5d44e400a4463c80688645cd140cb23469dc6646e043fd323ac0f4f846",
+  "sha256": "15ec61ad49c01498ec1bf42dc526bcf6cf4fcae97c1c2b3195b9198a06eb307d",
+  "reviewer": "Harvey (Codex independent reviewer)",
+  "reviewedAt": "2026-10-29T09:37:22Z",
+  "scope": "Exact registry-only transition from the ORIGINAL artifact pinned by the preserved ZTNA review to the current registry. Carries forward the independently approved October 28 loop addition and independently approves the additive overlap JSON import, typed BlogPost export and inventory entry. Existing ZTNA, hardening, loop exports and merge/image helpers remain unchanged. Not a blanket exception or content/publication approval.",
+  "verification": [
+    "Read the complete current file and its scoped Git diff.",
+    "Removing only the overlap import/export/inventory addition reproduces Git HEAD after CRLF-to-LF normalization; raw current hash is independently bound above.",
+    "Verified the original ZTNA substantive digest and all nine non-article, non-transition artifact hashes, including its diagnostics, route, images, CSS, shared article component and website-only tests, against the preserved receipt.",
+    "Executed the unmodified current ZTNA final-gate callback with actual local artifact bytes and in-memory addendum fixtures: two valid scenarios passed; twenty missing, malformed, mismatched or tampered scenarios rejected.",
+    "Reran all 22 pre-approval overlap, loop, ZTNA and website-only tests successfully; these do not include the three installed final binding tests."
+  ],
+  "regressionVerification": {
+    "method": "Read-only Node VM of the current callback; only import.meta.url supplied as the actual test URL. Fixtures never written as approvals. Tested exact allowlist acceptance, permitted date-only metadata, missing and malformed addenda, every required field mismatch for each addendum, original review status/reviewer, substantive mutation, and tampered listed/unlisted artifact bytes.",
+    "positivePassed": 2,
+    "negativeRejected": 20
+  },
+  "priorReceipt": {
+    "file": "src/content/website-only/fortigate-ztna-case-study.review.json",
+    "sha256": "ad0be865db3998b9a59d4657d60aec215c97bf3d4bbcb08b62aa2348a4458eb7",
+    "preserved": true
+  },
+  "findings": [],
+  "limitations": [
+    "All October 28 receipts remain untouched.",
+    "The separate loop-article final test still binds these shared files to its own October 28 hashes; this ZTNA addendum does not resolve or bypass that independent release gate.",
+    "No appliance runtime, database, paid API, build, deployment or social operation was performed. This is exact static review evidence, not cryptographic identity attestation."
+  ]
+}

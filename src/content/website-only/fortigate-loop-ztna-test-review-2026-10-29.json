@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "reviewerId": "01a13e77-9990-71d0-b15b-6295f9c59903",
+  "file": "tests/fortigate-ztna-case-study.test.mjs",
+  "priorSha256": "123604ed7f5cb763ddfac736205bf200190ae287c5a58c0cd7a706d26a869089",
+  "sha256": "c9603b4fdb52f44f379517d5f79b5f54ed8122086c1a24db2eda2750a82f1889",
+  "reviewer": "Harvey (Codex independent reviewer)",
+  "reviewedAt": "2026-10-29T09:44:11Z",
+  "scope": "Exact ZTNA-test transition relative to the preserved October 28 LOOP receipt: only the two literal addendum paths advance to October 29. The two-file allowlist and every original PASS/reviewer/file/prior/current hash assertion remain intact. The ZTNA test has its own separately verified original-receipt addendum.",
+  "verification": [
+    "Read complete current loop test and scoped diff. The only change since the preceding overlap review is this loop-test repair; article, diagnostics, route, renderer, all six graphics, overlap test, registry, ZTNA test and private source evidence remain byte-identical.",
+    "Confirmed each priorSha256 is taken from the preserved LOOP receipt, not the older ZTNA receipt; all three also match the corresponding raw Git HEAD files.",
+    "Verified loop substantive content digest and all unaffected non-article artifact hashes against the original loop receipt. The existing original review is not replaced.",
+    "Executed the exact current final-loop-gate callback read from source with actual local bytes and in-memory test-only addendum fixtures: three valid cases accepted, twenty-eight invalid cases rejected.",
+    "The mappings are literal and guarded by Object.hasOwn. Required PASS, same reviewerId, exact file, exact priorSha256 and actual raw current sha256 are checked before continuing."
+  ],
+  "regressionVerification": {
+    "method": "Read-only Node VM executes the current test callback without changing assertions. Only the local read function supplies in-memory malformed/missing/tampered fixtures; no proposed approval was installed during those tests.",
+    "scenarios": 31,
+    "positivePassed": 3,
+    "negativeRejected": 28,
+    "positive": [
+      "All three exact transitions.",
+      "Permitted date-only metadata preserving substantive digest.",
+      "Matching original artifact bytes without addenda."
+    ],
+    "negative": [
+      "Each of three addenda: missing, malformed, non-PASS, wrong reviewer, wrong file, wrong prior hash and wrong current hash (21).",
+      "Post-approval byte mutation of each listed artifact (3).",
+      "Unlisted diagnostics mutation, substantive article mutation, original review non-PASS and wrong reviewer (4)."
+    ]
+  },
+  "priorReceipt": {
+    "file": "src/content/website-only/fortigate-layer2-loop-case-study.review.json",
+    "sha256": "1b96355fb472d48481ee9e6250b596361a25d236a227be5c82d624d3bde53e35",
+    "preserved": true
+  },
+  "findings": [],
+  "limitations": [
+    "This approves only the exact file transition above. All existing article content and earlier receipts remain unchanged.",
+    "Independent local code/hash review and mocked gate execution, not appliance runtime, browser QA, production build, deployment or cryptographic identity certification.",
+    "No database, paid API or social operation was performed."
+  ]
+}

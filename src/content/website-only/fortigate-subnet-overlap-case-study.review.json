@@ -1,0 +1,375 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "reviewer": "Harvey (Codex independent reviewer)",
+  "reviewerId": "01a13e77-9990-71d0-b15b-6295f9c59903",
+  "reviewedAt": "2026-10-29T09:45:17Z",
+  "scope": "Independent exact-revision PASS carrying forward the preceding complete source, content, command, graphic and scoped static-code review. Bounded re-review resolves OVERLAP-RELEASE-01 through three explicit independently reviewed loop-receipt transitions. Only the loop test changed since that review. All article, diagnostic, page, renderer, image and prior source-evidence bytes remain unchanged. Not appliance-runtime, deployment or social-publication approval.",
+  "file": "src/content/website-only/fortigate-subnet-overlap-case-study.json",
+  "sha256": "0e1c836e788b8e4eb86b5589c704ddd00cead9e8d9576f1e61cd39c5564c2035",
+  "contentOutcome": "PASS",
+  "releaseGateOutcome": "PASS",
+  "substantiveContentSha256": "6bf25ca8569d66f0bdee447cd50946af1a7dec5cf7ed41cc2af4385b1e268b82",
+  "substantiveHashMethod": "Parse article JSON; remove ONLY top-level reviewedBy, editorialMethod, publishedAt and updatedAt; recursively sort object keys lexicographically, retain array order, JSON.stringify without whitespace, then SHA256 of UTF-8.",
+  "artifacts": [
+    {
+      "file": "src/content/website-only/fortigate-subnet-overlap-case-study.json",
+      "sha256": "0e1c836e788b8e4eb86b5589c704ddd00cead9e8d9576f1e61cd39c5564c2035"
+    },
+    {
+      "file": "src/content/website-only/fortigate-subnet-overlap-diagnostics.json",
+      "sha256": "056346845af04293968d6a90d3ec6aba5cc0c6806a0e9bbfb44ec6daa848d9b6"
+    },
+    {
+      "file": "src/app/resources/fortigate-ping-dns-work-websites-fail-overlapping-subnet/page.tsx",
+      "sha256": "2f23fab1962193bb2c825b92a9b7297ded28840a1e6e4f4bdf3b9b74a04c808b"
+    },
+    {
+      "file": "scripts/render-fortigate-overlap-case-study.mjs",
+      "sha256": "64eb439484bb89f6b66bd11cdfde0f817456e9e811f654300cf8d02a56108596"
+    },
+    {
+      "file": "public/images/editorial/fortigate-overlap-evidence.svg",
+      "sha256": "6d15d2ac4614a1efd4a0890ac59b129957af50b674288df59d924e30737575e2"
+    },
+    {
+      "file": "public/images/editorial/fortigate-overlap-evidence.png",
+      "sha256": "13ad054c0260e18cb35fd12085a3c61c032f7db2f63e2d5004538216436056b2"
+    },
+    {
+      "file": "public/images/editorial/fortigate-overlap-topology.svg",
+      "sha256": "0309d4b8d10bc4fc84c1e357c78f373a5c246d36b6281fbb4178270e20a3eb26"
+    },
+    {
+      "file": "public/images/editorial/fortigate-overlap-topology.png",
+      "sha256": "3002986a3328b780f692d50d318bc0e50df2159001eed3550db5dd2be3f5b94d"
+    },
+    {
+      "file": "public/images/editorial/fortigate-overlap-social.svg",
+      "sha256": "8a270cf5af2f14b17801f089d1dd784b2752a46ce6290b888f5574874d148ddf"
+    },
+    {
+      "file": "public/images/editorial/fortigate-overlap-social.png",
+      "sha256": "66be6f5f17558797700f1867de1783987081db6c8233df5804b8389e4d66058b"
+    },
+    {
+      "file": "src/lib/website-only-resources.ts",
+      "sha256": "15ec61ad49c01498ec1bf42dc526bcf6cf4fcae97c1c2b3195b9198a06eb307d"
+    },
+    {
+      "file": "tests/fortigate-overlap-case-study.test.mjs",
+      "sha256": "b24fa440ad4d33b1067e2a16285963a8bfaa3c1dfd88a5d51b02e6156ae5f5d3"
+    },
+    {
+      "file": "tests/fortigate-ztna-case-study.test.mjs",
+      "sha256": "c9603b4fdb52f44f379517d5f79b5f54ed8122086c1a24db2eda2750a82f1889"
+    },
+    {
+      "file": "tests/fortigate-loop-case-study.test.mjs",
+      "sha256": "0363371ac995f526d4b8ecd2659caf463c88d1906f8b9cb2362dc78f8911f701"
+    },
+    {
+      "file": "src/app/resources/fortigate-ztna-connected-ems-application-access-troubleshooting/page.module.css",
+      "sha256": "6c835f05d4a1fb11b4fe2e2a6b45b90de892a48a45930083a36c5230b7b07402"
+    },
+    {
+      "file": "src/content/website-only/fortigate-ztna-registry-review-2026-10-29.json",
+      "sha256": "3c9c451e7104e956e476ee28189c4b294f6d73f4f03ee88ed385da0c5c73ff62"
+    },
+    {
+      "file": "src/content/website-only/fortigate-ztna-test-review-2026-10-29.json",
+      "sha256": "eb04c0a870c9998572f8dbb26663926338568880a82ce0e4e992240b34173727"
+    },
+    {
+      "file": "src/content/website-only/fortigate-loop-registry-review-2026-10-29.json",
+      "sha256": "cf18a28c79f46eb2bb10edd3a1d3a2920365eea271367bbd2f5045b6ebd55300"
+    },
+    {
+      "file": "src/content/website-only/fortigate-loop-ztna-test-review-2026-10-29.json",
+      "sha256": "fa7682037da0aba8fa5422ca54fdda18a653c7cda045f4ff703759fbb77f7dea"
+    },
+    {
+      "file": "src/content/website-only/fortigate-loop-test-review-2026-10-29.json",
+      "sha256": "4af4490161d558ab0fdb8f31ab20c986055176a004e4d25fb5ec7a419d5dbd3e"
+    }
+  ],
+  "evidence": {
+    "checks": [
+      {
+        "category": "source_fidelity",
+        "passed": true,
+        "verification": "Read the complete article and diagnostics, exact public post, scoped saved post text and original illustration. Diagnosis/recommended correction is not recast as completed remediation; customer mode/build, packet captures and measured outcomes remain undisclosed."
+      },
+      {
+        "category": "technical_accuracy",
+        "passed": true,
+        "verification": "Verified subnet membership: 192.0.2.53 is inside the example 192.0.2.0/24 range created by 192.0.2.1/24. Route competition is conditional on shared forwarding context; the intended remote-server path and local ARP expectation are correctly distinguished. Ping, DNS and application tests remain separate."
+      },
+      {
+        "category": "management_context",
+        "passed": true,
+        "verification": "Independently verified ordinary mgmt naming, dedicated-to management, dedicated-mgmt and HA-reserved management distinctions. No unproven customer mode or universal competing-route claim is asserted."
+      },
+      {
+        "category": "command_accuracy",
+        "passed": true,
+        "verification": "All five command cards match primary sources: explicit-resolver IPv4 Windows lookup, two destination-route lookups, ARP display and bounded port-53 capture. Device context, syntax checks, count/time distinction, stopping and visibility limits are explicit."
+      },
+      {
+        "category": "production_safety",
+        "passed": true,
+        "verification": "Requires authorization, protected baseline, independent console/OOB recovery, management and HA dependency checks, scoped evidence and approved correction/rollback. No paste-in address change, security disablement, routing restart, session clear or unbounded debug is prescribed."
+      },
+      {
+        "category": "beginner_usability",
+        "passed": true,
+        "verification": "Definitions, client-versus-firewall console distinction and meaning/limitations/finish fields support the sequence. Unknown VDOM/VRF selection is referred to an authorized administrator rather than guessed. External-resolver privacy and restoration are explicit."
+      },
+      {
+        "category": "visual_consistency",
+        "passed": true,
+        "verification": "Read all SVGs and renderer; inspected all three PNGs at original resolution. Topology includes Client, FortiGate, Transit Router, DNS Server and the separate hypothetical management branch, with rightward requests and leftward replies. Labels, example prefixes, source limits and warnings are complete and readable."
+      },
+      {
+        "category": "source_support_and_static_scope",
+        "passed": true,
+        "verification": "All ten bibliography URLs successfully verified live using the methods below. Section, FAQ and command citations are bibliography members. The static route, registry addition and scoped dependencies introduce no DB, paid generation or social-delivery call. Initial editorial gates and scoped tests pass."
+      },
+      {
+        "category": "exact_release_gate_integrity",
+        "passed": true,
+        "verification": "The repaired loop gate permits only registry, ZTNA test and its own test transitions, each requiring original-review PASS/reviewer, exact file and exact prior/current raw hashes. Three genuine addenda are installed; unlisted changes still fail. Its exact callback accepted three valid scenarios and rejected twenty-eight invalid/tampered cases. Installed loop and ZTNA final gates now pass."
+      }
+    ],
+    "findings": []
+  },
+  "verifiedSources": [
+    {
+      "url": "https://www.linkedin.com/posts/rksankhyan_fortinet-networktroubleshooting-networksecurity-share-7521497709023776768-XvNY/",
+      "method": "Successful live Chrome reading of the exact LinkedIn post, compared with the scoped local transcript and original illustration. Initial web fetch returned cache miss.",
+      "verification": "The public post reports a FortiGate 120G, directly connected laptop browsing success, internal-user browsing failure, a public-versus-internal resolver contrast, two lookup timeouts, and opposite-direction connectivity differences. It identifies management-subnet overlap and recommends correction with recovery access; it does not report completed remediation. The article preserves those bounds and does not treat illustrative source addresses as verified customer configuration.",
+      "verifiedAt": "2026-10-29T09:38:58Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. Article, diagnostics, bibliography and graphics are byte-identical; no new source retrieval or repeated browser/runtime work is claimed for the bounded gate re-review."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-enable-subnet-overlap-to-set-ip-addresses-of-multiple-interfaces-in-the-same-subnet-primary-secondary-vlan-94115",
+      "method": "Successful live web retrieval of Fortinet staff technical note.",
+      "verification": "Verified that overlapping interface address ranges can select the wrong egress, that allowing overlap does not establish a sound routing design, and that separate routing contexts affect interpretation. The article makes the example conditional on actual competing routes rather than assuming every management subnet affects user forwarding.",
+      "verifiedAt": "2026-10-29T09:38:58Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. Article, diagnostics, bibliography and graphics are byte-identical; no new source retrieval or repeated browser/runtime work is claimed for the bounded gate re-review."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/troubleshooting-tip-clients-are-not-connected-to-the-internet-through-fortigate-218842",
+      "method": "Successful live web retrieval of Fortinet staff troubleshooting note.",
+      "verification": "Verified source/destination route checks, get system arp and post-change DNS/application validation. The article correctly limits ARP expectations to local neighbors or next hops and uses a bounded header-level capture rather than copying the source's unbounded payload-level example.",
+      "verifiedAt": "2026-10-29T09:38:58Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. Article, diagnostics, bibliography and graphics are byte-identical; no new source retrieval or repeated browser/runtime work is claimed for the bounded gate re-review."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-fortigate-routing-debug-commands-177121",
+      "method": "Successful live web retrieval of Fortinet staff routing-command note.",
+      "verification": "Verified get router info routing-table details with a destination address and get system arp. The article selects observational commands and explicitly rejects routing restarts or session clearing as first tests. Ordinary route output is not represented as a full policy-routing or session simulation.",
+      "verifiedAt": "2026-10-29T09:38:58Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. Article, diagnostics, bibliography and graphics are byte-identical; no new source retrieval or repeated browser/runtime work is claimed for the bounded gate re-review."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-fortigate-dedicated-mgmt-feature-or-out-of-band-management-95859",
+      "method": "Successful live web retrieval of Fortinet staff management-interface note.",
+      "verification": "Verified dedicated-mgmt creates separate management routing, the supported-model list includes 120G/121G, and dedicated-to management is a different feature that can still have routing implications. HA-reserved management is a separate method. The article does not retrofit an undisclosed customer mode or prescribe changing modes.",
+      "verifiedAt": "2026-10-29T09:38:58Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. Article, diagnostics, bibliography and graphics are byte-identical; no new source retrieval or repeated browser/runtime work is claimed for the bounded gate re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.4/administration-guide/313152/out-of-band-management-with-reserved-management-interfaces",
+      "method": "Successful live Chrome retrieval and reading of versioned FortiOS 7.6.4 documentation after direct web fetch returned HTTP 403.",
+      "verification": "Verified per-member reserved management addresses/settings, separate management routes, non-synchronized reserved-interface configuration and HA management-service dependencies. These support the article's unit identification, dependency inventory and independent recovery-access precautions.",
+      "verifiedAt": "2026-10-29T09:38:58Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. Article, diagnostics, bibliography and graphics are byte-identical; no new source retrieval or repeated browser/runtime work is claimed for the bounded gate re-review."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/administration-guide/363127/local-in-policy",
+      "method": "Successful live Chrome retrieval and reading of versioned FortiOS 7.6.0 documentation after direct web fetch returned HTTP 403; not merely a search snippet.",
+      "verification": "Verified traffic destined to the FortiGate interface differs from transit traffic, and interface service permissions plus local-in policies control administrative access including ping. The article correctly avoids treating the two ping directions as proof of asymmetric transit routing.",
+      "verifiedAt": "2026-10-29T09:38:58Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. Article, diagnostics, bibliography and graphics are byte-identical; no new source retrieval or repeated browser/runtime work is claimed for the bounded gate re-review."
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/nslookup",
+      "method": "Successful live web retrieval of Microsoft Learn command reference.",
+      "verification": "Verified noninteractive explicit-resolver syntax, -type=A option and the significance of a trailing period. The command does not change the client's adapter resolver configuration; an A result does not test browser resolver choice, IPv6 or application success.",
+      "verifiedAt": "2026-10-29T09:38:58Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. Article, diagnostics, bibliography and graphics are byte-identical; no new source retrieval or repeated browser/runtime work is claimed for the bounded gate re-review."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/packet-capture-sniffer-99739",
+      "method": "Successful live web retrieval of Fortinet staff capture reference; separately opened and visually read its linked verbosity table in Chrome.",
+      "verification": "Verified diagnose sniffer packet interface/filter/verbosity/count/timestamp syntax, combined host-and-port filtering, packet count rather than elapsed seconds, local timestamp selector l and Ctrl+C termination. The embedded vendor table confirms level 4 includes IP headers and port names without IP-payload dumps. The manual 15-second stop is the article's own explicit operational bound, not a fabricated CLI timer.",
+      "verifiedAt": "2026-10-29T09:38:58Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. Article, diagnostics, bibliography and graphics are byte-identical; no new source retrieval or repeated browser/runtime work is claimed for the bounded gate re-review."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-packet-sniffer-cli-web-gui-is-missing-packets-while-running-a-trace-99654",
+      "method": "Successful live web retrieval of Fortinet staff offload/capture note.",
+      "verification": "Verified that accelerated sessions can be partially invisible to the CPU-based sniffer. Article accurately warns that missing packets do not prove a drop and does not instruct beginners to disable offloading or inspection.",
+      "verifiedAt": "2026-10-29T09:38:58Z",
+      "reviewContinuity": "Verified live by this reviewer during the preceding full review. Article, diagnostics, bibliography and graphics are byte-identical; no new source retrieval or repeated browser/runtime work is claimed for the bounded gate re-review."
+    }
+  ],
+  "sourceEvidence": [
+    {
+      "file": "test-results/fortigate-overlap-2026-10-29/linkedin-image-viewer.txt",
+      "sha256": "c0120745a924024441caf3be371ce389b7957e7ae9c1ee29b7c76032c15ce810",
+      "private": true,
+      "purpose": "Private saved browser capture: reviewed only the relevant original case text, also independently read live. Other page/account content is not reproduced or needed for publication."
+    },
+    {
+      "file": "test-results/fortigate-overlap-2026-10-29/linkedin-original.jpeg",
+      "sha256": "cf71d03eff6be59ed4d3cd97a936b232b22e821b4cc431cbb777546cce4a1bd6",
+      "private": true,
+      "purpose": "Private source illustration inspected; its example-looking addresses are not treated as a verified customer configuration table."
+    }
+  ],
+  "visualInspection": [
+    {
+      "file": "public/images/editorial/fortigate-overlap-evidence.png",
+      "width": 2400,
+      "height": 1350,
+      "method": "Original-resolution local PNG inspection",
+      "result": "PASS: complete readable comparison and explicit no-completed-remediation boundary."
+    },
+    {
+      "file": "public/images/editorial/fortigate-overlap-topology.png",
+      "width": 2400,
+      "height": 1600,
+      "method": "Original-resolution local PNG inspection plus SVG and renderer review",
+      "result": "PASS: all intended path nodes connected, request and reply directions correct, hypothetical branch down toward management port clearly conditional, example addresses and omissions stated."
+    },
+    {
+      "file": "public/images/editorial/fortigate-overlap-social.png",
+      "width": 2400,
+      "height": 1800,
+      "method": "Original-resolution local PNG inspection",
+      "result": "PASS: complete legible summary; recommendations are not labelled as a successful retest."
+    }
+  ],
+  "tests": {
+    "command": "node --import tsx --test --test-skip-pattern=\"exact reviewed content\" tests/fortigate-overlap-case-study.test.mjs tests/fortigate-ztna-case-study.test.mjs tests/fortigate-loop-case-study.test.mjs tests/website-only-resources.test.mjs",
+    "passed": 24,
+    "failed": 0,
+    "exitCode": 0,
+    "includedFinalGates": [
+      "Existing loop exact-content publication gate",
+      "Existing ZTNA exact-content publication gate",
+      "Existing hardening publication binding in website-only tests"
+    ],
+    "excluded": [
+      "exact reviewed content and artifacts are required for publication (new overlap article)"
+    ],
+    "exclusionReason": "The new article retains pending-review metadata until this genuine PASS is issued. Parent must truthfully finalize the four permitted metadata fields and run the complete 25-test suite. That final installed article-publication test is not claimed as passed.",
+    "adversarialGateVerification": {
+      "method": "Read the current loop test's final callback from the exact source, run unchanged in a read-only Node VM with actual local bytes and in-memory test-only addendum fixtures. No test fixture was installed as approval.",
+      "scenarios": 31,
+      "positivePassed": 3,
+      "negativeRejected": 28,
+      "positive": [
+        "All three exact addenda.",
+        "Permitted date-only article metadata.",
+        "Unchanged original artifact bytes without addenda."
+      ],
+      "negative": [
+        "Each addendum missing, malformed, non-PASS, wrong reviewer, wrong file, wrong prior hash or wrong current hash (21).",
+        "Each allowlisted artifact mutated after approved hash (3).",
+        "Unlisted diagnostics mutation, substantive article mutation and original receipt status/reviewer failures (4)."
+      ]
+    }
+  },
+  "addenda": [
+    "src/content/website-only/fortigate-ztna-registry-review-2026-10-29.json",
+    "src/content/website-only/fortigate-ztna-test-review-2026-10-29.json",
+    "src/content/website-only/fortigate-loop-registry-review-2026-10-29.json",
+    "src/content/website-only/fortigate-loop-ztna-test-review-2026-10-29.json",
+    "src/content/website-only/fortigate-loop-test-review-2026-10-29.json"
+  ],
+  "metadataFinalization": {
+    "allowed": true,
+    "permittedFields": [
+      "/reviewedBy",
+      "/editorialMethod",
+      "/publishedAt",
+      "/updatedAt"
+    ],
+    "substantiveContentSha256": "6bf25ca8569d66f0bdee447cd50946af1a7dec5cf7ed41cc2af4385b1e268b82",
+    "digestMethod": "Parse article JSON; remove ONLY top-level reviewedBy, editorialMethod, publishedAt and updatedAt; recursively sort object keys lexicographically, retain array order, JSON.stringify without whitespace, then SHA256 of UTF-8.",
+    "conditions": "The author may truthfully record Harvey's independent Codex source-based AI review and actual publication/update dates. Retain no-device-runtime and no-completed-remediation boundaries, attributed case facts and unknown-customer-mode/build limits. Do not imply human, Fortinet, appliance-runtime, measured-remediation or deployment approval. Only these four top-level fields may change without another substantive review.",
+    "releaseHandoff": "Keep the substantive digest and every non-article artifact raw hash unchanged. Record the finalized article raw SHA256 separately; run the full 25-test release suite and parent build, actual-page/image and live-URL checks against the exact release bytes before publishing or crossposting. This receipt does not authorize database access or perform publication."
+  },
+  "limitations": [
+    "No FortiGate, network device, GNS3, CML, emulator or appliance runtime was used. Commands were checked against primary sources, not executed.",
+    "No customer configuration, full incident trace, installed mode/build or completed remediation evidence was available. The article is an attributed case analysis, not independent proof of the incident outcome.",
+    "Primary-source browser retrieval was read-only. Initial direct HTTP 403/cache-miss attempts were not treated as verification; subsequent successful browser reading is recorded explicitly.",
+    "No website desktop/mobile browser QA, isolated production build, deployed HTTP verification or social composer/preview was performed by this reviewer. Source browser research is not page QA.",
+    "No database probe, paid API, deployment, social post, schedule or queue operation was performed.",
+    "No caption review was requested or performed for this new article. The reviewed social PNG is not itself a post or distribution approval.",
+    "Private source evidence is listed separately from public artifact bindings; no transcript content, unrelated profile data or private browser-state contents are embedded.",
+    "This re-review newly executed local code/hash tests only. Full-source verification and original-resolution graphic inspection are carried forward by identical hashes; the parent's reported production build is not counted as reviewer execution.",
+    "Original ZTNA/loop receipts and October 28 addenda remain unchanged. The initial overlap CHANGES_REQUESTED receipt is preserved privately byte-for-byte. Only new review addenda, private review preservation and the requested replacement public review receipt were written."
+  ],
+  "resolvedFindings": [
+    {
+      "id": "OVERLAP-RELEASE-01",
+      "priorPriority": "P2",
+      "status": "RESOLVED",
+      "file": "tests/fortigate-loop-case-study.test.mjs",
+      "sha256": "0363371ac995f526d4b8ecd2659caf463c88d1906f8b9cb2362dc78f8911f701",
+      "verification": "Preserved the original loop receipt. Bound the three shared/test transitions to its own original hashes in separate independent PASS addenda. The installed loop final test now passes without weakening the remaining artifact assertions."
+    }
+  ],
+  "priorReview": {
+    "file": "test-results/fortigate-overlap-2026-10-29/independent-review-initial-changes-requested.json",
+    "sha256": "1170d33e8ff3020b15193a72a930c1f7f7445ba547690ed199d85e481fa20cf0",
+    "status": "CHANGES_REQUESTED",
+    "reviewedAt": "2026-10-29T09:38:58Z",
+    "preserved": true,
+    "preservationMethod": "Exact UTF-8 text copied with apply_patch into the private review package before replacing the public receipt. Raw SHA256 equality to the original public receipt was verified."
+  },
+  "revisionVerification": {
+    "changedArtifacts": [
+      {
+        "file": "tests/fortigate-loop-case-study.test.mjs",
+        "priorSha256": "ebd012cf5d1fde7f9e3f0d862b8b5d2ce612de6130e01756d2a7ce76be7c68c6",
+        "sha256": "0363371ac995f526d4b8ecd2659caf463c88d1906f8b9cb2362dc78f8911f701"
+      }
+    ],
+    "allOtherPreviouslyReviewedArtifactHashesUnchanged": true,
+    "privateSourceEvidenceHashesUnchanged": true,
+    "substantiveDigestUnchanged": true,
+    "addedExactReceiptArtifacts": [
+      {
+        "file": "src/content/website-only/fortigate-ztna-registry-review-2026-10-29.json",
+        "sha256": "3c9c451e7104e956e476ee28189c4b294f6d73f4f03ee88ed385da0c5c73ff62"
+      },
+      {
+        "file": "src/content/website-only/fortigate-ztna-test-review-2026-10-29.json",
+        "sha256": "eb04c0a870c9998572f8dbb26663926338568880a82ce0e4e992240b34173727"
+      },
+      {
+        "file": "src/content/website-only/fortigate-loop-registry-review-2026-10-29.json",
+        "sha256": "cf18a28c79f46eb2bb10edd3a1d3a2920365eea271367bbd2f5045b6ebd55300"
+      },
+      {
+        "file": "src/content/website-only/fortigate-loop-ztna-test-review-2026-10-29.json",
+        "sha256": "fa7682037da0aba8fa5422ca54fdda18a653c7cda045f4ff703759fbb77f7dea"
+      },
+      {
+        "file": "src/content/website-only/fortigate-loop-test-review-2026-10-29.json",
+        "sha256": "4af4490161d558ab0fdb8f31ab20c986055176a004e4d25fb5ec7a419d5dbd3e"
+      }
+    ],
+    "priorLoopReceipt": {
+      "file": "src/content/website-only/fortigate-layer2-loop-case-study.review.json",
+      "sha256": "1b96355fb472d48481ee9e6250b596361a25d236a227be5c82d624d3bde53e35",
+      "preserved": true
+    },
+    "method": "Recomputed hashes against the preserved initial overlap receipt; only tests/fortigate-loop-case-study.test.mjs differed. Reverified original loop substantive content and unaffected artifacts, prior/current transition hashes and both existing October 29 ZTNA addenda. Newly created addenda are bound as publication artifacts, not private source evidence."
+  }
+}
