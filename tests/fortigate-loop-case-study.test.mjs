@@ -55,9 +55,9 @@ test("release requires genuine exact-content independent approval",()=>{
   const content={...post};for(const key of ["reviewedBy","editorialMethod","publishedAt","updatedAt"]) delete content[key];
   assert.equal(hash(JSON.stringify(sorted(content))),review.substantiveContentSha256);
   const transitions = {
-    "src/lib/website-only-resources.ts": "fortigate-loop-registry-review-2026-10-29",
-    "tests/fortigate-ztna-case-study.test.mjs": "fortigate-loop-ztna-test-review-2026-10-29",
-    "tests/fortigate-loop-case-study.test.mjs": "fortigate-loop-test-review-2026-10-29"
+    "src/lib/website-only-resources.ts": "fortigate-loop-registry-review-2026-10-30",
+    "tests/fortigate-ztna-case-study.test.mjs": "fortigate-loop-ztna-test-review-2026-10-30",
+    "tests/fortigate-loop-case-study.test.mjs": "fortigate-loop-test-review-2026-10-30"
   };
   for(const a of review.artifacts){
     if(a.file.endsWith("fortigate-layer2-loop-case-study.json"))continue;

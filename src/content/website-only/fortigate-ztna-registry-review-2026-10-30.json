@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "reviewer": "Harvey (Codex independent reviewer)",
+  "reviewerId": "01a13e77-9990-71d0-b15b-6295f9c59903",
+  "reviewedAt": "2026-10-30T07:59:44Z",
+  "file": "src/lib/website-only-resources.ts",
+  "priorSha256": "96292a5d44e400a4463c80688645cd140cb23469dc6646e043fd323ac0f4f846",
+  "sha256": "92a4000a81a5fd80a7bbc126ca41491ea323ec64dfd40e119e878d5ea3e569f7",
+  "scope": "Exact additive presentation-only registry transition, relative to the ORIGINAL preserved review artifact. Adds only the reboot article import/export and inventory entry; existing article exports, content, ordering helper and image helper behavior are unchanged. Not approval of the new article or release.",
+  "verification": [
+    "Read the complete current registry and both tests, and inspected their scoped Git diffs.",
+    "Verified existing ZTNA, loop and overlap article JSON equals Git HEAD modulo line endings; their substantive digests match the preserved original reviews.",
+    "Verified all existing ZTNA and loop non-article artifacts outside the explicitly requested transitions match their original raw hashes. Original receipts retain their previous raw hashes.",
+    "Both current final-gate callbacks were executed unchanged in read-only Node VM contexts with actual local bytes and in-memory proposed/malformed addendum fixtures; no test fixture was installed as approval.",
+    "ZTNA: two positive cases accepted and twenty invalid cases rejected. Loop: two positive cases accepted and twenty-eight invalid cases rejected. Checks cover missing/malformed addenda, all five required identity/hash fields, listed/unlisted byte tampering, substantive content and original review status/reviewer.",
+    "Preserved October 28/29 receipts. This addendum pins the original corresponding receipt hash and the actual current file hash, not a normalized replacement."
+  ],
+  "regressionVerification": {
+    "method": "Read-only execution of exact current test callbacks; only import.meta.url supplied as the actual test URL and reads intercepted for in-memory negative fixtures.",
+    "scenarios": 52,
+    "positivePassed": 4,
+    "negativeRejected": 48
+  },
+  "priorReceipt": {
+    "file": "src/content/website-only/fortigate-ztna-case-study.review.json",
+    "sha256": "ad0be865db3998b9a59d4657d60aec215c97bf3d4bbcb08b62aa2348a4458eb7",
+    "preserved": true
+  },
+  "findings": [],
+  "limitations": [
+    "Scope is the exact file transition only; not publication, deployment, appliance-runtime or new-article approval.",
+    "The current overlap receipt independently binds the registry and both legacy tests. Its unchanged final gate fails and still requires its own explicit reviewed transitions.",
+    "No database access, paid API, social write, runtime appliance test, build or deployed-site QA was performed. No implementation or article was edited."
+  ]
+}

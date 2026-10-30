@@ -3,6 +3,7 @@ import fortinet from "../content/website-only/fortinet-october-2026-hardening.js
 import ztna from "../content/website-only/fortigate-ztna-case-study.json";
 import loop from "../content/website-only/fortigate-layer2-loop-case-study.json";
 import overlap from "../content/website-only/fortigate-subnet-overlap-case-study.json";
+import reboot from "../content/website-only/fortigate-automation-reboot-case-study.json";
 
 // Presentation-only inventory. Never seed these records into editorial/social jobs:
 // their social publication is already owned by separately recorded native posts.
@@ -50,7 +51,17 @@ export const fortigateSubnetOverlapCaseStudy: BlogPost = {
   }
 };
 
-export const websiteOnlyResources: BlogPost[] = [fortinetHardeningGuide, fortigateZtnaCaseStudy, fortigateLayer2LoopCaseStudy, fortigateSubnetOverlapCaseStudy];
+export const fortigateAutomationRebootCaseStudy: BlogPost = {
+  ...reboot,
+  contentVersion: 3,
+  contentType: "blog",
+  storySpine: {
+    ...reboot.storySpine,
+    visualSequence: [reboot.storySpine.visualSequence[0], reboot.storySpine.visualSequence[1], reboot.storySpine.visualSequence[2]]
+  }
+};
+
+export const websiteOnlyResources: BlogPost[] = [fortinetHardeningGuide, fortigateZtnaCaseStudy, fortigateLayer2LoopCaseStudy, fortigateSubnetOverlapCaseStudy, fortigateAutomationRebootCaseStudy];
 
 export function withWebsiteOnlyResources(posts: BlogPost[]): BlogPost[] {
   const entries = new Map(posts.map((post) => [post.slug, post]));

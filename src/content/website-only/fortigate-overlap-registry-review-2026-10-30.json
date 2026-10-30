@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "reviewer": "Harvey (Codex independent reviewer)",
+  "reviewerId": "01a13e77-9990-71d0-b15b-6295f9c59903",
+  "reviewedAt": "2026-10-30T08:10:58Z",
+  "file": "src/lib/website-only-resources.ts",
+  "priorSha256": "15ec61ad49c01498ec1bf42dc526bcf6cf4fcae97c1c2b3195b9198a06eb307d",
+  "sha256": "92a4000a81a5fd80a7bbc126ca41491ea323ec64dfd40e119e878d5ea3e569f7",
+  "scope": "Exact registry transition relative to the ORIGINAL preserved overlap review. Adds the reboot article import, typed export and public-only inventory entry; existing article exports and helper behavior are unchanged. This does not replace the original overlap receipt.",
+  "verification": [
+    "Read the complete repaired overlap test and its scoped Git diff.",
+    "Recomputed all twelve preceding reboot-review artifact hashes and substantive digest; they are unchanged.",
+    "Overlap substantive digest matches its original receipt. The only four non-article raw-hash differences against that receipt are the four explicitly allowlisted files; all fifteen other non-article artifacts match.",
+    "Prior hashes are read from the original overlap receipt, not ZTNA/loop receipts or another addendum. The original overlap receipt hash remains unchanged.",
+    "Executed the exact current overlap final-test callback in a read-only Node VM with actual local bytes and in-memory test fixtures: two valid cases accepted, thirty-nine invalid cases rejected.",
+    "Earlier reboot CHANGES_REQUESTED evidence is preserved separately. Existing article content, original receipts and prior addenda are not replaced."
+  ],
+  "regressionVerification": {
+    "method": "Exact current callback, read from source; only file reads supplied in-memory negative fixtures. No proposed approval fixture was written during tests.",
+    "scenarios": 41,
+    "positivePassed": 2,
+    "negativeRejected": 39,
+    "negativeCoverage": [
+      "Each mapped receipt missing/malformed/non-PASS/wrong reviewer/wrong file/wrong original hash/wrong current hash.",
+      "Each allowlisted artifact tampered after approval.",
+      "Substantive content, nested reviewedBy, unapproved top-level field, original review status/reviewer.",
+      "Unlisted diagnostics mutation with an extra fabricated receipt; pending attribution."
+    ]
+  },
+  "priorReceipt": {
+    "file": "src/content/website-only/fortigate-subnet-overlap-case-study.review.json",
+    "sha256": "244790c751d89e3420cef6531561a62db4a244ddc49bf568da2ecf2192c262de",
+    "preserved": true
+  },
+  "findings": [],
+  "limitations": [
+    "Approves only this exact file transition, not deployment, social publication, device runtime or unknown future changes.",
+    "No implementation/content edit, database access, paid API or social operation was performed.",
+    "The installed complete release suite is rerun after these genuine addenda; in-memory fixtures are tests, not approval provenance."
+  ]
+}

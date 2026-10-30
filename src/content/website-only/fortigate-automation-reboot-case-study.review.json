@@ -1,0 +1,394 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "reviewer": "Harvey (Codex independent reviewer)",
+  "reviewerId": "01a13e77-9990-71d0-b15b-6295f9c59903",
+  "reviewedAt": "2026-10-30T08:12:16Z",
+  "scope": "Independent exact-revision PASS carrying forward the preceding complete source, article, seven-command and current three-graphic review by unchanged raw hashes. Bounded rereview resolves REBOOT-RELEASE-01 through a four-file exact overlap transition allowlist and four independently issued addenda. No authored article, diagram or diagnostic change. Not appliance-runtime, publication, deployment or social-operation approval.",
+  "file": "src/content/website-only/fortigate-automation-reboot-case-study.json",
+  "sha256": "2df22b6c243bdb9496ca5abef070f69fa02f20726f351d27583b91b205d5dd1c",
+  "contentOutcome": "PASS",
+  "releaseGateOutcome": "PASS",
+  "substantiveContentSha256": "a83edab5a8c9300621d7a59299deb044d5c32c6b923de789dd4f127c65a70c28",
+  "substantiveHashMethod": "Parse article JSON; remove ONLY top-level reviewedBy, editorialMethod, publishedAt and updatedAt; recursively sort object keys lexicographically, retain array order, JSON.stringify without whitespace, then SHA256 of UTF-8.",
+  "artifacts": [
+    {
+      "file": "src/content/website-only/fortigate-automation-reboot-case-study.json",
+      "sha256": "2df22b6c243bdb9496ca5abef070f69fa02f20726f351d27583b91b205d5dd1c"
+    },
+    {
+      "file": "src/content/website-only/fortigate-automation-reboot-diagnostics.json",
+      "sha256": "babca0503299586cfbdbe6951a3d6efd2a948e5b7f614a8a0ef0cf4b103dc7fc"
+    },
+    {
+      "file": "src/app/resources/fortigate-reboots-every-two-hours-automation-stitch/page.tsx",
+      "sha256": "3dc97c403e72e54d27f45b746289e2fa2a206927f883dce603da232ad2ee512a"
+    },
+    {
+      "file": "scripts/render-fortigate-automation-reboot.mjs",
+      "sha256": "094c7e4926a055fd1b421476e852bb0c7cb48d3205f3561680d87c4555b3b9e3"
+    },
+    {
+      "file": "public/images/editorial/fortigate-automation-reboot-evidence.svg",
+      "sha256": "1e4ca6c64c88958c1c732a7e64839317be25745075c6bea4a9c7461ff0ca48b7"
+    },
+    {
+      "file": "public/images/editorial/fortigate-automation-reboot-evidence.png",
+      "sha256": "931fe278d6cfbd0ca57a5b7d517a4159472b3c0691a38d2bec29ce9d12cad5e5"
+    },
+    {
+      "file": "public/images/editorial/fortigate-automation-reboot-dependencies.svg",
+      "sha256": "347fe02bada8eae65203c50e07739737b8de84eae1ad3542e01623780eb7b448"
+    },
+    {
+      "file": "public/images/editorial/fortigate-automation-reboot-dependencies.png",
+      "sha256": "66893815610aeb62c2822cd33a2639c21449a62a03c5b60cee6534fa648946da"
+    },
+    {
+      "file": "public/images/editorial/fortigate-automation-reboot-social.svg",
+      "sha256": "70a68432bd04d792c129b417b80e4aafb4dd991389aeebbf26fee6286c8e2af5"
+    },
+    {
+      "file": "public/images/editorial/fortigate-automation-reboot-social.png",
+      "sha256": "0fcd540b822e1ce6d84b468815de64e9f0c41eb46470a363f939d7ece2afec47"
+    },
+    {
+      "file": "src/lib/website-only-resources.ts",
+      "sha256": "92a4000a81a5fd80a7bbc126ca41491ea323ec64dfd40e119e878d5ea3e569f7"
+    },
+    {
+      "file": "tests/fortigate-automation-reboot-case-study.test.mjs",
+      "sha256": "3ff9ed9c1b3ddf75f14075f7b0d28bf9b6fd91c0d4fdc41d71ca5fb78be12d75"
+    },
+    {
+      "file": "tests/fortigate-ztna-case-study.test.mjs",
+      "sha256": "bcc1b4e7f8203a5829490db773b50fabcbf736979a6bb70458b2ed4829c48406"
+    },
+    {
+      "file": "tests/fortigate-loop-case-study.test.mjs",
+      "sha256": "4228d594fb91213c69f5ac2312cd72c3ba50c67231848cdf2f9ca5dbe8d4cbb2"
+    },
+    {
+      "file": "tests/fortigate-overlap-case-study.test.mjs",
+      "sha256": "6486cfc6d5f0a2cb7eb884abd2877d95cee00440273aea3c8dcfa7d41a7ed9f0"
+    },
+    {
+      "file": "src/content/website-only/fortigate-ztna-registry-review-2026-10-30.json",
+      "sha256": "d06b2801076dff3de13d5d5c07af69eb98fa7b275996d7a1f0d5a38d1b07f66a"
+    },
+    {
+      "file": "src/content/website-only/fortigate-ztna-test-review-2026-10-30.json",
+      "sha256": "cb999ca775425c5d551e56532aa61a89a06474fc7dc9bf1c28e3d589a3daf8b9"
+    },
+    {
+      "file": "src/content/website-only/fortigate-loop-registry-review-2026-10-30.json",
+      "sha256": "b52e3795cfa491913f6cd592dee941dcc9cd454fd78105cc312e59ec3e7b7dfc"
+    },
+    {
+      "file": "src/content/website-only/fortigate-loop-ztna-test-review-2026-10-30.json",
+      "sha256": "b3c91bccf4dfaff30ebede07c64ce9b3c1d65d052ca819043852ccdc84d633cc"
+    },
+    {
+      "file": "src/content/website-only/fortigate-loop-test-review-2026-10-30.json",
+      "sha256": "c977dccf533c9f4d05c423a86629573cf4a8b6c28b56535dcac8841167ca22d6"
+    },
+    {
+      "file": "src/content/website-only/fortigate-overlap-registry-review-2026-10-30.json",
+      "sha256": "0f41a8a7f31db1368cbb20c48dfc267f19bbddb68cd75c3967e0592a7ae249d7"
+    },
+    {
+      "file": "src/content/website-only/fortigate-overlap-ztna-test-review-2026-10-30.json",
+      "sha256": "d03b246715a26cd83e7f448cf060c051cb137c47c35a2fdf1d59693bac596ffc"
+    },
+    {
+      "file": "src/content/website-only/fortigate-overlap-loop-test-review-2026-10-30.json",
+      "sha256": "cfc9461175437646207dbeaff0f35a6b3dad89ce4ec31c9bb36103a5f47ac60a"
+    },
+    {
+      "file": "src/content/website-only/fortigate-overlap-test-review-2026-10-30.json",
+      "sha256": "39469723d3a13ecbad3ee21bc8d617893b9260abaea7e1ab9348477c708f7011"
+    }
+  ],
+  "evidence": {
+    "checks": [
+      {
+        "category": "source_fidelity",
+        "passed": true,
+        "verification": "Read exact LinkedIn post live. Article attributes resolution, does not assert distinct QCS/vendor incidents, and does not invent model, build, HA layout, raw logs or observation duration."
+      },
+      {
+        "category": "technical_accuracy",
+        "passed": true,
+        "verification": "Update event and configured response are separate. Warm reboot, autod and HQIP pass remain clues, not exclusive proof. Actual settings and observed events control cadence; both 7.4.10 and 7.6.5 default changes are supported."
+      },
+      {
+        "category": "command_accuracy",
+        "passed": true,
+        "verification": "All seven cards checked against primary Fortinet documentation and show/full-configuration semantics: status, saved crash history, three configuration tables, default-inclusive update schedule and autoupdate versions. No execution, edit, log clear or debug enable is prescribed."
+      },
+      {
+        "category": "production_safety",
+        "passed": true,
+        "verification": "Authorization, recovery access, supported backup, shared references, targets, sensitive output, no disruptive stitch testing, retained security updates and hazard-aware rollback are explicit. Version/context uncertainty is referred to the responsible administrator."
+      },
+      {
+        "category": "beginner_usability",
+        "passed": true,
+        "verification": "Definitions precede the detailed runbook; AV/IPS, signature versus firmware, trigger/action/stitch, autod, warm reboot, HA/Fabric, HQIP and the device console are explained. Cards distinguish observation, limitation and finish."
+      },
+      {
+        "category": "visual_consistency",
+        "passed": true,
+        "verification": "Inspected current evidence, dependencies and social PNGs after regeneration. STITCH label is correct; request-chain arrows point right and the dependency check connects left to the scoped correction then down to verification. All labels/readable bounds and no-runtime captions are visible."
+      },
+      {
+        "category": "source_support",
+        "passed": true,
+        "verification": "Verified all ten bibliography URLs live through web retrieval or Chrome reading. Command citations cross-checked with configuration display semantics; no failed fetch is claimed as successful verification."
+      },
+      {
+        "category": "static_presentation",
+        "passed": true,
+        "verification": "Read route, shared article component, CSS, sitemap and registry. Route is static with lead form disabled; heading keys match command/diagram placement. Existing article exports are unchanged; no new DB, paid-generation or social-delivery call is introduced."
+      },
+      {
+        "category": "exact_release_gate_integrity",
+        "passed": true,
+        "verification": "All four overlap transitions require original-review PASS/reviewer, exact file, exact original artifact hash and current raw hash. The four-file allowlist rejects unlisted mutations. 41 adversarial cases passed; installed overlap, ZTNA, loop and hardening binding gates pass. Reboot final installed gate remains intentionally pending truthful metadata finalization."
+      }
+    ],
+    "findings": []
+  },
+  "verifiedSources": [
+    {
+      "url": "https://www.linkedin.com/posts/rksankhyan_fortigate-networkautomation-networksecurity-share-7521832818608496640-6sEM/",
+      "method": "Successful live Chrome reading of exact share URL; activity link in page matches 7521832821737304064.",
+      "verification": "Verified the reported cadence, passed HQIP, warm reboot, autod interface-down evidence, IPS_AV_DB action, correction retaining updates and reported resolution. Undisclosed configuration and measured verification are not invented.",
+      "reviewContinuity": "Successfully verified during the preceding full independent review ending 2026-10-30T08:01:49Z. Article, bibliography, commands and graphics are byte-identical. This bounded gate rereview does not claim a second source retrieval."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/troubleshooting-tip-potential-reason-for-fortigate-intermittently-rebooting-without-major-hardware-or-software-issue-226471",
+      "method": "Successful live web retrieval.",
+      "verification": "Verified status/crashlog commands and correlated event/configuration mechanism. Article avoids copying the source's generalized cadence into a universal claim.",
+      "reviewContinuity": "Successfully verified during the preceding full independent review ending 2026-10-30T08:01:49Z. Article, bibliography, commands and graphics are byte-identical. This bounded gate rereview does not claim a second source retrieval."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/technical-guide-identifying-the-fortigate-reboot-reasons-and-what-to-do-next-209310",
+      "method": "Successful live web retrieval; URL redirects to the same titled Fortinet note without technical-guide prefix.",
+      "verification": "Verified status output, administrative and upgrade/configuration warm-reboot examples, and need to inspect surrounding events. Neither warm reboot nor an interface-down record is treated as exclusive causal proof.",
+      "reviewContinuity": "Successfully verified during the preceding full independent review ending 2026-10-30T08:01:49Z. Article, bibliography, commands and graphics are byte-identical. This bounded gate rereview does not claim a second source retrieval."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-rma-hqip-test-with-built-in-fortios-diagnostic-commands-95098",
+      "method": "Successful live web retrieval.",
+      "verification": "Verified HQIP exclusions, possible downtime and maintenance/recovery precautions. Article asks only to retain an existing authorized report, not to run hardware tests in production.",
+      "reviewContinuity": "Successfully verified during the preceding full independent review ending 2026-10-30T08:01:49Z. Article, bibliography, commands and graphics are byte-identical. This bounded gate rereview does not claim a second source retrieval."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/administration-guide/139441/automation-stitches",
+      "method": "Successful live Chrome reading after direct web retrieval returned HTTP 403.",
+      "verification": "Verified trigger/action model and local versus Fabric synchronization/target scope. Administrative context is not guessed.",
+      "reviewContinuity": "Successfully verified during the preceding full independent review ending 2026-10-30T08:01:49Z. Article, bibliography, commands and graphics are byte-identical. This bounded gate rereview does not claim a second source retrieval."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.0/administration-guide/108345/system-actions",
+      "method": "Successful live Chrome reading; primary-source indexed text also checked during preliminary research.",
+      "verification": "Verified native system-actions/reboot and bypass of confirmation prompts; page also contains trigger, action and stitch configuration tables. Article does not infer the customer's actual action type or prescribe executing a reboot script.",
+      "reviewContinuity": "Successfully verified during the preceding full independent review ending 2026-10-30T08:01:49Z. Article, bibliography, commands and graphics are byte-identical. This bounded gate rereview does not claim a second source retrieval."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.4/cli-reference/878454488/config-system-automation-stitch",
+      "method": "Successful live Chrome reading after direct web retrieval returned HTTP 403.",
+      "verification": "Verified enabled status, named trigger/action references, destinations including serial/HA group naming, action delay and required fields. Shared references and actual destinations require inspection before edits.",
+      "reviewContinuity": "Successfully verified during the preceding full independent review ending 2026-10-30T08:01:49Z. Article, bibliography, commands and graphics are byte-identical. This bounded gate rereview does not claim a second source retrieval."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-configuration-differences-through-gui-or-security-fabric-automation-and-show-command-207000",
+      "method": "Successful live web retrieval.",
+      "verification": "Verified show omits default settings, full-configuration includes them, and a display transcript is not the supported full-recovery backup. These semantics support the non-mutating configuration inspection cards.",
+      "reviewContinuity": "Successfully verified during the preceding full independent review ending 2026-10-30T08:01:49Z. Article, bibliography, commands and graphics are byte-identical. This bounded gate rereview does not claim a second source retrieval."
+    },
+    {
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-how-to-configure-fortiguard-automatic-updates-96019",
+      "method": "Successful live web retrieval.",
+      "verification": "Verified autoupdate schedule table; automatic-to-daily default changes in 7.4.10/7.6.5; diagnose autoupdate versions with last update, last attempt and No Updates versus Updates Installed. Article avoids interpreting defaults as actual configured cadence.",
+      "reviewContinuity": "Successfully verified during the preceding full independent review ending 2026-10-30T08:01:49Z. Article, bibliography, commands and graphics are byte-identical. This bounded gate rereview does not claim a second source retrieval."
+    },
+    {
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.6/administration-guide/921599/diagnosing-automation-stitches",
+      "method": "Successful live Chrome reading; primary-source indexed text also checked.",
+      "verification": "Verified automation test performs execution, autod 1 toggles logging, and autod 2/3 display settings/statistics. Article does not include those execution/toggle commands in its seven observational cards.",
+      "reviewContinuity": "Successfully verified during the preceding full independent review ending 2026-10-30T08:01:49Z. Article, bibliography, commands and graphics are byte-identical. This bounded gate rereview does not claim a second source retrieval."
+    }
+  ],
+  "visualInspection": [
+    {
+      "file": "public/images/editorial/fortigate-automation-reboot-evidence.png",
+      "width": 2400,
+      "height": 1350,
+      "result": "PASS: current stage 02 says STITCH; complete rightward event sequence, legible scope and no-runtime captions.",
+      "method": "Local PNG pixel inspection requested at original detail; tool displayed scaled previews. Source dimensions confirmed from PNG header; SVG and renderer separately read.",
+      "reviewContinuity": "Prior pixel inspection carried forward by exact unchanged PNG/SVG/renderer hashes; no new website browser or appliance execution claimed."
+    },
+    {
+      "file": "public/images/editorial/fortigate-automation-reboot-dependencies.png",
+      "width": 2400,
+      "height": 1600,
+      "result": "PASS: connected trigger/stitch/action/check/correction/verification sequence; leftward correction and downward verification arrows visible; no implied packet flow or customer configuration.",
+      "method": "Local PNG pixel inspection requested at original detail; tool displayed scaled previews. Source dimensions confirmed from PNG header; SVG and renderer separately read.",
+      "reviewContinuity": "Prior pixel inspection carried forward by exact unchanged PNG/SVG/renderer hashes; no new website browser or appliance execution claimed."
+    },
+    {
+      "file": "public/images/editorial/fortigate-automation-reboot-social.png",
+      "width": 2400,
+      "height": 1800,
+      "result": "PASS: legible source-based summary; no clipped labels, invented numerical measurements or guaranteed remedy.",
+      "method": "Local PNG pixel inspection requested at original detail; tool displayed scaled previews. Source dimensions confirmed from PNG header; SVG and renderer separately read.",
+      "reviewContinuity": "Prior pixel inspection carried forward by exact unchanged PNG/SVG/renderer hashes; no new website browser or appliance execution claimed."
+    }
+  ],
+  "tests": {
+    "command": "node --import tsx --test --test-skip-pattern=\"publication is bound to exact independent reviewed artifacts\" tests/fortigate-automation-reboot-case-study.test.mjs tests/fortigate-overlap-case-study.test.mjs tests/fortigate-ztna-case-study.test.mjs tests/fortigate-loop-case-study.test.mjs tests/website-only-resources.test.mjs",
+    "passed": 30,
+    "failed": 0,
+    "exitCode": 0,
+    "includedFinalGates": [
+      "Overlap exact-content and artifact gate",
+      "ZTNA exact-content and artifact gate",
+      "Loop exact-content and artifact gate",
+      "Hardening exact-content and master-image gate"
+    ],
+    "excluded": [
+      "publication is bound to exact independent reviewed artifacts (new reboot article)"
+    ],
+    "exclusionReason": "The new article still contains pending-review attribution. This genuine PASS permits only truthful finalization of four top-level metadata fields; parent must then run all 31 tests. The final installed new-article publication test is not claimed as passed.",
+    "adversarial": {
+      "method": "Read-only Node VM executes the exact repaired overlap final-test callback from current source with actual local bytes and in-memory negative fixtures. No fixture was installed as approval.",
+      "scenarios": 41,
+      "positivePassed": 2,
+      "negativeRejected": 39,
+      "positive": [
+        "Four exact transitions",
+        "Only the four permitted top-level metadata fields changed"
+      ],
+      "negative": [
+        "Each receipt missing, malformed, non-PASS, wrong reviewer, wrong file, wrong original hash or wrong current hash (28).",
+        "Post-approval mutation of each of four allowlisted files (4).",
+        "Substantive content, nested reviewedBy, unapproved top-level field, original review status/reviewer, unlisted diagnostics with extra fabricated receipt and pending attribution (7)."
+      ]
+    },
+    "precedingLegacyAdversarial": {
+      "scenarios": 52,
+      "positivePassed": 4,
+      "negativeRejected": 48,
+      "continuity": "From preceding review; ZTNA/loop test hashes unchanged."
+    }
+  },
+  "addenda": [
+    "src/content/website-only/fortigate-ztna-registry-review-2026-10-30.json",
+    "src/content/website-only/fortigate-ztna-test-review-2026-10-30.json",
+    "src/content/website-only/fortigate-loop-registry-review-2026-10-30.json",
+    "src/content/website-only/fortigate-loop-ztna-test-review-2026-10-30.json",
+    "src/content/website-only/fortigate-loop-test-review-2026-10-30.json",
+    "src/content/website-only/fortigate-overlap-registry-review-2026-10-30.json",
+    "src/content/website-only/fortigate-overlap-ztna-test-review-2026-10-30.json",
+    "src/content/website-only/fortigate-overlap-loop-test-review-2026-10-30.json",
+    "src/content/website-only/fortigate-overlap-test-review-2026-10-30.json"
+  ],
+  "metadataFinalization": {
+    "allowed": true,
+    "permittedFields": [
+      "/reviewedBy",
+      "/editorialMethod",
+      "/publishedAt",
+      "/updatedAt"
+    ],
+    "substantiveContentSha256": "a83edab5a8c9300621d7a59299deb044d5c32c6b923de789dd4f127c65a70c28",
+    "digestMethod": "Parse article JSON; remove ONLY top-level reviewedBy, editorialMethod, publishedAt and updatedAt; recursively sort object keys lexicographically, retain array order, JSON.stringify without whitespace, then SHA256 of UTF-8.",
+    "conditions": "The author may truthfully record Harvey's independent Codex source-based AI review and actual publication/update dates. Preserve source-reported resolution, unknown customer model/build/configuration limits and no-device-runtime boundaries. Do not imply human, Fortinet, measured-remediation, appliance-runtime or deployment approval. Only these four TOP-LEVEL fields may change without substantive rereview.",
+    "releaseHandoff": "Keep the substantive digest and every non-article raw artifact hash unchanged. Record the finalized article raw SHA256 separately; run the full 31-test suite, isolated build, parent desktop/mobile actual-page QA and exact release-byte checks before publication. This receipt grants no database access or social-write authorization."
+  },
+  "limitations": [
+    "No FortiGate, hardware, emulator, GNS3, CML or network lab was operated. Commands were source-verified during the full review, never executed.",
+    "No raw customer configuration/incident trace, exact model/build, HA layout or measured recovery duration was available; resolution remains source-reported.",
+    "Source retrieval methods and initial failures remain documented. This bounded gate rereview performed no new web retrieval or pixel inspection; prior successful review is carried forward by exact content/artifact hash equality.",
+    "No website desktop/mobile browser QA, isolated production build, deployed HTTP check, social composer or preview was performed by this reviewer. Parent's work is not claimed as reviewer execution.",
+    "No database probe, paid API, deployment, social post, schedule or queue operation occurred.",
+    "All original article content, graphics, reviews and October 28/29 addenda are preserved. Only four new independent overlap addenda, a private byte-identical preservation of the initial reboot review and this replacement latest reboot receipt were written during this rereview.",
+    "New article review attribution remains pending until parent truthfully finalizes the four permitted top-level metadata fields. Full installed new-article publication gate must run afterward.",
+    "These receipts record independent static review evidence, not cryptographic identity certification or blanket approval of future changes."
+  ],
+  "priorReview": {
+    "file": "test-results/fortigate-automation-reboot-2026-10-30/independent-review-initial-changes-requested-2026-10-30.json",
+    "sha256": "36c5c61f8ee03c05a2b66cc1cfb0851b1056c258dfee9f2ead8a04c11f5f5554",
+    "status": "CHANGES_REQUESTED",
+    "reviewedAt": "2026-10-30T08:01:49Z",
+    "preserved": true,
+    "preservationMethod": "Copied exact existing UTF-8 review text with apply_patch before replacing latest; raw SHA256 equality verified."
+  },
+  "resolvedFindings": [
+    {
+      "id": "REBOOT-RELEASE-01",
+      "priorPriority": "P2",
+      "status": "RESOLVED",
+      "file": "tests/fortigate-overlap-case-study.test.mjs",
+      "sha256": "6486cfc6d5f0a2cb7eb884abd2877d95cee00440273aea3c8dcfa7d41a7ed9f0",
+      "verification": "Four explicit transition mappings preserve every original exact assertion outside the allowlist. Four genuine overlap addenda bind original receipt hashes to current bytes; 41 adversarial cases and installed final overlap test pass."
+    }
+  ],
+  "revisionVerification": {
+    "allPreviouslyReviewedRebootArtifactsUnchanged": true,
+    "substantiveDigestUnchanged": true,
+    "originalOverlapReceipt": {
+      "file": "src/content/website-only/fortigate-subnet-overlap-case-study.review.json",
+      "sha256": "244790c751d89e3420cef6531561a62db4a244ddc49bf568da2ecf2192c262de",
+      "preserved": true
+    },
+    "changedGate": {
+      "file": "tests/fortigate-overlap-case-study.test.mjs",
+      "priorSha256": "b24fa440ad4d33b1067e2a16285963a8bfaa3c1dfd88a5d51b02e6156ae5f5d3",
+      "sha256": "6486cfc6d5f0a2cb7eb884abd2877d95cee00440273aea3c8dcfa7d41a7ed9f0"
+    },
+    "newAddenda": [
+      {
+        "file": "src/content/website-only/fortigate-overlap-registry-review-2026-10-30.json",
+        "sha256": "0f41a8a7f31db1368cbb20c48dfc267f19bbddb68cd75c3967e0592a7ae249d7"
+      },
+      {
+        "file": "src/content/website-only/fortigate-overlap-ztna-test-review-2026-10-30.json",
+        "sha256": "d03b246715a26cd83e7f448cf060c051cb137c47c35a2fdf1d59693bac596ffc"
+      },
+      {
+        "file": "src/content/website-only/fortigate-overlap-loop-test-review-2026-10-30.json",
+        "sha256": "cfc9461175437646207dbeaff0f35a6b3dad89ce4ec31c9bb36103a5f47ac60a"
+      },
+      {
+        "file": "src/content/website-only/fortigate-overlap-test-review-2026-10-30.json",
+        "sha256": "39469723d3a13ecbad3ee21bc8d617893b9260abaea7e1ab9348477c708f7011"
+      }
+    ],
+    "previousAddendaPreserved": [
+      {
+        "file": "src/content/website-only/fortigate-ztna-registry-review-2026-10-30.json",
+        "sha256": "d06b2801076dff3de13d5d5c07af69eb98fa7b275996d7a1f0d5a38d1b07f66a"
+      },
+      {
+        "file": "src/content/website-only/fortigate-ztna-test-review-2026-10-30.json",
+        "sha256": "cb999ca775425c5d551e56532aa61a89a06474fc7dc9bf1c28e3d589a3daf8b9"
+      },
+      {
+        "file": "src/content/website-only/fortigate-loop-registry-review-2026-10-30.json",
+        "sha256": "b52e3795cfa491913f6cd592dee941dcc9cd454fd78105cc312e59ec3e7b7dfc"
+      },
+      {
+        "file": "src/content/website-only/fortigate-loop-ztna-test-review-2026-10-30.json",
+        "sha256": "b3c91bccf4dfaff30ebede07c64ce9b3c1d65d052ca819043852ccdc84d633cc"
+      },
+      {
+        "file": "src/content/website-only/fortigate-loop-test-review-2026-10-30.json",
+        "sha256": "c977dccf533c9f4d05c423a86629573cf4a8b6c28b56535dcac8841167ca22d6"
+      }
+    ],
+    "unchangedOtherOverlapArtifacts": 15
+  }
+}

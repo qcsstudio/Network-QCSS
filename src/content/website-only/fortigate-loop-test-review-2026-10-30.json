@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "status": "PASS",
+  "reviewer": "Harvey (Codex independent reviewer)",
+  "reviewerId": "01a13e77-9990-71d0-b15b-6295f9c59903",
+  "reviewedAt": "2026-10-30T07:59:44Z",
+  "file": "tests/fortigate-loop-case-study.test.mjs",
+  "priorSha256": "ebd012cf5d1fde7f9e3f0d862b8b5d2ce612de6130e01756d2a7ce76be7c68c6",
+  "sha256": "4228d594fb91213c69f5ac2312cd72c3ba50c67231848cdf2f9ca5dbe8d4cbb2",
+  "scope": "Exact test transition relative to the ORIGINAL preserved review artifact. The established explicit file allowlist and all assertions are unchanged from Git HEAD; only literal dated addendum paths advance from October 29 to October 30. No generic mismatch exception or additional artifact exemption.",
+  "verification": [
+    "Read the complete current registry and both tests, and inspected their scoped Git diffs.",
+    "Verified existing ZTNA, loop and overlap article JSON equals Git HEAD modulo line endings; their substantive digests match the preserved original reviews.",
+    "Verified all existing ZTNA and loop non-article artifacts outside the explicitly requested transitions match their original raw hashes. Original receipts retain their previous raw hashes.",
+    "Both current final-gate callbacks were executed unchanged in read-only Node VM contexts with actual local bytes and in-memory proposed/malformed addendum fixtures; no test fixture was installed as approval.",
+    "ZTNA: two positive cases accepted and twenty invalid cases rejected. Loop: two positive cases accepted and twenty-eight invalid cases rejected. Checks cover missing/malformed addenda, all five required identity/hash fields, listed/unlisted byte tampering, substantive content and original review status/reviewer.",
+    "Preserved October 28/29 receipts. This addendum pins the original corresponding receipt hash and the actual current file hash, not a normalized replacement."
+  ],
+  "regressionVerification": {
+    "method": "Read-only execution of exact current test callbacks; only import.meta.url supplied as the actual test URL and reads intercepted for in-memory negative fixtures.",
+    "scenarios": 52,
+    "positivePassed": 4,
+    "negativeRejected": 48
+  },
+  "priorReceipt": {
+    "file": "src/content/website-only/fortigate-layer2-loop-case-study.review.json",
+    "sha256": "1b96355fb472d48481ee9e6250b596361a25d236a227be5c82d624d3bde53e35",
+    "preserved": true
+  },
+  "findings": [],
+  "limitations": [
+    "Scope is the exact file transition only; not publication, deployment, appliance-runtime or new-article approval.",
+    "The current overlap receipt independently binds the registry and both legacy tests. Its unchanged final gate fails and still requires its own explicit reviewed transitions.",
+    "No database access, paid API, social write, runtime appliance test, build or deployed-site QA was performed. No implementation or article was edited."
+  ]
+}
