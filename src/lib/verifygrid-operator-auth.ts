@@ -311,8 +311,13 @@ export async function completeRegistration(email: string, request: Request, resp
   if (!verification.verified || !verification.registrationInfo) throw new Error("Passkey enrollment could not be verified.");
   const info = verification.registrationInfo;
   const prisma = getPrismaClient();
-  await prisma.$transaction([
-    prisma.verifyGridOperatorPasskey.create({
+  await prisma.$transaction(async (tx) => {
+    const consumed = await tx.verifyGridOperatorChallenge.updateMany({
+      where: { id: challenge.id, usedAt: null, expiresAt: { gt: new Date() } },
+      data: { usedAt: new Date() }
+    });
+    if (consumed.count !== 1) throw new Error("The passkey enrollment challenge was already used or expired.");
+    await tx.verifyGridOperatorPasskey.create({
       data: {
         operatorId: operator.id,
         credentialId: info.credential.id,
@@ -323,9 +328,8 @@ export async function completeRegistration(email: string, request: Request, resp
         backedUp: info.credentialBackedUp,
         label: label?.trim().slice(0, 80) || "Primary passkey"
       }
-    }),
-    prisma.verifyGridOperatorChallenge.update({ where: { id: challenge.id }, data: { usedAt: new Date() } })
-  ]);
+    });
+  });
   return { token: await issueOperatorSession(operator.id, request), operator };
 }
 
@@ -365,18 +369,23 @@ export async function completeAuthentication(email: string, request: Request, re
   });
   if (!verification.verified || !verification.authenticationInfo.userVerified) throw new Error("Passkey authentication could not be verified.");
   const prisma = getPrismaClient();
-  await prisma.$transaction([
-    prisma.verifyGridOperatorPasskey.update({
-      where: { id: passkey.id },
+  await prisma.$transaction(async (tx) => {
+    const consumed = await tx.verifyGridOperatorChallenge.updateMany({
+      where: { id: challenge.id, usedAt: null, expiresAt: { gt: new Date() } },
+      data: { usedAt: new Date() }
+    });
+    if (consumed.count !== 1) throw new Error("The authentication challenge was already used or expired.");
+    const updated = await tx.verifyGridOperatorPasskey.updateMany({
+      where: { id: passkey.id, counter: passkey.counter },
       data: {
         counter: BigInt(verification.authenticationInfo.newCounter),
         deviceType: verification.authenticationInfo.credentialDeviceType,
         backedUp: verification.authenticationInfo.credentialBackedUp,
         lastUsedAt: new Date()
       }
-    }),
-    prisma.verifyGridOperatorChallenge.update({ where: { id: challenge.id }, data: { usedAt: new Date() } })
-  ]);
+    });
+    if (updated.count !== 1) throw new Error("The passkey changed during authentication. Start again.");
+  });
   return { token: await issueOperatorSession(operator.id, request), operator };
 }
 

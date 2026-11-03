@@ -175,7 +175,7 @@ export async function claimVerifyGridSensorJob(request: Request) {
     if (!candidate) return { sensor, job: null };
     const claimed = await prisma.verifyGridExecutionJob.updateMany({
       where: { id: candidate.id, status: candidate.status, OR: [{ leaseUntil: null }, { leaseUntil: { lt: now } }] },
-      data: { status: "claimed", dispatchStatus: "claimed", claimedAt: now, leaseUntil: new Date(Date.now() + 3 * 60_000), attempt: { increment: 1 }, lastError: null }
+      data: { status: "claimed", dispatchStatus: "claimed", claimedAt: now, leaseUntil: new Date(Math.min(Date.now() + 3 * 60_000, candidate.validUntil.getTime())), attempt: { increment: 1 }, lastError: null }
     });
     if (!claimed.count) continue;
     const job = await prisma.verifyGridExecutionJob.findUnique({
@@ -217,7 +217,7 @@ export async function claimVerifyGridSensorJob(request: Request) {
         manifestSha256: job.manifestSha256,
         signature: signSensorManifest(sensor.secret, canonical),
         signatureAlgorithm: "HMAC-SHA256",
-        leaseUntil: new Date(Date.now() + 3 * 60_000).toISOString(),
+        leaseUntil: job.leaseUntil!.toISOString(),
         heartbeatSeconds: 60
       }
     };
@@ -279,10 +279,20 @@ export async function completeVerifyGridSensorJob(request: Request, value: unkno
   if (sha256(input.content) !== input.contentSha256.toLowerCase()) throw new Error("Sensor result integrity hash does not match the submitted content.");
   const prisma = getPrismaClient();
   const now = new Date();
-  const job = await prisma.verifyGridExecutionJob.findFirst({ where: { id: input.jobId, sensorId: sensor.id }, include: { engagement: true } });
+  const job = await prisma.verifyGridExecutionJob.findFirst({ where: { id: input.jobId, sensorId: sensor.id }, include: { engagement: { include: { scopeTargets: true } }, authorization: true } });
   if (!job || !["claimed", "running"].includes(job.status)) throw new Error("The sensor job is not active.");
   if (job.validUntil <= now || !job.leaseUntil || job.leaseUntil <= now) throw new Error("The sensor result arrived outside its active execution lease.");
   if (job.manifestSha256 !== input.manifestSha256.toLowerCase()) throw new Error("The sensor result references a different manifest.");
+  const currentHash = scopeHash(job.engagement.scopeTargets);
+  const boundary = validateExecutionBoundary({
+    engagementStatus: job.engagement.status, testMode: job.engagement.testMode, scopeHash: currentHash,
+    capability: job.capability as Parameters<typeof validateExecutionBoundary>[0]["capability"],
+    targets: job.engagement.scopeTargets.filter((target) => Array.isArray(job.targetIds) && job.targetIds.includes(target.id)),
+    authorization: job.authorization, requestedStartAt: job.requestedStartAt, validUntil: job.validUntil, now
+  });
+  if (!boundary.allowed || job.scopeHash !== currentHash || job.manifestSha256 !== sha256(canonicalJson(job.manifest))) {
+    throw new Error("The sensor result no longer has a valid execution boundary.");
+  }
   const reserved = await prisma.verifyGridExecutionJob.updateMany({
     where: {
       id: job.id,
@@ -291,7 +301,9 @@ export async function completeVerifyGridSensorJob(request: Request, value: unkno
       manifestSha256: input.manifestSha256.toLowerCase(),
       validUntil: { gt: now },
       leaseUntil: { gt: now },
-      cancelledAt: null
+      cancelledAt: null,
+      engagement: { status: { in: executableEngagementStates } },
+      authorization: { status: "active", scopeHash: currentHash, authorityConfirmed: true, validFrom: { lte: now }, validUntil: { gt: now } }
     },
     data: { status: "processing_result", dispatchStatus: "processing_result", leaseUntil: new Date(Date.now() + 3 * 60_000) }
   });
@@ -305,7 +317,7 @@ export async function completeVerifyGridSensorJob(request: Request, value: unkno
     }, `sensor:${sensor.name}`);
     await prisma.$transaction(async (tx) => {
       const completed = await tx.verifyGridExecutionJob.updateMany({
-        where: { id: job.id, sensorId: sensor.id, status: "processing_result", cancelledAt: null },
+        where: { id: job.id, sensorId: sensor.id, status: "processing_result", cancelledAt: null, authorization: { status: "active", scopeHash: currentHash, validUntil: { gt: new Date() } }, engagement: { status: { in: executableEngagementStates } } },
         data: { status: "completed", dispatchStatus: "completed", completedAt: new Date(), leaseUntil: null, resultBatchId: imported.batchId, resultSummary: json({ ...input.summary, contentSha256: input.contentSha256 }), lastError: null }
       });
       if (completed.count !== 1) throw new Error("The sensor job was stopped before its result could be finalized.");
@@ -333,9 +345,9 @@ export async function failVerifyGridSensorJob(request: Request, value: unknown) 
   if (!job.leaseUntil || job.leaseUntil <= new Date()) throw new Error("The sensor job lease is no longer active.");
   if (job.manifestSha256 !== input.manifestSha256.toLowerCase()) throw new Error("The failure references a different manifest.");
   const canRetry = input.retryable && job.attempt < job.maxAttempts && job.validUntil > new Date(Date.now() + 60_000);
-  await prisma.$transaction([
-    prisma.verifyGridExecutionJob.update({
-      where: { id: job.id },
+  await prisma.$transaction(async (tx) => {
+    const updated = await tx.verifyGridExecutionJob.updateMany({
+      where: { id: job.id, sensorId: sensor.id, status: { in: ["claimed", "running"] }, cancelledAt: null, leaseUntil: { gt: new Date() }, manifestSha256: input.manifestSha256.toLowerCase(), engagement: { status: { in: executableEngagementStates } }, authorization: { status: "active", validUntil: { gt: new Date() } } },
       data: {
         status: canRetry ? "retry" : "failed",
         dispatchStatus: canRetry ? "retry" : "failed",
@@ -344,10 +356,11 @@ export async function failVerifyGridSensorJob(request: Request, value: unknown) 
         leaseUntil: null,
         lastError: input.error
       }
-    }),
-    prisma.verifyGridActivity.create({ data: { workspaceId: job.workspaceId, engagementId: job.engagementId, action: canRetry ? "execution.retry_scheduled" : "execution.failed", actor: `sensor:${sensor.name}`, metadata: json({ jobId: job.id, error: input.error, attempt: job.attempt }) } }),
-    prisma.verifyGridSensor.update({ where: { id: sensor.id }, data: { healthStatus: canRetry ? "degraded" : "error", lastError: input.error } })
-  ]);
+    });
+    if (updated.count !== 1) throw new Error("The sensor failure lease was already consumed or stopped.");
+    await tx.verifyGridActivity.create({ data: { workspaceId: job.workspaceId, engagementId: job.engagementId, action: canRetry ? "execution.retry_scheduled" : "execution.failed", actor: `sensor:${sensor.name}`, metadata: json({ jobId: job.id, error: input.error, attempt: job.attempt }) } });
+    await tx.verifyGridSensor.update({ where: { id: sensor.id }, data: { healthStatus: canRetry ? "degraded" : "error", lastError: input.error } });
+  });
   return { ok: true, status: canRetry ? "retry" : "failed" };
 }
 
@@ -378,7 +391,8 @@ export async function reconcileVerifyGridExecutionLeases() {
   let failed = 0;
   for (const job of stale) {
     const canRetry = job.attempt < job.maxAttempts && job.validUntil > new Date(Date.now() + 60_000);
-    await prisma.verifyGridExecutionJob.update({ where: { id: job.id }, data: { status: canRetry ? "retry" : "failed", dispatchStatus: canRetry ? "retry" : "failed", requestedStartAt: canRetry ? new Date(Date.now() + retryDelayMinutes(job.attempt) * 60_000) : job.requestedStartAt, leaseUntil: null, completedAt: canRetry ? null : now, lastError: "Sensor lease expired before a final result was received." } });
+    const updated = await prisma.verifyGridExecutionJob.updateMany({ where: { id: job.id, status: job.status, cancelledAt: null, leaseUntil: { lt: now }, validUntil: { gt: now } }, data: { status: canRetry ? "retry" : "failed", dispatchStatus: canRetry ? "retry" : "failed", requestedStartAt: canRetry ? new Date(Date.now() + retryDelayMinutes(job.attempt) * 60_000) : job.requestedStartAt, leaseUntil: null, completedAt: canRetry ? null : now, lastError: "Sensor lease expired before a final result was received." } });
+    if (!updated.count) continue;
     if (canRetry) retried += 1;
     else failed += 1;
   }

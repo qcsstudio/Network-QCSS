@@ -6965,6 +6965,7 @@ td span {
 }
 
 .verifygrid-report-cover h1 {
+  color: #fff;
   max-width: 800px;
   margin-top: 12px;
   font-size: 2.8rem;
@@ -6975,6 +6976,10 @@ td span {
 .verifygrid-report-cover p:last-child {
   margin-top: 14px;
   color: #cbd5e1;
+}
+
+.verifygrid-report-cover .eyebrow {
+  color: #a8c5ff;
 }
 
 .verifygrid-report-cover svg {
@@ -7241,6 +7246,17 @@ td span {
     width: 100%;
     border: 0;
     box-shadow: none;
+  }
+
+  .verifygrid-report-cover {
+    background: white;
+    color: #111a2b;
+  }
+
+  .verifygrid-report-cover h1,
+  .verifygrid-report-cover p,
+  .verifygrid-report-cover .eyebrow {
+    color: #111a2b;
   }
 
   .verifygrid-report-section {

@@ -114,7 +114,27 @@ export function buildCustodyEventHash(input: {
   classification: string;
   details?: unknown;
 }) {
-  return sha256Json({ schema: "qcs.verifygrid.custody-event.v1", ...input });
+  return sha256Json({
+    schema: "qcs.verifygrid.custody-event.v1", ...input,
+    sourceSha256: input.sourceSha256 ?? null,
+    previousHash: input.previousHash ?? null
+  });
+}
+
+/** Earlier v1 writers omitted absent optional fields before persisting them as
+ * SQL null. Accept only those equivalent legacy encodings during verification.
+ */
+export function verifyCustodyEventHash(input: Parameters<typeof buildCustodyEventHash>[0], expectedHash: string) {
+  if (buildCustodyEventHash(input) === expectedHash) return true;
+  for (const omitSource of [false, true]) {
+    for (const omitPrevious of [false, true]) {
+      const legacy = { ...input };
+      if (omitSource && legacy.sourceSha256 == null) delete legacy.sourceSha256;
+      if (omitPrevious && legacy.previousHash == null) delete legacy.previousHash;
+      if (sha256Json({ schema: "qcs.verifygrid.custody-event.v1", ...legacy }) === expectedHash) return true;
+    }
+  }
+  return false;
 }
 
 export function buildReportChainHash(input: {
@@ -125,7 +145,15 @@ export function buildReportChainHash(input: {
   previousChainHash?: string | null;
   generatedAt: string;
 }) {
-  return sha256Json({ schema: "qcs.verifygrid.report-chain.v1", ...input });
+  return sha256Json({ schema: "qcs.verifygrid.report-chain.v1", ...input, previousChainHash: input.previousChainHash ?? null });
+}
+
+export function verifyReportChainHash(input: Parameters<typeof buildReportChainHash>[0], expectedHash: string) {
+  if (buildReportChainHash(input) === expectedHash) return true;
+  if (input.previousChainHash != null) return false;
+  const legacy = { ...input };
+  delete legacy.previousChainHash;
+  return sha256Json({ schema: "qcs.verifygrid.report-chain.v1", ...legacy }) === expectedHash;
 }
 
 export function signReportChain(chainHash: string, privateKeyBase64: string) {

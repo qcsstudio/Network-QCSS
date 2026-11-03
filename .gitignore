@@ -21,6 +21,8 @@ envato-assets/**
 
 # Local browser QA captures.
 artifacts/verifygrid-automation-*.png
+artifacts/verifygrid-staging-*
+artifacts/verifygrid-worker-*
 test-results/
 .tmp-ccna-day-two-qa/
 .tmp-codex-images/
