@@ -3,6 +3,7 @@ import dns from "node:dns/promises";
 import net from "node:net";
 import tls from "node:tls";
 import { detectScannerCapabilities, isScannerCapability, runScannerCapability } from "./verifygrid-scanners.mjs";
+import { executionDeadline } from "./verifygrid-policy.mjs";
 
 const VERSION = "2.0.0";
 const BUILTIN_CAPABILITIES = ["asset_inventory", "dns_posture", "tls_posture", "tcp_service_validation", "http_security_headers"];
@@ -233,8 +234,7 @@ function validateJob(job) {
   if (!controls.nonDestructive || controls.persistenceAllowed || controls.credentialHarvestingAllowed || controls.denialOfServiceAllowed || controls.thirdPartyTargetsAllowed || controls.dispatchPolicy !== "outbound_sensor_only") throw new Error("Execution controls do not satisfy the sensor safety policy.");
   const approval = controls.approval || {};
   if (manifest.capability?.humanApprovalRequired && (!approval.required || !approval.approvedBy || !approval.approvedAt || !/^[a-f0-9]{64}$/i.test(String(approval.noteSha256 || "")))) throw new Error("Controlled validation requires a signed approval record in the manifest.");
-  const now = Date.now();
-  if (now < new Date(controls.requestedStartAt).getTime() || now > new Date(controls.validUntil).getTime()) throw new Error("Execution manifest is outside its authorized time window.");
+  executionDeadline(manifest);
   if (!Number.isInteger(controls.maxRequestsPerSecond) || controls.maxRequestsPerSecond < 1 || controls.maxRequestsPerSecond > 100) throw new Error("Execution request ceiling is invalid.");
   if (!Array.isArray(manifest.targets) || !manifest.targets.length || manifest.targets.length > 50) throw new Error("Execution target set is invalid.");
   return manifest;
@@ -243,6 +243,7 @@ function validateJob(job) {
 async function handleJob(job) {
   const manifest = validateJob(job);
   const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), Math.max(0, executionDeadline(manifest) - Date.now()));
   const heartbeatCall = async () => {
     try {
       const response = await api("/api/verifygrid/sensor/jobs/heartbeat", { jobId: job.id, state: "running", version: VERSION, region });
@@ -281,6 +282,7 @@ async function handleJob(job) {
     process.stderr.write(`VerifyGrid job ${job.id} failed: ${message}\n`);
   } finally {
     clearInterval(heartbeat);
+    clearTimeout(deadline);
   }
 }
 

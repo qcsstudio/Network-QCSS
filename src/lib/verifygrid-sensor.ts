@@ -19,6 +19,7 @@ import { importVerifyGridScannerExport } from "@/lib/verifygrid-pipeline";
 import { scopeHash } from "@/lib/verifygrid-domain";
 import { getVerifyGridEngagement } from "@/lib/verifygrid";
 import { capabilityCatalog, verifyGridCapabilities } from "@/lib/verifygrid-catalog";
+import { executableEngagementStates } from "@/lib/verifygrid-execution-policy";
 
 function json(value: unknown) {
   return value as Prisma.InputJsonValue;
@@ -145,10 +146,13 @@ export async function queueVerifyGridExecutionJob(jobId: string, value: unknown,
 
 async function blockJob(job: { id: string; workspaceId: string; engagementId: string }, reason: string) {
   const prisma = getPrismaClient();
-  await prisma.$transaction([
-    prisma.verifyGridExecutionJob.update({ where: { id: job.id }, data: { status: "failed", dispatchStatus: "blocked", completedAt: new Date(), lastError: reason, leaseUntil: null } }),
-    prisma.verifyGridActivity.create({ data: { workspaceId: job.workspaceId, engagementId: job.engagementId, action: "execution.dispatch_blocked", actor: "verifygrid-safety-gate", metadata: json({ jobId: job.id, reason }) } })
-  ]);
+  await prisma.$transaction(async (tx) => {
+    const blocked = await tx.verifyGridExecutionJob.updateMany({
+      where: { id: job.id, status: { in: ["queued", "retry", "claimed", "running"] }, cancelledAt: null },
+      data: { status: "failed", dispatchStatus: "blocked", completedAt: new Date(), lastError: reason, leaseUntil: null }
+    });
+    if (blocked.count) await tx.verifyGridActivity.create({ data: { workspaceId: job.workspaceId, engagementId: job.engagementId, action: "execution.dispatch_blocked", actor: "verifygrid-safety-gate", metadata: json({ jobId: job.id, reason }) } });
+  });
 }
 
 export async function claimVerifyGridSensorJob(request: Request) {
@@ -226,13 +230,46 @@ export async function heartbeatVerifyGridSensorJob(request: Request, value: unkn
   if (!sensor) return null;
   const input = sensorHeartbeatSchema.parse(value);
   const now = new Date();
-  const result = await getPrismaClient().verifyGridExecutionJob.updateMany({
-    where: { id: input.jobId, sensorId: sensor.id, status: { in: ["claimed", "running"] }, validUntil: { gt: now }, cancelledAt: null },
-    data: { status: input.state, dispatchStatus: input.state, startedAt: input.state === "running" ? now : undefined, leaseUntil: new Date(Date.now() + 3 * 60_000) }
+  const prisma = getPrismaClient();
+  const job = await prisma.verifyGridExecutionJob.findFirst({
+    where: { id: input.jobId, sensorId: sensor.id, status: { in: ["claimed", "running"] }, cancelledAt: null },
+    include: { engagement: { include: { scopeTargets: true } }, authorization: true }
+  });
+  if (!job || !job.leaseUntil || job.leaseUntil <= now) throw new Error("The job lease is no longer active.");
+  const currentHash = scopeHash(job.engagement.scopeTargets);
+  const targets = job.engagement.scopeTargets.filter((target) => Array.isArray(job.targetIds) && job.targetIds.includes(target.id));
+  const boundary = validateExecutionBoundary({
+    engagementStatus: job.engagement.status,
+    testMode: job.engagement.testMode,
+    scopeHash: currentHash,
+    capability: job.capability as Parameters<typeof validateExecutionBoundary>[0]["capability"],
+    targets,
+    authorization: job.authorization,
+    requestedStartAt: job.requestedStartAt,
+    validUntil: job.validUntil,
+    now
+  });
+  const blockers = [...boundary.blockers];
+  if (job.scopeHash !== currentHash) blockers.push("Execution scope changed after manifest creation.");
+  if (job.manifestSha256 !== sha256(canonicalJson(job.manifest))) blockers.push("Execution manifest integrity failed.");
+  if (!sensor.runtimeCapabilityList.includes(job.capability)) blockers.push("The required scanner runtime is no longer available.");
+  if (blockers.length) {
+    await blockJob(job, blockers.join(" "));
+    throw new Error(`Execution stopped: ${blockers.join(" ")}`);
+  }
+  const leaseUntil = new Date(Math.min(now.getTime() + 3 * 60_000, job.validUntil.getTime(), job.authorization.validUntil.getTime()));
+  const result = await prisma.verifyGridExecutionJob.updateMany({
+    where: {
+      id: input.jobId, sensorId: sensor.id, status: { in: ["claimed", "running"] }, validUntil: { gt: now }, leaseUntil: { gt: now }, cancelledAt: null,
+      manifestSha256: job.manifestSha256,
+      engagement: { status: { in: executableEngagementStates } },
+      authorization: { status: "active", scopeHash: currentHash, authorityConfirmed: true, validFrom: { lte: now }, validUntil: { gt: now } }
+    },
+    data: { status: input.state, dispatchStatus: input.state, startedAt: input.state === "running" && !job.startedAt ? now : undefined, leaseUntil }
   });
   if (!result.count) throw new Error("The job lease is no longer active.");
   if (input.version || input.region) await getPrismaClient().verifyGridSensor.update({ where: { id: sensor.id }, data: { version: input.version, region: input.region } });
-  return { ok: true, leaseUntil: new Date(Date.now() + 3 * 60_000).toISOString() };
+  return { ok: true, leaseUntil: leaseUntil.toISOString() };
 }
 
 export async function completeVerifyGridSensorJob(request: Request, value: unknown) {

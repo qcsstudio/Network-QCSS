@@ -61,7 +61,7 @@ export function evaluateReportQuality(input: QualityInput) {
   const unownedPriority = material.filter((finding) => ["critical", "high"].includes(finding.severity) && (!finding.ownerName || !finding.dueAt));
   const unsupportedFindings = material.filter((finding) => !finding.evidenceCount && !finding.evidenceSummary?.trim());
   const closureWithoutRetest = material.filter((finding) => ["resolved", "closed"].includes(finding.status) && !finding.retestStatuses.includes("passed"));
-  const activeExecution = input.executionStatuses.filter((status) => ["queued", "claimed", "running", "retry_pending"].includes(status));
+  const activeExecution = input.executionStatuses.filter((status) => ["queued", "claimed", "running", "processing_result", "retry", "retry_pending"].includes(status));
   const pendingImports = input.importStatuses.filter((status) => status === "processing");
   const authorization = input.activeAuthorization;
   const authorityValid = Boolean(
@@ -69,7 +69,7 @@ export function evaluateReportQuality(input: QualityInput) {
     authorization.scopeHash === input.currentScopeHash &&
     authorization.authorityConfirmed &&
     authorization.validFrom <= now &&
-    authorization.validUntil >= now
+    authorization.validUntil > now
   );
   const methodologyFailure: "warning" | "fail" = input.reportType === "executive" ? "warning" : "fail";
   const retestFailure: "warning" | "fail" = input.reportType === "retest" ? "fail" : "warning";

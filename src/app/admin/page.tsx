@@ -31,6 +31,11 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+async function loadVerifyGridSnapshot() {
+  const portfolio = await getVerifyGridPortfolio();
+  return { ...portfolio, evaluatedAt: Date.now() };
+}
+
 export default async function AdminPage() {
   const session = await requireAdmin();
   await createAuditLog(
@@ -51,7 +56,7 @@ export default async function AdminPage() {
   ]);
   const verifyGridAccess = access.data;
   const portfolio = verifyGridAccess?.state === "unlocked"
-    ? await loadSection("VerifyGrid portfolio", getVerifyGridPortfolio) : null;
+    ? await loadSection("VerifyGrid portfolio", loadVerifyGridSnapshot) : null;
   const storageUnavailable = [dashboard, content, distribution, advisory, access, learning].some((result) => !result.available) || portfolio?.available === false;
 
   return (
@@ -106,7 +111,7 @@ export default async function AdminPage() {
             <>
               <VerifyGridSecurityBar access={verifyGridAccess} />
               <VerifyGridOnboardingQueue />
-              <VerifyGridControlPanel access={verifyGridAccess.operator} initialPortfolio={portfolio.data} />
+              <VerifyGridControlPanel access={verifyGridAccess.operator} evaluatedAt={portfolio.data.evaluatedAt} initialPortfolio={portfolio.data} />
             </>
           ) : (
             <VerifyGridAccessGate access={verifyGridAccess} email={session.email} />
