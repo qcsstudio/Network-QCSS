@@ -18,6 +18,7 @@ assert(!new URL(base).hostname.endsWith("qcsstudio.com"), "Production QA is proh
 const prisma = getPrismaClient();
 const run = `qa-${Date.now()}`;
 const passed: string[] = [];
+const incomplete: string[] = [];
 const ua = "VerifyGrid-Isolated-Staging-QA/1.0";
 const hash = (b: crypto.BinaryLike) => crypto.createHash("sha256").update(b).digest();
 const pass = (name: string) => { passed.push(name); console.log(`PASS ${name}`); };
@@ -205,13 +206,15 @@ try {
   for(const event of events){assert.equal(event.previousHash,previous);assert(verifyCustodyEventHash({engagementId:event.engagementId,sequence:event.sequence,eventType:event.eventType,subjectType:event.subjectType,subjectId:event.subjectId,action:event.action,actor:event.actor,sourceSha256:event.sourceSha256,previousHash:event.previousHash,classification:event.classification,occurredAt:event.occurredAt.toISOString(),details:event.details},event.eventHash));previous=event.eventHash;}
   pass("Report custody sequence and hash chain recompute correctly");
   const invite=await ok(owner,`/api/admin/verifygrid/workspaces/${alpha.workspace.id}/memberships`,{email:"alpha@verifygrid-staging.example",displayName:"Synthetic Alpha Client",role:"client_viewer"});
-  assert.equal(invite.emailDelivery,"sent");if(process.env.SMTP_HOST==="127.0.0.1") assert(mail.length>=1);
+  const deferEmail=process.env.VERIFYGRID_QA_DEFER_EMAIL==="1";
+  if(deferEmail) incomplete.push("Cloud capture mailbox delivery remains untested; test access token supplied by authorized administrator API");
+  else {assert.equal(invite.emailDelivery,"sent");if(process.env.SMTP_HOST==="127.0.0.1") assert(mail.length>=1);}
   const token=new URLSearchParams(new URL(invite.accessUrl).hash.slice(1)).get("token")!;
   const client:Client={cookie:""};
   const access=await request(client,"/api/portal/access",new URLSearchParams({token}));assert.equal(new URL(access.location!).pathname,"/portal");
   const replayAccess=await request(anonymous,"/api/portal/access",new URLSearchParams({token}));assert(new URL(replayAccess.location!).search.includes("invalid"));
   assert.equal((await request(client,`/api/portal/reports/${report.reportId}`)).status,404);
-  pass("Synthetic SMTP delivery, one-time access, and cross-tenant report denial");
+  pass(deferEmail?"Administrator-supplied one-time access and cross-tenant report denial":"Synthetic SMTP delivery, one-time access, and cross-tenant report denial");
   const betaInvite=await ok(owner,`/api/admin/verifygrid/workspaces/${beta.workspace.id}/memberships`,{email:"beta@verifygrid-staging.example",role:"client_viewer"});
   const betaClient:Client={cookie:""}; const betaToken=new URLSearchParams(new URL(betaInvite.accessUrl).hash.slice(1)).get("token")!;
   await request(betaClient,"/api/portal/access",new URLSearchParams({token:betaToken}));
@@ -234,7 +237,7 @@ try {
   console.error("FAIL",error instanceof Error?error.message:"Unknown QA failure");process.exitCode=1;
 } finally {
   await fs.mkdir("artifacts",{recursive:true});
-  await fs.writeFile(`artifacts/verifygrid-staging-${new URL(base).protocol==='https:'?'cloud':'local'}-results.json`,JSON.stringify({run,base,at:new Date().toISOString(),databaseFingerprint:databaseHash,passed,success:!process.exitCode,limitations:["Software test authenticator; native hardware ceremony not exercised","Secondary parent identity sessions are synthetic fixtures",`SMTP captured by ${process.env.SMTP_HOST==='127.0.0.1'?'local sink':'Ethereal test mailbox'}; no external delivery`]},null,2));
+  await fs.writeFile(`artifacts/verifygrid-staging-${new URL(base).protocol==='https:'?'cloud':'local'}-results.json`,JSON.stringify({run,base,at:new Date().toISOString(),databaseFingerprint:databaseHash,passed,success:!process.exitCode && !incomplete.length,incomplete,limitations:["Software test authenticator; native hardware ceremony not exercised","Secondary parent identity sessions are synthetic fixtures",process.env.VERIFYGRID_QA_DEFER_EMAIL==='1'?"Cloud email delivery untested":`SMTP captured by ${process.env.SMTP_HOST==='127.0.0.1'?'local sink':'Ethereal test mailbox'}; no external delivery`]},null,2));
   mailServer.close(); await prisma.$disconnect();
 }
 }
