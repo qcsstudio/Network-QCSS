@@ -1,4 +1,4 @@
-.overview { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(300px,1fr); gap:20px; margin-bottom:24px; color:#172b3d; animation:enter .32s ease-out both; }
+.overview { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr)); gap:20px; margin-bottom:24px; color:#172b3d; animation:enter .32s ease-out both; }
 .overview * { box-sizing:border-box; }
 .posture { min-width:0; display:flex; flex-direction:column; border:1px solid #253e50; border-radius:18px; overflow:hidden; background:#0c1d2b; color:#e6eef5; box-shadow:0 12px 30px #0c1d2b12; }
 .postureHeading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:22px 24px 0; }
