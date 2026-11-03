@@ -15,6 +15,7 @@ const databaseHash = crypto.createHash("sha256").update(process.env.DATABASE_URL
 assert(process.env.VERIFYGRID_QA_ISOLATED && process.env.VERIFYGRID_QA_DATABASE_SHA256 === databaseHash,
   "Refusing QA without an explicit isolated database fingerprint");
 assert(!new URL(base).hostname.endsWith("qcsstudio.com"), "Production QA is prohibited");
+assert(process.env.ADMIN_EMAIL?.endsWith("@verifygrid-staging.example"), "The QA owner must be a synthetic identity");
 const prisma = getPrismaClient();
 const run = `qa-${Date.now()}`;
 const passed: string[] = [];
@@ -117,8 +118,13 @@ try {
   pass("Real administrator login succeeds; password alone cannot access VerifyGrid");
   // Each run gets new secondary fixtures. The bootstrap owner keeps one passkey
   // between runs, so reset only this synthetic owner's QA security records.
-  const existingOwner=await prisma.verifyGridOperator.findUnique({where:{email:process.env.ADMIN_EMAIL!}});
-  if(existingOwner) {await prisma.verifyGridOperatorPasskey.deleteMany({where:{operatorId:existingOwner.id}});await prisma.verifyGridOperatorSession.deleteMany({where:{operatorId:existingOwner.id}});}
+  const existingOwner=await prisma.verifyGridOperator.findUnique({where:{email:process.env.ADMIN_EMAIL!},include:{passkeys:{select:{label:true}}}});
+  if(existingOwner) {
+    assert(existingOwner.passkeys.every(key=>key.label === "Synthetic software authenticator"),"Refusing to reset an authenticator not created by this QA suite");
+    await prisma.verifyGridOperatorPasskey.deleteMany({where:{operatorId:existingOwner.id,label:"Synthetic software authenticator"}});
+    await prisma.verifyGridOperatorSession.updateMany({where:{operatorId:existingOwner.id,revokedAt:null},data:{revokedAt:new Date()}});
+  }
+  const ceremonyStartedAt=Date.now();
   const ownerDevice=authenticator(); const enrollment=await enroll(owner,ownerDevice);
   pass("Passkey enrollment verifies RP, origin, challenge, user presence and verification");
   const replay=await request(owner,"/api/admin/verifygrid/security",{action:"registration_verify",response:enrollment});
@@ -230,6 +236,13 @@ try {
   const draft=await ok(owner,`${ep}/reports`,{reportType:"technical"});
   assert.equal((await request(roles.reviewer,`/api/admin/verifygrid/reports/${draft.reportId}/review`,review)).status,400);
   pass("Incomplete coverage and active execution block report approval");
+  // A slow cloud run can consume most of the critical-action freshness window.
+  // Renew through the real ceremony before handing off to the email/worker suites.
+  // Wait for the ordinary ceremony rate window to age out; do not weaken it.
+  if(Date.now()-ceremonyStartedAt >= 5*60_000) {
+    const {options}=await ok(owner,"/api/admin/verifygrid/security",{action:"authentication_options"});
+    await ok(owner,"/api/admin/verifygrid/security",{action:"authentication_verify",response:ownerDevice.response(options,false)});
+  }
   const browserInvite=await ok(owner,`/api/admin/verifygrid/workspaces/${beta.workspace.id}/memberships`,{email:"browser@verifygrid-staging.example",displayName:"Synthetic browser reviewer",role:"client_viewer"});
   const browserToken=new URLSearchParams(new URL(browserInvite.accessUrl).hash.slice(1)).get("token");
   await fs.writeFile(".vercel/staging-browser.json",JSON.stringify({base,ownerCookie:owner.cookie,alphaId:alpha.id,betaId:beta.id,reportId:report.reportId,accessToken:browserToken}));
