@@ -11,6 +11,8 @@ import {
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPrismaClient } from "@/lib/prisma";
+import { getVerifyGridParentIdentity } from "@/lib/verifygrid-identity";
+import { verifyGridOperatorPath } from "@/lib/verifygrid-identity-domain";
 import {
   VERIFYGRID_CRITICAL_REAUTH_MINUTES,
   VERIFYGRID_SESSION_IDLE_MINUTES,
@@ -161,6 +163,8 @@ async function sessionFromToken(token: string, expectedUserAgentHash?: string) {
 export async function getVerifyGridOperatorFromRequest(request: Request, permission: VerifyGridPermission = "view") {
   const operator = await sessionFromToken(cookieFromRequest(request), headerFingerprint(request.headers).userAgentHash);
   if (!operator || !operatorHasPermission(operator.role, permission)) return null;
+  const parent = await getVerifyGridParentIdentity();
+  if (!parent || parent.email.toLowerCase() !== operator.email.toLowerCase() || (parent.operatorId && parent.operatorId !== operator.id)) return null;
   if (verifyGridRequiresFreshAuthentication(permission) && Date.now() - new Date(operator.session.authenticatedAt).getTime() > VERIFYGRID_CRITICAL_REAUTH_MINUTES * 60_000) return null;
   return operator;
 }
@@ -170,13 +174,15 @@ export async function getVerifyGridOperatorFromCookies(permission: VerifyGridPer
   const headerList = await headers();
   const operator = await sessionFromToken(cookieStore.get(verifyGridOperatorCookieName)?.value || "", headerFingerprint(headerList).userAgentHash);
   if (!operator || !operatorHasPermission(operator.role, permission)) return null;
+  const parent = await getVerifyGridParentIdentity();
+  if (!parent || parent.email.toLowerCase() !== operator.email.toLowerCase() || (parent.operatorId && parent.operatorId !== operator.id)) return null;
   if (verifyGridRequiresFreshAuthentication(permission) && Date.now() - new Date(operator.session.authenticatedAt).getTime() > VERIFYGRID_CRITICAL_REAUTH_MINUTES * 60_000) return null;
   return operator;
 }
 
 export async function requireVerifyGridOperator(permission: VerifyGridPermission = "view") {
   const operator = await getVerifyGridOperatorFromCookies(permission);
-  if (!operator) redirect("/admin?verifygrid=locked");
+  if (!operator) redirect(verifyGridOperatorPath);
   return operator;
 }
 
@@ -400,13 +406,15 @@ export async function cleanExpiredVerifyGridOperatorSecurity() {
   const now = new Date();
   const sessionCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60_000);
   const challengeCutoff = new Date(now.getTime() - 24 * 60 * 60_000);
-  const [sessions, challenges] = await prisma.$transaction([
+  const [sessions, challenges, identitySessions, identityLogins] = await prisma.$transaction([
     prisma.verifyGridOperatorSession.deleteMany({
       where: { OR: [{ expiresAt: { lt: sessionCutoff } }, { revokedAt: { lt: sessionCutoff } }] }
     }),
     prisma.verifyGridOperatorChallenge.deleteMany({
       where: { OR: [{ expiresAt: { lt: challengeCutoff } }, { usedAt: { lt: challengeCutoff } }] }
-    })
+    }),
+    prisma.verifyGridIdentitySession.deleteMany({where:{OR:[{expiresAt:{lt:sessionCutoff}},{revokedAt:{lt:sessionCutoff}}]}}),
+    prisma.verifyGridIdentityLogin.deleteMany({where:{expiresAt:{lt:challengeCutoff}}})
   ]);
-  return { sessions: sessions.count, challenges: challenges.count };
+  return { sessions: sessions.count, challenges: challenges.count, identitySessions: identitySessions.count, identityLogins: identityLogins.count };
 }

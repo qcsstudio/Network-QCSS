@@ -89,7 +89,7 @@ const nextConfig = {
   },
   async headers() {
     return [
-      ...["/admin/:path*", "/portal/:path*", "/verifygrid/:path*"].map((source) => ({
+      ...["/admin/:path*", "/portal/:path*", "/verifygrid/:path*", "/operator/:path*", "/api/verifygrid/identity/:path*"].map((source) => ({
         source,
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }]
       })),
@@ -115,6 +115,16 @@ const nextConfig = {
                 }
               ]
             : [])
+        ]
+      },
+      {
+        source: "/operator/verifygrid",
+        headers: [
+          // Chromium also applies form-action to the OIDC POST's redirect.
+          // Restrict the exception to the dedicated operator entry document.
+          { key: "Content-Security-Policy", value: contentSecurityPolicy.replace("form-action 'self'", "form-action 'self' https://login.microsoftonline.com") },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "private, no-store" }
         ]
       },
       {

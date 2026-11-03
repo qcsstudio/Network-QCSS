@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Download, Fingerprint, ShieldCheck, TriangleAlert, XCircle } from "lucide-react";
 import { PrintReportButton } from "@/components/print-report-button";
-import { requireAdmin } from "@/lib/admin-auth";
+import { getVerifyGridParentIdentity } from "@/lib/verifygrid-identity";
 import { getVerifyGridReport } from "@/lib/verifygrid-pipeline";
 import { requireVerifyGridOperator } from "@/lib/verifygrid-operator-auth";
 
@@ -36,7 +36,7 @@ function label(value: unknown) {
 
 export default async function VerifyGridReportPage({ params }: { params: Promise<{ id: string }> }) {
   await requireVerifyGridOperator("view");
-  await requireAdmin();
+  const parent = await getVerifyGridParentIdentity();
   const { id } = await params;
   const report = await getVerifyGridReport(id);
   if (!report) notFound();
@@ -57,7 +57,7 @@ export default async function VerifyGridReportPage({ params }: { params: Promise
   return (
     <main className="verifygrid-report-page">
       <section className="verifygrid-report-toolbar">
-        <Link className="button secondary compact-button" href="/admin#verifygrid"><ArrowLeft aria-hidden="true" size={17} /> Back to VerifyGrid</Link>
+        <Link className="button secondary compact-button" href={parent?.provider === "entra" ? "/operator/verifygrid" : "/admin#verifygrid"}><ArrowLeft aria-hidden="true" size={17} /> Back to VerifyGrid</Link>
         <div className="content-action-row">
           <a className="button secondary compact-button" href={`/api/admin/verifygrid/reports/${report.id}`}><Download aria-hidden="true" size={17} /> JSON evidence</a>
           <PrintReportButton />

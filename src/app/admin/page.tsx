@@ -19,6 +19,8 @@ import { getVerifyGridPortfolio } from "@/lib/verifygrid";
 import { VerifyGridAccessGate } from "@/components/verifygrid-access-gate";
 import { VerifyGridSecurityBar } from "@/components/verifygrid-security-bar";
 import { getVerifyGridAccessState } from "@/lib/verifygrid-operator-auth";
+import { verifyGridSSORequired } from "@/lib/verifygrid-identity-domain";
+import identityStyles from "@/app/operator/verifygrid/identity.module.css";
 import { CcnaLearningDesk } from "@/components/ccna-learning-desk";
 import { listCcnaLessons } from "@/lib/ccna-learning";
 import { loadSection } from "@/lib/section-availability";
@@ -107,7 +109,7 @@ export default async function AdminPage() {
           distribution={distribution.available ? <DistributionControlPanel initialSnapshot={distribution.data} /> : <SectionUnavailable admin title="Distribution" />}
           learning={learning.available ? <CcnaLearningDesk initialLessons={learning.data} /> : <SectionUnavailable admin title="CCNA Learning Desk" />}
           overview={dashboard.available ? <OperatorDashboard snapshot={dashboard.data} /> : <SectionUnavailable admin title="Dashboard data" />}
-          verifygrid={!verifyGridAccess || portfolio?.available === false ? <SectionUnavailable admin title="VerifyGrid" /> : verifyGridAccess.state === "unlocked" && portfolio?.available ? (
+          verifygrid={verifyGridSSORequired() ? <section className={identityStyles.redirect}><p className="eyebrow">Operator identity</p><h2>VerifyGrid operator console</h2><p>Use your assigned work identity and passkey to access client engagements.</p><Link className="button primary" href="/operator/verifygrid">Open VerifyGrid</Link></section> : !verifyGridAccess || portfolio?.available === false ? <SectionUnavailable admin title="VerifyGrid" /> : verifyGridAccess.state === "unlocked" && portfolio?.available ? (
             <>
               <VerifyGridSecurityBar access={verifyGridAccess} />
               <VerifyGridOnboardingQueue />
