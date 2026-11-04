@@ -1,7 +1,7 @@
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getAdminSession, isAdminRequest } from "@/lib/admin-auth";
+import { getVerifyGridParentIdentity } from "@/lib/verifygrid-identity";
 import { jsonError, noStoreHeaders, readJsonBody } from "@/lib/api";
 import { rateLimit } from "@/lib/rate-limit";
 import { auditVerifyGrid } from "@/lib/verifygrid-admin-api";
@@ -25,13 +25,12 @@ const ceremonySchema = z.object({
   label: z.string().trim().max(80).optional()
 });
 
-async function adminIdentity(request: Request) {
-  if (!isAdminRequest(request)) return null;
-  return getAdminSession();
+async function adminIdentity() {
+  return getVerifyGridParentIdentity();
 }
 
-export async function GET(request: Request) {
-  const session = await adminIdentity(request);
+export async function GET() {
+  const session = await adminIdentity();
   if (!session) return jsonError("Unauthorized", 401);
   try {
     const access = await getVerifyGridAccessState(session.email);
@@ -45,7 +44,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const limited = rateLimit(request, { keyPrefix: "verifygrid-passkey", max: 12, windowMs: 5 * 60_000 });
   if (limited) return limited;
-  const session = await adminIdentity(request);
+  const session = await adminIdentity();
   if (!session) return jsonError("Unauthorized", 401);
   const body = await readJsonBody(request);
   if (!body.ok) return body.response;
@@ -82,7 +81,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await adminIdentity(request);
+  const session = await adminIdentity();
   if (!session) return jsonError("Unauthorized", 401);
   await revokeOperatorSession(request);
   await auditVerifyGrid("operator_session_revoked", session.email, "verifygrid");

@@ -11,7 +11,7 @@ COPY --from=nuclei /usr/local/bin/nuclei /usr/local/bin/nuclei
 WORKDIR /opt/verifygrid
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
-COPY verifygrid-sensor.mjs verifygrid-scanners.mjs ./
+COPY verifygrid-sensor.mjs verifygrid-scanners.mjs verifygrid-policy.mjs ./
 RUN mkdir -p /tmp/nuclei-home /var/lib/verifygrid /zap/wrk \
   && HOME=/tmp/nuclei-home nuclei -update-templates \
   && mv /tmp/nuclei-home/nuclei-templates /opt/verifygrid/nuclei-templates \

@@ -90,13 +90,14 @@ type LifecycleInput = {
 };
 
 const terminalTestStates = new Set(["passed", "finding", "not_applicable"]);
-const activeExecutionStates = new Set(["queued", "claimed", "running", "retry"]);
-const completedExecutionStates = new Set(["completed", "complete", "done"]);
+const activeExecutionStates = new Set(["queued", "claimed", "running", "processing_result", "retry"]);
+const completedExecutionStates = new Set(["completed"]);
+const interruptedExecutionStates = new Set(["failed", "cancelled", "blocked", "expired"]);
 const openFindingStates = new Set(["open", "validated", "remediation_in_progress", "resolved", "retest_requested"]);
 
 export function buildVerifyGridLifecycle(input: LifecycleInput): VerifyGridLifecycleStep[] {
   const inScope = input.scopeTargets.filter((target) => target.inScope);
-  const ownedScope = inScope.length > 0 && inScope.every((target) => target.ownershipConfirmed !== false);
+  const ownedScope = inScope.length > 0 && inScope.every((target) => target.ownershipConfirmed === true);
   const hasAuthorization = Boolean(input.gate?.authorization);
   const authorizationState: VerifyGridLifecycleState = input.gate?.executable
     ? "complete"
@@ -110,7 +111,9 @@ export function buildVerifyGridLifecycle(input: LifecycleInput): VerifyGridLifec
   const jobs = input.executionJobs || [];
   const hasActiveExecution = jobs.some((job) => activeExecutionStates.has(job.status));
   const hasCompletedExecution = jobs.some((job) => completedExecutionStates.has(job.status));
-  const hasEvidence = Boolean((input.observations || []).length || input.findings.length || completedTests);
+  const hasInterruptedExecution = jobs.some((job) => interruptedExecutionStates.has(job.status));
+  const executionComplete = hasCompletedExecution && jobs.every((job) => completedExecutionStates.has(job.status));
+  const hasEvidence = Boolean((input.observations || []).length || input.findings.length);
   const openFindings = input.findings.filter((finding) => openFindingStates.has(finding.status));
   const retestRequested = input.findings.some((finding) => finding.status === "retest_requested" || finding.latestRetest);
   const retestPassed = input.findings.length > 0 && input.findings.every((finding) => finding.status === "closed" || finding.latestRetest?.status === "passed");
@@ -160,8 +163,8 @@ export function buildVerifyGridLifecycle(input: LifecycleInput): VerifyGridLifec
       number: "05",
       label: "Execute",
       owner: "QCS",
-      state: hasCompletedExecution ? "complete" : hasActiveExecution ? "active" : input.gate?.executable ? "pending" : "blocked",
-      summary: hasActiveExecution ? "An authorized check is running inside its signed manifest." : hasCompletedExecution ? "Controlled checks completed and results were returned." : "Only an approved, time-bound manifest can be dispatched.",
+      state: input.status === "paused" ? "blocked" : hasActiveExecution ? "active" : hasInterruptedExecution ? "attention" : executionComplete ? "complete" : input.gate?.executable ? "pending" : "blocked",
+      summary: input.status === "paused" ? "Execution is paused. Review authority before resuming." : hasActiveExecution ? "Recent jobs include queued, running, or processing work." : hasInterruptedExecution ? "Recent jobs include incomplete or interrupted checks. Review coverage before reporting." : executionComplete ? "All recent execution records completed. Review their result evidence." : "Only an approved, time-bound manifest can be dispatched.",
       proof: "Signed job manifest"
     },
     {
@@ -170,7 +173,7 @@ export function buildVerifyGridLifecycle(input: LifecycleInput): VerifyGridLifec
       label: "Evidence",
       owner: "QCS",
       state: hasEvidence ? "complete" : hasCompletedExecution ? "attention" : "pending",
-      summary: hasEvidence ? "Observations and analyst conclusions are preserved with provenance." : "Scanner output becomes evidence only after scope reconciliation and analyst validation.",
+      summary: hasEvidence ? "Recorded observations or findings are available for evidence review." : "No observations or findings are recorded. Test status alone does not establish evidence.",
       proof: "Custody chain"
     },
     {

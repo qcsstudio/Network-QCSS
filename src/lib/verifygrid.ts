@@ -15,6 +15,7 @@ import {
   scopeTargetSchema
 } from "@/lib/verifygrid-domain";
 import { seedVerifyGridTestPlan, testCaseUpdateSchema } from "@/lib/verifygrid-methodology";
+import { executionStateBlockers } from "@/lib/verifygrid-execution-policy";
 
 const engagementInclude = {
   workspace: { select: { id: true, slug: true, name: true, primaryContactName: true, primaryContactEmail: true, countryCode: true } },
@@ -84,7 +85,7 @@ function authorizationGate(engagement: EngagementWithRelations, at = new Date())
   const rules = record(engagement.rulesOfEngagement);
   const authorization = engagement.authorizations.find((item) => item.status === "active");
   const hash = currentScopeHash(engagement);
-  const blockers: string[] = [];
+  const blockers: string[] = executionStateBlockers(engagement.status);
 
   if (!inScope.length) blockers.push("Add at least one in-scope target.");
   if (inScope.some((target) => !target.ownershipConfirmed)) blockers.push("Confirm ownership for every in-scope target.");
@@ -92,7 +93,7 @@ function authorizationGate(engagement: EngagementWithRelations, at = new Date())
   if (!authorization) blockers.push("Record written authorization for the current scope.");
   if (authorization && authorization.scopeHash !== hash) blockers.push("The approved scope no longer matches the current target set.");
   if (authorization && authorization.validFrom > at) blockers.push("The authorization window has not started.");
-  if (authorization && authorization.validUntil < at) blockers.push("The authorization window has expired.");
+  if (authorization && authorization.validUntil <= at) blockers.push("The authorization window has expired.");
   if (authorization && !authorization.authorityConfirmed) blockers.push("The approver's authority has not been confirmed.");
 
   return {
@@ -438,6 +439,10 @@ async function invalidateAuthorization(tx: Prisma.TransactionClient, engagement:
     where: { engagementId: engagement.id, status: "active" },
     data: { status: "revoked", revokedAt: new Date(), revokedBy: actor, revocationReason: reason }
   });
+  await tx.verifyGridExecutionJob.updateMany({
+    where: { engagementId: engagement.id, status: { in: ["validated", "manual_approval_required", "queued", "claimed", "running", "processing_result", "retry"] } },
+    data: { status: "cancelled", dispatchStatus: "scope_revoked", cancelledAt: new Date(), cancelledBy: actor, cancellationReason: reason, leaseUntil: null }
+  });
   if (mustReview) {
     await tx.verifyGridEngagement.update({ where: { id: engagement.id }, data: { status: "authorization_pending", updatedBy: actor } });
   }
@@ -536,7 +541,7 @@ export async function transitionVerifyGridEngagement(id: string, value: unknown,
   const status = engagementTransition(engagement.status, input.action);
   if (!status) throw new Error(`The ${input.action} action is not allowed while this engagement is ${engagement.status}.`);
   if (["schedule", "start", "resume"].includes(input.action)) {
-    const gate = authorizationGate(engagement);
+    const gate = authorizationGate({ ...engagement, status });
     if (!gate.executable) throw new Error(`Authorization gate blocked this action: ${gate.blockers.join(" ")}`);
   }
   const prisma = getPrismaClient();

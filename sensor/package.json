@@ -8,7 +8,7 @@
   },
   "scripts": {
     "start": "node verifygrid-sensor.mjs",
-    "check": "node --check verifygrid-sensor.mjs && node --check verifygrid-scanners.mjs",
+    "check": "node --check verifygrid-sensor.mjs && node --check verifygrid-scanners.mjs && node --check verifygrid-policy.mjs",
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {

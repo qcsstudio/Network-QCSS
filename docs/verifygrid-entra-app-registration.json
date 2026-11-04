@@ -1,0 +1,18 @@
+{
+  "displayName": "QCS VerifyGrid Test",
+  "signInAudience": "AzureADMyOrg",
+  "isFallbackPublicClient": false,
+  "requiredResourceAccess": [],
+  "api": { "requestedAccessTokenVersion": 2 },
+  "web": {
+    "redirectUris": ["https://qcs-verifygrid-staging-git-codex-verifygrid-p-635107-qcsstudios.vercel.app/api/verifygrid/identity/callback"],
+    "implicitGrantSettings": { "enableAccessTokenIssuance": false, "enableIdTokenIssuance": false }
+  },
+  "appRoles": [
+    { "id": "52e1b1e1-9e22-498a-9a01-0fb59d04d4c1", "allowedMemberTypes": ["User"], "displayName": "VerifyGrid Owner", "description": "Own VerifyGrid access, authority, execution safety and release.", "isEnabled": true, "value": "VerifyGrid.Owner" },
+    { "id": "9c50daee-146b-4c2e-b3d0-01517db00518", "allowedMemberTypes": ["User"], "displayName": "VerifyGrid Lead", "description": "Manage scope, approvals and authorized dispatch.", "isEnabled": true, "value": "VerifyGrid.Lead" },
+    { "id": "3448cd8b-2992-45cc-8f98-95bc4c278d50", "allowedMemberTypes": ["User"], "displayName": "VerifyGrid Analyst", "description": "Operate tests and manage evidence and findings.", "isEnabled": true, "value": "VerifyGrid.Analyst" },
+    { "id": "624f1154-0794-4677-8c55-7a798447d508", "allowedMemberTypes": ["User"], "displayName": "VerifyGrid Reviewer", "description": "Independently review and release assurance reports.", "isEnabled": true, "value": "VerifyGrid.Reviewer" },
+    { "id": "f5bc7836-5b8e-47d2-80ca-951ea083759f", "allowedMemberTypes": ["User"], "displayName": "VerifyGrid Observer", "description": "Read VerifyGrid engagement and evidence status.", "isEnabled": true, "value": "VerifyGrid.Observer" }
+  ]
+}
