@@ -123,7 +123,8 @@ const nextConfig = {
           // Chromium also applies form-action to the OIDC POST's redirect.
           // Restrict the exception to the dedicated operator entry document.
           { key: "Content-Security-Policy", value: contentSecurityPolicy.replace("form-action 'self'", "form-action 'self' https://login.microsoftonline.com") },
-          { key: "Referrer-Policy", value: "no-referrer" },
+          // Native form POSTs need a non-null Origin; suppress cross-site referrers.
+          { key: "Referrer-Policy", value: "same-origin" },
           { key: "Cache-Control", value: "private, no-store" }
         ]
       },

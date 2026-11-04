@@ -2,12 +2,25 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync,sign} from 'node:crypto';
 import * as oidc from 'openid-client';
+import nextConfig from '../next.config.mjs';
 import {verifyGridSSOConfig,verifyGridEntraIdentity,sealVerifyGridLogin,openVerifyGridLogin} from '../src/lib/verifygrid-identity-domain.ts';
 const tenant='6126ea2d-829b-4a0b-8d2f-329ec33be999',client='fb4491b3-965d-4788-94cc-9637d6a8ba61',object='5245ff81-b1aa-46a2-92be-536e93bfa033';
 const env={VERIFYGRID_SSO_ENABLED:'1',VERIFYGRID_ENTRA_TENANT_ID:tenant,VERIFYGRID_ENTRA_CLIENT_ID:client,VERIFYGRID_ENTRA_CLIENT_SECRET:'synthetic-only',VERIFYGRID_SSO_SESSION_SECRET:'s'.repeat(48),VERIFYGRID_SSO_ORIGIN:'https://staging.example.test',NODE_ENV:'production'};
 const config=verifyGridSSOConfig(env);
 const now=Date.now();
 const claims={iss:config.issuer,aud:client,tid:tenant,oid:object,ver:'2.0',sub:'pairwise-subject',preferred_username:'analyst@tenant.onmicrosoft.com',roles:['VerifyGrid.Analyst'],iat:Math.floor(now/1000),exp:Math.floor(now/1000)+600};
+test('native operator sign-in and sign-out forms preserve Origin while keeping cross-site referrers private',async()=>{
+  const routes=await nextConfig.headers();
+  const entry=routes.find(route=>route.source==='/operator/verifygrid');
+  assert(entry,'The operator document needs its own security-header policy');
+  const header=name=>entry.headers.find(item=>item.key.toLowerCase()===name.toLowerCase())?.value;
+  assert.equal(header('Referrer-Policy'),'same-origin','no-referrer makes native POST navigation send Origin: null and fail the strict identity origin check');
+  assert.match(header('Cache-Control'),/no-store/);
+  const formAction=header('Content-Security-Policy').split(';').map(value=>value.trim()).find(value=>value.startsWith('form-action '));
+  assert.equal(formAction,"form-action 'self' https://login.microsoftonline.com");
+  const global=routes.find(route=>route.source==='/(.*)');
+  assert(global.headers.find(item=>item.key==='Content-Security-Policy').value.includes("form-action 'self';"),'The Microsoft form exception must remain limited to the operator document');
+});
 test('SSO is disabled by default and rejects generic tenants, invalid credentials and origins',()=>{
   assert.equal(verifyGridSSOConfig({}),null);
   for(const patch of [{VERIFYGRID_ENTRA_TENANT_ID:'common'},{VERIFYGRID_ENTRA_CLIENT_ID:''},{VERIFYGRID_SSO_SESSION_SECRET:'short'},{VERIFYGRID_SSO_ORIGIN:'http://example.test'},{VERIFYGRID_SSO_ORIGIN:'https://staging.example.test/other'}]) assert.throws(()=>verifyGridSSOConfig({...env,...patch}));
