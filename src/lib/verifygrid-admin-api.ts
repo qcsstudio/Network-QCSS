@@ -1,4 +1,4 @@
-import { getAdminSession, isAdminRequest } from "@/lib/admin-auth";
+import { getVerifyGridParentIdentity } from "@/lib/verifygrid-identity";
 import { requestContext } from "@/lib/security";
 import { createAuditLog } from "@/lib/store";
 import {
@@ -8,11 +8,10 @@ import {
 } from "@/lib/verifygrid-operator-auth";
 
 export async function verifyGridAdminActor(request: Request, permission?: VerifyGridPermission) {
-  if (!isAdminRequest(request)) return "";
-  const admin = await getAdminSession();
+  const admin = await getVerifyGridParentIdentity();
   if (!admin) return "";
   const operator = await getVerifyGridOperatorFromRequest(request, permission || permissionForVerifyGridRequest(request));
-  return operator?.email || "";
+  return operator?.email.toLowerCase() === admin.email.toLowerCase() ? operator.email : "";
 }
 
 export async function auditVerifyGrid(action: string, actor: string, target: string, metadata?: Record<string, unknown>) {

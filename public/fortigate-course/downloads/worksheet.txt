@@ -1,0 +1,16 @@
+QCS SAFE EVIDENCE WORKSHEET — expected is not observed
+Keep outside served folder when filled. No keys, serials, passwords or configs.
+Date/time/timezone:
+Mode: guided analysis / actual appliance (select honestly)
+FortiOS version/build only:
+License valid/invalid; entitlement checks (non-secret):
+Mapping C_IF / S_IF / FortiGate cable ports:
+Private management verified? Backup protected and stored privately?
+Helper hash:
+Lesson / prediction / exact command:
+Actual observation (leave blank until tested):
+Client/server IP and route observations:
+Policy ID/action/time correlation (if actually obtained):
+Fault / baseline value / exact inverse / retest result:
+Acceptance met? Remaining uncertainty:
+Cleanup complete? Original state comparison:

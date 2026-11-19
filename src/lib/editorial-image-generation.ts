@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import {assertOrdinaryAdvisoryJob,reviewedAdvisorySelection} from './reviewed-advisory-guard.ts';
+import {reviewedFamilyPosts} from './reviewed-advisory-family.ts';
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Prisma, type SecurityAdvisory } from "@prisma/client";
@@ -26,6 +28,8 @@ import { editorialPerceptualHash, visuallyRepeated } from "@/lib/editorial-image
 import { reserveEditorialImageBudget } from "./editorial-image-budget.ts";
 import { assertRetinaVariantDimensions, editorialVisualQualityPolicy } from "@/lib/editorial-quality-policy";
 import { getPrismaClient } from "@/lib/prisma";
+import { hasStaticEditorialPair, readStaticEditorialImage, staticEditorialMediaEnabled } from "./editorial-static-media.ts";
+import { publishedRevision } from "./editorial-delivery.ts";
 import { resolveContentPostRevision, resolveSecurityAdvisoryRevision } from "@/lib/editorial-revision-snapshots";
 import {
   createEditorialLineage,
@@ -211,6 +215,7 @@ export async function ensureEditorialImage(
 ) {
   const mode = editorialImageMode();
   const prisma = getPrismaClient();
+  await assertOrdinaryAdvisoryJob(prisma,input);
   const prompt = buildEditorialImagePrompt(input);
   const promptHash = crypto.createHash("sha256").update(prompt).digest("hex");
   const key = {
@@ -224,7 +229,7 @@ export async function ensureEditorialImage(
     create: { ...key, altText: input.altText, prompt, promptHash }
   });
   if (asset.status === "generating" && Date.now() - asset.updatedAt.getTime() < 12 * 60_000) return null;
-  const action = editorialImageAction({ mode, status: asset.status, complete: Boolean(asset.heroImage && asset.socialImage), provider: asset.provider, force });
+  const action = editorialImageAction({ mode, status: asset.status, complete: hasStaticEditorialPair(asset) || Boolean(asset.heroImage && asset.socialImage), provider: asset.provider, force });
   if (action === "preserve") return asset;
   if (action === "handoff") {
     if (asset.status !== "awaiting_codex" || asset.promptHash !== promptHash) await prisma.editorialImage.updateMany({
@@ -328,6 +333,7 @@ export async function ensureEditorialImage(
 }
 
 export async function editorialImageInputForPublication(publication: PublicationIdentity) {
+  await assertOrdinaryAdvisoryJob(getPrismaClient(),publication);
   if (publication.contentType === "content_post") {
     const post = await resolveContentPostRevision(publication.contentId, publication.contentRevision);
     return imageInputForArticle(post.source.id, publication.contentRevision, post.content);
@@ -358,9 +364,11 @@ export async function getContextualEditorialImage(
   if (contentType === "content_post") {
     const post = await prisma.contentPost.findUnique({
       where: { slug },
-      include: { revisions: { orderBy: { version: "desc" }, take: 1 } }
+      select: { id: true, status: true, updatedAt: true,
+        revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true } } }
     });
     if (post) {
+      if (post.status !== "published") return null;
       contentId = post.id;
       contentRevision = String(post.revisions[0]?.version || post.updatedAt.toISOString());
     } else {
@@ -372,14 +380,34 @@ export async function getContextualEditorialImage(
   } else {
     const advisory = await prisma.securityAdvisory.findUnique({
       where: { slug },
-      include: { revisions: { orderBy: { version: "desc" }, take: 1 } }
+      select: { id: true, status: true, deletedAt: true, updatedAt: true,
+        revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true } } }
     });
-    if (!advisory) return null;
+    if (!advisory || advisory.status !== "published" || advisory.deletedAt) return null;
     contentId = advisory.id;
     contentRevision = String(advisory.revisions[0]?.version || advisory.updatedAt.toISOString());
   }
+  if (staticEditorialMediaEnabled()) {
+    const metadata = await prisma.editorialImage.findUnique({
+      where: { contentType_contentId_contentRevision: { contentType, contentId, contentRevision } },
+      select: { id: true, status: true, generatedAt: true, altText: true, mimeType: true }
+    });
+    if (!metadata || metadata.status !== "ready") return null;
+    const stored = await readStaticEditorialImage({ ...metadata, contentType, contentId, contentRevision }, variant);
+    if (stored) {
+      const current = await prisma.editorialImage.findFirst({
+        where: { id: metadata.id, status: "ready", contentType, contentId, contentRevision, generatedAt: metadata.generatedAt },
+        select: { mimeType: true, altText: true }
+      });
+      const published = await publishedRevision(contentType, contentId);
+      if (!current || current.mimeType !== stored.mimeType || published?.revision !== contentRevision) return null;
+      return { ...stored, altText: current.altText };
+    }
+  }
   const asset = await prisma.editorialImage.findUnique({
-    where: { contentType_contentId_contentRevision: { contentType, contentId, contentRevision } }
+    where: { contentType_contentId_contentRevision: { contentType, contentId, contentRevision } },
+    select: { status: true, altText: true, mimeType: true,
+      heroImage: variant === "hero", socialImage: variant === "social" }
   });
   if (!asset || asset.status !== "ready") return null;
   const image = variant === "hero" ? asset.heroImage : asset.socialImage;
@@ -398,21 +426,24 @@ export async function generateMissingEditorialImages(
 ) {
   const prisma = getPrismaClient();
   const excluded = new Set(excludedContentIds);
-  const [posts, advisories] = await Promise.all([
+  const advisorySelection=await reviewedAdvisorySelection(prisma);
+  const [posts, advisories, familyPosts] = await Promise.all([
     prisma.contentPost.findMany({
       where: { status: "published" },
       orderBy: { updatedAt: "desc" },
       include: { revisions: { orderBy: { version: "desc" }, take: 1 } }
     }),
     prisma.securityAdvisory.findMany({
-      where: { status: "published" },
+      where: { ...advisorySelection,status: "published" },
       orderBy: { updatedAt: "desc" },
       include: { revisions: { orderBy: { version: "desc" }, take: 1 } }
-    })
+    }),
+    reviewedFamilyPosts(prisma)
   ]);
   const databaseSlugs = new Set(posts.map((post) => post.slug));
+  const protectedPostIds = new Set(familyPosts.map((post) => post.id));
   const inputs: EditorialImageInput[] = [
-    ...posts.map((post) =>
+    ...posts.filter((post) => !protectedPostIds.has(post.id)).map((post) =>
       imageInputForArticle(
         post.id,
         String(post.revisions[0]?.version || post.updatedAt.toISOString()),
@@ -446,7 +477,8 @@ export async function generateMissingEditorialImages(
       contentType: input.contentType, status: existing.status, force, promptChanged,
       renderAttempts: record(existing.agentTrace)?.renderAttempts
     })) continue;
-    if (existing?.status === "ready" && existing.provider === codexImageProvider && existing.heroImage && existing.socialImage) continue;
+    if (existing?.status === "ready" && (hasStaticEditorialPair(existing) ||
+      (existing.provider === codexImageProvider && existing.heroImage && existing.socialImage))) continue;
     const acceptedProviders = new Set(["openai-direct", "black-forest-labs", "qcs-procedural", codexImageProvider]);
     const legacyAsset = existing?.status === "ready" && !acceptedProviders.has(existing.provider || "");
     if (!force && existing?.status === "ready" && !legacyAsset && !promptChanged) continue;

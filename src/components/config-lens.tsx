@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Download, FileCode2, GitBranch, ListFilter, LockKeyhole, Network, Play, Router, ShieldCheck, Trash2, Upload, X, Cable, MapPin, Shield, Workflow, Server } from "lucide-react";
-import { CATALOG_REVIEWED, getProfile, glossary, LENS_PATH, LENS_VERSION, profiles, type Selection, type Vendor } from "@/lib/config-lens/catalog";
+import { CATALOG_REVIEWED, getProfile, glossary, LENS_PATH, profiles, type Selection, type Vendor } from "@/lib/config-lens/catalog";
 import { reportText, type Analysis, type AnalysisProgress } from "@/lib/config-lens/engine";
 import { samples } from "@/lib/config-lens/samples";
 import { categoryCatalog } from "@/lib/config-lens/categories";
@@ -112,10 +112,10 @@ function LocalConfigLens() {
         setAnnouncement(`Analysis complete. ${analysis.coverage.unknown} statement${analysis.coverage.unknown === 1 ? " needs" : "s need"} review. ${analysis.maskedCount} line${analysis.maskedCount === 1 ? "" : "s"} masked.`);
         setTimeout(() => resultHeading.current?.focus(), 0);
       };
-      w.onerror = () => { if (request === generation.current) { stop(); setBusy(false); setAnnouncement(""); setError("The local worker stopped or could not start. Check available browser memory and retry. No server fallback or API request was made."); } };
+      w.onerror = () => { if (request === generation.current) { stop(); setBusy(false); setAnnouncement(""); setError("Analysis could not finish in your browser. Check available memory and try again. Your configuration has not been uploaded."); } };
       timer.current = setTimeout(() => { if (request === generation.current) setAnnouncement("Still processing locally. Large exports can take longer; you can cancel at any time."); }, 10000);
       w.postMessage({ input: file ? "" : input, file: file || undefined, selection });
-    } catch { stop(); setBusy(false); setAnnouncement(""); setError("This browser could not start the local worker. No configuration was uploaded."); }
+    } catch { stop(); setBusy(false); setAnnouncement(""); setError("This browser could not start the analysis. Your configuration has not been uploaded."); }
   }
   function resetStatementFilters() { setFilter("all"); setStatementCategory("all"); setStatementScope("all"); setStatementQuery(""); setStatementGroup(null); setPage(0); }
   function showSource(line?: number) { setTab("Source"); resetStatementFilters(); setPage(line && result ? Math.floor(Math.max(0, result.lines.findIndex(l => l.line === line)) / pageSize) : 0); }
@@ -136,7 +136,7 @@ function LocalConfigLens() {
   const exportText = useMemo(() => result && exportKind ? exportKind === "report" ? reportText(result) : result.maskedSource : "", [result, exportKind]);
 
   return <div className={styles.lens} data-clarity-mask="true">
-    <div className={styles.privacy}><LockKeyhole size={18} aria-hidden="true" /><span>Browser-local processing</span><span>No paid API</span><span>No configuration upload</span><span>Parser {LENS_VERSION}</span></div>
+    <div className={styles.privacy}><LockKeyhole size={18} aria-hidden="true" /><span>Processed on your device</span><span>No configuration upload</span><span>Secret masking</span></div>
     <section className={styles.setup} aria-labelledby="lens-device">
       <div className={styles.sectionTitle}><span className={styles.step}>1</span><h2 id="lens-device">Choose your device</h2></div>
       <div className={styles.selectors}>
@@ -146,7 +146,7 @@ function LocalConfigLens() {
         <label>Exact version / build (optional)<input maxLength={60} autoComplete="off" value={selection.build} onChange={e => changeSelection({ build: e.target.value })} placeholder="For example 17.9.4 or 7.4.7" /></label>
         <label>Export type<select value={selection.configType} onChange={e => changeSelection({ configType: e.target.value as Selection["configType"] })}><option value="unknown">Not sure</option><option value="running">Running configuration</option><option value="saved">Saved / startup configuration</option><option value="candidate">Candidate / proposed configuration</option></select></label>
       </div>
-      <aside className={styles.scope}><ShieldCheck size={22} aria-hidden="true" /><div><strong>{profile.os}: supported scope</strong><p>{profile.scope}</p><a href={profile.source} target="_blank" rel="noreferrer">Official product documentation</a><span>Catalog reviewed {CATALOG_REVIEWED}. Coverage is partial. References identify the documentation version; model and maintenance-release differences still need review. Listed trains are not upgrade recommendations.</span></div></aside>
+    <aside className={styles.scope}><ShieldCheck size={22} aria-hidden="true" /><div><strong>{profile.os}: supported scope</strong><p>{profile.scope}</p><a href={profile.source} target="_blank" rel="noreferrer">Official product documentation</a><span>Documentation reviewed {CATALOG_REVIEWED}. Coverage is partial. References identify the documentation version; model and maintenance-release differences still need review. Listed trains are not upgrade recommendations.</span></div></aside>
     </section>
     <section className={styles.editorSection} aria-labelledby="lens-import">
       <div className={styles.sectionTitle}><span className={styles.step}>2</span><h2 id="lens-import">Add a text configuration</h2></div>

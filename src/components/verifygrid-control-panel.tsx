@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -36,6 +36,8 @@ import { capabilityCatalog, connectorCatalog, type VerifyGridConnector } from "@
 import type { VerifyGridEngagementRecord, VerifyGridPortfolio } from "@/lib/verifygrid";
 import type { VerifyGridOperatorContext } from "@/lib/verifygrid-operator-auth";
 import { buildVerifyGridLifecycle, verifyGridLifecycleProgress, type VerifyGridPermission } from "@/lib/verifygrid-operating-model";
+import { buildVerifyGridReadiness } from "@/lib/verifygrid-readiness";
+import { VerifyGridAssuranceOverview } from "@/components/verifygrid-assurance-overview";
 
 type View = "command" | "scope" | "methodology" | "evidence" | "findings" | "execution" | "automation" | "reports" | "activity";
 
@@ -232,7 +234,12 @@ async function automationJson(response: Response) {
   }>;
 }
 
-export function VerifyGridControlPanel({ access, initialPortfolio }: { access: VerifyGridOperatorContext; initialPortfolio: VerifyGridPortfolio | null }) {
+export function VerifyGridControlPanel({ access, initialPortfolio, evaluatedAt }: { access: VerifyGridOperatorContext; initialPortfolio: VerifyGridPortfolio | null; evaluatedAt: number }) {
+  const [clock, setClock] = useState(evaluatedAt);
+  useEffect(() => {
+    const timer = window.setInterval(() => setClock(Date.now()), 15_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const [portfolio, setPortfolio] = useState(initialPortfolio);
   const [selectedId, setSelectedId] = useState(initialPortfolio?.engagements[0]?.id || "");
   const [view, setView] = useState<View>("command");
@@ -256,7 +263,9 @@ export function VerifyGridControlPanel({ access, initialPortfolio }: { access: V
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState(initialPortfolio ? "VerifyGrid operations are current." : "Apply the VerifyGrid database migration to activate this workspace.");
 
-  const selected = portfolio?.engagements.find((engagement) => engagement.id === selectedId) || portfolio?.engagements[0] || null;
+  const storedSelection = portfolio?.engagements.find((engagement) => engagement.id === selectedId) || portfolio?.engagements[0] || null;
+  const readiness = storedSelection ? buildVerifyGridReadiness(storedSelection, clock) : null;
+  const selected = storedSelection && readiness ? { ...storedSelection, gate: { ...storedSelection.gate, executable: readiness.executable, blockers: readiness.blockers } } : null;
   const can = (permission: VerifyGridPermission) => access.permissions.includes(permission);
 
   async function load(preferredId = selectedId) {
@@ -800,7 +809,7 @@ export function VerifyGridControlPanel({ access, initialPortfolio }: { access: V
           <p>Identity does not grant testing authority. Every action remains role, scope, time, and evidence bound.</p>
         </div>
         <div className="content-action-row">
-          <button className="icon-button" disabled={Boolean(busy)} onClick={() => load().catch((error) => setMessage(String(error)))} title="Refresh VerifyGrid" type="button"><RefreshCw aria-hidden="true" size={18} /></button>
+          <button aria-label="Refresh VerifyGrid" className="icon-button" disabled={Boolean(busy)} onClick={() => load().catch((error) => setMessage(String(error)))} title="Refresh VerifyGrid" type="button"><RefreshCw aria-hidden="true" size={18} /></button>
           {can("manage_scope") ? <button className="button primary compact-button" disabled={Boolean(busy)} onClick={() => setCreating((value) => !value)} type="button"><FilePlus2 aria-hidden="true" size={17} /> New engagement</button> : null}
         </div>
       </div>
@@ -881,6 +890,7 @@ export function VerifyGridControlPanel({ access, initialPortfolio }: { access: V
 
               {view === "command" ? (
                 <div className="verifygrid-control-view">
+                  <VerifyGridAssuranceOverview engagement={selected} evaluatedAt={clock} onNavigate={setView} />
                   <section className="verifygrid-lifecycle" aria-label={`Engagement lifecycle ${lifecycleProgress}% complete`}>
                     <header><div><p className="eyebrow">Operating lifecycle</p><h4>Authority before action. Evidence before closure.</h4></div><strong>{lifecycleProgress}%</strong></header>
                     <div className="verifygrid-lifecycle-track">{lifecycle.map((step) => <article className={`state-${step.state}`} key={step.key}><div><span>{step.number}</span><em>{step.owner}</em></div><strong>{step.label}</strong><p>{step.summary}</p><small>{step.proof}</small></article>)}</div>

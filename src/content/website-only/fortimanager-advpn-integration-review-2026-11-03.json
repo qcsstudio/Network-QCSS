@@ -1,0 +1,636 @@
+{
+  "status": "PASS",
+  "reviewer": "Singer (Codex independent reviewer)",
+  "reviewerId": "01a158ea-02c7-7b42-b7e0-ceaa9482eed3",
+  "reviewedAt": "2026-11-03T14:23:31Z",
+  "scope": "Independent additive website-only integration and exact-hash review-transition code review. Not browser QA, production verification, deployment or publication approval.",
+  "findings": [],
+  "transitions": [
+    {
+      "file": "src/lib/website-only-resources.ts",
+      "priorSha256": [
+        "96292a5d44e400a4463c80688645cd140cb23469dc6646e043fd323ac0f4f846",
+        "613c9f130d1aec1344c87d36875f25b4e3322226234da08e793ee28c1ee491b6",
+        "15ec61ad49c01498ec1bf42dc526bcf6cf4fcae97c1c2b3195b9198a06eb307d",
+        "92a4000a81a5fd80a7bbc126ca41491ea323ec64dfd40e119e878d5ea3e569f7"
+      ],
+      "sha256": "ed74c21defa42d8eaef1f30091b7f0de1174d1d3e91813b2de9647084bc5e2a8"
+    },
+    {
+      "file": "tests/fortigate-ztna-case-study.test.mjs",
+      "priorSha256": [
+        "5343db106cebb3de3f70d3a733c28b65d09b24d44442088d1951e1402a0080d9",
+        "123604ed7f5cb763ddfac736205bf200190ae287c5a58c0cd7a706d26a869089",
+        "c9603b4fdb52f44f379517d5f79b5f54ed8122086c1a24db2eda2750a82f1889",
+        "bcc1b4e7f8203a5829490db773b50fabcbf736979a6bb70458b2ed4829c48406"
+      ],
+      "sha256": "cee8c71e5ebc0385bfa90ee9d0d24d3d0a01a8e0c5a58a356363d76a822e84fe"
+    },
+    {
+      "file": "tests/fortigate-loop-case-study.test.mjs",
+      "priorSha256": [
+        "ebd012cf5d1fde7f9e3f0d862b8b5d2ce612de6130e01756d2a7ce76be7c68c6",
+        "0363371ac995f526d4b8ecd2659caf463c88d1906f8b9cb2362dc78f8911f701",
+        "4228d594fb91213c69f5ac2312cd72c3ba50c67231848cdf2f9ca5dbe8d4cbb2"
+      ],
+      "sha256": "0d4894af605d501b3b31b05512374a7282f7cfde55bb9e2fdabff8d564d5494a"
+    },
+    {
+      "file": "tests/fortigate-overlap-case-study.test.mjs",
+      "priorSha256": [
+        "b24fa440ad4d33b1067e2a16285963a8bfaa3c1dfd88a5d51b02e6156ae5f5d3",
+        "6486cfc6d5f0a2cb7eb884abd2877d95cee00440273aea3c8dcfa7d41a7ed9f0"
+      ],
+      "sha256": "a22296d2002936ac0c15291c4329bf25dab577a7ca9e2180bf23f91aac21dd88"
+    },
+    {
+      "file": "tests/fortigate-automation-reboot-case-study.test.mjs",
+      "priorSha256": [
+        "3ff9ed9c1b3ddf75f14075f7b0d28bf9b6fd91c0d4fdc41d71ca5fb78be12d75"
+      ],
+      "sha256": "5e7c84d8a123cd31ae3873ddca32ff1b9e7ca4f54b161ead672410077efc239a"
+    }
+  ],
+  "assessment": [
+    "Compared all five transition files with the named local cached prior source. Registry changes are limited to the two imports/exports and two inventory entries; existing five exported article objects and merge/image helpers are preserved.",
+    "All four prior case tests retain their original assertions and addenda fallback logic. Their only functional change is calling the narrow transition helper before the existing exact-artifact/addendum checks.",
+    "The helper rejects unallowlisted files by returning false to the original hash gate. Allowed changes require PASS, Singer's exact reviewerId, inclusion of the caller's exact original artifact hash, equality to the actual current hash computed by the caller, and exact helper self-hash. It throws on missing approval rather than silently accepting.",
+    "priorSha256 values below are the exhaustive unique raw hashes for each of these five files in all four original case-review artifacts. No regex, wildcard, date exemption or normalization-based acceptance is added.",
+    "The new test binds both substantive content digests, associated artifacts and integration artifacts; checks commands, assets, static routes, registry/sitemap inclusion; and rejects unrelated files, unknown old hashes and tampered new hashes.",
+    "The new server presentation component and two static routes render the correct per-article diagram and ADVPN worksheet via existing sectionExtras. All targeted headings match exactly; alt text, captions, source links, limits and stop guidance remain visible in the component.",
+    "No source edits to publishing, database, social dispatch, original articles, prior reviews or prior per-file addenda are part of the integration."
+  ],
+  "checks": {
+    "preReceiptRun": {
+      "command": "node --import tsx --test tests/website-only-resources.test.mjs tests/fortigate-ztna-case-study.test.mjs tests/fortigate-loop-case-study.test.mjs tests/fortigate-overlap-case-study.test.mjs tests/fortigate-automation-reboot-case-study.test.mjs tests/fortimanager-advpn-case-studies.test.mjs",
+      "tests": 40,
+      "passed": 33,
+      "failed": 7,
+      "explanation": "All failures are ENOENT for the genuine not-yet-issued new receipts; all other checks pass."
+    },
+    "reviewInputsStable": {
+      "files": 26,
+      "changed": 0
+    },
+    "postReceiptRun": {
+      "tests": 40,
+      "passed": 38,
+      "failed": 2,
+      "explanation": "Only failures are the unchanged 'Independent review pending' attribution in the two new articles. Substantive digests matched before those assertions; all seventeen content artifact bindings were also verified independently after the run. Parent must finalize truthful attribution and rerun."
+    },
+    "negativeReceiptProbes": {
+      "acceptedExactPriorCurrentPairs": 14,
+      "unrelatedAndUnchangedReturnedFalse": 2,
+      "rejectedFixtures": [
+        "missing-receipt",
+        "malformed-json",
+        "wrong-status",
+        "wrong-reviewer",
+        "missing-transition",
+        "helper-tamper",
+        "missing-helper",
+        "unknown-old",
+        "tampered-current"
+      ],
+      "contentArtifactBindingsVerified": 17,
+      "method": "Actual helper ESM executed in isolated in-memory VM; malformed receipt variants are negative fixtures only; no source, receipt, content or social writes.",
+      "harnessNote": "Initial VM harness attempt stopped before checks because URL was not supplied to the isolated context; corrected harness used the real URL global and then completed all assertions."
+    }
+  },
+  "priorReviews": [
+    {
+      "file": "src/content/website-only/fortigate-ztna-case-study.review.json",
+      "sha256": "ad0be865db3998b9a59d4657d60aec215c97bf3d4bbcb08b62aa2348a4458eb7"
+    },
+    {
+      "file": "src/content/website-only/fortigate-layer2-loop-case-study.review.json",
+      "sha256": "1b96355fb472d48481ee9e6250b596361a25d236a227be5c82d624d3bde53e35"
+    },
+    {
+      "file": "src/content/website-only/fortigate-subnet-overlap-case-study.review.json",
+      "sha256": "244790c751d89e3420cef6531561a62db4a244ddc49bf568da2ecf2192c262de"
+    },
+    {
+      "file": "src/content/website-only/fortigate-automation-reboot-case-study.review.json",
+      "sha256": "ef1d45d9d2fc5c2edf2f426c8b62ca49adbc02bb92b404b3aa9f2f5c10c18838"
+    }
+  ],
+  "priorPreservation": {
+    "baseDirectory": "C:/Users/rksankhyan/Documents/Codex/qcs-public-cache-20261102",
+    "provenance": "Read-only local cache comparison, not a live production or Vercel provenance attestation by this reviewer.",
+    "checked": 65,
+    "byteEqual": 20,
+    "lineEndingsOnly": 45,
+    "unexpectedChanges": [],
+    "artifacts": [
+      {
+        "file": "src/content/website-only/fortigate-automation-reboot-case-study.json",
+        "baseSha256": "59fec29b9fe427194f7e535304d05f5b641ba18beba387c98c757023c050f09d",
+        "sha256": "17dbc959a1d88ae7bbd2bf4ad31e59b7aec74fcab07ae5597ed825ab0277da9a",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-automation-reboot-case-study.review.json",
+        "baseSha256": "452c16cb422fd77397c156fdf1859dbdba61b6b13d64429ba00fb240a7675e82",
+        "sha256": "ef1d45d9d2fc5c2edf2f426c8b62ca49adbc02bb92b404b3aa9f2f5c10c18838",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-automation-reboot-diagnostics.json",
+        "baseSha256": "392e70e0c373c77df088c22111b5b6d74f70fc8e71e27046f5cbb1ca94e1d453",
+        "sha256": "babca0503299586cfbdbe6951a3d6efd2a948e5b7f614a8a0ef0cf4b103dc7fc",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-layer2-loop-case-study.json",
+        "baseSha256": "762395cc95f2879a08df126b0f18307213962e2e2ff773dfc0c7f46fdb2d10e8",
+        "sha256": "89e6cf6ed23f9c0a675f00dda3111be4f217f20bc696a06e4aa719249241918a",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-layer2-loop-case-study.review.json",
+        "baseSha256": "0bff6b4761edfb15fafbd0a2ad77f18aab58b43eeeb12bf80b00d444f9acd232",
+        "sha256": "1b96355fb472d48481ee9e6250b596361a25d236a227be5c82d624d3bde53e35",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-layer2-loop-diagnostics.json",
+        "baseSha256": "54da72a12a455cbb402af312158890fa15b315ceedeb2229b3203da0f64d8b2c",
+        "sha256": "aad76eac7e5bce6d8b08557a21d3111b46944732cc478065aee77c152d2f7fae",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-loop-registry-review-2026-10-29.json",
+        "baseSha256": "71daf39183782b3a770a2d6bb27a05ef19346361619e37aefe125ddb8a3d694a",
+        "sha256": "cf18a28c79f46eb2bb10edd3a1d3a2920365eea271367bbd2f5045b6ebd55300",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-loop-registry-review-2026-10-30.json",
+        "baseSha256": "9d66c678bced3e1b5eb9cfc71ada136f950a622e81864c3fe6614b3b68693d31",
+        "sha256": "b52e3795cfa491913f6cd592dee941dcc9cd454fd78105cc312e59ec3e7b7dfc",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-loop-test-review-2026-10-29.json",
+        "baseSha256": "f505a60d92ab44ae559d84fffbe126530609a4a1e4f9cea78d6a276070c75916",
+        "sha256": "4af4490161d558ab0fdb8f31ab20c986055176a004e4d25fb5ec7a419d5dbd3e",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-loop-test-review-2026-10-30.json",
+        "baseSha256": "55e6403980ef06023802e2981b67bf402c007a14f183f4d6dc8d83cfedae9e9c",
+        "sha256": "c977dccf533c9f4d05c423a86629573cf4a8b6c28b56535dcac8841167ca22d6",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-loop-ztna-test-review-2026-10-29.json",
+        "baseSha256": "b7bfe6dd10b51b24a88f2e15d14524d64af22a08bf9bafd89122f0443bfe8cd0",
+        "sha256": "fa7682037da0aba8fa5422ca54fdda18a653c7cda045f4ff703759fbb77f7dea",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-loop-ztna-test-review-2026-10-30.json",
+        "baseSha256": "deb891eebd54c6f974ac3199e6cb4fe082048749c3be0b9e2433e10798f3269a",
+        "sha256": "b3c91bccf4dfaff30ebede07c64ce9b3c1d65d052ca819043852ccdc84d633cc",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-overlap-loop-test-review-2026-10-30.json",
+        "baseSha256": "f149dcbe22e61be4420dad05ca7898c95abe8c1bbb411478542f9e83bc76082f",
+        "sha256": "cfc9461175437646207dbeaff0f35a6b3dad89ce4ec31c9bb36103a5f47ac60a",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-overlap-registry-review-2026-10-30.json",
+        "baseSha256": "698941d38ef2d9306514210ba0b28cab3f6f91da13595e41cd9f29cb91f723dd",
+        "sha256": "0f41a8a7f31db1368cbb20c48dfc267f19bbddb68cd75c3967e0592a7ae249d7",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-overlap-test-review-2026-10-30.json",
+        "baseSha256": "343b5680181a6511a931ee92f52c51f11f0963f38e7204be020130b8a79afc71",
+        "sha256": "39469723d3a13ecbad3ee21bc8d617893b9260abaea7e1ab9348477c708f7011",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-overlap-ztna-test-review-2026-10-30.json",
+        "baseSha256": "be353733f22f911aa70176d8e212a3623ce76bbebc059cf1b27cfca47d89121f",
+        "sha256": "d03b246715a26cd83e7f448cf060c051cb137c47c35a2fdf1d59693bac596ffc",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-subnet-overlap-case-study.json",
+        "baseSha256": "ae7a11b917ff339f9ba7f7cd15defe3965901df0193209b72dfb78b8ea128e59",
+        "sha256": "ebe79ebe01a51731c127b3fdb4e421857baaece70cf621165620696064881433",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-subnet-overlap-case-study.review.json",
+        "baseSha256": "83aa790074796f232bbc75ec079f1870c0e7cad88985ac9f6087ce037637f474",
+        "sha256": "244790c751d89e3420cef6531561a62db4a244ddc49bf568da2ecf2192c262de",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-subnet-overlap-diagnostics.json",
+        "baseSha256": "3d8811b0abfeb9c88e27271c4db5f2ec8b7bccd99787e31e90b76779ab7dce1d",
+        "sha256": "056346845af04293968d6a90d3ec6aba5cc0c6806a0e9bbfb44ec6daa848d9b6",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-ztna-case-study.json",
+        "baseSha256": "14ffa55bb39cc09a012b6ffebfcbef19ff72aee0a842820b1b69dd5216fa1e87",
+        "sha256": "f7bef9f8ba06094676dcb9bd060d7f43aa205cacf2b6fd0def2ff5a0fda316b7",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-ztna-case-study.review.json",
+        "baseSha256": "c290ce739293e720dcb2d8184408a8e7a863ce02e0f9d79d826d6c75192c778a",
+        "sha256": "ad0be865db3998b9a59d4657d60aec215c97bf3d4bbcb08b62aa2348a4458eb7",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-ztna-diagnostics.json",
+        "baseSha256": "0c9f8e0cca46b4837c75e9c6504741aa3476600213a97a5a0b2b5d1666b43191",
+        "sha256": "7cea2a5e48a61ae7e4bf5fb0e7141e72bc579185a9f723f6c8fd33fdabfce038",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-ztna-registry-review-2026-10-28.json",
+        "baseSha256": "7a81839a0a58b310f07c6d08e594b57b00fada0c6c407bab0ff77ab3d5e99e11",
+        "sha256": "6556399edccc8481d7b1b78dc3d786e32fb9d11c7d6ebb854c073276eaec9459",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-ztna-registry-review-2026-10-29.json",
+        "baseSha256": "988bc6bee5debf2bbf6db433a0098912a45a14ed73bf528d8869b24e3a0f15ad",
+        "sha256": "3c9c451e7104e956e476ee28189c4b294f6d73f4f03ee88ed385da0c5c73ff62",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-ztna-registry-review-2026-10-30.json",
+        "baseSha256": "91b1221491298383fa85c00687554632dccdbcaf5ce8cc244436b4704908e2db",
+        "sha256": "d06b2801076dff3de13d5d5c07af69eb98fa7b275996d7a1f0d5a38d1b07f66a",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-ztna-test-review-2026-10-28.json",
+        "baseSha256": "81186b2a32377730da6cf5b5e7ca76124aa17f021f00fd9e5dc86c445b2f2706",
+        "sha256": "02006fa64b87094d8cb5df8b83469ff19a9a98ab327f249419e29d8c98339c51",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-ztna-test-review-2026-10-29.json",
+        "baseSha256": "4abdcd16f23ec58be497475d7e165904486e10d4b9833a7d8e3e2c9ea20100d2",
+        "sha256": "eb04c0a870c9998572f8dbb26663926338568880a82ce0e4e992240b34173727",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortigate-ztna-test-review-2026-10-30.json",
+        "baseSha256": "7473e401604d01135078d02e2701e7579c06530603431c142830d8e88e70b44a",
+        "sha256": "cb999ca775425c5d551e56532aa61a89a06474fc7dc9bf1c28e3d589a3daf8b9",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortinet-october-2026-hardening.json",
+        "baseSha256": "2c2948f6f1b7f1b6e6737a8f6ff9485d503fa066b13d372a4bac9ef6a5989ee5",
+        "sha256": "ee9c2d5a1d055b2dec5f28803d111e88178fb4c9c686a128c26f70e3dbe24055",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/content/website-only/fortinet-october-2026-hardening.review.json",
+        "baseSha256": "d87678030a57302e7228423beaf00bcb78c2157da89d5718bf00082748d30c0f",
+        "sha256": "f9664da66da3da822ce05a0f474980f46e8f6e5cafa202e06743c41a50196b3e",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "public/images/editorial/fortigate-ztna-access-path.svg",
+        "baseSha256": "5650e4c1d3fa42d84554920614d896cc38b42e1b9192d133ce9f3b53eb2e25e9",
+        "sha256": "ea339f2282e6b4d829aeeed01c5d616ea1e81c68c3751573e5e179e0ffc6a1af",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "public/images/editorial/fortigate-ztna-access-path.png",
+        "baseSha256": "c03ef6bce9a188545ab6915d7e467f746b284d6506500b6e35a258211e32f971",
+        "sha256": "c03ef6bce9a188545ab6915d7e467f746b284d6506500b6e35a258211e32f971",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-ztna-evidence-map.svg",
+        "baseSha256": "85f5126d6be9e328c6881c631023c9ee29ada692f78d6bfaed6cae46e37e26b6",
+        "sha256": "d479fa1ad61af96df2dc911ae126096186aca337ec9c9e9c579b5c4ab32801a7",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "public/images/editorial/fortigate-ztna-evidence-map.png",
+        "baseSha256": "50a2605c377aa147285bc5547bb85c8b78014f0e36e46e51238d3da30bcb3b43",
+        "sha256": "50a2605c377aa147285bc5547bb85c8b78014f0e36e46e51238d3da30bcb3b43",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "src/app/resources/fortigate-ztna-connected-ems-application-access-troubleshooting/page.tsx",
+        "baseSha256": "05010f10ff7237ad9b3f742bd3f81ce97a2d3f61086c2cc78992cf157990d1da",
+        "sha256": "5c3743e384917df1ca2a108a4d513c49c1a21f6efc4c8721055327c8602be76c",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/app/resources/fortigate-ztna-connected-ems-application-access-troubleshooting/page.module.css",
+        "baseSha256": "379691a47d3405b7c583ec02dc6a4d057c0183511409aee5915dce1ecf44bb01",
+        "sha256": "6c835f05d4a1fb11b4fe2e2a6b45b90de892a48a45930083a36c5230b7b07402",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/components/blog-article.tsx",
+        "baseSha256": "eeb4660486d03f296456bea6df8dd1321a53aa250717b5a1da8259cee3be6e2c",
+        "sha256": "956e477eaff6069fb89d97ebcde3a77f9c402f49a727c0b3a386c9d2ee3aa43b",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "tests/website-only-resources.test.mjs",
+        "baseSha256": "2dd0414750d8a3d4686fc927b1975af00f4ccaeb3667a91172d0314a9281df23",
+        "sha256": "bf52a68819e13e4248911da70ad0a5a4d324b5c3180f0e0c65c5e911bf0af8ff",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/app/resources/fortigate-high-cpu-fortiswitch-fortiap-offline-layer2-loop/page.tsx",
+        "baseSha256": "9abd2ab894de57344b265ca41834b9852abf7454ba2a88c46affb2998f359e45",
+        "sha256": "2a30568c043d11036aea34dc9ff89dd7459d7b90d934d200bbd7e764deb57e25",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "scripts/render-fortigate-loop-case-study.mjs",
+        "baseSha256": "2b524dd660a782d33621c4536524253dec8faccd0154868eefd2e98f04b738fc",
+        "sha256": "3fbeb1d26aa7842a198098e99c986423e93b7201610e8113e8c440d9677d7e30",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "public/images/editorial/fortigate-loop-evidence.png",
+        "baseSha256": "ffbd3d1aa2fd9ea55d95f286b73ff3451af44d99afd042edc718a49db8058859",
+        "sha256": "ffbd3d1aa2fd9ea55d95f286b73ff3451af44d99afd042edc718a49db8058859",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-loop-evidence.svg",
+        "baseSha256": "4ddc4262438cc2cf08a745a24eda235c04f302723521806065f4ace64b7b8a3d",
+        "sha256": "4ddc4262438cc2cf08a745a24eda235c04f302723521806065f4ace64b7b8a3d",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-loop-topology.png",
+        "baseSha256": "47ee35164661c9129aee03e7da56b1d11ba9a35af8a727167f8ce6b471f8bff3",
+        "sha256": "47ee35164661c9129aee03e7da56b1d11ba9a35af8a727167f8ce6b471f8bff3",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-loop-topology.svg",
+        "baseSha256": "4b200f9484b2caf9498c748a13e0b2a3e28c1ed51047723f1c6c8e382357308a",
+        "sha256": "4b200f9484b2caf9498c748a13e0b2a3e28c1ed51047723f1c6c8e382357308a",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-loop-social.png",
+        "baseSha256": "541d6da43e3ba5707a4c24fcdc16bc345b3f7e3d1a6efa93c87321adbc14b968",
+        "sha256": "541d6da43e3ba5707a4c24fcdc16bc345b3f7e3d1a6efa93c87321adbc14b968",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-loop-social.svg",
+        "baseSha256": "536d0259a66c118f75087f2d919da1496678aafba69b9eafbcd32978f6d800cb",
+        "sha256": "536d0259a66c118f75087f2d919da1496678aafba69b9eafbcd32978f6d800cb",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "src/app/resources/fortigate-ping-dns-work-websites-fail-overlapping-subnet/page.tsx",
+        "baseSha256": "dbfc4ccbe0dff7ea687e428e4ca1b4e58b9553916e7339dda12193bd9ff43a28",
+        "sha256": "2f23fab1962193bb2c825b92a9b7297ded28840a1e6e4f4bdf3b9b74a04c808b",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "scripts/render-fortigate-overlap-case-study.mjs",
+        "baseSha256": "c7d856235f328ba2bfa19d4220d8b5d3ef39eaf7764f85e7d3fb35511aced034",
+        "sha256": "64eb439484bb89f6b66bd11cdfde0f817456e9e811f654300cf8d02a56108596",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "public/images/editorial/fortigate-overlap-evidence.svg",
+        "baseSha256": "6d15d2ac4614a1efd4a0890ac59b129957af50b674288df59d924e30737575e2",
+        "sha256": "6d15d2ac4614a1efd4a0890ac59b129957af50b674288df59d924e30737575e2",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-overlap-evidence.png",
+        "baseSha256": "13ad054c0260e18cb35fd12085a3c61c032f7db2f63e2d5004538216436056b2",
+        "sha256": "13ad054c0260e18cb35fd12085a3c61c032f7db2f63e2d5004538216436056b2",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-overlap-topology.svg",
+        "baseSha256": "0309d4b8d10bc4fc84c1e357c78f373a5c246d36b6281fbb4178270e20a3eb26",
+        "sha256": "0309d4b8d10bc4fc84c1e357c78f373a5c246d36b6281fbb4178270e20a3eb26",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-overlap-topology.png",
+        "baseSha256": "3002986a3328b780f692d50d318bc0e50df2159001eed3550db5dd2be3f5b94d",
+        "sha256": "3002986a3328b780f692d50d318bc0e50df2159001eed3550db5dd2be3f5b94d",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-overlap-social.svg",
+        "baseSha256": "8a270cf5af2f14b17801f089d1dd784b2752a46ce6290b888f5574874d148ddf",
+        "sha256": "8a270cf5af2f14b17801f089d1dd784b2752a46ce6290b888f5574874d148ddf",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-overlap-social.png",
+        "baseSha256": "66be6f5f17558797700f1867de1783987081db6c8233df5804b8389e4d66058b",
+        "sha256": "66be6f5f17558797700f1867de1783987081db6c8233df5804b8389e4d66058b",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "src/app/resources/fortigate-reboots-every-two-hours-automation-stitch/page.tsx",
+        "baseSha256": "6ca69bfc44fd2018d166ccf1eec70f102e3459a90432b48c48475c90f7af3200",
+        "sha256": "3dc97c403e72e54d27f45b746289e2fa2a206927f883dce603da232ad2ee512a",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "scripts/render-fortigate-automation-reboot.mjs",
+        "baseSha256": "ebf599d65adf8665718dd557f0c938516d6955b2886a4f9a19fedc72bd7ad8f4",
+        "sha256": "094c7e4926a055fd1b421476e852bb0c7cb48d3205f3561680d87c4555b3b9e3",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "public/images/editorial/fortigate-automation-reboot-evidence.svg",
+        "baseSha256": "1e4ca6c64c88958c1c732a7e64839317be25745075c6bea4a9c7461ff0ca48b7",
+        "sha256": "1e4ca6c64c88958c1c732a7e64839317be25745075c6bea4a9c7461ff0ca48b7",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-automation-reboot-evidence.png",
+        "baseSha256": "931fe278d6cfbd0ca57a5b7d517a4159472b3c0691a38d2bec29ce9d12cad5e5",
+        "sha256": "931fe278d6cfbd0ca57a5b7d517a4159472b3c0691a38d2bec29ce9d12cad5e5",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-automation-reboot-dependencies.svg",
+        "baseSha256": "347fe02bada8eae65203c50e07739737b8de84eae1ad3542e01623780eb7b448",
+        "sha256": "347fe02bada8eae65203c50e07739737b8de84eae1ad3542e01623780eb7b448",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-automation-reboot-dependencies.png",
+        "baseSha256": "66893815610aeb62c2822cd33a2639c21449a62a03c5b60cee6534fa648946da",
+        "sha256": "66893815610aeb62c2822cd33a2639c21449a62a03c5b60cee6534fa648946da",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-automation-reboot-social.svg",
+        "baseSha256": "70a68432bd04d792c129b417b80e4aafb4dd991389aeebbf26fee6286c8e2af5",
+        "sha256": "70a68432bd04d792c129b417b80e4aafb4dd991389aeebbf26fee6286c8e2af5",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "public/images/editorial/fortigate-automation-reboot-social.png",
+        "baseSha256": "0fcd540b822e1ce6d84b468815de64e9f0c41eb46470a363f939d7ece2afec47",
+        "sha256": "0fcd540b822e1ce6d84b468815de64e9f0c41eb46470a363f939d7ece2afec47",
+        "byteEqual": true,
+        "onlyCrLfDifference": false
+      },
+      {
+        "file": "src/lib/blog.ts",
+        "baseSha256": "cf00e1867c9d4630c46ecac80e500e5997c9c405a206e0729774aa4c4cd62375",
+        "sha256": "4ea1861cd55cc1022f5a86a989c5bab9fa943738142da27d093f64b2d0ef1b29",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/lib/editorial-publication-policy.ts",
+        "baseSha256": "8f0d84e8cb38bae3d03f112797a504bec20e5cdc450eef893a8d59e92937a4b6",
+        "sha256": "72fb5941f8dfb8b43c72e381642e83bb341af526bac222c57a7d1330ee333b70",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      },
+      {
+        "file": "src/app/resources/sitemap.ts",
+        "baseSha256": "f0995caded0d457202ebed997044e7103497c22fa01ef3ee6408a1beda147f19",
+        "sha256": "07be80cfd4e9fba1275e52e0c3a09b6fd5d7cb609d1eeb8f7ef633024c4d24c2",
+        "byteEqual": false,
+        "onlyCrLfDifference": true
+      }
+    ]
+  },
+  "limitations": [
+    "Existing exact-hash gates remain exact. CRLF/LF normalization was used only to inspect preservation against the separate cached base, never to grant a wildcard or substitute hash.",
+    "These receipts are repository review artifacts, not cryptographic signatures or protection against someone authorized to rewrite both tests and receipts.",
+    "Candidate review attribution is still pending at review time. Only reviewedBy, editorialMethod, publishedAt and updatedAt are excluded from substantive content hashing; the parent must finalize truthful attribution and rerun full gates.",
+    "Parent owns responsive/browser accessibility QA, isolated typecheck/build, final release manifest and deployment verification. No integration release or production action was performed.",
+    "No paid API, appliance runtime, database write, social write or claim of production recovery is involved."
+  ],
+  "artifacts": [
+    {
+      "file": "src/lib/website-only-resources.ts",
+      "sha256": "ed74c21defa42d8eaef1f30091b7f0de1174d1d3e91813b2de9647084bc5e2a8"
+    },
+    {
+      "file": "tests/fortigate-ztna-case-study.test.mjs",
+      "sha256": "cee8c71e5ebc0385bfa90ee9d0d24d3d0a01a8e0c5a58a356363d76a822e84fe"
+    },
+    {
+      "file": "tests/fortigate-loop-case-study.test.mjs",
+      "sha256": "0d4894af605d501b3b31b05512374a7282f7cfde55bb9e2fdabff8d564d5494a"
+    },
+    {
+      "file": "tests/fortigate-overlap-case-study.test.mjs",
+      "sha256": "a22296d2002936ac0c15291c4329bf25dab577a7ca9e2180bf23f91aac21dd88"
+    },
+    {
+      "file": "tests/fortigate-automation-reboot-case-study.test.mjs",
+      "sha256": "5e7c84d8a123cd31ae3873ddca32ff1b9e7ca4f54b161ead672410077efc239a"
+    },
+    {
+      "file": "tests/helpers/website-case-review-transition.mjs",
+      "sha256": "8509b6285412e6e1944bfc2f37c8e6cd91b4df527e9414baea496e8a098eb667"
+    },
+    {
+      "file": "tests/fortimanager-advpn-case-studies.test.mjs",
+      "sha256": "420972b026af00979a46e33d4e438c9b59f29ad067b32cd0dcdb9ee4c9a463a1"
+    },
+    {
+      "file": "scripts/render-fortimanager-advpn-cases.mjs",
+      "sha256": "0b6ddb9e38ab7fead54f377c589d11bcffc6969456be7fd0cdc1572d230cf4ed"
+    },
+    {
+      "file": "src/components/technical-case-study.tsx",
+      "sha256": "03125311cf3b2dcaf094649b0e9715fe32a983b2b2cba8d60534ca065bc466e4"
+    },
+    {
+      "file": "src/app/resources/fortimanager-install-ok-verify-fail-udp-not-quic/page.tsx",
+      "sha256": "1c5fc23e8d419e57e2e4b3629c32b9831cdf3ca3c441d318f2c17e646d6d65e6"
+    },
+    {
+      "file": "src/app/resources/fortigate-advpn-bgp-loopback-sdwan-health-check-failover/page.tsx",
+      "sha256": "bf645d08712d4fae4872c487bf51cab12548315a573b6f8728fa4e32aaa2f7fb"
+    }
+  ]
+}

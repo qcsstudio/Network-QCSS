@@ -30,13 +30,6 @@ export function validatePublicCcnaRecovery(input: unknown): PublicCcnaLesson[] {
   return lessons.sort((a, b) => a.sequence - b.sequence);
 }
 
-function unavailable(error: unknown) {
-  if (!error || typeof error !== "object") return false;
-  const { code, message } = error as { code?: string; message?: string };
-  return ["P1001", "P1002", "P1017", "P2024", "53000"].includes(code || "") ||
-    /DATABASE_URL is required|exceeded.*(?:quota|data transfer)|(?:quota|data transfer).*exceeded|compute.*suspend/i.test(message || "");
-}
-
 export function createPublicCcnaReader(recovery: PublicCcnaLesson[], live: {
   bySlug: (slug: string) => Promise<PublicCcnaLesson | null>;
   list: (limit: number) => Promise<PublicCcnaLesson[]>;
@@ -47,15 +40,15 @@ export function createPublicCcnaReader(recovery: PublicCcnaLesson[], live: {
       const snapshot = recovery.find(lesson => lesson.slug === slug) || null;
       // The explicitly approved outage window must not repeatedly query suspended Neon.
       if (offline()) return snapshot;
-      try { return await live.bySlug(slug); }
-      catch (error) { if (snapshot && unavailable(error)) return snapshot; throw error; }
+      // The approved outage window has ended. Without a fresh publication check,
+      // the old recovery file could resurrect a lesson subsequently made private.
+      return live.bySlug(slug);
     },
     async list(limit = 100) {
       const count = Number.isFinite(limit) ? Math.max(1, Math.min(Math.trunc(limit), 100)) : 100;
       if (offline()) return recovery.slice(0, count);
       // A healthy empty result is authoritative: never resurrect a withdrawn lesson.
-      try { return await live.list(count); }
-      catch (error) { if (unavailable(error)) return recovery.slice(0, count); throw error; }
+      return live.list(count);
     }
   };
 }

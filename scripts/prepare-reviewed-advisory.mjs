@@ -1,0 +1,25 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const root=path.resolve(process.argv[2]||'');
+assert.ok(root.endsWith('client-graphics-v4'),'Use the exact reviewed v4 directory');
+const sha=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
+const candidate=fs.readFileSync(path.join(root,'qcs-resource-draft.json'));
+const reviewBytes=fs.readFileSync(path.join(root,'independent-rereview-20261118.json'));
+const review=JSON.parse(reviewBytes);
+assert.equal(sha(candidate),'d56a20caa8e34676900b0ebf72a1284cc4e760a9378ebd45f5779f543677ed53');
+assert.equal(sha(reviewBytes),'e2125dca590cdc5c64ca6c80e6a33d887367fd114bbfae9fe0993abde748903d');
+assert.equal(review.verdict,'PASS');assert.equal(review.candidate.rawSHA256,sha(candidate));
+const mediaDirectory=path.resolve('..','media','assets');fs.mkdirSync(mediaDirectory,{recursive:true});
+const assets=review.reviewedGraphicFiles.map(item=>{
+ const bytes=fs.readFileSync(path.join(root,item.path));assert.equal(sha(bytes),item.sha256);assert.equal(bytes.length,item.bytes);
+ const ext=path.extname(item.path).slice(1);assert.ok(['svg','png'].includes(ext));
+ const name=`${item.sha256}.${ext}`,target=path.join(mediaDirectory,name);
+ if(!fs.existsSync(target))fs.writeFileSync(target,bytes,{flag:'wx'});else assert.equal(sha(fs.readFileSync(target)),item.sha256);
+ return {key:item.path,path:`/assets/${name}`,sha256:item.sha256,bytes:item.bytes,mimeType:ext==='svg'?'image/svg+xml':'image/png'};
+});
+const file='src/content/reviewed-advisory-release.json';assert.ok(!fs.existsSync(file),'Never overwrite a previously prepared release manifest');
+const manifest={schemaVersion:1,releaseId:'cisco-nodejs-20261118-v4',slug:'cisco-cisco-sa-oct2026-node-js-jj3sq19u',externalId:'CISCO-SA-OCT2026-NODE-JS-JJ3SQ19U',vendor:'Cisco',canonical:'https://www.qcsstudio.com/security-advisories/cisco-cisco-sa-oct2026-node-js-jj3sq19u',candidateSha256:sha(candidate),reviewSha256:sha(reviewBytes),sourceVerifiedAt:null,origin:'',assets,social:{},socialReviewSha256:'',transport:'server-controlled-native-handoff'};
+fs.writeFileSync(file,JSON.stringify(manifest,null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({file,assets:assets.length,mediaDirectory,originConfigured:false,socialConfigured:false,publicationEnabled:false}));

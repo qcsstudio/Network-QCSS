@@ -4,6 +4,8 @@ import ztna from "../content/website-only/fortigate-ztna-case-study.json";
 import loop from "../content/website-only/fortigate-layer2-loop-case-study.json";
 import overlap from "../content/website-only/fortigate-subnet-overlap-case-study.json";
 import reboot from "../content/website-only/fortigate-automation-reboot-case-study.json";
+import manager from "../content/website-only/fortimanager-install-verification-case-study.json";
+import advpn from "../content/website-only/fortigate-advpn-failover-case-study.json";
 
 // Presentation-only inventory. Never seed these records into editorial/social jobs:
 // their social publication is already owned by separately recorded native posts.
@@ -61,7 +63,17 @@ export const fortigateAutomationRebootCaseStudy: BlogPost = {
   }
 };
 
-export const websiteOnlyResources: BlogPost[] = [fortinetHardeningGuide, fortigateZtnaCaseStudy, fortigateLayer2LoopCaseStudy, fortigateSubnetOverlapCaseStudy, fortigateAutomationRebootCaseStudy];
+export const fortimanagerInstallCaseStudy: BlogPost = {
+  ...manager, contentVersion: 3, contentType: "blog",
+  storySpine: { ...manager.storySpine, visualSequence: [manager.storySpine.visualSequence[0], manager.storySpine.visualSequence[1], manager.storySpine.visualSequence[2]] }
+};
+
+export const fortigateAdvpnCaseStudy: BlogPost = {
+  ...advpn, contentVersion: 3, contentType: "blog",
+  storySpine: { ...advpn.storySpine, visualSequence: [advpn.storySpine.visualSequence[0], advpn.storySpine.visualSequence[1], advpn.storySpine.visualSequence[2]] }
+};
+
+export const websiteOnlyResources: BlogPost[] = [fortinetHardeningGuide, fortigateZtnaCaseStudy, fortigateLayer2LoopCaseStudy, fortigateSubnetOverlapCaseStudy, fortigateAutomationRebootCaseStudy, fortimanagerInstallCaseStudy, fortigateAdvpnCaseStudy];
 
 export function withWebsiteOnlyResources(posts: BlogPost[]): BlogPost[] {
   const entries = new Map(posts.map((post) => [post.slug, post]));

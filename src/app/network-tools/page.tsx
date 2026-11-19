@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-html-link-for-pages -- Native navigation establishes the private toolkit document before diagnostic input. */
 import type { Metadata } from "next";
 import { CardVisual } from "@/components/card-visual";
 import { ToolDirectory } from "@/components/tool-directory";
@@ -101,6 +102,11 @@ export default function NetworkToolsPage() {
       </section>
 
       <section className="section tool-run-section" id="network-tools">
+        <div className="answer-panel" style={{ marginBottom: 28 }}>
+          <h2>QCS Network &amp; Security Toolkit</h2>
+          <p>Enter network parameters, compare settings and explore clear explanations and diagrams. Analyze collected output when needed, or prepare an authorized diagnostic from your computer. Your toolkit inputs stay on your device; the separate public checks are listed below.</p>
+          <a className="button primary" href="/network-tools/toolkit">Open QCS toolkit</a>
+        </div>
         <div className="section-heading">
           <p className="eyebrow">Choose a tool</p>
           <h2>Find the right check.</h2>

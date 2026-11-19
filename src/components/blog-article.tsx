@@ -6,6 +6,7 @@ import { CardVisual } from "@/components/card-visual";
 import { LeadForm } from "@/components/lead-form";
 import type { BlogPost } from "@/lib/blog";
 import { articleParagraphs } from "@/lib/blog-presentation";
+import { publicPublisher, publicSourceUrl, publicTechnicalScope } from "@/lib/public-editorial-presentation";
 
 type BlogArticleProps = {
   post: BlogPost;
@@ -43,7 +44,7 @@ export function BlogArticle({ post, relatedPosts = [], showLeadForm = true, visu
     return (
       <span className="article-citations" aria-label="Supporting sources">
         {cited.map((url) => (
-          <a href={url} key={url} rel="noreferrer" target="_blank" title={post.sources[(sourceNumbers.get(url) || 1) - 1]?.label}>
+          <a href={publicSourceUrl(url)} key={sourceNumbers.get(url)} rel="noreferrer" target="_blank" title={post.sources[(sourceNumbers.get(url) || 1) - 1]?.label}>
             [{sourceNumbers.get(url)}]
           </a>
         ))}
@@ -70,7 +71,7 @@ export function BlogArticle({ post, relatedPosts = [], showLeadForm = true, visu
               <span>{post.readTime}</span>
             </div>
             <p className="article-review-line">
-              Reviewed by <strong>{post.reviewedBy?.name || "QCS Network & Security Engineering"}</strong>
+              Published by <strong>{publicPublisher}</strong>
             </p>
           </div>
           <div className="blog-hero-media">
@@ -176,7 +177,7 @@ export function BlogArticle({ post, relatedPosts = [], showLeadForm = true, visu
               <h2>Sources and Further Reading</h2>
               <div className="stack-list">
                 {post.sources.map((source, index) => (
-                  <a className="stack-item compact-link" href={source.url} key={source.url} rel="noreferrer" target="_blank">
+                  <a className="stack-item compact-link" href={publicSourceUrl(source.url)} key={index} rel="noreferrer" target="_blank">
                     <span>[{index + 1}]</span> {source.label}
                   </a>
                 ))}
@@ -184,15 +185,8 @@ export function BlogArticle({ post, relatedPosts = [], showLeadForm = true, visu
             </section>
 
             <section className="article-method" id="editorial-method">
-              <h2>How This Guide Was Prepared</h2>
-              <p>
-                {post.editorialMethod ||
-                  "QCS reviewed the listed sources and organized the findings around practical network and security decisions."}
-              </p>
-              <p>
-                <strong>Technical review:</strong> {post.reviewedBy?.name || "QCS Network & Security Engineering"}
-                {post.reviewedBy?.role ? `, ${post.reviewedBy.role}` : ""}.
-              </p>
+              <h2>Sources and Technical Scope</h2>
+              <p>{publicTechnicalScope}</p>
             </section>
           </div>
 

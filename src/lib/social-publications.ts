@@ -1,4 +1,8 @@
 import { Prisma, type PrismaClient, type SecurityAdvisory, type SocialPublication } from "@prisma/client";
+import {assertOutsideReviewedScope,isReviewedAdvisoryFamily} from './reviewed-advisory-domain.ts';
+import {isAutomatedFamily} from './automated-advisory-domain.ts';
+import {hasAutomatedAdvisoryOwnership} from './automated-advisory-configuration.ts';
+import {assertOrdinaryAdvisoryJob,isReviewedScopeJob,reviewedJobExclusion} from './reviewed-advisory-guard.ts';
 import type { ContentPostRecord } from "@/lib/content-posts";
 import { getCcnaLessonById, type CcnaLessonRecord } from "@/lib/ccna-learning";
 import { siteConfig } from "@/lib/content";
@@ -68,6 +72,7 @@ function advisoryPost(advisory: SecurityAdvisory): LinkedInAdvisoryPost {
 }
 
 export function buildAdvisoryLinkedInCommentary(advisory: SecurityAdvisory) {
+  assertOutsideReviewedScope(advisory);
   const url = trackedUrl(`/security-advisories/${advisory.slug}`, "security-advisory-desk", advisory.slug);
   const source = advisoryPost(advisory);
   return createAdvisoryLinkedInPost(source, url);
@@ -142,6 +147,7 @@ type LinkedInEnqueueInput = {
 
 async function enqueue(input: LinkedInEnqueueInput) {
   const prisma = getPrismaClient();
+  await assertOrdinaryAdvisoryJob(prisma,input);
   if (input.contentType !== "ccna_lesson") return enqueueOnClient(prisma, input);
   return withCcnaSocialGuard(prisma, input, async tx => {
     const native = await nativeLinkedInOwner(tx, input.contentType, input.contentId);
@@ -220,6 +226,7 @@ export async function queueLinkedInForContentPost(post: ContentPostRecord) {
 }
 
 export async function queueLinkedInForAdvisory(advisory: SecurityAdvisory, revision: number | string) {
+  assertOutsideReviewedScope(advisory);
   const revisionKey = String(revision);
   const canonicalUrl = `${siteConfig.url}/security-advisories/${advisory.slug}`;
   const storySpine = storySpineForAdvisory(advisory);
@@ -302,6 +309,7 @@ export async function reconcileAdvisoryLinkedInQueue(limit = 50) {
   }
   let reconciled = 0;
   for (const advisory of advisories) {
+    if(isReviewedAdvisoryFamily(advisory)||isAutomatedFamily(advisory)||hasAutomatedAdvisoryOwnership(advisory))continue;
     const revision = String(advisory.revisions[0]?.version || 1);
     const publications = publicationsByContent.get(advisory.id) || [];
     if (publications.some((publication) => publication.status === "published")) {
@@ -374,6 +382,7 @@ export async function resetFailedLinkedInPublications() {
   const jobs = await prisma.socialPublication.findMany({ where: { channel: "linkedin", status: "failed" } });
   let count = 0;
   for (const job of jobs) {
+    if(await isReviewedScopeJob(prisma,job))continue;
     count += await withCcnaSocialGuard(prisma, job, async client => {
       if (await nativeLinkedInOwner(client, job.contentType, job.contentId)) return 0;
       const saved = await client.socialPublication.updateMany({
@@ -388,8 +397,10 @@ export async function resetFailedLinkedInPublications() {
 
 export async function processLinkedInQueue(limit = 5, publicationId = "") {
   const prisma = getPrismaClient();
+  const reviewedExclusion=await reviewedJobExclusion(prisma);
   await prisma.socialPublication.updateMany({
     where: {
+      AND:[reviewedExclusion],
       channel: "linkedin",
       contentType: { not: "ccna_lesson" },
       ...(publicationId ? { id: publicationId } : {}),
@@ -424,6 +435,7 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
     const due = await prisma.socialPublication.findMany({
       where: {
         channel: "linkedin",
+        AND:[reviewedExclusion],
         id: publicationId || { notIn: [...seen] },
         ...(preservedContent.size ? { NOT: { contentType: "ccna_lesson", contentId: { in: [...preservedContent] } } } : {}),
         status: { in: ["queued", "retry"] }, nextAttemptAt: { lte: dueAt }
@@ -466,6 +478,7 @@ export async function processLinkedInQueue(limit = 5, publicationId = "") {
 }
 
 async function deliverLinkedInQueueJob(prisma: PrismaClient, job: SocialPublication, reservation?: CcnaApiReservation) {
+  await assertOrdinaryAdvisoryJob(prisma,job);
   if (!reservation) {
     const claimed = await prisma.socialPublication.updateMany({
       where: { id: job.id, updatedAt: job.updatedAt, status: { in: ["queued", "retry"] } },
@@ -575,6 +588,7 @@ async function currentPublicationMaterial(job: {
   contentRevision: string;
   contentType: string;
 }, commentaryOverride?: string) {
+  await assertOrdinaryAdvisoryJob(getPrismaClient(),job);
   if (job.contentType === "content_post") {
     const resolved = await resolveContentPostRevision(job.contentId, job.contentRevision);
     const content = resolved.content as ContentPostRecord["content"];
@@ -669,6 +683,7 @@ export async function refreshLinkedInPublication(
   const prisma = getPrismaClient();
   const publication = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
   if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
+  await assertOrdinaryAdvisoryJob(prisma,publication);
   if (publication.contentType === "ccna_lesson") {
     const reservation = await withCcnaSocialGuard(prisma, publication, async client => {
       await assertApplicationLinkedInOwnership(client, publication.contentType, publication.contentId);
@@ -690,6 +705,7 @@ async function refreshLinkedInPublicationOnClient(
   const publication = reservation?.job || await prisma.socialPublication.findUnique({ where: { id: publicationId } });
   if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
   if (publication.contentType === "ccna_lesson" && !reservation) throw new Error("CCNA API refresh requires a committed dispatch reservation.");
+  await assertOrdinaryAdvisoryJob(prisma,publication);
   await assertApplicationLinkedInOwnership(prisma, publication.contentType, publication.contentId);
   if ((!reservation && publication.status !== "published") || !publication.externalId) {
     throw new Error("Only a published LinkedIn post can be refreshed.");
@@ -785,6 +801,7 @@ export async function rebuildLinkedInPublication(publicationId: string) {
   const prisma = getPrismaClient();
   const publication = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
   if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
+  await assertOrdinaryAdvisoryJob(prisma,publication);
   const result = await withCcnaSocialGuard(prisma, publication, client => rebuildLinkedInPublicationOnClient(client, publicationId));
   if (result.status === "refresh-required") {
     const replaced = await refreshLinkedInPublication(publication.id, true);
@@ -800,6 +817,7 @@ export async function rebuildLinkedInPublication(publicationId: string) {
 async function rebuildLinkedInPublicationOnClient(prisma: Prisma.TransactionClient | PrismaClient, publicationId: string) {
   const publication = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
   if (!publication || publication.channel !== "linkedin") throw new Error("LinkedIn publication not found.");
+  await assertOrdinaryAdvisoryJob(prisma,publication);
   await assertApplicationLinkedInOwnership(prisma, publication.contentType, publication.contentId);
 
   if (publication.contentType === "security_advisory") {
@@ -861,8 +879,10 @@ async function rebuildLinkedInPublicationOnClient(prisma: Prisma.TransactionClie
 
 export async function refreshRecentOutdatedLinkedInPublications(limit = 1, maxAgeHours = 72) {
   const prisma = getPrismaClient();
+  const reviewedExclusion = await reviewedJobExclusion(prisma);
   const candidates = await prisma.socialPublication.findMany({
     where: {
+      AND: [reviewedExclusion],
       channel: "linkedin",
       status: "published",
       externalId: { not: null },
@@ -894,8 +914,10 @@ export async function refreshRecentOutdatedLinkedInPublications(limit = 1, maxAg
 export async function rebuildLinkedInPublicationsSince(since: Date, apply = false) {
   if (Number.isNaN(since.getTime())) throw new Error("A valid LinkedIn rebuild start date is required.");
   const prisma = getPrismaClient();
+  const reviewedExclusion = await reviewedJobExclusion(prisma);
   const publications = await prisma.socialPublication.findMany({
     where: {
+      AND: [reviewedExclusion],
       channel: "linkedin",
       OR: [{ publishedAt: { gte: since } }, { createdAt: { gte: since } }]
     },

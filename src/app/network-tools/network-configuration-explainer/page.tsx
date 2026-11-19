@@ -5,7 +5,7 @@ import { createPageMetadata } from "@/lib/seo";
 import { LENS_PATH } from "@/lib/config-lens/catalog";
 import styles from "@/components/config-lens.module.css";
 
-export const metadata = createPageMetadata({ title: "Network Configuration Explainer | Cisco and Fortinet", description: "Understand Cisco and Fortinet text configurations with free browser-local explanations, configured relationships and secret masking. No configuration upload or paid AI API.", path: LENS_PATH, keywords: ["network configuration explainer", "Cisco configuration explained", "FortiGate configuration analyzer", "FortiWeb configuration", "local configuration analysis"] });
+export const metadata = createPageMetadata({ title: "Network Configuration Explainer | Cisco and Fortinet", description: "Explain supported Cisco and Fortinet configurations in your browser, with plain-language guidance, relationship diagrams and secret masking. Configurations stay on your device.", path: LENS_PATH, keywords: ["network configuration explainer", "Cisco configuration explained", "FortiGate configuration analyzer", "FortiWeb configuration", "local configuration analysis"] });
 
 export default function ConfigLensPage() {
   return <main className={styles.page}>
@@ -14,9 +14,9 @@ export default function ConfigLensPage() {
     <ConfigLens />
     <section className={styles.faq} aria-label="Configuration analysis questions">
       <details><summary>Which devices and commands are supported?</summary><p>Version 1 covers selected common statements for Cisco routers and Catalyst switches using IOS/IOS XE, Nexus using NX-OS, ASA and partial FTD diagnostic output, plus FortiGate, FortiWeb and standalone FortiSwitch. The selected profile describes its scope. Every unrecognized statement is marked for review. This is not universal support for every device, OS release or feature.</p></details>
-      <details><summary>Does my configuration leave the browser?</summary><p>The analysis worker runs on this device and makes no API calls. Configuration text is not submitted, stored in a database or saved to browser storage. The website and its assets still load normally. Clear the workspace when finished and review downloaded files before sharing. Browser extensions and your device remain outside QCS control.</p></details>
+      <details><summary>Does my configuration leave the browser?</summary><p>Your configuration is analyzed on this device. It is not uploaded or saved by Config Lens. The website and its assets still load normally. Clear the workspace when finished and review downloaded files before sharing. Browser extensions and your device remain outside QCS control.</p></details>
       <details><summary>Can I use the results to make changes?</summary><p>Use them to understand and review settings, not as automatic change instructions. The diagram shows parsed configuration references, not physical cabling or tested traffic. A qualified operator must verify vendor documentation, runtime evidence, authorization, backups and rollback before changing a device. Masked text is not a restorable backup.</p></details>
-      <details><summary>Does this find every vulnerability?</summary><p>No. The tool flags selected configuration-review points, not a complete vulnerability or compliance assessment. Firmware advisories need exact product, version and feature applicability checks. The admin update desk checks official sources separately and never receives visitor configurations.</p></details>
+      <details><summary>Does this find every vulnerability?</summary><p>No. The tool flags selected configuration-review points, not a complete vulnerability or compliance assessment. Check published firmware advisories against your exact product, software version and enabled features. A configuration review alone cannot establish whether a device is affected.</p></details>
     </section>
   </main>;
 }

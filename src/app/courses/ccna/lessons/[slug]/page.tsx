@@ -8,7 +8,7 @@ import { CcnaBeginnerGuide } from "@/components/ccna-beginner-guide";
 import { CcnaLessonShell } from "@/components/ccna-lesson-shell";
 import { CcnaVisualExplainer } from "@/components/ccna-visual-explainer";
 import { CcnaTeachingPrelude } from "@/components/ccna-teaching-prelude";
-import { ccnaComparisonBoundary, ccnaSectionBoundary } from "@/lib/ccna-lesson-presentation";
+import { ccnaComparisonBoundary, ccnaReaderContent, ccnaSectionBoundary } from "@/lib/ccna-lesson-presentation";
 import { CcnaLabBoundary } from "@/components/ccna-lab-boundary";
 import { firstNetworkArtwork, visualStoryForLesson } from "@/lib/ccna-visual-story";
 import { StructuredData } from "@/components/structured-data";
@@ -42,7 +42,7 @@ export default async function CcnaLessonPage({ params }: PageProps) {
   const index = lessons.findIndex((item) => item.id === lesson.id);
   const previous = index > 0 ? lessons[index - 1] : null;
   const next = index >= 0 ? lessons[index + 1] : null;
-  const content = lesson.content;
+  const content = ccnaReaderContent(lesson.slug, lesson.content);
   const visualStory = visualStoryForLesson(lesson);
   const canonical = `${siteConfig.url}/courses/ccna/lessons/${lesson.slug}`;
 

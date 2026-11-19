@@ -4,6 +4,7 @@
 node_modules
 envato-assets
 .qa-screenshots
+test-results
 .codex-artifacts
 .agents
 *.log

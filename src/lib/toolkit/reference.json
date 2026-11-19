@@ -1,0 +1,2233 @@
+{
+  "version": "2026-11-04-raw2",
+  "sources": [
+    {
+      "id": "tcp",
+      "title": "Wireshark TCP analysis",
+      "url": "https://www.wireshark.org/docs/wsug_html_chunked/ChAdvTCPAnalysis.html",
+      "scope": "Capture-derived flags, sequence and acknowledgement interpretation; not conclusive root cause.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "filters",
+      "title": "Wireshark display-filter reference",
+      "url": "https://www.wireshark.org/docs/man-pages/wireshark-filter.html",
+      "scope": "Typed fields, comparison and logical operators. Do not translate BPF through string replacement.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "iperf",
+      "title": "ESnet iperf3 invocation",
+      "url": "https://software.es.net/iperf/invoking.html",
+      "scope": "Client/server tests, transport, direction, duration and options; installed-version manual is authoritative.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "mtr",
+      "title": "MTR official project",
+      "url": "https://github.com/traviscross/mtr",
+      "scope": "Per-hop probes and ICMP response-rate limitations.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "dns",
+      "title": "ISC BIND tool manual",
+      "url": "https://bind9.readthedocs.io/en/latest/manpages.html",
+      "scope": "DNS query options, record types and response metadata; pin stable version for implementation.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "openssl",
+      "title": "OpenSSL 3.5 s_client",
+      "url": "https://docs.openssl.org/3.5/man1/openssl-s_client/",
+      "scope": "TLS client evidence, SNI, certificate checks and verification flags.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "curl",
+      "title": "curl manual",
+      "url": "https://curl.se/docs/manpage.html",
+      "scope": "HTTP observations and cumulative timing fields; connection reuse and redirects affect timing.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "ike",
+      "title": "IETF RFC 7296: IKEv2",
+      "url": "https://www.rfc-editor.org/rfc/rfc7296.html",
+      "scope": "IKE and CHILD SAs, traffic selectors and narrowing, negotiation and rekeying.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "nmap",
+      "title": "Nmap port states",
+      "url": "https://nmap.org/book/man-port-scanning-basics.html",
+      "scope": "Six scan states and measurement vantage point; state is not intrinsic or a vulnerability verdict.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "bgp",
+      "title": "IETF RFC 4271: BGP",
+      "url": "https://www.rfc-editor.org/rfc/rfc4271.html",
+      "scope": "Reachability and path attributes; vendor policy and RFC updates still require a supported profile.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "rpki",
+      "title": "IETF RFC 6811: origin validation",
+      "url": "https://www.rfc-editor.org/rfc/rfc6811.html",
+      "scope": "Valid, Invalid and NotFound origin validation; not whole-path authentication.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "ripe",
+      "title": "RIPEstat RPKI validation endpoint",
+      "url": "https://stat.ripe.net/docs/data-api/api-endpoints/rpki-validation",
+      "scope": "Public routing provider schema; availability, fair use and freshness are separate from local analysis.",
+      "status": "search-index excerpt",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "cidr",
+      "title": "IETF RFC 4632: CIDR",
+      "url": "https://www.rfc-editor.org/rfc/rfc4632.html",
+      "scope": "Address prefixes and aggregation; do not silently add uncovered space.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "ipv6",
+      "title": "IETF RFC 8200: IPv6",
+      "url": "https://www.rfc-editor.org/rfc/rfc8200.html",
+      "scope": "IPv6 packet and fragmentation model; not an IPv4 broadcast/host-count model.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "syslog",
+      "title": "IETF RFC 5424: syslog",
+      "url": "https://www.rfc-editor.org/rfc/rfc5424.html",
+      "scope": "Event fields, severity, timestamps and structured data; vendor messages need separate schemas.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "cvss",
+      "title": "FIRST CVSS 4.0 specification",
+      "url": "https://www.first.org/cvss/v4.0/specification-document",
+      "scope": "Severity vectors and metric groups, not proof of exploitation or a business-risk probability.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "ssrf",
+      "title": "OWASP SSRF prevention",
+      "url": "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html",
+      "scope": "Validation, resolution and redirect boundaries for public probes; local companion needs a different trust boundary.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "stp",
+      "title": "Cisco IOS XE 17 STP guide",
+      "url": "https://www.cisco.com/c/en/us/td/docs/switches/lan/c9000/lyr2-fwd/stp/stp-configuration-guide/m-stp.html",
+      "scope": "Root election, roles and states; platform and mode matter.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "route",
+      "title": "Cisco IOS XE 17 protocol-independent routing",
+      "url": "https://www.cisco.com/c/en/us/td/docs/routers/ios/config/17-x/ip-routing/b-ip-routing/m_iri-ip-prot-indep-0.html",
+      "scope": "Routing policy context; do not claim generic vendor-independent best-path algorithms.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "ftd",
+      "title": "Cisco Secure Firewall troubleshooting",
+      "url": "https://docs.manage.security.cisco.com/cdfmc/c_advanced-troubleshooting-for-ftd.html",
+      "scope": "Simulated packet-tracer evidence versus observed packet capture.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "forti-selectors",
+      "title": "Fortinet IKEv2 multiple selectors",
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-fortigate-ikev2-sending-multiple-phase2-selectors-although-single-phase2-selector-is-configured-218454",
+      "scope": "Fortinet-specific selector context; recheck exact affected build before implementing a rule.",
+      "status": "search-index excerpt",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "forti-p1",
+      "title": "FortiOS 7.4.9 phase1 CLI",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.9/cli-reference/305883427/config-vpn-ipsec-phase1-interface",
+      "scope": "Exact version-specific defaults and syntax need revalidation.",
+      "status": "blocked: HTTP 403",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "forti-p2",
+      "title": "FortiOS 7.4.9 phase2 CLI",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.9/cli-reference/252893715/config-vpn-ipsec-phase2-interface",
+      "scope": "Exact version-specific defaults and syntax need revalidation.",
+      "status": "blocked: HTTP 403",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "forti-policy",
+      "title": "FortiOS 7.4.9 firewall policy CLI",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.9/cli-reference/333889629/config-firewall-policy",
+      "scope": "Exact policy semantics need version-specific confirmation.",
+      "status": "blocked: HTTP 403",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "forti-flow",
+      "title": "FortiOS 7.6.1 flow debugging",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.1/administration-guide/54688/debugging-the-packet-flow",
+      "scope": "Hardware offload and collection limitations; not an instruction to disable acceleration.",
+      "status": "blocked: HTTP 403",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "forti-sla",
+      "title": "FortiOS 7.4.7 SLA overview",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/administration-guide/867342/performance-sla-overview",
+      "scope": "Version-specific SLA units and threshold semantics need fresh full-page verification.",
+      "status": "blocked: HTTP 403",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "spf",
+      "title": "IETF RFC 7208: SPF",
+      "url": "https://www.rfc-editor.org/rfc/rfc7208.html",
+      "scope": "Authorised sending identities, mechanism evaluation and lookup limits.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "dmarc",
+      "title": "IETF RFC 7489: DMARC",
+      "url": "https://www.rfc-editor.org/rfc/rfc7489.html",
+      "scope": "Baseline policy and alignment concepts; check successor specifications and receiver behaviour before a parser release.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "sts",
+      "title": "IETF RFC 8461: MTA-STS",
+      "url": "https://www.rfc-editor.org/rfc/rfc8461.html",
+      "scope": "MX transport policy, mode and validity.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "dane",
+      "title": "IETF RFC 6698: TLSA",
+      "url": "https://www.rfc-editor.org/rfc/rfc6698.html",
+      "scope": "Certificate association fields; DNSSEC validation is a separate required input.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "securitytxt",
+      "title": "IETF RFC 9116: security.txt",
+      "url": "https://www.rfc-editor.org/rfc/rfc9116.html",
+      "scope": "Disclosure contacts and expiry; not security certification.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "robots",
+      "title": "IETF RFC 9309: robots.txt",
+      "url": "https://www.rfc-editor.org/rfc/rfc9309.html",
+      "scope": "Crawler rules and errors; not access control or guaranteed indexing.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "crypto",
+      "title": "MDN Web Crypto random values",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues",
+      "scope": "Cryptographically strong random generation; unbiased selection still required.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "aws",
+      "title": "AWS IP address ranges",
+      "url": "https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html",
+      "scope": "Provider JSON is not all AWS addresses, excludes BYOIP, and does not prove tenant identity.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "csp",
+      "title": "W3C CSP3",
+      "url": "https://www.w3.org/TR/CSP3/",
+      "scope": "Working draft as retrieved; directive semantics and report-only/enforcement distinction.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "cors",
+      "title": "MDN CORS guide",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS",
+      "scope": "Browser origin/credential rules; a header pattern is not proof of exploitable data access.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "sockets",
+      "title": "Chrome Direct Sockets",
+      "url": "https://developer.chrome.com/docs/iwa/direct-sockets",
+      "scope": "Ordinary websites lack arbitrary TCP/UDP access; special isolated applications are not normal webpages.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "motion",
+      "title": "W3C animation from interactions",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions.html",
+      "scope": "AAA motion-disable criterion adopted as a product goal, not falsely described as AA.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "pause",
+      "title": "W3C pause, stop, hide",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html",
+      "scope": "User control over moving/auto-updating information.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "targets",
+      "title": "W3C target size minimum",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+      "scope": "AA minimum 24 CSS px with exceptions; QCS chooses 44 px primary touch controls.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "tables",
+      "title": "IBM Carbon data tables",
+      "url": "https://carbondesignsystem.com/components/data-table/usage/",
+      "scope": "Dense structured data, progressive disclosure, filtering and sorting.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "errors",
+      "title": "GOV.UK error summary",
+      "url": "https://design-system.service.gov.uk/components/error-summary/",
+      "scope": "Preserve input, focus error summary, link errors to fields.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-cisco-brief",
+      "title": "Cisco IOS XE 17.15: interface status fields",
+      "url": "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9400/software/release/17-15/command_reference/b_1715_9400_cr/interface_and_hardware_commands.html",
+      "scope": "Documented show ip interface brief fields; matching a format is not certification of all Cisco devices or releases.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-cisco-interfaces",
+      "title": "Cisco: switch-port and interface counter interpretation",
+      "url": "https://www.cisco.com/c/en/us/support/docs/switches/catalyst-6500-series-switches/12027-53.html",
+      "scope": "Reported link state and selected counters, not a verified cause of packet loss.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-cisco-route",
+      "title": "Cisco IOS: show ip route command reference",
+      "url": "https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/iproute_pi/command/iri-cr-book/iri-cr-s1.html",
+      "scope": "IPv4 route evidence and routing concepts. Retrieved chapter revision is July 2014, not universal recent-release support.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-performance",
+      "title": "Fortinet: performance-status fields",
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-explaining-the-get-system-performance-status-output-117240",
+      "scope": "CPU states, memory categories and explicitly labelled reporting windows. No universal utilization threshold.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-route",
+      "title": "Fortinet: IPv4 routing-table fields (FortiOS 5.6.3 handbook)",
+      "url": "https://fortinetweb.s3.amazonaws.com/docs.fortinet.com/v2/attachments/cf390652-1a11-11e9-9685-f8bc1258b856/Networking-Handbook-5.6.3.pdf",
+      "scope": "Legacy primary reference for route codes, next hop and distance/metric fields; not universal current-release coverage.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-vpn",
+      "title": "Fortinet: IPsec VPN tunnel troubleshooting (7.2 and above)",
+      "url": "https://community.fortinet.com/fortigate-3/troubleshooting-tip-ipsec-vpn-tunnel-troubleshooting-97751",
+      "scope": "Only the tunnel-summary selector and rx/tx counter fields are used. Detailed key dumps and configuration instructions are not imported.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-route-context",
+      "title": "Fortinet: link-monitor routing examples",
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-link-monitor-explained-99053",
+      "scope": "Corroborates explicit VRF and static/connected row layouts; no automatic failover diagnosis.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-route-versioned",
+      "title": "FortiOS 7.6.5: routing-table contents",
+      "url": "https://docs.fortinet.com/document/fortigate/7.6.5/administration-guide/221343",
+      "scope": "Versioned route examples corroborate basic layout; direct full-page retrieval was unavailable.",
+      "status": "official search-index excerpt; direct retrieval returned HTTP 403",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-vpn-versioned",
+      "title": "FortiOS 7.4.7: IPsec selector summary",
+      "url": "https://docs.fortinet.com/document/fortigate/7.4.7/administration-guide/670140/multiple-interface-monitoring-for-ipsec",
+      "scope": "Versioned selector/counter examples; no application-reachability inference.",
+      "status": "official search-index excerpt; direct retrieval returned HTTP 403",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-cisco-vlan",
+      "title": "Cisco IOS XE 26.x, Catalyst 9500: VLAN command fields",
+      "url": "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9500/software/release/26-x/command_reference/b_26x_9500_cr/vlan_commands.html",
+      "scope": "VLAN brief IDs, status and port layout. Matching a table format is not certification of every platform or release.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-cisco-trunk",
+      "title": "Cisco IOS: interface trunk evidence",
+      "url": "https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/interface/command/ir-cr-book/ir-s4.html",
+      "scope": "Trunk mode, native VLAN and distinct VLAN lists. Wrapped VLAN lists are rejected, not partially interpreted.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-cisco-stp",
+      "title": "Cisco IOS XE 17.15, Catalyst 9500: spanning-tree fields",
+      "url": "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9500/software/release/17-15/command_reference/b_1715_9500_cr/layer_2_3_commands.html",
+      "scope": "VLAN-based root/bridge and Role/Sts/Cost tables only. MST and alternative table layouts are not covered.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-cisco-ospf",
+      "title": "Cisco IOS: OSPF neighbour command reference",
+      "url": "https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/iproute_ospf/command/iro-cr-book/ospf-s1.html",
+      "scope": "Single-line IPv4 neighbour columns. No process, area, VRF or network type is invented.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-cisco-ospf-2way",
+      "title": "Cisco: why OSPF neighbours can remain in 2-WAY",
+      "url": "https://www.cisco.com/c/en/us/support/docs/ip/open-shortest-path-first-ospf/13683-11.html",
+      "scope": "Historical explanation of normal broadcast-network DROTHER relationships; not a current release support matrix.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-cisco-bgp",
+      "title": "Cisco IOS: BGP summary command reference",
+      "url": "https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/iproute_bgp/command/irg-cr-book/bgp-s1.html",
+      "scope": "IPv4 peer states, prefix counts, queues, durations and four-byte AS notation. No route installation or forwarding test.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-cisco-bgp-zero",
+      "title": "Cisco: BGP troubleshooting examples",
+      "url": "https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/13751-23.html",
+      "scope": "Corroborates established sessions with a numeric State/PfxRcd of zero.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-session",
+      "title": "Fortinet: session counter information",
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-session-counter-information-99341",
+      "scope": "Staff-authored scalar counter meanings; unknown values and reset semantics are not inferred.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-flow",
+      "title": "Fortinet: interpreting explicit debug-flow drop events",
+      "url": "https://community.fortinet.com/fortigate-3/troubleshooting-tip-common-drop-reasons-when-using-diagnose-debug-flow-commands-for-troubleshooting-and-possible-solutions-92826",
+      "scope": "Selected event strings only; the article's possible causes and remediation are not assigned to imported traces.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-ike",
+      "title": "Fortinet: bounded IKE gateway fields",
+      "url": "https://community.fortinet.com/fortigate-3/troubleshooting-tip-understanding-message-no-proposal-chosen-and-no-sa-proposal-chosen-in-ike-debug-log-127896",
+      "scope": "VDOM, endpoint pair, tunnel ID, direction and established state layout. Key-bearing dumps are rejected; proposal mismatch is not inferred.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-session-memory",
+      "title": "Fortinet: memory-tension counter and TCP state layout",
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-explanation-of-memory-tension-drop-counter-97579",
+      "scope": "Legacy 5.2/5.4/5.6 examples; no universal reset boundary or current conserve-mode diagnosis.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-session-tcp",
+      "title": "Fortinet: session statistics and TCP states",
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-understanding-the-tcp-state-machine-via-diagnose-sys-session-stat-202360",
+      "scope": "FortiGate 7.2 scope; aggregate protocol total and selected TCP states, not individual conversations.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-flow-context",
+      "title": "Fortinet: VDOM and VRF in flow anchors",
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-source-and-destination-nat-between-vrfs-instances-227236",
+      "scope": "Keeps VDOM names separate from optional VRF suffixes. No NAT/path reconstruction; ICMP tuple values are not transport ports.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-flow-permission",
+      "title": "Fortinet: packet anchors and policy permission events",
+      "url": "https://community.fortinet.com/fortigate-3/technical-tip-traffic-is-being-reset-by-the-fortigate-because-it-is-not-local-traffic-229758",
+      "scope": "7.2/7.4/7.6 example grammar only. A policy permission event does not establish final delivery or explain an unrelated reset.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    },
+    {
+      "id": "raw-fortigate-ike-connecting",
+      "title": "Fortinet: IPsec troubleshooting and connecting state",
+      "url": "https://community.fortinet.com/fortigate-3/troubleshooting-tip-ipsec-vpn-tunnel-troubleshooting-97751",
+      "scope": "7.2 and above article scope; explicit connecting state and separation of Phase 1 from Phase 2. No all-version coverage claim.",
+      "status": "retrieved",
+      "checked": "2026-11-04"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "platform",
+      "label": "Device and OS profile",
+      "meaning": "The vendor, product family, exact software release and relevant operating mode that determine how statements are interpreted.",
+      "unit": "text",
+      "example": "FortiGate / FortiOS / exact build",
+      "caution": "Do not infer a build or support a whole family from one command reference.",
+      "sourceIds": [
+        "route",
+        "forti-policy"
+      ]
+    },
+    {
+      "id": "context",
+      "label": "Routing or security context",
+      "meaning": "The independent virtual routing table, VDOM, virtual firewall or address family to which the evidence belongs.",
+      "unit": "text",
+      "example": "VDOM root; VRF branch",
+      "caution": "Identical addresses in different contexts are not automatically conflicting.",
+      "sourceIds": [
+        "route"
+      ]
+    },
+    {
+      "id": "source-line",
+      "label": "Source location",
+      "meaning": "The line, packet or record that supports a displayed finding.",
+      "unit": "line / packet / record",
+      "example": "config lines 34-39",
+      "caution": "Evidence references must survive redaction and preserve original ordering.",
+      "sourceIds": [
+        "tcp"
+      ]
+    },
+    {
+      "id": "coverage",
+      "label": "Parser coverage",
+      "meaning": "Supported, unsupported and skipped statements counted against an explicitly defined population.",
+      "unit": "count and %",
+      "example": "92 supported / 100 meaningful statements",
+      "caution": "Coverage is not configuration correctness or a security score.",
+      "sourceIds": [
+        "filters"
+      ]
+    },
+    {
+      "id": "configured-state",
+      "label": "Configured value",
+      "meaning": "A value read from a configuration snapshot, rather than an observation of current operation.",
+      "unit": "typed value",
+      "example": "administratively enabled",
+      "caution": "A configured interface can still be operationally down.",
+      "sourceIds": [
+        "stp",
+        "route"
+      ]
+    },
+    {
+      "id": "capture-point",
+      "label": "Capture point",
+      "meaning": "Where traffic was recorded, including device, interface, direction and virtual context.",
+      "unit": "text",
+      "example": "client Ethernet ingress",
+      "caution": "A single point cannot prove what happened elsewhere; offload may hide packets.",
+      "sourceIds": [
+        "tcp",
+        "forti-flow"
+      ]
+    },
+    {
+      "id": "five-tuple",
+      "label": "Connection identifiers",
+      "meaning": "Source and destination IP addresses, source and destination ports, and the transport protocol.",
+      "unit": "addresses / ports / protocol",
+      "example": "192.0.2.10:51000 -> 198.51.100.20:443 TCP",
+      "caution": "NAT can change identifiers between capture points.",
+      "sourceIds": [
+        "ftd"
+      ]
+    },
+    {
+      "id": "timestamp",
+      "label": "Observation time",
+      "meaning": "When an event was recorded, including timezone and clock precision.",
+      "unit": "ISO 8601 / UTC offset",
+      "example": "2026-11-04T10:00:00Z",
+      "caution": "Clock disagreement can reverse apparent event order.",
+      "sourceIds": [
+        "syslog"
+      ]
+    },
+    {
+      "id": "rtt",
+      "label": "Round-trip time",
+      "meaning": "Elapsed time from a request or probe to the matching response observed at the same measuring point.",
+      "unit": "ms",
+      "example": "42 ms",
+      "caution": "Not one-way delay; identify probe type and matching method.",
+      "sourceIds": [
+        "mtr",
+        "tcp"
+      ]
+    },
+    {
+      "id": "loss",
+      "label": "Probe response loss",
+      "meaning": "Expected responses not received divided by probes sent in the specified interval.",
+      "unit": "% and sent/received counts",
+      "example": "2 of 100 responses missing = 2%",
+      "caution": "ICMP filtering and rate limiting can differ from application forwarding.",
+      "sourceIds": [
+        "mtr"
+      ]
+    },
+    {
+      "id": "jitter",
+      "label": "Delay variation",
+      "meaning": "A measure of how packet delay varies, using the named tool and algorithm.",
+      "unit": "ms",
+      "example": "iperf UDP jitter 3.2 ms",
+      "caution": "Do not equate different jitter definitions or call RTT standard deviation one-way jitter.",
+      "sourceIds": [
+        "iperf"
+      ]
+    },
+    {
+      "id": "tcp-flags",
+      "label": "TCP control flags",
+      "meaning": "Indicators such as SYN, ACK, FIN and RST used to establish, acknowledge or close a connection.",
+      "unit": "flags",
+      "example": "SYN, ACK",
+      "caution": "A reset alone does not identify the device or process that caused it.",
+      "sourceIds": [
+        "tcp"
+      ]
+    },
+    {
+      "id": "sequence",
+      "label": "TCP sequence / acknowledgement",
+      "meaning": "Positions in the TCP byte stream and the next sequence position expected by the receiver.",
+      "unit": "sequence number",
+      "example": "ACK 1001",
+      "caution": "Relative display numbers differ from raw on-wire values; account for wrap and SYN/FIN.",
+      "sourceIds": [
+        "tcp"
+      ]
+    },
+    {
+      "id": "retransmission",
+      "label": "Suspected TCP retransmission",
+      "meaning": "A capture-derived indication that sequence space appears to have been sent again.",
+      "unit": "count / defined percentage",
+      "example": "3 retransmitted segments",
+      "caution": "Capture loss, reordering and duplicate capture can affect interpretation.",
+      "sourceIds": [
+        "tcp"
+      ]
+    },
+    {
+      "id": "window",
+      "label": "Advertised receive window",
+      "meaning": "How much additional TCP data the receiver currently allows in flight, subject to window scaling.",
+      "unit": "bytes",
+      "example": "0 bytes",
+      "caution": "Zero window is receiver flow-control evidence, not a direct network-congestion measurement.",
+      "sourceIds": [
+        "tcp"
+      ]
+    },
+    {
+      "id": "capture-quality",
+      "label": "Capture completeness",
+      "meaning": "Evidence about truncation, missing directions, capture drops, snap length and supported link type.",
+      "unit": "counts / flags",
+      "example": "snaplen 96 bytes",
+      "caution": "Absent metadata means unknown quality, not a clean capture.",
+      "sourceIds": [
+        "tcp"
+      ]
+    },
+    {
+      "id": "hop",
+      "label": "Hop and responder",
+      "meaning": "Probe hop limit and the address that responded at that limit.",
+      "unit": "integer / IP",
+      "example": "hop 4: 192.0.2.1",
+      "caution": "Asterisk means no response; it does not prove that the next router is down.",
+      "sourceIds": [
+        "mtr"
+      ]
+    },
+    {
+      "id": "probe",
+      "label": "Probe profile",
+      "meaning": "Protocol, packet size, count, interval, timeout and source used to test a path.",
+      "unit": "mixed",
+      "example": "TCP/443; 100 probes; 1 s interval",
+      "caution": "Different profiles can traverse different policies or load-balanced paths.",
+      "sourceIds": [
+        "mtr"
+      ]
+    },
+    {
+      "id": "latency-summary",
+      "label": "Latency distribution",
+      "meaning": "Minimum, median, mean, percentile and maximum over a stated set of samples.",
+      "unit": "ms / sample count",
+      "example": "p95 58 ms across 100 replies",
+      "caution": "Do not invent percentiles from summaries or compare unequal observation windows.",
+      "sourceIds": [
+        "mtr",
+        "iperf"
+      ]
+    },
+    {
+      "id": "throughput",
+      "label": "Measured throughput",
+      "meaning": "Transferred test bytes divided by the measured interval.",
+      "unit": "bit/s; distinguish byte/s",
+      "example": "92 Mbit/s",
+      "caution": "Not necessarily circuit capacity; endpoint CPU, direction and stream count matter.",
+      "sourceIds": [
+        "iperf"
+      ]
+    },
+    {
+      "id": "test-profile",
+      "label": "Performance test profile",
+      "meaning": "Client/server endpoints, transport, offered rate, parallel streams, duration, omit period and direction.",
+      "unit": "mixed",
+      "example": "TCP reverse; 1 stream; 20 s",
+      "caution": "No active saturation test without consent, rate caps and an authorised server.",
+      "sourceIds": [
+        "iperf"
+      ]
+    },
+    {
+      "id": "udp-loss",
+      "label": "UDP datagram loss",
+      "meaning": "Expected test datagrams missing at the receiver according to the test sequence.",
+      "unit": "datagrams / %",
+      "example": "5 / 1000 = 0.5%",
+      "caution": "Separate from TCP retransmissions and ICMP probe loss.",
+      "sourceIds": [
+        "iperf"
+      ]
+    },
+    {
+      "id": "dns-question",
+      "label": "DNS question",
+      "meaning": "The requested name, record type and class.",
+      "unit": "text",
+      "example": "www.example.com A IN",
+      "caution": "A lookup for one record type does not establish absence of every record type.",
+      "sourceIds": [
+        "dns"
+      ]
+    },
+    {
+      "id": "resolver",
+      "label": "Resolver and vantage point",
+      "meaning": "The DNS service queried and where that query was initiated.",
+      "unit": "address / location",
+      "example": "resolver 192.0.2.53; local import",
+      "caution": "Public resolvers do not represent all users or private split-horizon DNS.",
+      "sourceIds": [
+        "dns"
+      ]
+    },
+    {
+      "id": "rcode",
+      "label": "DNS response code",
+      "meaning": "The DNS server response status, such as success, nonexistent name or server failure.",
+      "unit": "enum",
+      "example": "NOERROR / NXDOMAIN / SERVFAIL",
+      "caution": "Timeout is a collection error; NOERROR with no answer is different from NXDOMAIN.",
+      "sourceIds": [
+        "dns"
+      ]
+    },
+    {
+      "id": "dns-ttl",
+      "label": "DNS TTL",
+      "meaning": "How long the received DNS record may remain cached before it needs refreshing.",
+      "unit": "seconds",
+      "example": "300 s",
+      "caution": "Not a global propagation countdown; cached remaining TTL differs from authoritative original TTL.",
+      "sourceIds": [
+        "dns"
+      ]
+    },
+    {
+      "id": "dnssec",
+      "label": "DNSSEC validation state",
+      "meaning": "Whether signatures and the chain of trust were checked by the stated validator and with what outcome.",
+      "unit": "secure / insecure / bogus / indeterminate",
+      "example": "indeterminate: no validator evidence",
+      "caution": "A DS record or an AD flag alone is not independent end-to-end validation by QCS.",
+      "sourceIds": [
+        "dns",
+        "dane"
+      ]
+    },
+    {
+      "id": "soa",
+      "label": "SOA fields",
+      "meaning": "Zone authority information: primary server, serial, refresh, retry, expiry and negative-caching-related values.",
+      "unit": "text / seconds / serial",
+      "example": "serial 2026110401",
+      "caution": "Serial format is operator-defined, not necessarily a date.",
+      "sourceIds": [
+        "dns"
+      ]
+    },
+    {
+      "id": "srv",
+      "label": "SRV priority and weight",
+      "meaning": "Priority chooses the preferred service group; weight distributes selection within equal priority.",
+      "unit": "integers / port / target",
+      "example": "priority 10, weight 20, port 443",
+      "caution": "Lower priority number is preferred; weight is not a guaranteed traffic percentage.",
+      "sourceIds": [
+        "dns"
+      ]
+    },
+    {
+      "id": "sni",
+      "label": "TLS server name",
+      "meaning": "The hostname requested during TLS negotiation so a shared server can choose the appropriate service and certificate.",
+      "unit": "hostname",
+      "example": "www.example.com",
+      "caution": "Connecting to an IP without the intended name can test the wrong service.",
+      "sourceIds": [
+        "openssl"
+      ]
+    },
+    {
+      "id": "certificate",
+      "label": "Certificate identity and validity",
+      "meaning": "Issuer, subject alternative names, validity dates and chain information presented by the endpoint.",
+      "unit": "names / UTC dates",
+      "example": "SAN www.example.com",
+      "caution": "An unexpired certificate is not proof of a trusted chain or a safe website.",
+      "sourceIds": [
+        "openssl"
+      ]
+    },
+    {
+      "id": "tls",
+      "label": "TLS negotiation",
+      "meaning": "The protocol, cipher suite and application protocol actually agreed during a connection.",
+      "unit": "version / suite / ALPN",
+      "example": "TLS 1.3; h2",
+      "caution": "An advertised capability is not a successfully negotiated capability.",
+      "sourceIds": [
+        "openssl"
+      ]
+    },
+    {
+      "id": "http-status",
+      "label": "HTTP response status",
+      "meaning": "The response code for the particular request method and URL tested.",
+      "unit": "integer",
+      "example": "301 followed by 200",
+      "caution": "HEAD and GET can differ; a successful response may still contain an application error.",
+      "sourceIds": [
+        "curl"
+      ]
+    },
+    {
+      "id": "web-timing",
+      "label": "HTTP timing phases",
+      "meaning": "Observed DNS, connection, TLS, first-byte and total timings, with cumulative versus incremental values identified.",
+      "unit": "ms",
+      "example": "first byte at 180 ms",
+      "caution": "First-byte time includes earlier phases; it is not pure server execution time.",
+      "sourceIds": [
+        "curl"
+      ]
+    },
+    {
+      "id": "security-header",
+      "label": "HTTP policy headers",
+      "meaning": "Browser instructions such as CSP, HSTS and CORS describing permitted behaviour.",
+      "unit": "directive / value",
+      "example": "HSTS max-age=31536000",
+      "caution": "Missing or permissive headers are contextual findings, not proof of an exploitable vulnerability.",
+      "sourceIds": [
+        "csp",
+        "cors"
+      ]
+    },
+    {
+      "id": "interface",
+      "label": "Interface state and speed",
+      "meaning": "Configured enablement, actual link/line-protocol state, speed, duplex and negotiated mode.",
+      "unit": "state / bit/s",
+      "example": "admin up, link down",
+      "caution": "A down unused port may be intentional; a configured speed is not measured throughput.",
+      "sourceIds": [
+        "stp"
+      ]
+    },
+    {
+      "id": "vlan",
+      "label": "VLAN and tagging",
+      "meaning": "The Layer-2 broadcast segment and how frames are tagged or untagged on a port.",
+      "unit": "VLAN ID / mode",
+      "example": "access VLAN 20; trunk allows 20,30",
+      "caution": "Native/untagged behaviour depends on platform and configuration at both ends.",
+      "sourceIds": [
+        "stp"
+      ]
+    },
+    {
+      "id": "stp-root",
+      "label": "Spanning-tree root",
+      "meaning": "The elected reference bridge within the stated VLAN or spanning-tree instance.",
+      "unit": "bridge ID / priority",
+      "example": "root bridge priority 4096",
+      "caution": "Lowest bridge ID wins within the relevant instance; this is not a routed default gateway.",
+      "sourceIds": [
+        "stp"
+      ]
+    },
+    {
+      "id": "stp-port",
+      "label": "STP port role and state",
+      "meaning": "The role identifies the port path function; the state identifies whether it forwards user traffic.",
+      "unit": "role / state",
+      "example": "alternate / discarding",
+      "caution": "An intentionally discarding redundant path is not automatically a fault.",
+      "sourceIds": [
+        "stp"
+      ]
+    },
+    {
+      "id": "errors",
+      "label": "Interface error counters",
+      "meaning": "Device-reported counts of receive errors, CRC errors, drops or discards over a known interval.",
+      "unit": "counter / delta / rate",
+      "example": "12 new CRC errors in 60 s",
+      "caution": "A lifetime total cannot identify a current fault without time and counter-reset context.",
+      "sourceIds": [
+        "stp"
+      ]
+    },
+    {
+      "id": "lag",
+      "label": "Link aggregation members",
+      "meaning": "Physical links participating in one logical bundle and their negotiated/member states.",
+      "unit": "state / member count",
+      "example": "2 active members",
+      "caution": "A single flow may use only one member; aggregate speed is not per-flow speed.",
+      "sourceIds": [
+        "stp"
+      ]
+    },
+    {
+      "id": "prefix",
+      "label": "Network prefix",
+      "meaning": "An address plus a prefix length defining an address set.",
+      "unit": "IPv4 / IPv6 CIDR",
+      "example": "192.0.2.0/24",
+      "caution": "Normalise host bits explicitly; do not silently rewrite a user destination.",
+      "sourceIds": [
+        "cidr",
+        "ipv6"
+      ]
+    },
+    {
+      "id": "next-hop",
+      "label": "Next hop",
+      "meaning": "The next forwarding destination used to reach a selected prefix.",
+      "unit": "IP / interface",
+      "example": "192.0.2.1 via port2",
+      "caution": "Recursive resolution, context and actual forwarding programming may be missing.",
+      "sourceIds": [
+        "route"
+      ]
+    },
+    {
+      "id": "distance",
+      "label": "Administrative preference",
+      "meaning": "A platform-specific preference used to choose among route sources for the same prefix.",
+      "unit": "integer",
+      "example": "Cisco administrative distance",
+      "caution": "Do not compare different vendors or use preference before longest-prefix matching at forwarding time.",
+      "sourceIds": [
+        "route"
+      ]
+    },
+    {
+      "id": "metric",
+      "label": "Routing metric",
+      "meaning": "A routing protocol-specific value used within its selection process.",
+      "unit": "protocol-specific",
+      "example": "OSPF cost 20",
+      "caution": "OSPF cost, BGP attributes and other protocols are not one interchangeable number.",
+      "sourceIds": [
+        "route",
+        "bgp"
+      ]
+    },
+    {
+      "id": "bgp-attributes",
+      "label": "BGP path attributes",
+      "meaning": "Policy and path information including AS path, next hop, local preference, MED and communities.",
+      "unit": "mixed",
+      "example": "AS_PATH 64500 64501",
+      "caution": "A partial path list is insufficient to reproduce every vendor best-path decision.",
+      "sourceIds": [
+        "bgp",
+        "route"
+      ]
+    },
+    {
+      "id": "rpki-state",
+      "label": "Origin-validation state",
+      "meaning": "How a route origin and prefix length compare with available validated ROA payloads.",
+      "unit": "Valid / Invalid / NotFound / Unavailable",
+      "example": "NotFound",
+      "caution": "NotFound is not Invalid; Valid does not prove a safe path; unavailable data is a collection state.",
+      "sourceIds": [
+        "rpki",
+        "ripe"
+      ]
+    },
+    {
+      "id": "policy-match",
+      "label": "Policy match conditions",
+      "meaning": "The interface/zone, address, protocol, port, identity, schedule and other criteria considered by a policy.",
+      "unit": "typed sets",
+      "example": "LAN -> WAN; TCP destination 443",
+      "caution": "Application/user/dynamic objects may be unresolved; do not claim a complete match then.",
+      "sourceIds": [
+        "ftd",
+        "forti-policy"
+      ]
+    },
+    {
+      "id": "nat",
+      "label": "Address translation",
+      "meaning": "The mapping between original and translated addresses or ports at a defined processing stage.",
+      "unit": "addresses / ports",
+      "example": "source 192.0.2.10 -> 198.51.100.10",
+      "caution": "Vendor order of policy/NAT evaluation must be confirmed for the selected platform.",
+      "sourceIds": [
+        "ftd"
+      ]
+    },
+    {
+      "id": "hit-count",
+      "label": "Policy hit counter",
+      "meaning": "The device-reported number of rule matches within the counter observation period.",
+      "unit": "count / delta",
+      "example": "200 additional matches",
+      "caution": "Hits do not prove application success; zero hits do not justify deleting a rule.",
+      "sourceIds": [
+        "ftd"
+      ]
+    },
+    {
+      "id": "shadow",
+      "label": "Rule shadowing",
+      "meaning": "A later rule whose supported match set is fully covered by earlier terminal rules in the applicable policy model.",
+      "unit": "full / partial / unknown",
+      "example": "unknown: dynamic identity condition",
+      "caution": "Text duplicates or broad patterns alone do not establish semantic shadowing.",
+      "sourceIds": [
+        "ftd"
+      ]
+    },
+    {
+      "id": "session",
+      "label": "Session state",
+      "meaning": "Device-observed connection state, direction, timeout and translation information.",
+      "unit": "state / seconds / counters",
+      "example": "established; expires in 240 s",
+      "caution": "A session entry is not proof that the remote application replied successfully.",
+      "sourceIds": [
+        "ftd",
+        "forti-flow"
+      ]
+    },
+    {
+      "id": "ike-version",
+      "label": "IKE version",
+      "meaning": "The negotiation protocol used to authenticate peers and establish IPsec security associations.",
+      "unit": "IKEv1 / IKEv2",
+      "example": "IKEv2",
+      "caution": "Do not present IKEv1 phase labels as an exact IKEv2 exchange sequence.",
+      "sourceIds": [
+        "ike"
+      ]
+    },
+    {
+      "id": "proposal",
+      "label": "Crypto proposal",
+      "meaning": "The supported combination of encryption, integrity, PRF and key-exchange algorithms for the specific SA.",
+      "unit": "algorithm identifiers",
+      "example": "AES-GCM proposal",
+      "caution": "AEAD and non-AEAD proposals differ; numeric DH group order is not a security ranking.",
+      "sourceIds": [
+        "ike"
+      ]
+    },
+    {
+      "id": "selectors",
+      "label": "Traffic selectors",
+      "meaning": "Address, port and protocol ranges negotiated for traffic protected by a CHILD SA.",
+      "unit": "ranges",
+      "example": "192.0.2.0/24 <-> 198.51.100.0/24",
+      "caution": "IKEv2 may narrow selectors; different configured strings do not always mean incompatibility.",
+      "sourceIds": [
+        "ike",
+        "forti-selectors"
+      ]
+    },
+    {
+      "id": "pfs",
+      "label": "Fresh key exchange on rekey",
+      "meaning": "Whether a new Diffie-Hellman exchange is required for applicable CHILD-SA creation/rekey.",
+      "unit": "configured / negotiated state",
+      "example": "fresh exchange required",
+      "caution": "Separate initial negotiation from rekey; a checkbox does not prove the negotiated state.",
+      "sourceIds": [
+        "ike"
+      ]
+    },
+    {
+      "id": "dpd",
+      "label": "Peer liveness detection",
+      "meaning": "Checks used to determine whether an IKE peer is still responsive.",
+      "unit": "mode / seconds / retries",
+      "example": "on-demand liveness",
+      "caution": "Peer responsiveness does not prove protected application reachability.",
+      "sourceIds": [
+        "ike"
+      ]
+    },
+    {
+      "id": "sa-counters",
+      "label": "IPsec SA counters",
+      "meaning": "Observed encrypted/decrypted traffic and replay/authentication errors for a security association.",
+      "unit": "packets / bytes / errors",
+      "example": "encrypt +40; decrypt +0",
+      "caution": "Interpret deltas, both directions and both peers; one-way counters do not locate the fault.",
+      "sourceIds": [
+        "ike"
+      ]
+    },
+    {
+      "id": "lifetime",
+      "label": "SA lifetime and rekey",
+      "meaning": "The configured or observed expiration and replacement timing of an SA.",
+      "unit": "seconds / bytes",
+      "example": "remaining 900 s",
+      "caution": "IKEv2 lifetimes need not be identical to establish a tunnel; compatibility is version-specific.",
+      "sourceIds": [
+        "ike"
+      ]
+    },
+    {
+      "id": "sla",
+      "label": "SLA thresholds",
+      "meaning": "Operator-defined limits for the selected measurement type and application requirement.",
+      "unit": "ms / %",
+      "example": "RTT < 100 ms; loss < 1%",
+      "caution": "Example limits are not universal standards or vendor defaults.",
+      "sourceIds": [
+        "forti-sla"
+      ]
+    },
+    {
+      "id": "health-target",
+      "label": "Health-check target",
+      "meaning": "The endpoint and method used to judge a particular WAN or tunnel path.",
+      "unit": "IP / name / protocol",
+      "example": "probe HTTPS service",
+      "caution": "A reachable probe target can coexist with an unavailable business application.",
+      "sourceIds": [
+        "forti-sla"
+      ]
+    },
+    {
+      "id": "hysteresis",
+      "label": "Fail/recover criteria",
+      "meaning": "How many failed or successful checks, or how much time, is required before changing state.",
+      "unit": "count / seconds",
+      "example": "3 failed checks",
+      "caution": "Sample interval, timeout and scheduler affect actual failover time.",
+      "sourceIds": [
+        "forti-sla"
+      ]
+    },
+    {
+      "id": "mtu",
+      "label": "IP MTU",
+      "meaning": "The maximum IP packet size the specified link or tunnel permits without that link needing fragmentation.",
+      "unit": "bytes",
+      "example": "1500 bytes",
+      "caution": "Ethernet frame size and IP MTU are not the same measurement.",
+      "sourceIds": [
+        "ipv6"
+      ]
+    },
+    {
+      "id": "mss",
+      "label": "TCP maximum segment size",
+      "meaning": "The maximum TCP payload size advertised by an endpoint for receiving a segment.",
+      "unit": "bytes",
+      "example": "1460 bytes with 1500 MTU and base IPv4/TCP headers",
+      "caution": "IPv6, options and encapsulation change the budget; an estimate is not a validated clamp.",
+      "sourceIds": [
+        "ipv6",
+        "tcp"
+      ]
+    },
+    {
+      "id": "overhead",
+      "label": "Encapsulation overhead",
+      "meaning": "Additional outer headers, authentication fields and possible padding added around an inner packet.",
+      "unit": "bytes / range",
+      "example": "algorithm-dependent IPsec overhead",
+      "caution": "Do not assume one constant for every IPsec, NAT-T, IPv4 and IPv6 combination.",
+      "sourceIds": [
+        "ike",
+        "ipv6"
+      ]
+    },
+    {
+      "id": "range",
+      "label": "Address range and count",
+      "meaning": "The first and last addresses in a prefix and its mathematical address count.",
+      "unit": "addresses / integer",
+      "example": "/24 contains 256 addresses",
+      "caution": "Usability depends on topology; /31 and /32 differ from ordinary broadcast LANs; IPv6 has no broadcast.",
+      "sourceIds": [
+        "cidr",
+        "ipv6"
+      ]
+    },
+    {
+      "id": "aggregation",
+      "label": "Exact CIDR aggregation",
+      "meaning": "A set of prefixes representing the same address set with fewer entries where possible.",
+      "unit": "prefixes",
+      "example": "two adjacent aligned /25s -> /24",
+      "caution": "Never include additional addresses without explicit user approval.",
+      "sourceIds": [
+        "cidr"
+      ]
+    },
+    {
+      "id": "severity",
+      "label": "Log severity",
+      "meaning": "The producing system assigned level for an event, retained alongside any normalised value.",
+      "unit": "code / label",
+      "example": "syslog warning = 4",
+      "caution": "Severity names and numbering differ between products; severity is not a verified incident impact.",
+      "sourceIds": [
+        "syslog"
+      ]
+    },
+    {
+      "id": "correlation",
+      "label": "Event correlation",
+      "meaning": "Grouping events by identifiers, context and time to aid investigation.",
+      "unit": "keys / interval",
+      "example": "session ID + device + time window",
+      "caution": "Correlation is not causation; missing logs must remain visible.",
+      "sourceIds": [
+        "syslog"
+      ]
+    },
+    {
+      "id": "clock-offset",
+      "label": "Clock offset",
+      "meaning": "A measured or user-declared difference between a source clock and the comparison clock.",
+      "unit": "ms / seconds",
+      "example": "source B +2 s",
+      "caution": "Preserve original timestamps; never silently reorder evidence based on guessed offsets.",
+      "sourceIds": [
+        "syslog"
+      ]
+    },
+    {
+      "id": "scan-state",
+      "label": "Port observation",
+      "meaning": "The scanner-reported state from the stated protocol, scan method and vantage point.",
+      "unit": "six Nmap states",
+      "example": "open|filtered",
+      "caution": "A timeout cannot be universally called closed; UDP ambiguity must remain explicit.",
+      "sourceIds": [
+        "nmap"
+      ]
+    },
+    {
+      "id": "service-version",
+      "label": "Service identification",
+      "meaning": "A reported banner or probe-based identification of a service and its possible version.",
+      "unit": "text / evidence",
+      "example": "HTTPS server version not disclosed",
+      "caution": "Banners may be missing, altered or backported; not a conclusive product inventory.",
+      "sourceIds": [
+        "nmap"
+      ]
+    },
+    {
+      "id": "cvss",
+      "label": "CVSS severity",
+      "meaning": "The score and versioned metric vector describing technical vulnerability characteristics.",
+      "unit": "score / vector / version",
+      "example": "CVSS 4.0 vector from publisher",
+      "caution": "Not exploit probability, confirmed compromise or environment-specific business risk.",
+      "sourceIds": [
+        "cvss"
+      ]
+    },
+    {
+      "id": "affected-version",
+      "label": "Affected-version match",
+      "meaning": "How a known product, release and configuration compare with a vendor advisory condition.",
+      "unit": "match / mismatch / unknown",
+      "example": "unknown: exact build missing",
+      "caution": "Never label a device safe from an incomplete asset record or stale advisory set.",
+      "sourceIds": [
+        "cvss"
+      ]
+    },
+    {
+      "id": "freshness",
+      "label": "Evidence freshness",
+      "meaning": "Collection time, source version and age of data used for a result.",
+      "unit": "timestamp / age",
+      "example": "provider snapshot age 2 h",
+      "caution": "Cached data must not be presented as current or complete.",
+      "sourceIds": [
+        "ripe",
+        "aws"
+      ]
+    },
+    {
+      "id": "mx",
+      "label": "MX preference",
+      "meaning": "A priority used to select mail exchangers, with lower values preferred.",
+      "unit": "integer / hostname",
+      "example": "10 mail.example.com",
+      "caution": "No MX does not automatically mean no mail delivery: implicit MX semantics need consideration.",
+      "sourceIds": [
+        "sts"
+      ]
+    },
+    {
+      "id": "spf",
+      "label": "SPF terms and result",
+      "meaning": "Policy mechanisms identify permitted senders for an envelope identity and produce a scoped evaluation result.",
+      "unit": "mechanisms / qualifiers / result",
+      "example": "include; -all",
+      "caution": "Record existence is not an SPF pass for a message; count DNS-causing mechanisms and recursion.",
+      "sourceIds": [
+        "spf"
+      ]
+    },
+    {
+      "id": "dmarc",
+      "label": "DMARC alignment and policy",
+      "meaning": "Relationship between authenticated domains and the visible From domain, plus the published handling request.",
+      "unit": "alignment / policy / reporting",
+      "example": "p=quarantine; relaxed alignment",
+      "caution": "Policy does not guarantee enforcement or inbox placement; message evidence is separate.",
+      "sourceIds": [
+        "dmarc"
+      ]
+    },
+    {
+      "id": "tlsa",
+      "label": "TLSA association",
+      "meaning": "Certificate usage, selector, matching type and association data defining a DNS-published TLS binding.",
+      "unit": "four typed fields",
+      "example": "3 1 1 <digest>",
+      "caution": "Do not call DANE validated without DNSSEC and a matching connection certificate.",
+      "sourceIds": [
+        "dane"
+      ]
+    },
+    {
+      "id": "mail-policy",
+      "label": "MTA-STS and TLS reporting",
+      "meaning": "Published mail transport mode, allowed MX patterns, policy lifetime and reporting destinations.",
+      "unit": "enum / names / seconds",
+      "example": "mode testing; max_age 86400",
+      "caution": "A record existing is not proof every sender applies the policy.",
+      "sourceIds": [
+        "sts"
+      ]
+    },
+    {
+      "id": "cloud-range",
+      "label": "Cloud range metadata",
+      "meaning": "Provider-published prefix with service, region and publication-time context where supplied.",
+      "unit": "prefix / labels / timestamp",
+      "example": "provider range snapshot",
+      "caution": "A provider prefix is not tenant identity, trust or proof of every provider address.",
+      "sourceIds": [
+        "aws"
+      ]
+    },
+    {
+      "id": "password-entropy",
+      "label": "Random selection space",
+      "meaning": "An estimate based on independent uniform selection from an explicitly specified alphabet or word list.",
+      "unit": "bits",
+      "example": "log2(alphabet size) x independent characters",
+      "caution": "Do not turn it into a universal time-to-crack guarantee; constraints can bias generation.",
+      "sourceIds": [
+        "crypto"
+      ]
+    },
+    {
+      "id": "crawler-policy",
+      "label": "Crawler policy",
+      "meaning": "Path rules for the selected crawler user agent and the evidence used to evaluate them.",
+      "unit": "rules / user agent",
+      "example": "Disallow: /private/",
+      "caution": "Robots rules do not authenticate users or guarantee indexing.",
+      "sourceIds": [
+        "robots"
+      ]
+    },
+    {
+      "id": "disclosure",
+      "label": "Disclosure metadata",
+      "meaning": "Contact, validity, canonical location and other vulnerability-reporting metadata.",
+      "unit": "URI / timestamp",
+      "example": "Expires field",
+      "caution": "Presence is not a certification or proof the inbox is monitored.",
+      "sourceIds": [
+        "securitytxt"
+      ]
+    },
+    {
+      "id": "raw-interface",
+      "label": "Interface status",
+      "meaning": "The interface state reported in this snapshot. Administratively down means it is disabled by configuration; down by itself does not identify the cause.",
+      "unit": "reported state",
+      "example": "up; down; administratively down",
+      "caution": "A physical port and a virtual interface can have different prerequisites. Do not infer a cable fault from a single state.",
+      "sourceIds": [
+        "raw-cisco-brief"
+      ]
+    },
+    {
+      "id": "raw-protocol",
+      "label": "Line protocol",
+      "meaning": "The interface protocol state, distinct from its administrative setting. Read it together with the interface state.",
+      "unit": "reported state",
+      "example": "Interface up, line protocol down",
+      "caution": "Up/up is not a test of routing, firewall permission, DNS or application success.",
+      "sourceIds": [
+        "raw-cisco-brief"
+      ]
+    },
+    {
+      "id": "raw-crc",
+      "label": "CRC counter",
+      "meaning": "Counts received frames that failed the cyclic redundancy check in the displayed counter history.",
+      "unit": "frames counted",
+      "example": "3 CRC",
+      "caution": "A nonzero total is not a current error rate or proof of a specific bad cable. Compare a second snapshot and the counter-clear time.",
+      "sourceIds": [
+        "raw-cisco-interfaces"
+      ]
+    },
+    {
+      "id": "raw-errors",
+      "label": "Input and output error counters",
+      "meaning": "Device-maintained totals for errors in receiving or transmitting traffic.",
+      "unit": "reported counter",
+      "example": "4 input errors; 0 output errors",
+      "caution": "Counter categories can overlap. Do not add CRC to input errors as though they were disjoint totals.",
+      "sourceIds": [
+        "raw-cisco-interfaces"
+      ]
+    },
+    {
+      "id": "raw-distance",
+      "label": "Administrative distance",
+      "meaning": "A local preference used when comparing route sources for the same destination. It is not a latency measurement.",
+      "unit": "local preference",
+      "example": "[110/20]: distance 110",
+      "caution": "Compare only within the correct routing context; the toolkit does not reproduce vendor route selection.",
+      "sourceIds": [
+        "raw-cisco-route",
+        "raw-fortigate-route"
+      ]
+    },
+    {
+      "id": "raw-route-metric",
+      "label": "Route metric",
+      "meaning": "The cost value reported after the distance. Its meaning depends on the routing protocol.",
+      "unit": "protocol-specific",
+      "example": "[110/20]: metric 20",
+      "caution": "Metrics from different protocols are not a common quality score. A route entry does not prove return-path or firewall behavior.",
+      "sourceIds": [
+        "raw-cisco-route",
+        "raw-fortigate-route"
+      ]
+    },
+    {
+      "id": "raw-next-hop",
+      "label": "Next hop",
+      "meaning": "The gateway associated with a route entry. A directly connected prefix has an on-link relationship instead.",
+      "unit": "IPv4 address or on-link",
+      "example": "192.0.2.254",
+      "caution": "A recursive gateway may need another lookup. Displayed arrows are field relationships, not captured traffic or physical links.",
+      "sourceIds": [
+        "raw-cisco-route",
+        "raw-fortigate-route"
+      ]
+    },
+    {
+      "id": "raw-cpu",
+      "label": "CPU state percentages",
+      "meaning": "Reported CPU time categories. User and system describe work contexts; idle is time not doing work. Per-core and aggregate lines are kept distinct.",
+      "unit": "%",
+      "example": "5% user; 92% idle",
+      "caution": "One snapshot cannot establish sustained overload or which application caused it. Rounded percentages may not add to exactly 100.",
+      "sourceIds": [
+        "raw-fortigate-performance"
+      ]
+    },
+    {
+      "id": "raw-memory",
+      "label": "Used, free and freeable memory",
+      "meaning": "Reported memory categories: used is allocated, free is immediately unallocated, and freeable is reclaimable cache.",
+      "unit": "device-reported k and %",
+      "example": "45% used; 5% freeable",
+      "caution": "Do not treat freeable as already free, or infer conserve mode from an invented percentage threshold.",
+      "sourceIds": [
+        "raw-fortigate-performance"
+      ]
+    },
+    {
+      "id": "raw-window",
+      "label": "Reporting window",
+      "meaning": "The time interval printed beside an average or maximum. A value for one minute is not interchangeable with a 30-minute average.",
+      "unit": "minutes",
+      "example": "1, 10 and 30 minutes",
+      "caution": "These are device-reported summaries, not measurements made by this browser.",
+      "sourceIds": [
+        "raw-fortigate-performance"
+      ]
+    },
+    {
+      "id": "raw-selectors",
+      "label": "IPsec selectors total / up",
+      "meaning": "The count of selectors in the tunnel summary and how many the device reports as up.",
+      "unit": "selector count",
+      "example": "2 total, 1 up",
+      "caution": "One up selector does not mean every protected subnet, route, policy or application works. Zero total is not evidence of a working tunnel.",
+      "sourceIds": [
+        "raw-fortigate-vpn"
+      ]
+    },
+    {
+      "id": "raw-vpn-counters",
+      "label": "Rx/Tx packet and error counts",
+      "meaning": "The receive and transmit packet/error counters printed for the tunnel.",
+      "unit": "packets; errors",
+      "example": "rx 140 packets, 0 errors",
+      "caution": "A single counter snapshot is not a traffic rate. Nonzero errors do not alone establish current tunnel failure.",
+      "sourceIds": [
+        "raw-fortigate-vpn"
+      ]
+    },
+    {
+      "id": "raw-vlan-id",
+      "label": "VLAN ID and status",
+      "meaning": "A VLAN separates a switch network into a logical broadcast domain. The status is the local VLAN state, not the health of every connected device.",
+      "unit": "VLAN number; reported state",
+      "example": "VLAN 20, active",
+      "caution": "The brief table does not prove trunk membership, IP connectivity or end-to-end isolation. VLAN names are not imported.",
+      "sourceIds": [
+        "raw-cisco-vlan"
+      ]
+    },
+    {
+      "id": "raw-trunk-native",
+      "label": "Native VLAN",
+      "meaning": "The native VLAN associated with an 802.1Q trunk in this snapshot. Read both ends of a link before investigating a mismatch.",
+      "unit": "VLAN number",
+      "example": "Native VLAN 1",
+      "caution": "Do not infer the remote setting or actual untagged traffic handling from one local table.",
+      "sourceIds": [
+        "raw-cisco-trunk"
+      ]
+    },
+    {
+      "id": "raw-trunk-sets",
+      "label": "Allowed, active and forwarding VLANs",
+      "meaning": "Allowed VLANs are the permitted list. The active list narrows that to active VLANs. The final list reports VLANs forwarding in spanning tree and not pruned on that trunk.",
+      "unit": "VLAN set",
+      "example": "Allowed 10,20; active 10,20; forwarding 10",
+      "caution": "A VLAN missing from the final list is a reason to inspect the VLAN and spanning-tree state, not proof of a bad cable or the exact cause.",
+      "sourceIds": [
+        "raw-cisco-trunk"
+      ]
+    },
+    {
+      "id": "raw-stp-role",
+      "label": "Spanning-tree port role",
+      "meaning": "The role describes how a port fits into the spanning tree for the printed VLAN. A root port leads toward the root bridge; a designated port serves its segment; an alternate provides another path.",
+      "unit": "reported role",
+      "example": "Root; Desg; Altn",
+      "caution": "Keep VLAN instances separate. An alternate port that is not forwarding can be expected loop prevention, not a failed link.",
+      "sourceIds": [
+        "raw-cisco-stp"
+      ]
+    },
+    {
+      "id": "raw-stp-state",
+      "label": "Spanning-tree state and cost",
+      "meaning": "The state reports whether the port is forwarding, learning or blocking for that instance. Cost is a spanning-tree selection value, not measured latency or available bandwidth.",
+      "unit": "state; path-cost value",
+      "example": "Altn BLK, cost 4",
+      "caution": "One switch snapshot does not verify the complete topology, the absence of a loop or correct root-bridge placement.",
+      "sourceIds": [
+        "raw-cisco-stp"
+      ]
+    },
+    {
+      "id": "raw-ospf-state",
+      "label": "OSPF neighbour state and role",
+      "meaning": "OSPF routers exchange information with neighbours. FULL reports a completed adjacency. 2WAY reports bidirectional communication; on broadcast networks some neighbours intentionally remain there.",
+      "unit": "reported state / role",
+      "example": "FULL/DR; 2WAY/DROTHER",
+      "caution": "Do not label every 2WAY neighbour as failed. Check network type and DR/BDR roles; transient states need repeat observations.",
+      "sourceIds": [
+        "raw-cisco-ospf"
+      ]
+    },
+    {
+      "id": "raw-ospf-dead",
+      "label": "OSPF dead timer and address",
+      "meaning": "The dead timer is the displayed time remaining before a neighbour would be declared unavailable without another valid hello. The neighbour ID and interface address are different fields.",
+      "unit": "remaining timer; IPv4 identifiers",
+      "example": "00:00:33; neighbour ID 192.0.2.2",
+      "caution": "This timer is not latency. A snapshot cannot show that the timer subsequently expired or that routes were installed.",
+      "sourceIds": [
+        "raw-cisco-ospf"
+      ]
+    },
+    {
+      "id": "raw-bgp-state",
+      "label": "BGP State/PfxRcd",
+      "meaning": "A numeric value in this summary column means the BGP session is established and gives its received-prefix count. A word such as Idle or Active is a session state, not a prefix count.",
+      "unit": "state or prefix count",
+      "example": "0 means established with zero reported prefixes",
+      "caution": "Established does not prove useful routes, forwarding or application success. Active is a connection state, not confirmation that the session is working.",
+      "sourceIds": [
+        "raw-cisco-bgp"
+      ]
+    },
+    {
+      "id": "raw-bgp-queues",
+      "label": "BGP queues and Up/Down",
+      "meaning": "InQ and OutQ are queued messages in this snapshot. Up/Down is the printed duration associated with the current session state; interpret it together with State/PfxRcd.",
+      "unit": "message count; reported duration",
+      "example": "InQ 0, OutQ 0, Up/Down 00:12:00",
+      "caution": "A single nonzero queue is not proof of congestion or a stuck process. Compare repeated samples before drawing conclusions.",
+      "sourceIds": [
+        "raw-cisco-bgp"
+      ]
+    },
+    {
+      "id": "raw-session-count",
+      "label": "FortiGate session statistics",
+      "meaning": "A session is state tracked for traffic. These aggregate counters describe the selected device context, rather than listing individual firewall rules or conversations.",
+      "unit": "device-reported count or rate",
+      "example": "session_count; setup_rate",
+      "caution": "Missing counters are not zero. No universal capacity or failure threshold is inferred from these values.",
+      "sourceIds": [
+        "raw-fortigate-session"
+      ]
+    },
+    {
+      "id": "raw-flow-trace",
+      "label": "Flow trace and policy decision",
+      "meaning": "A trace groups diagnostic events for a packet in a stated virtual-domain context. A policy allow message records one decision; an explicit deny records the denial shown at that stage.",
+      "unit": "trace ID; policy ID; event",
+      "example": "trace_id=1; Allowed by Policy-9",
+      "caution": "Debug-flow output is sensitive and may omit accelerated traffic. An allow is not proof of final delivery, return traffic or application success. This tool never enables diagnostics on a device.",
+      "sourceIds": [
+        "raw-fortigate-flow"
+      ]
+    },
+    {
+      "id": "raw-ike-state",
+      "label": "IKE control connection",
+      "meaning": "Internet Key Exchange negotiates the security associations used by IPsec. Its reported connection state is separate from data-plane selectors, routing, firewall policy and application checks.",
+      "unit": "reported version, state and endpoint",
+      "example": "IKEv2; established",
+      "caution": "An established IKE connection does not prove that protected traffic is flowing. Key dumps and authentication material are not accepted.",
+      "sourceIds": [
+        "raw-fortigate-ike"
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "id": "config",
+      "name": "Config Lens",
+      "job": "Understand what a supported device is configured to do.",
+      "parameterIds": [
+        "platform",
+        "context",
+        "source-line",
+        "coverage",
+        "configured-state"
+      ],
+      "sourceIds": [
+        "route",
+        "forti-policy",
+        "ssrf"
+      ],
+      "motion": null
+    },
+    {
+      "id": "device",
+      "name": "Device Output Lens",
+      "job": "Interpret supported raw Cisco and FortiGate command outputs without uploading them.",
+      "parameterIds": [
+        "raw-interface",
+        "raw-protocol",
+        "raw-crc",
+        "raw-errors",
+        "raw-distance",
+        "raw-route-metric",
+        "raw-next-hop",
+        "raw-cpu",
+        "raw-memory",
+        "raw-window",
+        "raw-selectors",
+        "raw-vpn-counters",
+        "raw-vlan-id",
+        "raw-trunk-native",
+        "raw-trunk-sets",
+        "raw-stp-role",
+        "raw-stp-state",
+        "raw-ospf-state",
+        "raw-ospf-dead",
+        "raw-bgp-state",
+        "raw-bgp-queues",
+        "raw-session-count",
+        "raw-flow-trace",
+        "raw-ike-state"
+      ],
+      "sourceIds": [
+        "raw-cisco-brief",
+        "raw-cisco-interfaces",
+        "raw-cisco-route",
+        "raw-fortigate-performance",
+        "raw-fortigate-route",
+        "raw-fortigate-vpn",
+        "raw-fortigate-route-context",
+        "raw-fortigate-route-versioned",
+        "raw-fortigate-vpn-versioned",
+        "raw-cisco-vlan",
+        "raw-cisco-trunk",
+        "raw-cisco-stp",
+        "raw-cisco-ospf",
+        "raw-cisco-ospf-2way",
+        "raw-cisco-bgp",
+        "raw-cisco-bgp-zero",
+        "raw-fortigate-session",
+        "raw-fortigate-flow",
+        "raw-fortigate-ike",
+        "raw-fortigate-session-memory",
+        "raw-fortigate-session-tcp",
+        "raw-fortigate-flow-context",
+        "raw-fortigate-flow-permission",
+        "raw-fortigate-ike-connecting"
+      ],
+      "motion": null
+    },
+    {
+      "id": "packet",
+      "name": "Packet Lens",
+      "job": "Explain supported packet evidence without pretending to see the entire network.",
+      "parameterIds": [
+        "capture-point",
+        "five-tuple",
+        "timestamp",
+        "rtt",
+        "tcp-flags",
+        "sequence",
+        "retransmission",
+        "window",
+        "capture-quality"
+      ],
+      "sourceIds": [
+        "tcp",
+        "filters"
+      ],
+      "motion": "tcp"
+    },
+    {
+      "id": "path",
+      "name": "Path Lens",
+      "job": "Separate path observations from assumptions about failed routers.",
+      "parameterIds": [
+        "probe",
+        "hop",
+        "rtt",
+        "loss",
+        "latency-summary",
+        "timestamp"
+      ],
+      "sourceIds": [
+        "mtr",
+        "sockets"
+      ],
+      "motion": null
+    },
+    {
+      "id": "performance",
+      "name": "Performance Lens",
+      "job": "Interpret controlled transfer tests and endpoint constraints.",
+      "parameterIds": [
+        "test-profile",
+        "throughput",
+        "udp-loss",
+        "jitter",
+        "timestamp"
+      ],
+      "sourceIds": [
+        "iperf"
+      ],
+      "motion": null
+    },
+    {
+      "id": "dns",
+      "name": "DNS Lens",
+      "job": "Explain the answer a named resolver returned and why answers can differ.",
+      "parameterIds": [
+        "dns-question",
+        "resolver",
+        "rcode",
+        "dns-ttl",
+        "dnssec",
+        "soa",
+        "srv",
+        "timestamp"
+      ],
+      "sourceIds": [
+        "dns",
+        "spf",
+        "dmarc",
+        "dane",
+        "sts"
+      ],
+      "motion": "dns"
+    },
+    {
+      "id": "tls",
+      "name": "TLS & Web Lens",
+      "job": "Separate connection, trust, HTTP policy and application evidence.",
+      "parameterIds": [
+        "sni",
+        "certificate",
+        "tls",
+        "http-status",
+        "web-timing",
+        "security-header",
+        "freshness"
+      ],
+      "sourceIds": [
+        "openssl",
+        "curl",
+        "csp",
+        "cors",
+        "ssrf"
+      ],
+      "motion": null
+    },
+    {
+      "id": "switching",
+      "name": "Switching Lens",
+      "job": "Relate VLAN, spanning-tree and interface evidence.",
+      "parameterIds": [
+        "platform",
+        "interface",
+        "vlan",
+        "stp-root",
+        "stp-port",
+        "errors",
+        "lag",
+        "context"
+      ],
+      "sourceIds": [
+        "stp"
+      ],
+      "motion": null
+    },
+    {
+      "id": "routing",
+      "name": "Routing Lens",
+      "job": "Show route selection and the evidence still needed for forwarding.",
+      "parameterIds": [
+        "context",
+        "prefix",
+        "next-hop",
+        "distance",
+        "metric",
+        "bgp-attributes",
+        "rpki-state",
+        "freshness"
+      ],
+      "sourceIds": [
+        "route",
+        "bgp",
+        "rpki",
+        "ripe"
+      ],
+      "motion": null
+    },
+    {
+      "id": "firewall",
+      "name": "Firewall Lens",
+      "job": "Explain supported policy sets and observed forwarding decisions.",
+      "parameterIds": [
+        "platform",
+        "context",
+        "policy-match",
+        "nat",
+        "hit-count",
+        "shadow",
+        "session"
+      ],
+      "sourceIds": [
+        "ftd",
+        "forti-policy",
+        "forti-flow"
+      ],
+      "motion": null
+    },
+    {
+      "id": "vpn",
+      "name": "VPN Lens",
+      "job": "Compare peer configuration with actual negotiation evidence.",
+      "parameterIds": [
+        "platform",
+        "ike-version",
+        "proposal",
+        "selectors",
+        "pfs",
+        "dpd",
+        "sa-counters",
+        "lifetime",
+        "context"
+      ],
+      "sourceIds": [
+        "ike",
+        "forti-selectors",
+        "forti-p1",
+        "forti-p2"
+      ],
+      "motion": "vpn"
+    },
+    {
+      "id": "sdwan",
+      "name": "SD-WAN Lens",
+      "job": "Compare observed link health against the operator-defined policy.",
+      "parameterIds": [
+        "health-target",
+        "sla",
+        "rtt",
+        "jitter",
+        "loss",
+        "hysteresis",
+        "timestamp",
+        "context"
+      ],
+      "sourceIds": [
+        "forti-sla",
+        "iperf",
+        "mtr"
+      ],
+      "motion": null
+    },
+    {
+      "id": "subnet",
+      "name": "Subnet Lens",
+      "job": "Explain exact address sets and packet-size assumptions.",
+      "parameterIds": [
+        "prefix",
+        "range",
+        "aggregation",
+        "mtu",
+        "mss",
+        "overhead"
+      ],
+      "sourceIds": [
+        "cidr",
+        "ipv6",
+        "ike"
+      ],
+      "motion": null
+    },
+    {
+      "id": "logs",
+      "name": "Log Lens",
+      "job": "Build an evidence timeline without inventing causation.",
+      "parameterIds": [
+        "timestamp",
+        "severity",
+        "correlation",
+        "clock-offset",
+        "context",
+        "source-line"
+      ],
+      "sourceIds": [
+        "syslog"
+      ],
+      "motion": null
+    },
+    {
+      "id": "exposure",
+      "name": "Exposure Lens",
+      "job": "Explain authorised scan observations and advisory applicability.",
+      "parameterIds": [
+        "scan-state",
+        "service-version",
+        "affected-version",
+        "cvss",
+        "freshness",
+        "five-tuple"
+      ],
+      "sourceIds": [
+        "nmap",
+        "cvss",
+        "ssrf"
+      ],
+      "motion": null
+    }
+  ],
+  "stories": {
+    "tcp": {
+      "title": "TCP connection and recovery",
+      "sourceIds": [
+        "tcp"
+      ],
+      "nodes": [
+        "Client",
+        "Server"
+      ],
+      "steps": [
+        [
+          "SYN: request a connection",
+          "The client proposes a TCP connection. No application data delivery has been demonstrated.",
+          0,
+          1,
+          "SYN"
+        ],
+        [
+          "SYN + ACK: acknowledge and respond",
+          "The server acknowledges the request and proposes its own sequence space.",
+          1,
+          0,
+          "SYN + ACK"
+        ],
+        [
+          "ACK: complete the handshake",
+          "The client acknowledges the server. This is connection establishment, not application success.",
+          0,
+          1,
+          "ACK"
+        ],
+        [
+          "Data: send stream bytes",
+          "The client sends bytes. This illustration deliberately omits an acknowledgement.",
+          0,
+          1,
+          "DATA"
+        ],
+        [
+          "Retransmission: repeat sequence space",
+          "A sender may retransmit when delivery is not confirmed. The illustration does not identify a cause.",
+          0,
+          1,
+          "REPEAT"
+        ]
+      ]
+    },
+    "dns": {
+      "title": "DNS cache miss and subsequent hit",
+      "sourceIds": [
+        "dns"
+      ],
+      "nodes": [
+        "Client",
+        "Resolver",
+        "Authority"
+      ],
+      "steps": [
+        [
+          "Question: ask the resolver",
+          "The client asks its resolver for a record. This is a simplified example, not a measured trace.",
+          0,
+          1,
+          "QUERY"
+        ],
+        [
+          "Cache miss: seek an authoritative answer",
+          "The resolver queries an authority. Root/TLD discovery is omitted from this simplified path.",
+          1,
+          2,
+          "QUERY"
+        ],
+        [
+          "Answer: return the record and TTL",
+          "The authoritative server supplies an answer with a cache lifetime.",
+          2,
+          1,
+          "ANSWER"
+        ],
+        [
+          "Reply: answer the client",
+          "The resolver responds to the client and may retain the answer according to caching rules.",
+          1,
+          0,
+          "REPLY"
+        ],
+        [
+          "Later query: ask again",
+          "The client repeats the question while the resolver cache entry remains usable.",
+          0,
+          1,
+          "QUERY"
+        ],
+        [
+          "Cache hit: no authoritative query needed",
+          "The resolver answers from its cache with remaining lifetime. This is not global propagation proof.",
+          1,
+          0,
+          "CACHED"
+        ]
+      ]
+    },
+    "vpn": {
+      "title": "Simplified IKEv2 negotiation",
+      "sourceIds": [
+        "ike"
+      ],
+      "nodes": [
+        "Peer A",
+        "Peer B"
+      ],
+      "steps": [
+        [
+          "IKE_SA_INIT request",
+          "Peer A offers algorithms and sends key-exchange and nonce information.",
+          0,
+          1,
+          "INIT"
+        ],
+        [
+          "IKE_SA_INIT response",
+          "Peer B responds with the selected compatible parameters and its key-exchange information.",
+          1,
+          0,
+          "INIT"
+        ],
+        [
+          "IKE_AUTH request",
+          "Peer A sends protected authentication information and proposes the first CHILD SA.",
+          0,
+          1,
+          "AUTH"
+        ],
+        [
+          "IKE_AUTH response",
+          "Peer B authenticates and responds. Selectors can be narrowed; additional exchanges may be required by the authentication method.",
+          1,
+          0,
+          "AUTH"
+        ],
+        [
+          "Protected data",
+          "Application packets can be protected after the SA is established, but routes and firewall policy still determine delivery.",
+          0,
+          1,
+          "ESP"
+        ]
+      ]
+    }
+  }
+}

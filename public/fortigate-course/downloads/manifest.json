@@ -1,0 +1,21 @@
+{
+  "status": "PROPOSED \u2014 actual build and interface mapping unverified",
+  "project": "QCS-FortiGate-Foundations",
+  "client": {
+    "ip": "10.77.10.10/24",
+    "interface": "C_IF (verify)",
+    "route": "10.77.20.0/24 via 10.77.10.1"
+  },
+  "firewall": {
+    "client": "port2 (verify): 10.77.10.1/24",
+    "server": "port3 (verify): 10.77.20.1/24",
+    "management": "port1 (verify), disconnected until private path verified"
+  },
+  "server": {
+    "ip": "10.77.20.10/24",
+    "interface": "S_IF (verify)",
+    "route": "10.77.10.0/24 via 10.77.20.1"
+  },
+  "service": "TCP 8080 fixed-response HTTP; no TLS, DNS server or NAT",
+  "management": "address/subnet TBD after overlap and private-host-only mapping checks"
+}

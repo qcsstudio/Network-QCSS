@@ -7,6 +7,7 @@ import { discoverMetaPublications, processMetaQueue } from "@/lib/meta-publicati
 import { getPrismaClient } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/store";
 import { requestContext } from "@/lib/security";
+import {assertOrdinaryAdvisoryJob} from '@/lib/reviewed-advisory-guard';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
       const prisma = getPrismaClient();
       const job = await prisma.socialPublication.findUnique({ where: { id: publicationId } });
       if (!job || !["facebook", "instagram"].includes(job.channel)) return jsonError("Publication not found.", 404);
+      await assertOrdinaryAdvisoryJob(prisma,job);
       if (["published", "publishing", "needs_review"].includes(job.status)) return jsonError("Reconcile the live delivery first. This action cannot delete or duplicate a published post.", 409);
       const meta = job.metadata && typeof job.metadata === "object" && !Array.isArray(job.metadata) ? job.metadata : {};
       if (action === "retry" && meta.dispatchStartedAt) return jsonError("This record reached dispatch. Reconcile it in Business Suite before retrying.", 409);

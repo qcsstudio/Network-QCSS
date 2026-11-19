@@ -28,6 +28,7 @@ const footerGroups = [
       ["Blog & resources", "/resources"],
       ["Training institute", "/institute"],
       ["CCNA course", "/courses/ccna"],
+      ["FortiGate course", "/courses/fortigate"],
       ["Free network tools", "/network-tools"],
     ],
   },

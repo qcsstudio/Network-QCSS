@@ -23,6 +23,7 @@ import {
   XCircle
 } from "lucide-react";
 import type { AdminAdvisoryRecord } from "@/lib/advisories";
+import {ReviewedAdvisoryControls} from './reviewed-advisory-controls';
 
 type AdvisoryOriginFilter = "all" | "source" | "manual" | "deleted";
 type AdvisoryStatusFilter = "all" | "draft" | "published" | "withdrawn" | "deleted";
@@ -348,7 +349,7 @@ export function AdvisoryManagementPanel({ initialAdvisories }: { initialAdvisori
         </nav>
       ) : null}
 
-      {draft ? (
+      {draft?.slug==='cisco-cisco-sa-oct2026-node-js-jj3sq19u' ? <ReviewedAdvisoryControls key={draft.id} id={draft.id} onClose={closeEditor}/> : draft ? (
         <form className="content-editor" id="advisory-editor" onSubmit={(event) => { event.preventDefault(); save(); }}>
           <div className="content-editor-heading">
             <div><p className="eyebrow">Structured advisory editor</p><h3>{draft.title}</h3><p>{draft.sourceSlug === "qcs-editorial" ? "Manual QCS advisory" : `${draft.sourceName}; saving enables editorial control`}</p></div>

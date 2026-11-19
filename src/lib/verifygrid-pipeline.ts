@@ -29,7 +29,8 @@ import {
   reportReleaseSchema,
   reportReviewSchema,
   signReportChain,
-  signingKeyId
+  signingKeyId,
+  verifyReportChainHash
 } from "@/lib/verifygrid-assurance-domain";
 import { appendVerifyGridCustodyEvent } from "@/lib/verifygrid-custody";
 
@@ -765,6 +766,40 @@ export async function createVerifyGridReport(engagementId: string, value: unknow
   return { reportId: report.id, engagement: await getVerifyGridEngagement(engagementId) };
 }
 
+async function assertReportStillCurrent(tx: Prisma.TransactionClient, report: {
+  engagementId: string; reportType: string; scopeHash: string; snapshot: Prisma.JsonValue;
+  snapshotSha256: string; chainHash: string | null; version: number; previousChainHash: string | null; generatedAt: Date;
+}) {
+  if (sha256Json(report.snapshot) !== report.snapshotSha256 || !verifyReportChainHash({
+    engagementId: report.engagementId, reportType: report.reportType, version: report.version,
+    snapshotSha256: report.snapshotSha256, previousChainHash: report.previousChainHash,
+    generatedAt: report.generatedAt.toISOString()
+  }, report.chainHash || "")) throw new Error("The report snapshot integrity check failed.");
+  const engagement = await tx.verifyGridEngagement.findUniqueOrThrow({
+    where: { id: report.engagementId },
+    include: { scopeTargets: true, authorizations: true, testCases: true,
+      findings: { include: { evidence: true, retests: true } }, importBatches: true, executionJobs: true }
+  });
+  const currentHash = scopeHash(engagement.scopeTargets);
+  if (currentHash !== report.scopeHash) throw new Error("The approved scope changed. Generate a new report snapshot.");
+  const sources = [engagement, ...engagement.scopeTargets, ...engagement.testCases, ...engagement.findings, ...engagement.executionJobs];
+  const changedFindings = engagement.findings.some((finding) => finding.evidence.some((evidence) => evidence.createdAt > report.generatedAt) || finding.retests.some((retest) => retest.updatedAt > report.generatedAt));
+  if (sources.some((source) => source.updatedAt > report.generatedAt) || changedFindings || engagement.importBatches.some((batch) => (batch.completedAt || batch.createdAt) > report.generatedAt) || engagement.authorizations.some((auth) => auth.authorizedAt > report.generatedAt)) {
+    throw new Error("The engagement or evidence changed after this snapshot. Generate a new report.");
+  }
+  const authorization = engagement.authorizations.find((auth) => auth.status === "active" && auth.scopeHash === currentHash) || null;
+  const quality = evaluateReportQuality({
+    reportType: report.reportType as "executive" | "technical" | "retest",
+    currentScopeHash: currentHash, scopeTargets: engagement.scopeTargets, activeAuthorization: authorization,
+    testCases: engagement.testCases,
+    findings: engagement.findings.filter((finding) => !["false_positive", "duplicate"].includes(finding.status)).map((finding) => ({
+      ...finding, evidenceCount: finding.evidence.length, retestStatuses: finding.retests.map((retest) => retest.status)
+    })),
+    importStatuses: engagement.importBatches.map((batch) => batch.status), executionStatuses: engagement.executionJobs.map((job) => job.status)
+  });
+  if (!quality.canApprove) throw new Error("The current report quality gate blocks approval or release. Resolve the controls and generate a new snapshot.");
+}
+
 export async function reviewVerifyGridReport(
   reportId: string,
   value: unknown,
@@ -789,8 +824,9 @@ export async function reviewVerifyGridReport(
   const reviewedAt = new Date();
   const status = input.decision === "approve" ? "approved" : "rejected";
   await prisma.$transaction(async (tx) => {
-    await tx.verifyGridReport.update({
-      where: { id: reportId },
+    if (input.decision === "approve") await assertReportStillCurrent(tx, report);
+    const updated = await tx.verifyGridReport.updateMany({
+      where: { id: reportId, status: "draft" },
       data: {
         status,
         reviewedBy: operator.email,
@@ -799,6 +835,7 @@ export async function reviewVerifyGridReport(
         reviewNotes: input.notes
       }
     });
+    if (updated.count !== 1) throw new Error("The report was already reviewed. Refresh the report.");
     await tx.verifyGridReportReview.create({
       data: {
         reportId,
@@ -830,7 +867,7 @@ export async function reviewVerifyGridReport(
         metadata: json({ reportId, independent, soleOperatorException: !independent })
       }
     });
-  });
+  }, { isolationLevel: "Serializable", timeout: 15_000 });
   return { reportId, status, engagement: await getVerifyGridEngagement(report.engagementId) };
 }
 
@@ -854,8 +891,9 @@ export async function releaseVerifyGridReport(
   const releasedAt = new Date();
   const keyId = signingKeyId(publicKey);
   await prisma.$transaction(async (tx) => {
-    await tx.verifyGridReport.update({
-      where: { id: reportId },
+    await assertReportStillCurrent(tx, report);
+    const updated = await tx.verifyGridReport.updateMany({
+      where: { id: reportId, status: "approved", reviewDecision: "approve" },
       data: {
         status: "final",
         releasedBy: operator.email,
@@ -866,6 +904,7 @@ export async function releaseVerifyGridReport(
         signingPublicKey: publicKey
       }
     });
+    if (updated.count !== 1) throw new Error("The report was already released or changed. Refresh the report.");
     await appendVerifyGridCustodyEvent(tx, {
       workspaceId: report.workspaceId,
       engagementId: report.engagementId,
@@ -887,7 +926,7 @@ export async function releaseVerifyGridReport(
         metadata: json({ reportId, chainHash: report.chainHash, signatureAlgorithm: "Ed25519", signingKeyId: keyId, releaseNote: input.releaseNote })
       }
     });
-  });
+  }, { isolationLevel: "Serializable", timeout: 15_000 });
   return { reportId, status: "final", engagement: await getVerifyGridEngagement(report.engagementId) };
 }
 

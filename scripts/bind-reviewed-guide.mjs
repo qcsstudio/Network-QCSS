@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
+const file='src/content/reviewed-advisory-release.json',manifest=JSON.parse(fs.readFileSync(file,'utf8'));
+const bytes=fs.readFileSync(process.argv[2]);
+const sha=value=>crypto.createHash('sha256').update(value).digest('hex');
+assert.equal(sha(bytes),manifest.candidateSha256);
+const sort=value=>Array.isArray(value)?value.map(sort):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>[k,sort(v)])):value;
+const guideSha256=sha(JSON.stringify(sort(JSON.parse(bytes).post)));
+if(manifest.guideSha256)assert.equal(manifest.guideSha256,guideSha256);
+fs.writeFileSync(file,JSON.stringify({...manifest,guideSha256},null,2)+'\n');
+console.log(JSON.stringify({guideSha256}));

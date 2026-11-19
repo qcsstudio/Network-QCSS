@@ -839,14 +839,45 @@ model VerifyGridOperator {
   status              String                        @default("active")
   createdBy           String?
   lastAuthenticatedAt DateTime?
+  identityTenantId    String?
+  identityObjectId    String?
   createdAt           DateTime                      @default(now())
   updatedAt           DateTime                      @updatedAt
   passkeys            VerifyGridOperatorPasskey[]
   sessions            VerifyGridOperatorSession[]
   challenges          VerifyGridOperatorChallenge[]
   reportReviews       VerifyGridReportReview[]
+  identitySessions    VerifyGridIdentitySession[]
 
+  @@unique([identityTenantId, identityObjectId])
   @@index([status, role])
+}
+
+model VerifyGridIdentityLogin {
+  id            String   @id @default(cuid())
+  tokenHash     String   @unique
+  stateHash     String   @unique
+  sealed        String
+  userAgentHash String
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime @default(now())
+  @@index([expiresAt])
+}
+
+model VerifyGridIdentitySession {
+  id            String             @id @default(cuid())
+  operatorId    String
+  tokenHash     String             @unique
+  tenantId      String
+  objectId      String
+  role          String
+  userAgentHash String
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdAt     DateTime           @default(now())
+  operator      VerifyGridOperator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+  @@index([operatorId, expiresAt])
 }
 
 model VerifyGridOperatorPasskey {

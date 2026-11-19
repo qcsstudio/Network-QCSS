@@ -16,6 +16,7 @@ export const siteNavigation = [
     links: [
       { title: "Training institute", href: "/institute", description: "Network and security skills for your team." },
       { title: "CCNA course", href: "/courses/ccna", description: "A structured syllabus, lessons and lab guides." },
+      { title: "FortiGate course", href: "/courses/fortigate", description: "Firewall foundations, packet-flow lessons and GNS3 lab setup." },
       { title: "Start from the basics", href: "/courses/ccna/start-here", description: "Begin here, even without a technical background." },
     ],
   },

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {registerHooks} from 'node:module';
 const now=new Date('2026-10-01T00:00:00Z');
-globalThis.__readyImages={editorialImage:{findMany:async({where,select})=>{assert.equal(where.status,'ready');assert.deepEqual(where.heroImage,{not:null});assert.equal(select.heroImage,undefined);return [{id:'img',contentId:'a',contentRevision:'1',generatedAt:now,altText:'Specific routing scene.'}];}}};
+globalThis.__readyImages={editorialImage:{findMany:async({where,select})=>{assert.equal(where.status,'ready');assert.ok(where.OR.some(filter=>filter.heroImage?.not===null));assert.ok(where.OR.some(filter=>Array.isArray(filter.id?.in)));assert.equal(select.heroImage,undefined);return [{id:'img',contentId:'a',contentRevision:'1',generatedAt:now,altText:'Specific routing scene.'}];}}};
 const hook=registerHooks({resolve(s,c,n){if(c.parentURL?.endsWith('/advisory-image-availability.ts')&&s==='./prisma.ts')return {url:'data:text/javascript,export const getPrismaClient=()=>globalThis.__readyImages',shortCircuit:true};return n(s,c);}});
 const {readyAdvisoryImages}=await import('../src/lib/advisory-image-availability.ts');
 test('no artwork means no public placeholder URL',async()=>{assert.equal((await readyAdvisoryImages([{id:'missing',updatedAt:now,revisions:[{version:1}]}])).size,0);});

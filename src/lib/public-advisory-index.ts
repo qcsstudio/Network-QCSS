@@ -1,4 +1,5 @@
 import { getPrismaClient } from "./prisma.ts";
+import { readPublicSnapshot } from "./public-read-cache.ts";
 
 // Public archives need every published URL, but never full revision payloads.
 export async function getPublicAdvisoryIndex() {
@@ -6,7 +7,13 @@ export async function getPublicAdvisoryIndex() {
     if (process.env.STORE_DRIVER === "postgres") throw new Error("Public content store is unavailable.");
     return [];
   }
-  return getPrismaClient().securityAdvisory.findMany({
+  const rows = getPrismaClient().securityAdvisory;
+  const { data } = await readPublicSnapshot("advisory-index", () => rows.findMany({
+    where: { status: { in: ["published", "withdrawn"] }, deletedAt: null },
+    orderBy: { id: "asc" },
+    select: { id: true, status: true, updatedAt: true,
+      revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true, createdAt: true } } }
+  }), () => rows.findMany({
     where: { status: { in: ["published", "withdrawn"] }, deletedAt: null },
     orderBy: [{ priorityScore: "desc" }, { vendorPublishedAt: "desc" }, { id: "asc" }],
     select: {
@@ -15,5 +22,6 @@ export async function getPublicAdvisoryIndex() {
       vendorPublishedAt: true, vendorUpdatedAt: true, lastVerifiedAt: true, createdAt: true, updatedAt: true,
       revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true, createdAt: true } }
     }
-  });
+  }));
+  return data;
 }

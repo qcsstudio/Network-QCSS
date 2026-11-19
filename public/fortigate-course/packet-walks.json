@@ -1,0 +1,437 @@
+{
+  "1": [
+    {
+      "title": "Decide whether the server is local",
+      "hop": "client",
+      "ether": "No frame sent yet",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "Planned TCP: 49152 \u2192 8080",
+      "decision": "Endpoint route lookup, before the firewall",
+      "why": "The destination is outside the client /24. Use the route via 10.77.10.1; do not ARP for the remote server.",
+      "evidence": "Client: ip route get 10.77.20.10; this predicts a path without sending a request.",
+      "index": 1
+    },
+    {
+      "title": "Find the gateway on the client link",
+      "hop": "cf",
+      "ether": "C_MAC \u2192 ff:ff:ff:ff:ff:ff",
+      "ip": "ARP asks: who has 10.77.10.1?",
+      "transport": "ARP has no TCP/UDP ports",
+      "decision": "Local ARP broadcast; not a forwarded TCP session",
+      "why": "With an empty neighbor cache, the client first needs the gateway MAC. This broadcast stays on the client segment.",
+      "evidence": "Client: ip neigh show. A cached valid entry may mean no new ARP request appears.",
+      "index": 2
+    },
+    {
+      "title": "Gateway answers the ARP request",
+      "hop": "fc",
+      "ether": "FG_P2_MAC \u2192 C_MAC",
+      "ip": "ARP reply: 10.77.10.1 is at FG_P2_MAC",
+      "transport": "ARP; no TCP flags",
+      "decision": "Gateway is the local link destination",
+      "why": "MAC names here are symbols, not captured addresses. Record actual MACs privately before comparing a real trace.",
+      "evidence": "An ARP reply proves local neighbor resolution, not permission to reach the application.",
+      "index": 3
+    },
+    {
+      "title": "Send the new TCP SYN to FortiGate",
+      "hop": "cf",
+      "ether": "C_MAC \u2192 FG_P2_MAC",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "TCP SYN; 49152 \u2192 8080",
+      "decision": "Ingress: verified port2",
+      "why": "The Ethernet destination is the gateway; the IP destination remains the server. Port2 receives a forwarded flow, not a login to FortiGate.",
+      "evidence": "Compare client route, source IP and bounded curl start time; actual client port will vary.",
+      "index": 4
+    },
+    {
+      "title": "Evaluate the new flow",
+      "hop": "firewall",
+      "ether": "Ingress Ethernet header terminates here",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "TCP SYN; 49152 \u2192 8080",
+      "decision": "Find a route and matching narrow policy; record session state if permitted",
+      "why": "The rule must match incoming/outgoing interfaces, client /32, server /32, TCP 8080 and schedule. This is a logical teaching checklist, not FortiOS internal execution order.",
+      "evidence": "Instructor correlates policy ID/action and the same tuple/time. A configured permit alone is not runtime evidence.",
+      "index": 5
+    },
+    {
+      "title": "Resolve the directly connected server",
+      "hop": "fs",
+      "ether": "FG_P3_MAC \u2192 ff:ff:ff:ff:ff:ff",
+      "ip": "ARP asks: who has 10.77.20.10?",
+      "transport": "ARP; no TCP/UDP ports",
+      "decision": "Server-side neighbor lookup if not cached",
+      "why": "The outgoing link needs a server MAC. FortiGate does not forward the client-side ARP broadcast into this segment.",
+      "evidence": "A cold server-side neighbor cache may cause this separate ARP exchange. Do not clear caches for this lesson.",
+      "index": 6
+    },
+    {
+      "title": "Server answers on its own segment",
+      "hop": "sf",
+      "ether": "S_MAC \u2192 FG_P3_MAC",
+      "ip": "ARP reply: 10.77.20.10 is at S_MAC",
+      "transport": "ARP; no TCP flags",
+      "decision": "Local server-side resolution",
+      "why": "A usable neighbor entry permits frame construction. It does not prove a process listens on TCP 8080.",
+      "evidence": "Server listener check is separate: ss -ltn. Expected local address: 10.77.20.10:8080.",
+      "index": 7
+    },
+    {
+      "title": "Forward the SYN to the server",
+      "hop": "fs",
+      "ether": "FG_P3_MAC \u2192 S_MAC",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "TCP SYN; 49152 \u2192 8080",
+      "decision": "Egress: verified port3; NAT off",
+      "why": "A new Ethernet header is used on the server link. IP source/destination and transport ports are unchanged in this lab.",
+      "evidence": "In a real filtered trace, compare ingress and egress IP/port tuples; collect only the authorized local test.",
+      "index": 8
+    },
+    {
+      "title": "Return SYN-ACK to FortiGate",
+      "hop": "sf",
+      "ether": "S_MAC \u2192 FG_P3_MAC",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "TCP SYN-ACK; 8080 \u2192 49152",
+      "decision": "Server route to 10.77.10.0/24 via 10.77.20.1",
+      "why": "The server reply goes to its local gateway MAC. The client is remote; the server does not send an Ethernet frame directly across the router.",
+      "evidence": "Server: ip route get 10.77.10.10. No route/fallback means reply delivery can fail before FortiGate receives it.",
+      "index": 9
+    },
+    {
+      "title": "Forward the matching reply to the client",
+      "hop": "fc",
+      "ether": "FG_P2_MAC \u2192 C_MAC",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "TCP SYN-ACK; 8080 \u2192 49152",
+      "decision": "Match allowed session and usable return path",
+      "why": "This is a reply to the initiated session. A new server-initiated connection is a different policy decision.",
+      "evidence": "Check the same reversed tuple, not just the shared service port. Session state does not repair endpoint routes.",
+      "index": 10
+    },
+    {
+      "title": "Acknowledge connection setup",
+      "hop": "cs",
+      "ether": "C_MAC \u2192 FG_P2_MAC; then FG_P3_MAC \u2192 S_MAC",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "TCP ACK; 49152 \u2192 8080",
+      "decision": "Client \u2192 port2 \u2192 port3 \u2192 server",
+      "why": "The handshake can complete while the later application fails. HTTP request/response is a further observation, taught in lesson 3.",
+      "evidence": "TCP setup evidence is weaker than a successful HTTP response. No TLS or VPN is configured.",
+      "index": 11
+    },
+    {
+      "title": "Stop a separate unmatched new SYN",
+      "hop": "deny",
+      "ether": "C_MAC \u2192 FG_P2_MAC",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "NEW TCP SYN; 49153 \u2192 22",
+      "decision": "No matching forwarding permit in this specified baseline \u2192 drop",
+      "why": "This new destination port does not match TCP 8080. The animation stops at FortiGate and depicts no server response or invented reject packet.",
+      "evidence": "This is a predicted decision only. The practical service-stop fault is a different failure and is never labelled a verified firewall drop.",
+      "index": 12
+    }
+  ],
+  "2": [
+    {
+      "title": "Read the client prefix",
+      "hop": "client",
+      "ether": "No frame sent yet",
+      "ip": "Client 10.77.10.10/24; server 10.77.20.10",
+      "transport": "Existing permitted TCP conversation excerpt",
+      "decision": "/24 means mask 255.255.255.0",
+      "why": "For these /24s, compare the first three octets: 10.77.10 differs from 10.77.20. The server is remote.",
+      "evidence": "ip -br address reports interface addresses. Do not infer the NIC name from an old screenshot.",
+      "index": 1
+    },
+    {
+      "title": "Select the remote-subnet route",
+      "hop": "client",
+      "ether": "No frame sent yet",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "TCP 49152 \u2192 8080",
+      "decision": "10.77.20.0/24 via 10.77.10.1 on C_IF",
+      "why": "The route selects a next hop on the local subnet. It does not replace the server IP with the gateway IP.",
+      "evidence": "ip route get 10.77.20.10 should show via 10.77.10.1 and source 10.77.10.10; output format may vary.",
+      "index": 2
+    },
+    {
+      "title": "Resolve the local next hop if needed",
+      "hop": "cf",
+      "ether": "C_MAC \u2192 ff:ff:ff:ff:ff:ff",
+      "ip": "ARP target: 10.77.10.1",
+      "transport": "ARP; no TCP/UDP ports",
+      "decision": "Client segment only; cache may already be populated",
+      "why": "If uncached, the client broadcasts a request for its local gateway MAC. The following step shows the separate reply; no broadcast is routed to the server network.",
+      "evidence": "ip neigh show is read-only. INCOMPLETE/FAILED concerns local resolution; do not assume a policy drop.",
+      "index": 3
+    },
+    {
+      "title": "Receive the local gateway ARP reply",
+      "hop": "fc",
+      "ether": "FG_P2_MAC \u2192 C_MAC",
+      "ip": "ARP reply: 10.77.10.1 is at FG_P2_MAC",
+      "transport": "ARP; no TCP/UDP ports",
+      "decision": "Reply stays on the client segment",
+      "why": "The client can now address a frame to its gateway. A cached entry may make both ARP steps unnecessary. No remote service was tested.",
+      "evidence": "Read ip neigh show without flushing the cache. Actual MAC values must be verified privately.",
+      "index": 4
+    },
+    {
+      "title": "Deliver the frame to the firewall",
+      "hop": "cf",
+      "ether": "C_MAC \u2192 FG_P2_MAC",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "TCP 49152 \u2192 8080",
+      "decision": "Receive on verified port2",
+      "why": "The frame reaches the gateway NIC while the packet still targets 10.77.20.10.",
+      "evidence": "A route-get result alone is a prediction; correlate the real request with instructor-approved evidence.",
+      "index": 5
+    },
+    {
+      "title": "Route toward the connected server subnet",
+      "hop": "firewall",
+      "ether": "Replace ingress Ethernet header for the next link",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "Same TCP ports; NAT off",
+      "decision": "Connected 10.77.20.0/24 through port3; matching permit required",
+      "why": "Routing selects a path; access policy decides whether this forwarded flow may use it. Neither proves the service is running.",
+      "evidence": "Instructor checks connected route and narrow policy. This panel does not claim an exact internal FortiOS processing sequence.",
+      "index": 6
+    },
+    {
+      "title": "Forward on a new Ethernet link",
+      "hop": "fs",
+      "ether": "FG_P3_MAC \u2192 S_MAC",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "TCP 49152 \u2192 8080",
+      "decision": "Source/destination IPs stay; IPv4 TTL decreases when routed",
+      "why": "TTL limits forwarding lifetime; its actual initial value is not assumed. MAC headers change at the router, while endpoint IPs remain the same with NAT disabled.",
+      "evidence": "Optional guided trace comparison: same endpoint tuple, new link MACs. No numeric TTL or MAC here is captured evidence.",
+      "index": 7
+    },
+    {
+      "title": "The server chooses the reply route",
+      "hop": "server",
+      "ether": "No reply frame until route/neighbor selection",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "TCP 8080 \u2192 49152",
+      "decision": "10.77.10.0/24 via 10.77.20.1 on S_IF",
+      "why": "The server must reach the client subnet independently of the route used by the request.",
+      "evidence": "Server: ip route get 10.77.10.10. A successful local self-ping cannot verify this path.",
+      "index": 8
+    },
+    {
+      "title": "Send the reply to the server-side gateway",
+      "hop": "sf",
+      "ether": "S_MAC \u2192 FG_P3_MAC",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "TCP 8080 \u2192 49152",
+      "decision": "Next hop 10.77.20.1; resolve its MAC if needed",
+      "why": "A valid server neighbor entry and route are needed before the reply can reach FortiGate.",
+      "evidence": "ip neigh show can inspect the gateway entry. It does not test HTTP or establish policy correctness.",
+      "index": 9
+    },
+    {
+      "title": "Forward the matching reply to the client",
+      "hop": "fc",
+      "ether": "FG_P2_MAC \u2192 C_MAC",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "TCP 8080 \u2192 49152",
+      "decision": "Allowed session; connected client subnet via port2",
+      "why": "The return Ethernet frame is built for C_MAC. No reverse allow-any rule is needed merely for this matching reply.",
+      "evidence": "Correlate time and reversed IP/port tuple with the original request.",
+      "index": 10
+    },
+    {
+      "title": "Introduce only the owned route fault",
+      "hop": "server",
+      "ether": "No successful remote reply frame",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "Reply cannot use the removed remote route",
+      "decision": "Remove only the exact manually created server route; no fallback route",
+      "why": "The lesson fault is not an interface shutdown or firewall change. If other metrics/tables/flags exist, stop and prepare an exact inverse first.",
+      "evidence": "Record baseline before sudo ip route del. Do not remove a default route, management route or unrelated prefix.",
+      "index": 11
+    },
+    {
+      "title": "Locate where the reply stops",
+      "hop": "stuck",
+      "ether": "No valid next-hop selection for the remote client",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "No delivered reply; outcome depends on local stack",
+      "decision": "Stop at server route lookup, before firewall ingress",
+      "why": "A curl timeout cannot locate the fault. Here the controlled change and failed server route lookup support the return-route hypothesis.",
+      "evidence": "One attempt, then route-get, baseline comparison and known listener check. Restore before exploring another hypothesis.",
+      "index": 12
+    },
+    {
+      "title": "Restore and retest a fresh request",
+      "hop": "sc",
+      "ether": "S_MAC \u2192 FG_P3_MAC; then FG_P2_MAC \u2192 C_MAC",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "Fresh matching TCP reply",
+      "decision": "Restore 10.77.10.0/24 via 10.77.20.1 on verified S_IF",
+      "why": "Restore the exact route only after successful deletion, compare the table, then make a fresh bounded HTTP request. Do not clear global sessions.",
+      "evidence": "Acceptance: route-get selects original next hop and the local HTTP response returns; leave actual result blank until run.",
+      "index": 13
+    }
+  ],
+  "3": [
+    {
+      "title": "Ask DNS for an address \u2014 concept only",
+      "hop": "dnsq",
+      "ether": "DNS link/path unspecified",
+      "ip": "10.77.10.10 \u2192 abstract resolver IP (not assigned)",
+      "transport": "UDP 53000 \u2192 53; query A app.qcs.test",
+      "decision": "Not a configured lab exchange",
+      "why": "A name lookup is a separate dependency. The resolver is not a fourth GNS3 node in this project. Ports and resolver path here are illustrative.",
+      "evidence": "The actual numeric URL and curl --resolve do not send this DNS query.",
+      "index": 1
+    },
+    {
+      "title": "Receive a DNS record \u2014 concept only",
+      "hop": "dnsr",
+      "ether": "DNS link/path unspecified",
+      "ip": "Abstract resolver IP \u2192 10.77.10.10",
+      "transport": "UDP 53 \u2192 53000; example A answer 10.77.20.10",
+      "decision": "An answer provides an address, not application access",
+      "why": "Real DNS may use TCP 53 as well. A record does not prove that routing, firewall policy or HTTP works.",
+      "evidence": "No live resolver is configured or tested. Cache, retransmission and TCP fallback are omitted from this illustrative exchange.",
+      "index": 2
+    },
+    {
+      "title": "Check the intended TCP listener",
+      "hop": "server",
+      "ether": "No packet sent by this check",
+      "ip": "Listener: 10.77.20.10:8080",
+      "transport": "ss -ltn: listening TCP sockets, numeric output",
+      "decision": "The helper must be running on the intended address/port",
+      "why": "A port identifies a transport endpoint, not a person or trusted application. A listener is necessary for this helper but is not end-to-end proof.",
+      "evidence": "Server second terminal: ss -ltn. Do not silently background unknown commands if only one console is available.",
+      "index": 3
+    },
+    {
+      "title": "Client sends SYN to its gateway",
+      "hop": "cf",
+      "ether": "C_MAC \u2192 FG_P2_MAC",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "TCP SYN; 49152 \u2192 8080",
+      "decision": "New session attempt; client source port is illustrative",
+      "why": "SYN starts TCP connection setup. The destination service port remains 8080 even though Ethernet delivery is to the gateway.",
+      "evidence": "Match the actual ephemeral port if a real trace is available; do not require it to equal 49152.",
+      "index": 4
+    },
+    {
+      "title": "Firewall forwards SYN to the server",
+      "hop": "fs",
+      "ether": "FG_P3_MAC \u2192 S_MAC",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "TCP SYN; 49152 \u2192 8080",
+      "decision": "Narrow TCP 8080 permit; routed server-side link",
+      "why": "The source/destination IPs and ports stay unchanged because NAT is off. The Ethernet header changes across the router.",
+      "evidence": "This assumes validated route, policy and neighbor state; the illustration is not measured appliance evidence.",
+      "index": 5
+    },
+    {
+      "title": "Server returns SYN-ACK to its gateway",
+      "hop": "sf",
+      "ether": "S_MAC \u2192 FG_P3_MAC",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "TCP SYN + ACK; 8080 \u2192 49152",
+      "decision": "Server has listener and return route",
+      "why": "SYN-ACK both acknowledges connection setup and supplies the server side of the handshake. It is not an HTTP response.",
+      "evidence": "A refused connection or reset differs from silence; neither alone identifies a FortiGate policy decision.",
+      "index": 6
+    },
+    {
+      "title": "Firewall forwards the matching SYN-ACK",
+      "hop": "fc",
+      "ether": "FG_P2_MAC \u2192 C_MAC",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "TCP SYN + ACK; 8080 \u2192 49152",
+      "decision": "Reply matches the permitted conversation",
+      "why": "The reply source port is the server service port. The reply destination port is the client temporary port.",
+      "evidence": "Reverse both endpoint roles; do not mistakenly keep destination port 8080 in the reply.",
+      "index": 7
+    },
+    {
+      "title": "Client completes setup with ACK",
+      "hop": "cs",
+      "ether": "C_MAC \u2192 FG_P2_MAC; then FG_P3_MAC \u2192 S_MAC",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "TCP ACK; 49152 \u2192 8080",
+      "decision": "TCP connection setup complete",
+      "why": "The handshake establishes transport state. It does not certify user identity, encrypt payloads or guarantee a useful application response.",
+      "evidence": "Sequence numbers, options, windows and most acknowledgements are omitted; no exact packet byte layout is claimed.",
+      "index": 8
+    },
+    {
+      "title": "Send the HTTP request bytes",
+      "hop": "cs",
+      "ether": "C_MAC \u2192 FG_P2_MAC; then FG_P3_MAC \u2192 S_MAC",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "TCP carrying HTTP GET /; 49152 \u2192 8080",
+      "decision": "Request the helper root path /",
+      "why": "HTTP is the application protocol inside TCP. One application message is not guaranteed to equal one captured TCP segment.",
+      "evidence": "Client curl --include shows response headers; it is not a packet capture or a TLS check.",
+      "index": 9
+    },
+    {
+      "title": "Return HTTP status and fixed body",
+      "hop": "sc",
+      "ether": "S_MAC \u2192 FG_P3_MAC; then FG_P2_MAC \u2192 C_MAC",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "TCP carrying HTTP 200; 8080 \u2192 49152",
+      "decision": "Expected helper response, if the whole path works",
+      "why": "A 200 response is stronger application evidence than a completed handshake. Plain HTTP does not protect confidentiality.",
+      "evidence": "Match the bounded client request, helper request line and policy/session evidence at the same time.",
+      "index": 10
+    },
+    {
+      "title": "Separate application status from connectivity",
+      "hop": "client",
+      "ether": "No new frame required for this explanation",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "HTTP status is application data",
+      "decision": "For example, a 404 can show the server answered a different path",
+      "why": "A response error and a network timeout are different observations. Check what URL/path was requested before changing network rules.",
+      "evidence": "The included helper intentionally rejects non-root paths; a 404 from it is not proof that TCP was blocked.",
+      "index": 11
+    },
+    {
+      "title": "Isolate name selection with --resolve",
+      "hop": "cs",
+      "ether": "C_MAC \u2192 FG_P2_MAC; then FG_P3_MAC \u2192 S_MAC",
+      "ip": "10.77.10.10 \u2192 10.77.20.10",
+      "transport": "TCP 49152 \u2192 8080; curl supplies name mapping",
+      "decision": "Use app.qcs.test:8080:10.77.20.10 in this one command",
+      "why": "The HTTP Host name can stay app.qcs.test while the destination IP is supplied locally. No DNS server is queried for this mapping.",
+      "evidence": "Correct mapping and numeric URL should reach the same helper. Neither result verifies DNS infrastructure.",
+      "index": 12
+    },
+    {
+      "title": "Fault only the command-local mapping",
+      "hop": "client",
+      "ether": "No trusted next-hop outcome is assumed",
+      "ip": "Incorrect mapped destination: 10.77.20.99",
+      "transport": "TCP destination 8080; one bounded attempt",
+      "decision": "Use .99 only after it is verified unused in the isolated project",
+      "why": "A failure to the wrong address is not a DNS-server outage or a proved firewall block. The server-specific permit does not match .99.",
+      "evidence": "Restore the mapping to .10; do not edit hosts/resolver files or add broader rules.",
+      "index": 13
+    },
+    {
+      "title": "Retest and clean up only the helper",
+      "hop": "sc",
+      "ether": "S_MAC \u2192 FG_P3_MAC; then FG_P2_MAC \u2192 C_MAC",
+      "ip": "10.77.20.10 \u2192 10.77.10.10",
+      "transport": "Fresh HTTP 200 expected after correct mapping restored",
+      "decision": "Verify listener, correct address and bounded response",
+      "why": "Restore the original command, make one fresh request, then Ctrl+C only the foreground helper if finished. No persistent DNS change was made.",
+      "evidence": "Record expected versus observed separately. No packet trace, FortiOS build or successful appliance test is invented.",
+      "index": 14
+    }
+  ]
+}

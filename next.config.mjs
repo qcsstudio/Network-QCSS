@@ -89,9 +89,22 @@ const nextConfig = {
   },
   async headers() {
     return [
-      ...["/admin/:path*", "/portal/:path*", "/verifygrid/:path*"].map((source) => ({
+      ...["/admin/:path*", "/portal/:path*", "/verifygrid/:path*", "/operator/:path*", "/api/verifygrid/identity/:path*"].map((source) => ({
         source,
-        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }]
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+          { key: "Cache-Control", value: "private, no-store, max-age=0" },
+          { key: "CDN-Cache-Control", value: "no-store" },
+          { key: "Vercel-CDN-Cache-Control", value: "no-store" }
+        ]
+      })),
+      ...["/api/admin/:path*", "/api/auth/:path*", "/api/portal/:path*", "/api/dashboard",
+        "/api/export/:path*", "/api/verifygrid/:path*", "/api/integrations/:path*", "/api/cron/:path*"].map(source => ({
+        source, headers: [
+          { key: "Cache-Control", value: "private, no-store, max-age=0" },
+          { key: "CDN-Cache-Control", value: "no-store" },
+          { key: "Vercel-CDN-Cache-Control", value: "no-store" }
+        ]
       })),
       {
         source: "/(.*)",
@@ -118,12 +131,23 @@ const nextConfig = {
         ]
       },
       {
-        source: "/network-tools/network-configuration-explainer",
+        source: "/operator/verifygrid",
+        headers: [
+          // Chromium also applies form-action to the OIDC POST's redirect.
+          // Restrict the exception to the dedicated operator entry document.
+          { key: "Content-Security-Policy", value: contentSecurityPolicy.replace("form-action 'self'", "form-action 'self' https://login.microsoftonline.com") },
+          // Native form POSTs need a non-null Origin; suppress cross-site referrers.
+          { key: "Referrer-Policy", value: "same-origin" },
+          { key: "Cache-Control", value: "private, no-store" }
+        ]
+      },
+      ...["/network-tools/network-configuration-explainer", "/network-tools/toolkit"].map(source => ({
+        source,
         headers: [
           { key: "Content-Security-Policy", value: ["default-src 'self'", "base-uri 'self'", "object-src 'none'", "frame-ancestors 'self'", "form-action 'none'", `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`, "style-src 'self' 'unsafe-inline'", "font-src 'self' data:", "img-src 'self' data: blob:", `connect-src 'self'${isProduction ? "" : " ws: http://localhost:* http://127.0.0.1:*"}`, "worker-src 'self'", "frame-src 'none'"].join("; ") },
           { key: "Referrer-Policy", value: "no-referrer" }
         ]
-      }
+      }))
     ];
   }
 };

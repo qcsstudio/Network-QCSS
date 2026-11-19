@@ -3,12 +3,18 @@ import { getPrismaClient } from "./prisma.ts";
 export async function publishedRevision(contentType: string, contentId: string) {
   const prisma = getPrismaClient();
   if (contentType === "content_post") {
-    const source = await prisma.contentPost.findUnique({ where: { id: contentId }, include: { revisions: { orderBy: { version: "desc" }, take: 1 } } });
+    const source = await prisma.contentPost.findUnique({ where: { id: contentId }, select: {
+      slug: true, status: true, updatedAt: true,
+      revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true } }
+    } });
     if (!source || source.status !== "published") return null;
     return { slug: source.slug, revision: String(source.revisions[0]?.version || source.updatedAt.toISOString()), path: `/resources/${source.slug}` };
   }
   if (contentType === "security_advisory") {
-    const source = await prisma.securityAdvisory.findUnique({ where: { id: contentId }, include: { revisions: { orderBy: { version: "desc" }, take: 1 } } });
+    const source = await prisma.securityAdvisory.findUnique({ where: { id: contentId }, select: {
+      slug: true, status: true, deletedAt: true, updatedAt: true,
+      revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true } }
+    } });
     if (!source || source.status !== "published" || source.deletedAt) return null;
     return { slug: source.slug, revision: String(source.revisions[0]?.version || source.updatedAt.toISOString()), path: `/security-advisories/${source.slug}` };
   }

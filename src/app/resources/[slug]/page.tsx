@@ -7,6 +7,7 @@ import { getAllPublishedBlogPosts } from "@/lib/content-posts";
 import { siteConfig } from "@/lib/content";
 import { relatedBlogPosts } from "@/lib/blog-presentation";
 import { createPageMetadata } from "@/lib/seo";
+import { publicSourceUrl } from "@/lib/public-editorial-presentation";
 
 type BlogPageProps = {
   params: Promise<{ slug: string }>;
@@ -82,12 +83,6 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
               name: siteConfig.name,
               url: siteConfig.url
             },
-            reviewedBy: {
-              "@type": "Organization",
-              "@id": `${siteConfig.url}/#organization`,
-              name: post.reviewedBy?.name || "QCS Network & Security Engineering",
-              url: siteConfig.url
-            },
             publisher: {
               "@type": "Organization",
               "@id": `${siteConfig.url}/#organization`,
@@ -102,8 +97,8 @@ export default async function BlogPostPage({ params }: BlogPageProps) {
             keywords: post.keywords.join(", "),
             wordCount,
             abstract: post.answer,
-            citation: post.sources.map((source) => source.url),
-            isBasedOn: post.sources.map((source) => source.url),
+            citation: post.sources.map((source) => publicSourceUrl(source.url)),
+            isBasedOn: post.sources.map((source) => publicSourceUrl(source.url)),
             audience: {
               "@type": "Audience",
               audienceType: post.audience

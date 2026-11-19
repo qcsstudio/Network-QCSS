@@ -101,6 +101,18 @@ export default function InstitutePage() {
 
       <section className="section">
         <div className="section-heading">
+          <p className="eyebrow">FortiGate foundations</p>
+          <h2>Follow the first packet, then explain the firewall decision.</h2>
+          <p>Three beginner lessons with original diagrams, slow packet walks, header explanations and quizzes. These are guided-analysis foundations; practical appliance exercises require the exact-build setup and baseline gates.</p>
+          <div className="button-row">
+            <a className="button primary" href="/courses/fortigate">Open FortiGate lessons 1–3</a>
+            <a className="button secondary" href="/courses/fortigate/lab-setup">Plan a fresh isolated GNS3 lab</a>
+          </div>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-heading">
           <p className="eyebrow">Training tracks</p>
           <h2>Build skill you can demonstrate, explain, and use under pressure.</h2>
           <p>

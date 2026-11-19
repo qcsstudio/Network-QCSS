@@ -1,6 +1,8 @@
 export const codexImageProvider = "codex-built-in-imagegen";
 
 export function editorialImageMode(value = process.env.EDITORIAL_IMAGE_MODE) {
+  // Free static storage uses reviewed local imports, never server-side paid generation.
+  if (process.env.EDITORIAL_STATIC_ENABLED === "1") return "codex-assisted" as const;
   const mode = value?.trim() || "provider-api";
   if (mode !== "provider-api" && mode !== "codex-assisted") {
     throw new Error("EDITORIAL_IMAGE_MODE must be provider-api or codex-assisted; no image provider was called.");

@@ -11,6 +11,8 @@ import {
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getPrismaClient } from "@/lib/prisma";
+import { getVerifyGridParentIdentity } from "@/lib/verifygrid-identity";
+import { verifyGridOperatorPath } from "@/lib/verifygrid-identity-domain";
 import {
   VERIFYGRID_CRITICAL_REAUTH_MINUTES,
   VERIFYGRID_SESSION_IDLE_MINUTES,
@@ -161,6 +163,8 @@ async function sessionFromToken(token: string, expectedUserAgentHash?: string) {
 export async function getVerifyGridOperatorFromRequest(request: Request, permission: VerifyGridPermission = "view") {
   const operator = await sessionFromToken(cookieFromRequest(request), headerFingerprint(request.headers).userAgentHash);
   if (!operator || !operatorHasPermission(operator.role, permission)) return null;
+  const parent = await getVerifyGridParentIdentity();
+  if (!parent || parent.email.toLowerCase() !== operator.email.toLowerCase() || (parent.operatorId && parent.operatorId !== operator.id)) return null;
   if (verifyGridRequiresFreshAuthentication(permission) && Date.now() - new Date(operator.session.authenticatedAt).getTime() > VERIFYGRID_CRITICAL_REAUTH_MINUTES * 60_000) return null;
   return operator;
 }
@@ -170,13 +174,15 @@ export async function getVerifyGridOperatorFromCookies(permission: VerifyGridPer
   const headerList = await headers();
   const operator = await sessionFromToken(cookieStore.get(verifyGridOperatorCookieName)?.value || "", headerFingerprint(headerList).userAgentHash);
   if (!operator || !operatorHasPermission(operator.role, permission)) return null;
+  const parent = await getVerifyGridParentIdentity();
+  if (!parent || parent.email.toLowerCase() !== operator.email.toLowerCase() || (parent.operatorId && parent.operatorId !== operator.id)) return null;
   if (verifyGridRequiresFreshAuthentication(permission) && Date.now() - new Date(operator.session.authenticatedAt).getTime() > VERIFYGRID_CRITICAL_REAUTH_MINUTES * 60_000) return null;
   return operator;
 }
 
 export async function requireVerifyGridOperator(permission: VerifyGridPermission = "view") {
   const operator = await getVerifyGridOperatorFromCookies(permission);
-  if (!operator) redirect("/admin?verifygrid=locked");
+  if (!operator) redirect(verifyGridOperatorPath);
   return operator;
 }
 
@@ -311,8 +317,13 @@ export async function completeRegistration(email: string, request: Request, resp
   if (!verification.verified || !verification.registrationInfo) throw new Error("Passkey enrollment could not be verified.");
   const info = verification.registrationInfo;
   const prisma = getPrismaClient();
-  await prisma.$transaction([
-    prisma.verifyGridOperatorPasskey.create({
+  await prisma.$transaction(async (tx) => {
+    const consumed = await tx.verifyGridOperatorChallenge.updateMany({
+      where: { id: challenge.id, usedAt: null, expiresAt: { gt: new Date() } },
+      data: { usedAt: new Date() }
+    });
+    if (consumed.count !== 1) throw new Error("The passkey enrollment challenge was already used or expired.");
+    await tx.verifyGridOperatorPasskey.create({
       data: {
         operatorId: operator.id,
         credentialId: info.credential.id,
@@ -323,9 +334,8 @@ export async function completeRegistration(email: string, request: Request, resp
         backedUp: info.credentialBackedUp,
         label: label?.trim().slice(0, 80) || "Primary passkey"
       }
-    }),
-    prisma.verifyGridOperatorChallenge.update({ where: { id: challenge.id }, data: { usedAt: new Date() } })
-  ]);
+    });
+  });
   return { token: await issueOperatorSession(operator.id, request), operator };
 }
 
@@ -365,18 +375,23 @@ export async function completeAuthentication(email: string, request: Request, re
   });
   if (!verification.verified || !verification.authenticationInfo.userVerified) throw new Error("Passkey authentication could not be verified.");
   const prisma = getPrismaClient();
-  await prisma.$transaction([
-    prisma.verifyGridOperatorPasskey.update({
-      where: { id: passkey.id },
+  await prisma.$transaction(async (tx) => {
+    const consumed = await tx.verifyGridOperatorChallenge.updateMany({
+      where: { id: challenge.id, usedAt: null, expiresAt: { gt: new Date() } },
+      data: { usedAt: new Date() }
+    });
+    if (consumed.count !== 1) throw new Error("The authentication challenge was already used or expired.");
+    const updated = await tx.verifyGridOperatorPasskey.updateMany({
+      where: { id: passkey.id, counter: passkey.counter },
       data: {
         counter: BigInt(verification.authenticationInfo.newCounter),
         deviceType: verification.authenticationInfo.credentialDeviceType,
         backedUp: verification.authenticationInfo.credentialBackedUp,
         lastUsedAt: new Date()
       }
-    }),
-    prisma.verifyGridOperatorChallenge.update({ where: { id: challenge.id }, data: { usedAt: new Date() } })
-  ]);
+    });
+    if (updated.count !== 1) throw new Error("The passkey changed during authentication. Start again.");
+  });
   return { token: await issueOperatorSession(operator.id, request), operator };
 }
 
@@ -391,13 +406,15 @@ export async function cleanExpiredVerifyGridOperatorSecurity() {
   const now = new Date();
   const sessionCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60_000);
   const challengeCutoff = new Date(now.getTime() - 24 * 60 * 60_000);
-  const [sessions, challenges] = await prisma.$transaction([
+  const [sessions, challenges, identitySessions, identityLogins] = await prisma.$transaction([
     prisma.verifyGridOperatorSession.deleteMany({
       where: { OR: [{ expiresAt: { lt: sessionCutoff } }, { revokedAt: { lt: sessionCutoff } }] }
     }),
     prisma.verifyGridOperatorChallenge.deleteMany({
       where: { OR: [{ expiresAt: { lt: challengeCutoff } }, { usedAt: { lt: challengeCutoff } }] }
-    })
+    }),
+    prisma.verifyGridIdentitySession.deleteMany({where:{OR:[{expiresAt:{lt:sessionCutoff}},{revokedAt:{lt:sessionCutoff}}]}}),
+    prisma.verifyGridIdentityLogin.deleteMany({where:{expiresAt:{lt:challengeCutoff}}})
   ]);
-  return { sessions: sessions.count, challenges: challenges.count };
+  return { sessions: sessions.count, challenges: challenges.count, identitySessions: identitySessions.count, identityLogins: identityLogins.count };
 }

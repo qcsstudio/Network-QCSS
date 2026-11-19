@@ -1,0 +1,31 @@
+QCS commands — draft endpoint references, not appliance configuration
+Read setup.html and lesson explanations before use. Actual FortiOS build required.
+Prompts are NOT commands. Ubuntu: user@LabClient:~$; FortiGate: hostname #.
+FortiGate top-level read-only: get system status (inspect privately, share only build).
+FortiGate top-level read-only: show system interface (map locally, do not share full output).
+Ubuntu read-only: ip -br address; ip route; ip route get <remote lab IP>.
+Ubuntu server: python3 qcs-http.py — fixed response on 10.77.20.10 TCP 8080.
+Ubuntu client: curl --noproxy "*" --connect-timeout 3 --max-time 5 --include http://10.77.20.10:8080/
+Ubuntu server second terminal: ss -ltn — numeric TCP listeners.
+Ubuntu client local name mapping (NOT a DNS test):
+curl --noproxy "*" --connect-timeout 3 --max-time 5 --include --resolve app.qcs.test:8080:10.77.20.10 http://app.qcs.test:8080/
+Only lesson 2, verified manually owned route, substitute real S_IF:
+sudo ip route del 10.77.10.0/24 via 10.77.20.1 dev S_IF
+Exact inverse after successful deletion:
+sudo ip route add 10.77.10.0/24 via 10.77.20.1 dev S_IF
+No other metrics/table/flags or fallback route permitted for this exercise.
+Ctrl+C in helper terminal stops only that foreground service.
+No global session clearing, factory reset, firmware change or broad allow rule.
+
+ADDITIONAL READ-ONLY NEIGHBOR CHECK
+Ubuntu client/server: ip neigh show
+Shows local neighbor cache; a missing/cached/failed entry is not a firewall-policy verdict.
+No cache flush, packet capture, policy mutation or new DNS server is instructed.
+
+EXACT COMMAND-LOCAL MAPPING FAULT (lesson 3)
+Only after 10.77.20.99 is verified unused in the isolated project:
+curl --noproxy "*" --connect-timeout 3 --max-time 5 --include --resolve app.qcs.test:8080:10.77.20.99 http://app.qcs.test:8080/
+Restore by running the same command with mapping address 10.77.20.10.
+This edits no hosts/resolver file and is NOT a DNS-server test.
+The .99 address also falls outside the baseline server /32 permit; a failure
+cannot distinguish policy from other failures merely from a timeout.

@@ -1,0 +1,59 @@
+{
+  "status": "PASS",
+  "reviewer": "Singer (Codex independent reviewer)",
+  "reviewerId": "01a158ea-02c7-7b42-b7e0-ceaa9482eed3",
+  "reviewedAt": "2026-11-03T14:22:00Z",
+  "scope": "Independent substantive technical content and bound-artifact review only; separate integration and parent browser-QA/build/release verification required.",
+  "substantiveContentSha256": "5b8ec656314f97c1c01761e5ba2c034d9188235cff0826487aeee7fb45d24839",
+  "canonicalization": "Parse JSON; remove only top-level reviewedBy, editorialMethod, publishedAt and updatedAt; recursively sort object keys; retain array order; JSON.stringify; SHA-256 UTF-8.",
+  "findings": [],
+  "requiredSubstantiveCorrections": [],
+  "evidenceReport": "test-results/fortimanager-advpn-cases-2026-11-03/content-independent-review.json",
+  "assessment": [
+    "Both articles distinguish source-reported incidents from proposed investigation, implementation, validation and rollback procedures; undisclosed customer topology, settings and timing are not invented.",
+    "FortiManager model/build observations remain scoped. Issue 1352524, the conditional block workaround and 50G limitation are accurately qualified. Expected releases are not called available or verified fixes. No blanket QUIC bypass or repeated production install is advised.",
+    "All four PNGs were visually inspected at full resolution: complete labels and no observed clipping or overlap. All four SVGs parsed successfully, their accessible title/description and labels were checked, and in-memory Resvg rendering reproduced each existing PNG byte-for-byte without writing assets.",
+    "Both candidates pass existing editorial-readiness and source-mapping checks. Every section/FAQ resolves to its bibliography; five FortiManager and seven ADVPN sources remain within ten per article."
+  ],
+  "limitations": [
+    "Five docs.fortinet.com pages blocked direct full-page fetch with 403; exact primary URLs and relevant indexed excerpts were verified instead. Staff community articles were accessible.",
+    "Public incident snapshots are not customer logs, hardware testing, production captures, vendor endorsement, or independent reproduction.",
+    "Only the original image assets were visually reviewed here. Parent retains responsive page, accessibility/browser QA, build and deployment responsibilities.",
+    "Candidate reviewedBy/editorialMethod explicitly remain pending at these raw hashes. Substantive approval excludes only the four declared top-level review/date fields; no substantive edits are authorized by this receipt.",
+    "Integration is assessed separately. No database, social account, LinkedIn schedule, production system or appliance was changed or exercised."
+  ],
+  "artifacts": [
+    {
+      "file": "src/content/website-only/fortimanager-install-verification-case-study.json",
+      "sha256": "59005621cfd840cef8517a2493b92092411c8ba101954067267dd3713c87ab04"
+    },
+    {
+      "file": "scripts/render-fortimanager-advpn-cases.mjs",
+      "sha256": "0b6ddb9e38ab7fead54f377c589d11bcffc6969456be7fd0cdc1572d230cf4ed"
+    },
+    {
+      "file": "src/components/technical-case-study.tsx",
+      "sha256": "03125311cf3b2dcaf094649b0e9715fe32a983b2b2cba8d60534ca065bc466e4"
+    },
+    {
+      "file": "src/app/resources/fortimanager-install-ok-verify-fail-udp-not-quic/page.tsx",
+      "sha256": "1c5fc23e8d419e57e2e4b3629c32b9831cdf3ca3c441d318f2c17e646d6d65e6"
+    },
+    {
+      "file": "public/images/editorial/fortimanager-install-evidence.svg",
+      "sha256": "197e32558f9d62fc86bf7026faf284ae8d4ad79af4bd1bd1198fa49ae73b50d5"
+    },
+    {
+      "file": "public/images/editorial/fortimanager-install-evidence.png",
+      "sha256": "eee2163642ed12909c1236429103f1c01146e59dfe3cd22106179439c86e9636"
+    },
+    {
+      "file": "public/images/editorial/fortimanager-install-flow.svg",
+      "sha256": "b1437e4a0bbec13a2694156020cc50d2ee04ffe5323daad08549983ae291620c"
+    },
+    {
+      "file": "public/images/editorial/fortimanager-install-flow.png",
+      "sha256": "f397a51abb2fb6efbf5e68735809fb672c4b39de4761e2ccecbbd9b047ef635d"
+    }
+  ]
+}

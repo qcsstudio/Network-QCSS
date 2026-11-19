@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { z } from "zod";
+import { executionStateBlockers, executionWindowBlockers } from "./verifygrid-execution-policy.ts";
 import {
   capabilityCatalog,
   verifyGridCapabilities,
@@ -99,12 +100,16 @@ export function validateExecutionBoundary(input: {
 }) {
   const now = input.now || new Date();
   const capability = capabilityCatalog[input.capability];
-  const blockers: string[] = [];
-  if (!["authorized", "scheduled", "active", "paused"].includes(input.engagementStatus)) blockers.push("The engagement is not in an execution-capable state.");
+  const blockers = [...executionStateBlockers(input.engagementStatus), ...executionWindowBlockers({ ...input, now })];
   if (!input.authorization || input.authorization.status !== "active") blockers.push("An active authorization is required.");
   if (input.authorization && input.authorization.scopeHash !== input.scopeHash) blockers.push("The authorization scope hash does not match the current scope.");
   if (input.authorization && !input.authorization.authorityConfirmed) blockers.push("The authorization does not confirm approver authority.");
-  if (input.authorization && (input.authorization.validFrom > now || input.authorization.validUntil < now)) blockers.push("The authorization is not active at the current time.");
+  if (input.authorization && (
+    !Number.isFinite(input.authorization.validFrom.getTime()) ||
+    !Number.isFinite(input.authorization.validUntil.getTime()) ||
+    input.authorization.validFrom > now || input.authorization.validUntil <= now ||
+    input.authorization.validUntil <= input.authorization.validFrom
+  )) blockers.push("The authorization is not active at the current time.");
   if (input.authorization && input.requestedStartAt < input.authorization.validFrom) blockers.push("The requested start is before the authorization window.");
   if (input.authorization && input.validUntil > input.authorization.validUntil) blockers.push("The requested validity extends beyond authorization.");
   if (!modeAllows(input.testMode, capability.level)) blockers.push(`The ${input.testMode} engagement mode does not permit ${capability.level} capability records.`);

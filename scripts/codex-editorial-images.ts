@@ -9,7 +9,7 @@ import {
 const [command, ...raw] = process.argv.slice(2);
 const allowed: Record<string, string[]> = {
   list: [], prepare: ["source", "type", "id", "out"],
-  assemble: ["pack", "image", "background"], check: ["pack"], import: ["pack", "apply"]
+  assemble: ["pack", "image", "background"], check: ["pack"], import: ["pack", "apply"], stage: ["pack", "assets", "out"]
 };
 const options: Record<string, string> = {};
 if (!allowed[command]) throw new Error("Usage: npm run content:images:codex -- list|prepare|assemble|check|import --option=value. See docs/codex-editorial-images.txt.");
@@ -76,7 +76,17 @@ async function main() {
   const candidate = await validateCodexCandidate({ pack, concept, logo,
     manifest: await json(path.join(render, "manifest.json")), review: await json(path.join(folder, "review.json")),
     master: await readFile(path.join(render, "master.bin")), hero: await readFile(path.join(render, "hero.jpg")), social: await readFile(path.join(render, "social.jpg")) });
-  if (command === "check") {
+  if (command === "stage") {
+    const store = await import("../src/lib/codex-image-store.ts");
+    await store.importCodexCandidate(candidate, false);
+    const { getPrismaClient } = await import("../src/lib/prisma.ts");
+    const { contentType, contentId, contentRevision } = candidate.pack.source;
+    const existing = await getPrismaClient().editorialImage.findUnique({
+      where: { contentType_contentId_contentRevision: { contentType, contentId, contentRevision } }, select: { id: true }
+    });
+    const { prepareStaticRelease } = await import("./prepare-codex-static-release.ts");
+    console.log(JSON.stringify(await prepareStaticRelease(candidate, path.resolve(required("assets")), path.resolve(required("out")), existing?.id)));
+  } else if (command === "check") {
     console.log(JSON.stringify({ action: "validated", sourceHash: candidate.pack.sourceHash, manifestHash: objectDigest(candidate.manifest),
       paidApiCalls: 0, databaseChecked: false, reviewMethod: candidate.review.method, independentAutomatedReview: false }));
   } else {
@@ -86,7 +96,7 @@ async function main() {
 
 main().catch((error) => { console.error(error instanceof Error ? error.message : "Codex image workflow failed."); process.exitCode = 1; })
   .finally(async () => {
-    if (command === "list" || command === "import" || (command === "prepare" && !options.source)) {
+    if (command === "list" || command === "import" || command === "stage" || (command === "prepare" && !options.source)) {
       const { getPrismaClient } = await import("../src/lib/prisma.ts");
       await getPrismaClient().$disconnect();
     }

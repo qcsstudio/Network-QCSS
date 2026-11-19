@@ -7,6 +7,7 @@ import { isAutomationRequest } from "@/lib/automation-auth";
 import { requestContext } from "@/lib/security";
 import { reconcileAdvisoryLinkedInQueue } from "@/lib/social-publications";
 import { createAuditLog } from "@/lib/store";
+import {automatedAdvisoriesEnabled} from '@/lib/automated-advisory-configuration';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ export async function GET(request: Request) {
   const automatedRequest = await isAutomationRequest(request);
   const adminRequest = isAdminRequest(request);
   if (!automatedRequest && !adminRequest) return jsonError("Unauthorized", 401);
+  if(automatedAdvisoriesEnabled())return NextResponse.json({ok:true,status:'reviewed_pipeline_owns_new_advisories',generationPerformed:false,queueReconciliationPerformed:false},{headers:noStoreHeaders});
   const backfillOnly = adminRequest && new URL(request.url).searchParams.get("backfill") === "1";
   const results = await scanAdvisorySources({ backfillOnly });
   let reconciled = 0;

@@ -1,4 +1,7 @@
 import crypto from "node:crypto";
+import {automatedAdvisoriesEnabled} from './automated-advisory-configuration.ts';
+import {assertOutsideReviewedScope,isReviewedAdvisoryFamily} from './reviewed-advisory-domain.ts';
+import {reviewedAdvisorySelection} from './reviewed-advisory-guard.ts';
 import type { Prisma, SecurityAdvisory } from "@prisma/client";
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
@@ -680,6 +683,7 @@ function advisoryPublicationIssues(source: AdvisorySourceDefinition, item: Advis
 }
 
 async function enrichCandidate(source: AdvisorySourceDefinition, item: AdvisoryCandidate) {
+  assertOutsideReviewedScope(item);
   const enriched = await enrichSecurityAdvisory({
     title: item.title,
     vendor: item.vendor,
@@ -714,6 +718,7 @@ async function enrichCandidate(source: AdvisorySourceDefinition, item: AdvisoryC
 }
 
 async function previouslyProcessedCandidate(sourceId: string, item: AdvisoryCandidate) {
+  if(isReviewedAdvisoryFamily(item))return true;
   const existing = await getPrismaClient().securityAdvisory.findFirst({
     where: { OR: [{ sourceId, externalId: item.externalId }, { slug: item.slug }] },
     select: { id: true, editorialOverride: true, editorialTrace: true }
@@ -749,11 +754,13 @@ function changesBetween(previous: SecurityAdvisory, next: AdvisoryCandidate) {
 }
 
 async function storeCandidate(sourceId: string, item: AdvisoryCandidate) {
+  assertOutsideReviewedScope(item);
   const prisma = getPrismaClient();
   const existing = await prisma.securityAdvisory.findFirst({
     where: { OR: [{ sourceId, externalId: item.externalId }, { slug: item.slug }] },
     include: { revisions: { orderBy: { version: "desc" }, take: 1 } }
   });
+  if(existing)assertOutsideReviewedScope(existing);
   if (existing?.editorialOverride) {
     await prisma.securityAdvisory.update({ where: { id: existing.id }, data: { lastVerifiedAt: new Date() } });
     return { advisory: existing, revision: existing.revisions[0]?.version || 1, changed: false };
@@ -822,9 +829,11 @@ async function storeCandidate(sourceId: string, item: AdvisoryCandidate) {
 }
 
 export async function backfillLegacyAdvisoryEditorialContent() {
+  if(automatedAdvisoriesEnabled())return null;
   const prisma = getPrismaClient();
+  const advisorySelection=await reviewedAdvisorySelection(prisma);
   const existing = await prisma.securityAdvisory.findFirst({
-    where: { status: "published", qualityScore: null, editorialOverride: false, source: { enabled: true } },
+    where: { ...advisorySelection,status: "published", qualityScore: null, editorialOverride: false, source: { enabled: true } },
     orderBy: [{ updatedAt: "desc" }],
     include: {
       source: { select: { name: true } },
@@ -832,7 +841,7 @@ export async function backfillLegacyAdvisoryEditorialContent() {
     }
   });
   if (!existing) return null;
-
+  assertOutsideReviewedScope(existing);
   const products = jsonStrings(existing.products);
   const cves = jsonStrings(existing.cves);
   const enriched = await enrichSecurityAdvisory({
@@ -991,6 +1000,7 @@ async function fetchMsrcPayload(definition: AdvisorySourceDefinition, headers: R
 }
 
 export async function scanAdvisorySources(options: { backfillOnly?: boolean } = {}) {
+  if(automatedAdvisoriesEnabled())return [{source:'Reviewed advisory pipeline',status:200,candidates:0,published:0,unchanged:0,queued:0,error:'Legacy API generation is disabled for advisories. The local research/review workflow admits immutable releases to the isolated publisher.'}];
   await ensureSources();
   const prisma = getPrismaClient();
   const sources = options.backfillOnly
@@ -1126,21 +1136,13 @@ export async function scanAdvisorySources(options: { backfillOnly?: boolean } = 
 }
 
 export async function listSecurityAdvisories(limit = 100) {
-  if (!process.env.DATABASE_URL) return [];
-  return getPrismaClient().securityAdvisory.findMany({
-    where: { status: { in: ["published", "withdrawn"] } },
-    orderBy: [{ priorityScore: "desc" }, { vendorPublishedAt: "desc" }],
-    take: Math.max(1, Math.min(limit, 250)),
-    include: { source: { select: { name: true, lastSuccessAt: true } }, revisions: { orderBy: { version: "desc" }, take: 8 } }
-  });
+  const { getPublicAdvisoryIndex } = await import("./public-advisory-index");
+  return (await getPublicAdvisoryIndex()).slice(0, Number.isFinite(limit) ? Math.max(1, Math.min(Math.trunc(limit), 250)) : 100);
 }
 
 export async function getSecurityAdvisory(slug: string) {
   if (!process.env.DATABASE_URL) return null;
-  return getPrismaClient().securityAdvisory.findFirst({
-    where: { slug, status: { in: ["published", "withdrawn"] } },
-    include: { source: { select: { name: true, officialHost: true, lastSuccessAt: true } }, revisions: { orderBy: { version: "desc" }, take: 20 } }
-  });
+  return (await import("./public-advisory-reader")).publicAdvisoryBySlug(slug);
 }
 
 function mapAdminAdvisory(record: SecurityAdvisory & {
@@ -1224,6 +1226,7 @@ function revisionPayload(content: z.output<typeof advisoryEditorSchema>, actor: 
 
 export async function createAdminSecurityAdvisory(value: unknown, actor: string) {
   const content = advisoryEditorSchema.parse(value);
+  assertOutsideReviewedScope(content);
   const prisma = getPrismaClient();
   const source = await ensureManualAdvisorySource();
   const externalId = `QCS-${crypto.createHash("sha256").update(`${content.slug}|${Date.now()}`).digest("hex").slice(0, 12).toUpperCase()}`;
@@ -1266,12 +1269,14 @@ export async function createAdminSecurityAdvisory(value: unknown, actor: string)
 
 export async function updateAdminSecurityAdvisory(id: string, value: unknown, actor: string) {
   const content = advisoryEditorSchema.parse(value);
+  assertOutsideReviewedScope(content);
   const prisma = getPrismaClient();
   const existing = await prisma.securityAdvisory.findUnique({
     where: { id },
     include: { revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true } } }
   });
   if (!existing) return null;
+  assertOutsideReviewedScope(existing);
   const version = (existing.revisions[0]?.version || 0) + 1;
   const hash = adminContentHash(content);
   const record = await prisma.securityAdvisory.update({
@@ -1319,6 +1324,7 @@ export async function setAdminAdvisoryState(id: string, action: "publish" | "wit
   });
   if (!existing) return null;
   if (action === "resume_sync" && existing.source.slug === "qcs-editorial") throw new Error("Manually created advisories do not have a vendor feed to resume.");
+  assertOutsideReviewedScope(existing);
   if (action === "publish") {
     const publishText = `${existing.title} ${existing.summary} ${existing.remediation} ${existing.workaround || ""} ${existing.exploitationStatus}`;
     if (/draft required|placeholder|vendor name|affected network product/i.test(publishText)) {
@@ -1359,6 +1365,7 @@ export async function deleteAdminSecurityAdvisory(id: string, actor: string) {
     include: { revisions: { orderBy: { version: "desc" }, take: 1, select: { version: true } } }
   });
   if (!existing) return null;
+  assertOutsideReviewedScope(existing);
   const version = (existing.revisions[0]?.version || 0) + 1;
   const record = await prisma.securityAdvisory.update({
     where: { id },

@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { getPrismaClient } from "./prisma.ts";
 import { advisoryEditorialSnapshot } from "./editorial-revision-snapshots.ts";
 import { codexImageProvider } from "./editorial-image-mode.ts";
+import { verifyCodexStaticImport } from "./codex-static-import.ts";
 import type { BlogPost } from "./blog.ts";
 import { createEditorialLineage, storySpineForArticle, storySpineForAdvisory } from "./editorial-story-lineage.ts";
 import {
@@ -57,6 +58,8 @@ export async function listCodexImageHandoffs() {
 export async function importCodexCandidate(candidate: ValidatedCodexCandidate, apply = false, db: Pick<ReturnType<typeof getPrismaClient>, "$transaction"> = getPrismaClient()) {
   const { contentType, contentId, contentRevision } = candidate.pack.source;
   const key = { contentType, contentId, contentRevision };
+  // External bytes and the live reader are verified before the short DB transaction.
+  const storage = apply ? await verifyCodexStaticImport(candidate) : null;
   // A serializable transaction keeps the source check and image write together. No
   // approval, article, or social-publication records are mutated by this importer.
   return db.$transaction(async (tx) => {
@@ -74,6 +77,7 @@ export async function importCodexCandidate(candidate: ValidatedCodexCandidate, a
     if (visuallyRepeated(candidate.manifest.perceptualHash, recent.filter((item) => item.contentId !== contentId)
       .flatMap((item) => item.perceptualHash ? [item.perceptualHash] : []))) throw new Error("New artwork since preparation is too similar; choose a different concept.");
     if (!apply || decision === "unchanged") return { action: decision, applied: false, dryRun: !apply, ...key };
+    if (!storage || (existing && existing.id !== storage.id)) throw new Error("Static image identity changed; restage this import.");
     const storySpine = contentType === "content_post"
       ? storySpineForArticle(current.content as unknown as BlogPost)
       : storySpineForAdvisory(current.content as unknown as Parameters<typeof storySpineForAdvisory>[0]);
@@ -81,7 +85,7 @@ export async function importCodexCandidate(candidate: ValidatedCodexCandidate, a
     const data = {
       status: "ready", provider: codexImageProvider, model: "built-in-imagegen", mimeType: "image/jpeg",
       prompt: candidate.concept.prompt, promptHash: digest(candidate.concept.prompt), altText: candidate.concept.altText,
-      heroImage: Buffer.from(candidate.hero), socialImage: Buffer.from(candidate.social), generatedAt: new Date(),
+      heroImage: null, socialImage: null, generatedAt: storage.generatedAt,
       qaScore: null, lastError: null,
       agentTrace: {
         provider: codexImageProvider, direction: candidate.concept, manifest: candidate.manifest,
@@ -91,7 +95,7 @@ export async function importCodexCandidate(candidate: ValidatedCodexCandidate, a
         independentAutomatedReview: false, separatePaidApiCalls: 0
       } as unknown as Prisma.InputJsonValue
     };
-    await tx.editorialImage.upsert({ where: { contentType_contentId_contentRevision: key }, create: { ...key, ...data }, update: data });
+    await tx.editorialImage.upsert({ where: { contentType_contentId_contentRevision: key }, create: { id: storage.id, ...key, ...data }, update: data });
     await tx.auditLog.create({ data: { action: "editorial_image.codex_import", actor: candidate.review.reviewer,
       target: `${contentType}:${contentId}:${contentRevision}`, metadata: { sourceHash: candidate.pack.sourceHash, manifestHash: objectDigest(candidate.manifest) } } });
     return { action: "imported", applied: true, dryRun: false, ...key };

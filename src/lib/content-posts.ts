@@ -25,6 +25,7 @@ import {
 import { evaluateEditorialReadiness } from "@/lib/editorial-publication-policy";
 import { isTrustedEditorialUrl } from "@/lib/editorial-source-policy";
 import { getPrismaClient } from "@/lib/prisma";
+import { publicBlogRows } from "@/lib/public-blog-rows";
 
 export type { RadarDraftInput } from "@/lib/content-radar-domain";
 export { contentPostStatuses } from "@/lib/content-admin-domain";
@@ -850,7 +851,7 @@ export async function moveContentPostToDraft(id: string, actor: string) {
 export async function getPublishedDatabasePosts() {
   if (process.env.STORE_DRIVER !== "postgres" || !process.env.DATABASE_URL) return [];
   try {
-    const records = await getPrismaClient().contentPost.findMany({ where: { status: "published" }, orderBy: { publishedAt: "desc" } });
+    const { data: records } = await publicBlogRows();
     return records.flatMap((record) => {
       const parsed = blogPostSchema.safeParse(record.content);
       if (!parsed.success) {
@@ -865,34 +866,28 @@ export async function getPublishedDatabasePosts() {
   }
 }
 
-export async function getAllPublishedBlogPosts(options: { strict?: boolean } = {}) {
-  const merged = new Map(blogPosts.map((post) => [post.slug, post]));
+export async function getAllPublishedBlogPosts(options: { strict?: boolean; slug?: string } = {}) {
+  const merged = new Map(blogPosts.filter(post => !options.slug || post.slug === options.slug).map((post) => [post.slug, post]));
   if (process.env.STORE_DRIVER === "postgres" && process.env.DATABASE_URL) {
     try {
-      const records = await getPrismaClient().contentPost.findMany({
-        where: { status: { in: ["published", "archived", "deleted"] } },
-        select: { id: true, slug: true, status: true, content: true },
-        orderBy: { publishedAt: "desc" }
-      });
+      const { current, data: records } = await publicBlogRows(options.slug);
+      // A database-owned draft/withdrawal must never fall through to a bundled copy.
+      for (const record of current) merged.delete(record.slug);
       for (const record of records) {
-        if (record.status === "archived" || record.status === "deleted") {
-          merged.delete(record.slug);
-          continue;
-        }
-        if (record.status !== "published") continue;
         const parsed = blogPostSchema.safeParse(record.content);
         if (parsed.success) merged.set(record.slug, parsed.data as BlogPost);
         else console.error(`Published content post ${record.id} is invalid.`, parsed.error.flatten());
       }
     } catch (error) {
       console.error("Published database posts are unavailable.", error);
-      if (options.strict) throw error;
+      // Without a live gate, an old bundled copy might now be private.
+      throw error;
     }
   }
   return [...merged.values()].sort((left, right) => right.publishedAt.localeCompare(left.publishedAt));
 }
 
 export async function getPublishedBlogPost(slug: string) {
-  const posts = await getAllPublishedBlogPosts();
+  const posts = await getAllPublishedBlogPosts({ slug, strict: true });
   return posts.find((post) => post.slug === slug);
 }

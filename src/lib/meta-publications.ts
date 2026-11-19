@@ -1,9 +1,12 @@
 import { Prisma } from "@prisma/client";
+import {assertOrdinaryAdvisoryJob,reviewedAdvisorySelection,reviewedJobExclusion} from './reviewed-advisory-guard.ts';
+import {reviewedFamilyPosts} from './reviewed-advisory-family.ts';
 import sharp from "sharp";
 import { getPrismaClient } from "./prisma.ts";
 import { siteConfig } from "./content.ts";
 import { publishedRevision, editorialDeliveryImageUrl } from "./editorial-delivery.ts";
 import { editorialImageInputForPublication } from "./editorial-image-generation.ts";
+import { hasStaticEditorialPair, readStaticEditorialImage } from "./editorial-static-media.ts";
 import { advisoryEditorialSnapshot, resolveContentPostRevision, resolveSecurityAdvisoryRevision } from "./editorial-revision-snapshots.ts";
 import { lineageFromMetadata } from "./editorial-story-lineage.ts";
 import { createMetaCaption } from "./meta-content-agents.ts";
@@ -29,12 +32,14 @@ export async function discoverMetaPublications() {
   if (!config.configured) return [];
   const prisma = getPrismaClient();
   const created: string[] = [];
+  const familyPostIds=(await reviewedFamilyPosts(prisma)).map(p=>p.id);
+  const advisorySelection=await reviewedAdvisorySelection(prisma);
   for (const channel of ["facebook", "instagram"] as const) {
     const existing = await prisma.socialPublication.findMany({ where: { channel }, select: { contentId: true } });
     const excluded = existing.map((job) => job.contentId);
     const [post, advisory] = await Promise.all([
-      prisma.contentPost.findFirst({ where: { status: "published", publishedAt: { gte: new Date(config.startAt) }, id: { notIn: excluded } }, orderBy: { publishedAt: "asc" } }),
-      prisma.securityAdvisory.findFirst({ where: { status: "published", deletedAt: null, firstSeenAt: { gte: new Date(config.startAt) }, id: { notIn: excluded } }, orderBy: { firstSeenAt: "asc" } })
+      prisma.contentPost.findFirst({ where: { status: "published", publishedAt: { gte: new Date(config.startAt) }, id: { notIn: [...excluded,...familyPostIds] } }, orderBy: { publishedAt: "asc" } }),
+      prisma.securityAdvisory.findFirst({ where: { ...advisorySelection,status: "published", deletedAt: null, firstSeenAt: { gte: new Date(config.startAt) }, id: { notIn: excluded } }, orderBy: { firstSeenAt: "asc" } })
     ]);
     const candidates = [
       ...(post ? [{ contentType: "content_post", contentId: post.id, date: post.publishedAt! }] : []),
@@ -42,6 +47,7 @@ export async function discoverMetaPublications() {
     ].sort((a, b) => a.date.getTime() - b.date.getTime());
     const candidate = candidates[0];
     if (!candidate) continue;
+    await assertOrdinaryAdvisoryJob(prisma,candidate);
     const source = await publishedRevision(candidate.contentType, candidate.contentId);
     if (!source) continue;
     const key = { channel, contentType: candidate.contentType, contentId: candidate.contentId, contentRevision: source.revision };
@@ -56,16 +62,18 @@ export async function processMetaQueue(publish = false, publicationId = "") {
   if (!config.configured) return [{ status: "not_configured", error: config.issues.join(" ") }];
   if (publish && !config.enabled) return [{ status: "disabled", error: "Meta automatic publishing is disabled. Previews can still be prepared." }];
   const prisma = getPrismaClient();
-  const stale = await prisma.socialPublication.findMany({ where: { channel: { in: ["facebook", "instagram"] }, status: "publishing", lastAttemptAt: { lt: new Date(Date.now() - 15 * 60_000) } } });
+  const reviewedExclusion=await reviewedJobExclusion(prisma);
+  const stale = await prisma.socialPublication.findMany({ where: { AND:[reviewedExclusion],channel: { in: ["facebook", "instagram"] }, status: "publishing", lastAttemptAt: { lt: new Date(Date.now() - 15 * 60_000) } } });
   for (const job of stale) {
     const uncertain = Boolean(metadata(job.metadata).dispatchStartedAt);
     await prisma.socialPublication.updateMany({ where: { id: job.id, status: "publishing", updatedAt: job.updatedAt }, data: { status: uncertain ? "needs_review" : "retry", nextAttemptAt: new Date(), lastError: uncertain ? "Interrupted after dispatch. Verify the live account before retrying." : "Interrupted before dispatch; preparation can resume." } });
   }
   const job = await prisma.socialPublication.findFirst({
-    where: { channel: { in: ["facebook", "instagram"] }, ...(publicationId ? { id: publicationId } : {}), status: { in: publish ? ["queued", "retry", "ready"] : ["queued", "retry"] }, nextAttemptAt: { lte: new Date() } },
+    where: { AND:[reviewedExclusion],channel: { in: ["facebook", "instagram"] }, ...(publicationId ? { id: publicationId } : {}), status: { in: publish ? ["queued", "retry", "ready"] : ["queued", "retry"] }, nextAttemptAt: { lte: new Date() } },
     orderBy: [{ nextAttemptAt: "asc" }, { createdAt: "asc" }]
   });
   if (!job) return [];
+  await assertOrdinaryAdvisoryJob(prisma,job);
   const claimed = await prisma.socialPublication.updateMany({ where: { id: job.id, status: job.status, updatedAt: job.updatedAt }, data: { status: "publishing", attempts: { increment: 1 }, lastAttemptAt: new Date() } });
   if (!claimed.count) return [];
   let meta = metadata(job.metadata);
@@ -75,11 +83,14 @@ export async function processMetaQueue(publish = false, publicationId = "") {
     const source = await publishedRevision(job.contentType, job.contentId);
     if (!source || source.revision !== job.contentRevision) throw new MetaPublishingError("Source is no longer published at this revision. Review it before preparing another social post.", "blocked");
     const image = await prisma.editorialImage.findUnique({ where: { contentType_contentId_contentRevision: { contentType: job.contentType, contentId: job.contentId, contentRevision: job.contentRevision } } });
-    if (!image || image.status !== "ready" || !image.generatedAt || !image.heroImage || !image.socialImage || image.provider === "qcs-procedural") throw new MetaPublishingError("Awaiting a reviewed, original contextual image. No template will be posted.", "retry", 3600);
+    if (!image || image.status !== "ready" || !image.generatedAt ||
+      (!hasStaticEditorialPair(image) && (!image.heroImage || !image.socialImage)) || image.provider === "qcs-procedural") throw new MetaPublishingError("Awaiting a reviewed, original contextual image. No template will be posted.", "retry", 3600);
     const input = await editorialImageInputForPublication(job);
     if (lineageFromMetadata(image.agentTrace)?.hash !== input.lineage.hash) throw new MetaPublishingError("The image and article do not share the reviewed content revision.", "blocked");
     const channel = job.channel as MetaChannel;
-    const bytes = channel === "instagram" ? image.heroImage : image.socialImage;
+    const stored = await readStaticEditorialImage(image, channel === "instagram" ? "hero" : "social");
+    const bytes = stored?.image || (channel === "instagram" ? image.heroImage : image.socialImage);
+    if (!bytes) throw new MetaPublishingError("Reviewed image storage is unavailable. No replacement will be generated.", "retry", 3600);
     const dimensions = await sharp(bytes).metadata();
     const ratio = (dimensions.width || 0) / (dimensions.height || 1);
     if (dimensions.format !== "jpeg" || bytes.byteLength > 8_000_000 || (channel === "instagram" && (ratio < 0.8 || ratio > 1.91 || (dimensions.width || 0) > 1440 || (dimensions.width || 0) < 320))) throw new MetaPublishingError("Image does not satisfy the channel's JPEG dimensions or file-size requirements.", "blocked");

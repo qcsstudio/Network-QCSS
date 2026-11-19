@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "releaseId": "cisco-nodejs-20261118-v4",
+  "slug": "cisco-cisco-sa-oct2026-node-js-jj3sq19u",
+  "externalId": "CISCO-SA-OCT2026-NODE-JS-JJ3SQ19U",
+  "vendor": "Cisco",
+  "canonical": "https://www.qcsstudio.com/security-advisories/cisco-cisco-sa-oct2026-node-js-jj3sq19u",
+  "candidateSha256": "d56a20caa8e34676900b0ebf72a1284cc4e760a9378ebd45f5779f543677ed53",
+  "reviewSha256": "e2125dca590cdc5c64ca6c80e6a33d887367fd114bbfae9fe0993abde748903d",
+  "sourceVerifiedAt": null,
+  "origin": "https://www.qcsstudio.com",
+  "assets": [
+    {
+      "key": "graphics/cve-2026-105482-desktop.png",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/a7d1b28cbfcdf71e4b6131e1af439eaf495b93ca5aed2245fc5555ef3787ae82.png",
+      "sha256": "a7d1b28cbfcdf71e4b6131e1af439eaf495b93ca5aed2245fc5555ef3787ae82",
+      "bytes": 215982,
+      "mimeType": "image/png"
+    },
+    {
+      "key": "graphics/cve-2026-105482-desktop.svg",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/a5abd9d92dc2c021e8c65eb7f8579601c5f4f992fbd316685b4d9cb3973e4860.svg",
+      "sha256": "a5abd9d92dc2c021e8c65eb7f8579601c5f4f992fbd316685b4d9cb3973e4860",
+      "bytes": 5062,
+      "mimeType": "image/svg+xml"
+    },
+    {
+      "key": "graphics/cve-2026-105482-mobile.png",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/a295abde06708a2bd6d84f661dfc0f084d7ecdebc7232ba8a82730e23e3e8b88.png",
+      "sha256": "a295abde06708a2bd6d84f661dfc0f084d7ecdebc7232ba8a82730e23e3e8b88",
+      "bytes": 176018,
+      "mimeType": "image/png"
+    },
+    {
+      "key": "graphics/cve-2026-105482-mobile.svg",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/8cab45e8c5f79b142fca71ef5d2c834863de8574556c10e752d799672d559310.svg",
+      "sha256": "8cab45e8c5f79b142fca71ef5d2c834863de8574556c10e752d799672d559310",
+      "bytes": 4926,
+      "mimeType": "image/svg+xml"
+    },
+    {
+      "key": "graphics/cve-2026-105483-desktop.png",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/de84d403928e016ca6a6ba344f485510db3d600a6d467adff78d119584882868.png",
+      "sha256": "de84d403928e016ca6a6ba344f485510db3d600a6d467adff78d119584882868",
+      "bytes": 206437,
+      "mimeType": "image/png"
+    },
+    {
+      "key": "graphics/cve-2026-105483-desktop.svg",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/6d14be3b3378ba238d7a44916f09e07fb9cca61526b761835cc667a9f987a69c.svg",
+      "sha256": "6d14be3b3378ba238d7a44916f09e07fb9cca61526b761835cc667a9f987a69c",
+      "bytes": 5219,
+      "mimeType": "image/svg+xml"
+    },
+    {
+      "key": "graphics/cve-2026-105483-mobile.png",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/f5d465397d03fef7c95383b174b60ea598b34def0ee4281475986491060762c8.png",
+      "sha256": "f5d465397d03fef7c95383b174b60ea598b34def0ee4281475986491060762c8",
+      "bytes": 170816,
+      "mimeType": "image/png"
+    },
+    {
+      "key": "graphics/cve-2026-105483-mobile.svg",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/5ed897d54647f4c13ed1160e4d594cd363ed47df270caafbd0f79c3db00b8a16.svg",
+      "sha256": "5ed897d54647f4c13ed1160e4d594cd363ed47df270caafbd0f79c3db00b8a16",
+      "bytes": 5104,
+      "mimeType": "image/svg+xml"
+    },
+    {
+      "key": "graphics/cve-2026-106069-desktop.png",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/2c471c82fd239be6700001e6ebb1c6ebabea067d71e10280b505b8b176d75549.png",
+      "sha256": "2c471c82fd239be6700001e6ebb1c6ebabea067d71e10280b505b8b176d75549",
+      "bytes": 199492,
+      "mimeType": "image/png"
+    },
+    {
+      "key": "graphics/cve-2026-106069-desktop.svg",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/5fba9b11b92b916178c17c36d38256da48bd38d2e45ee71fb4f79fbbff8722fc.svg",
+      "sha256": "5fba9b11b92b916178c17c36d38256da48bd38d2e45ee71fb4f79fbbff8722fc",
+      "bytes": 5046,
+      "mimeType": "image/svg+xml"
+    },
+    {
+      "key": "graphics/cve-2026-106069-mobile.png",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/89de42b5ef58d47eb0beb63456ad693ab118b2d59d5fd667f00ae8db9644ddd7.png",
+      "sha256": "89de42b5ef58d47eb0beb63456ad693ab118b2d59d5fd667f00ae8db9644ddd7",
+      "bytes": 160663,
+      "mimeType": "image/png"
+    },
+    {
+      "key": "graphics/cve-2026-106069-mobile.svg",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/ad181bf60256bdc626bb9cc1e04c97a42e6ce5b74f54eddcd384410372bb57fe.svg",
+      "sha256": "ad181bf60256bdc626bb9cc1e04c97a42e6ce5b74f54eddcd384410372bb57fe",
+      "bytes": 6213,
+      "mimeType": "image/svg+xml"
+    },
+    {
+      "key": "graphics/cve-2026-111497-desktop.png",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/4023c9f6f506fa388e44bca288499e7559f941c0b285d2a9332ec8c0b99a46d3.png",
+      "sha256": "4023c9f6f506fa388e44bca288499e7559f941c0b285d2a9332ec8c0b99a46d3",
+      "bytes": 212535,
+      "mimeType": "image/png"
+    },
+    {
+      "key": "graphics/cve-2026-111497-desktop.svg",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/3de7f6e9950f1b0bd70fa0f763de874585181c36dfae31d12b53e3cef784dac7.svg",
+      "sha256": "3de7f6e9950f1b0bd70fa0f763de874585181c36dfae31d12b53e3cef784dac7",
+      "bytes": 5328,
+      "mimeType": "image/svg+xml"
+    },
+    {
+      "key": "graphics/cve-2026-111497-mobile.png",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/d7a41b6364c8381b9e92c32810331851c6ae6ead8ed57fef38bba86c550749bb.png",
+      "sha256": "d7a41b6364c8381b9e92c32810331851c6ae6ead8ed57fef38bba86c550749bb",
+      "bytes": 168904,
+      "mimeType": "image/png"
+    },
+    {
+      "key": "graphics/cve-2026-111497-mobile.svg",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/a5cd64760867807a008b1265ea7a07ad986db30419420dd2eb6f2d95b692024d.svg",
+      "sha256": "a5cd64760867807a008b1265ea7a07ad986db30419420dd2eb6f2d95b692024d",
+      "bytes": 5196,
+      "mimeType": "image/svg+xml"
+    },
+    {
+      "key": "graphics/overview-desktop.png",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/768c5fe038db4170ebf058c0e628358a401e3841e0b8315d13fa8b08328d8c89.png",
+      "sha256": "768c5fe038db4170ebf058c0e628358a401e3841e0b8315d13fa8b08328d8c89",
+      "bytes": 204023,
+      "mimeType": "image/png"
+    },
+    {
+      "key": "graphics/overview-desktop.svg",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/dafa319ea86f40e58e6fa404dcd92ace432e088f76fbd6618d76801374630d1f.svg",
+      "sha256": "dafa319ea86f40e58e6fa404dcd92ace432e088f76fbd6618d76801374630d1f",
+      "bytes": 7195,
+      "mimeType": "image/svg+xml"
+    },
+    {
+      "key": "graphics/overview-mobile.png",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/6e1514c1c5d9b73efc28db76c5165665bde042575157677458abacac9959d6fb.png",
+      "sha256": "6e1514c1c5d9b73efc28db76c5165665bde042575157677458abacac9959d6fb",
+      "bytes": 165958,
+      "mimeType": "image/png"
+    },
+    {
+      "key": "graphics/overview-mobile.svg",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/e818646082b8f72a3b677039a8104bcbd22eaead73fc2ae8ffcddd2bb03ed516.svg",
+      "sha256": "e818646082b8f72a3b677039a8104bcbd22eaead73fc2ae8ffcddd2bb03ed516",
+      "bytes": 5115,
+      "mimeType": "image/svg+xml"
+    },
+    {
+      "key": "social/linkedin-poster.jpg",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/53c5a13314e2a0b26bf9b1f40e64eaef8d9ca22ea868c4876a5cccbaf28ac32e.jpg",
+      "sha256": "53c5a13314e2a0b26bf9b1f40e64eaef8d9ca22ea868c4876a5cccbaf28ac32e",
+      "bytes": 426044,
+      "mimeType": "image/jpeg"
+    },
+    {
+      "key": "social/cisco-advisory-reel.mp4",
+      "path": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets/cdbb5dfa49f185a0489df682f584b7de888f419d2d4397f3076c2ec8567d5521.mp4",
+      "sha256": "cdbb5dfa49f185a0489df682f584b7de888f419d2d4397f3076c2ec8567d5521",
+      "bytes": 2357394,
+      "mimeType": "video/mp4"
+    }
+  ],
+  "social": {
+    "linkedin": {
+      "caption": "Cisco's Node.js and Brotli advisory covers four vulnerabilities, not one identical risk across every device.\n\nCVE-2026-111497: malformed Brotli-compressed input can corrupt decoder memory and may lead to code execution.\nCVE-2026-105482: DNS name truncation can make an application resolve a different name from the one it checked.\nCVE-2026-105483 and CVE-2026-106069: unusual IP address forms can undermine TLS identity checking under their documented conditions.\n\nStart with the exact model, software release and operating mode. Cisco lists Nexus 3000/9000 standalone NX-OS Guest Shell as impacted; ACI mode and other products have separate status. Under investigation is neither confirmed impact nor an all-clear.\n\nUse Cisco's supported product-specific remediation. Verify availability and compatibility of the Guest Shell 4.9 or NX-OS path for your device; future target dates are not proof that software is downloadable. Do not manually replace bundled Node.js inside an appliance. Back up, define rollback and retain before/after evidence.\n\nThe diagram illustrates software behaviour, not a recorded exploit or device test.\n\nRead the detailed QCS assessment:\nhttps://www.qcsstudio.com/security-advisories/cisco-cisco-sa-oct2026-node-js-jj3sq19u\n\nOriginal Cisco advisory:\nhttps://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-oct2026-node-js-Jj3SQ19u\n\n#Cisco #NetworkSecurity #CyberSecurity #VulnerabilityManagement #NetworkEngineering #QCSStudio",
+      "captionFileSha256": "228ecae5b6e091a8e15616624fabe2d76bead25a955dcec4844c8c858aaf62d9",
+      "accountId": "https://www.linkedin.com/in/rksankhyan/",
+      "assetKey": "social/linkedin-poster.jpg",
+      "payloadSha256": "e50cdf2fe5ce5ee92030303ef71a4ae3375082c0b9c3d8683dcbf0c8e94b1116"
+    },
+    "facebook": {
+      "caption": "Cisco's Node.js and Brotli advisory covers four vulnerabilities, not one identical risk across every device.\n\nCVE-2026-111497: malformed Brotli-compressed input can corrupt decoder memory and may lead to code execution.\nCVE-2026-105482: DNS name truncation can make an application resolve a different name from the one it checked.\nCVE-2026-105483 and CVE-2026-106069: unusual IP address forms can undermine TLS identity checking under their documented conditions.\n\nStart with the exact model, software release and operating mode. Cisco lists Nexus 3000/9000 standalone NX-OS Guest Shell as impacted; ACI mode and other products have separate status. Under investigation is neither confirmed impact nor an all-clear.\n\nUse Cisco's supported product-specific remediation. Verify availability and compatibility of the Guest Shell 4.9 or NX-OS path for your device; future target dates are not proof that software is downloadable. Do not manually replace bundled Node.js inside an appliance. Back up, define rollback and retain before/after evidence.\n\nThe animation illustrates software behaviour, not a recorded exploit or device test.\n\nDetailed QCS guide:\nhttps://www.qcsstudio.com/security-advisories/cisco-cisco-sa-oct2026-node-js-jj3sq19u\n\nOriginal Cisco advisory:\nhttps://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-oct2026-node-js-Jj3SQ19u\n\n#Cisco #NetworkSecurity #CyberSecurity #VulnerabilityManagement #NetworkEngineering #QCSStudio",
+      "captionFileSha256": "1461c289fae2df7515779a088f8607f6ee0c8a9fe4a70a2e0c7bd53f92c9c520",
+      "accountId": "428759466975905",
+      "assetKey": "social/cisco-advisory-reel.mp4",
+      "payloadSha256": "9649c089130b8b9368181b264900018613efc8736065923cebd15eee8379a777"
+    },
+    "instagram": {
+      "caption": "Cisco's Node.js and Brotli advisory covers four vulnerabilities, not one identical risk across every device.\n\nCVE-2026-111497: malformed Brotli-compressed input can corrupt decoder memory and may lead to code execution.\nCVE-2026-105482: DNS name truncation can make an application resolve a different name from the one it checked.\nCVE-2026-105483 and CVE-2026-106069: unusual IP address forms can undermine TLS identity checking under their documented conditions.\n\nStart with the exact model, software release and operating mode. Cisco lists Nexus 3000/9000 standalone NX-OS Guest Shell as impacted; ACI mode and other products have separate status. Under investigation is neither confirmed impact nor an all-clear.\n\nUse Cisco's supported product-specific remediation. Verify availability and compatibility of the Guest Shell 4.9 or NX-OS path for your device; future target dates are not proof that software is downloadable. Do not manually replace bundled Node.js inside an appliance. Back up, define rollback and retain before/after evidence.\n\nThe animation illustrates software behaviour, not a recorded exploit or device test.\n\nVisit qcsstudio.com and open Security Advisories to find the Cisco Node.js and Brotli guide. Caption URLs are references, not clickable Instagram links:\nhttps://www.qcsstudio.com/security-advisories/cisco-cisco-sa-oct2026-node-js-jj3sq19u\n\nOriginal Cisco advisory:\nhttps://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-oct2026-node-js-Jj3SQ19u\n\n#Cisco #NetworkSecurity #CyberSecurity #VulnerabilityManagement #NetworkEngineering #QCSStudio",
+      "captionFileSha256": "cc9677da45a003f54f89c529cfadbaed6ad3a941c188f4ce3fccbe26969cb32e",
+      "accountId": "@qcsstudio",
+      "assetKey": "social/cisco-advisory-reel.mp4",
+      "payloadSha256": "09c8cf93eef3acf29945336465f54ec170ca933b82e5964dae3a36e28142d357"
+    }
+  },
+  "socialReviewSha256": "bf1fb8957b295b93ab771c8f548a402535fe4d670c14c69ffc11ba862491fb78",
+  "transport": "server-controlled-native-handoff",
+  "guideSha256": "5e233c07cbddaddeaadcf8cc45431dc2d3a738865967ad12f389c61c5a0deb4f",
+  "assetPathPrefix": "/reviewed-advisories/cisco-nodejs-20261118-v4/assets",
+  "storage": "existing-qcs-static-deployment"
+}

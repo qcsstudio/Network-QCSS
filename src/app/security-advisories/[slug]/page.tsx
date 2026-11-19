@@ -10,6 +10,10 @@ import { siteConfig } from "@/lib/content";
 import { createPageMetadata } from "@/lib/seo";
 import { readyAdvisoryImages } from "@/lib/advisory-image-availability";
 import { loadSection } from "@/lib/section-availability";
+import {ReviewedAdvisoryArticle} from '@/components/reviewed-advisory-article';
+import {guideAsset} from '@/lib/reviewed-advisory-domain';
+import { AutomatedAdvisoryArticle } from '@/components/automated-advisory-article';
+import { automatedAssetUrl } from '@/lib/automated-advisory-domain';
 
 type AdvisoryPageProps = { params: Promise<{ slug: string }> };
 
@@ -18,6 +22,7 @@ const loadAdvisory = cache(getSecurityAdvisory);
 const loadAdvisoryImage = cache(async (slug: string) => {
   const advisory = await loadAdvisory(slug);
   if (!advisory) return undefined;
+  if(advisory.reviewedRelease)return {url:guideAsset(advisory.reviewedRelease,'graphics/overview-desktop.png'),altText:advisory.reviewedRelease.guide.graphics[0].alt};
   const result = await loadSection("Advisory artwork", () => readyAdvisoryImages([advisory]));
   return result.data?.get(advisory.id);
 });
@@ -30,12 +35,30 @@ export async function generateMetadata({ params }: AdvisoryPageProps): Promise<M
   const { slug } = await params;
   const advisory = await loadAdvisory(slug);
   if (!advisory) return {};
+  if (advisory.automaticRelease) {
+    const release = advisory.automaticRelease;
+    const image = release.assets.find(asset => asset.key === 'linkedin')
+      || release.assets.find(asset => asset.key === 'diagram');
+    const metadata = createPageMetadata({
+      title: release.title,
+      description: release.summary,
+      path: new URL(`/security-advisories/${release.slug}`, siteConfig.url).href,
+      ...(image ? { image: { url: automatedAssetUrl(image), width: image.width, height: image.height, alt: image.alt } } : {}),
+      article: { publishedTime: advisory.firstSeenAt.toISOString(), modifiedTime: (advisory.revisions[0]?.createdAt || advisory.updatedAt).toISOString() },
+      keywords: [release.vendor, ...release.cves, ...release.products, 'security advisory', 'vendor patch']
+    });
+    if (!image) {
+      metadata.openGraph = { ...metadata.openGraph, images: [] };
+      metadata.twitter = { ...metadata.twitter, card: 'summary', images: [] };
+    }
+    return metadata;
+  }
   const image = await loadAdvisoryImage(slug);
   const metadata = createPageMetadata({
     title: advisory.title,
     description: advisory.summary,
     path: `/security-advisories/${advisory.slug}`,
-    ...(image ? { image: { url: image.url.replace("variant=hero", "variant=social"), width: 1200, height: 627, alt: image.altText } } : {}),
+    ...(image ? { image: { url: image.url.replace("variant=hero", "variant=social"), width: advisory.reviewedRelease?2600:1200, height: advisory.reviewedRelease?1625:627, alt: image.altText } } : {}),
     article: { publishedTime: advisory.firstSeenAt.toISOString(), modifiedTime: (advisory.revisions[0]?.createdAt || advisory.updatedAt).toISOString() },
     keywords: [advisory.vendor, ...strings(advisory.cves), ...strings(advisory.products), "security advisory", "vendor patch"]
   });
@@ -50,6 +73,8 @@ export default async function SecurityAdvisoryPage({ params }: AdvisoryPageProps
   const { slug } = await params;
   const advisory = await loadAdvisory(slug);
   if (!advisory) notFound();
+  if(advisory.reviewedRelease)return <ReviewedAdvisoryArticle release={advisory.reviewedRelease} canonical={`${siteConfig.url}/security-advisories/${advisory.slug}`} publishedAt={advisory.firstSeenAt.toISOString()} modifiedAt={(advisory.revisions[0]?.createdAt||advisory.updatedAt).toISOString()}/>;
+  if (advisory.automaticRelease) return <AutomatedAdvisoryArticle release={advisory.automaticRelease} canonical={new URL(`/security-advisories/${advisory.slug}`, siteConfig.url).href} publishedAt={advisory.firstSeenAt.toISOString()} modifiedAt={(advisory.revisions[0]?.createdAt || advisory.updatedAt).toISOString()} />;
   const cves = strings(advisory.cves);
   const products = strings(advisory.products);
   const affectedVersions = strings(advisory.affectedVersions);
