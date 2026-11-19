@@ -1,0 +1,43 @@
+name: QCS reviewed advisory publisher
+
+on:
+  schedule:
+    - cron: '15 3,15 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Inspect the admitted release without publication
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: qcs-reviewed-advisory-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish-reviewed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Submit only an immutable independently reviewed release
+        shell: bash
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: |
+          set -euo pipefail
+          for stage in website linkedin facebook instagram; do
+            token="$(curl --fail --silent --show-error \
+              -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https%3A%2F%2Fwww.qcsstudio.com%2Fautomation%2Freviewed-advisories" | jq -r '.value')"
+            [[ -n "$token" && "$token" != "null" ]]
+            query="?stage=${stage}"
+            if [[ "$DRY_RUN" == "true" ]]; then query="${query}&dryRun=1"; fi
+            # Never retry a publication request after an ambiguous network outcome.
+            curl --fail-with-body --silent --show-error --max-time 300 \
+              -X POST -H "Authorization: Bearer ${token}" -H 'Content-Length: 0' \
+              "https://www.qcsstudio.com/api/cron/reviewed-advisories${query}"
+          done
