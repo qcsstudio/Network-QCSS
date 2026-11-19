@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "qcs-reviewed-advisory-rollout": false
+    }
+  },
   "crons": [
     {
       "path": "/api/admin/content-radar",
@@ -16,5 +21,6 @@
       "path": "/api/cron/ccna-daily",
       "schedule": "35 2 * * 1-5"
     }
-  ]
+  ],
+  "buildCommand": "node scripts/verifygrid-production-preflight.mjs && npm run build"
 }

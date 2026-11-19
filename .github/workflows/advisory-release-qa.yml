@@ -1,0 +1,43 @@
+name: QCS advisory release filesystem QA
+
+on:
+  push:
+    branches: [qcs-reviewed-advisory-rollout]
+    paths:
+      - scripts/admit-automated-advisory.mjs
+      - src/lib/automated-advisory-domain.ts
+      - src/content/automated-advisory-releases.json
+      - tests/automated-advisory-compiler.test.mjs
+      - tests/helpers/automated-release-fixture.mjs
+      - .github/workflows/advisory-release-qa.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  filesystem-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ''
+      OPENAI_API_KEY: ''
+      BFL_API_KEY: ''
+      QCS_REVIEWED_ADVISORIES_ENABLED: '0'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.22.1'
+      - name: Install only locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run the real file-link cases without publication credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD
+          sha256sum scripts/admit-automated-advisory.mjs tests/automated-advisory-compiler.test.mjs src/lib/automated-advisory-domain.ts
+          node --experimental-strip-types --import ./tests/forbid-live-network.mjs --test --test-reporter=tap tests/automated-advisory-compiler.test.mjs | tee /tmp/qcs-advisory-compiler.tap
+          node -e 'const fs=require("node:fs"),assert=require("node:assert/strict"),t=fs.readFileSync("/tmp/qcs-advisory-compiler.tap","utf8");for(const n of ["fail","skipped","cancelled","todo"])assert.match(t,new RegExp("^# "+n+" 0$","m"));console.log("Filesystem compiler suite completed with no skipped cases.")'
