@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "externalId": "VMSA-2026-0011",
+  "vendor": "VMware",
+  "slug": "vmware-vmsa-2026-0011-patching-guide",
+  "title": "VMware VMSA-2026-0011: 23 CVEs, separate patch lanes",
+  "summary": "Broadcom's 24 November 2026 advisory covers 23 CVEs across vCenter, ESX, Workstation, Fusion, Tools and Avi. Maximum published CVSS 3.1 score: 9.8; individual CVEs range from 3.4 to 9.8. Critical overall does not mean every issue is Critical. Use separate component patch lanes: ESX 9.0 retains two Patch Pending items, Avi has partial branch fixes, and vCenter updates do not update hosts or guest Tools. Verify the build, activation and normal application operation separately.",
+  "severity": "critical",
+  "cvssScore": 9.8,
+  "cves": [
+    "CVE-2026-123903", "CVE-2026-123904", "CVE-2026-123905", "CVE-2026-123906", "CVE-2026-123907", "CVE-2026-123908", "CVE-2026-123909",
+    "CVE-2026-123910", "CVE-2026-123911", "CVE-2026-123912", "CVE-2026-123913", "CVE-2026-123914", "CVE-2026-123915", "CVE-2026-123916",
+    "CVE-2026-123918", "CVE-2026-123919", "CVE-2026-123920", "CVE-2026-123921", "CVE-2026-123922", "CVE-2026-123923", "CVE-2026-123924", "CVE-2026-123925", "CVE-2026-123926"
+  ],
+  "products": ["VMware vCenter", "VMware ESX / ESXi", "VMware Workstation", "VMware Fusion", "VMware Tools", "VMware Avi Load Balancer", "VMware Cloud Foundation", "VMware vSphere Foundation", "VMware Telco Cloud Platform", "VMware Telco Cloud Infrastructure"],
+  "affectedVersions": [
+    "vCenter and ESX: matrix branches 9.1.x.x, 9.0.x.x, 8.0 and 7.0; VCF/Telco paths differ.",
+    "Workstation/Fusion: 25H2 rows for CVE-2026-123912 and CVE-2026-123916; unlisted older releases are not presumed safe.",
+    "Tools: 13.x.x.x, 12.x.x and 11.x.x on Windows/Linux, with architecture/distribution footnotes.",
+    "Avi: CVE-specific ranges across 32.1.x, 31.x, 30.x and 22.x; see the branch map."
+  ],
+  "fixedVersions": [
+    "vCenter: 9.1.2, 9.0.2.0300 or 8.0 U3m, according to branch.",
+    "ESX: ESXi-9.1.2.0-25946735 or ESXi80U3m-25926933, according to branch.",
+    "ESX 9.0: ESXi-9.0.2.0200-25953133 fixes five listed CVEs; CVE-2026-123914 and CVE-2026-123915 remain Patch Pending.",
+    "Workstation/Fusion: 26H1u1. Tools: 13.1.10.0 or 12.5.6.0, with the footnotes below.",
+    "Avi: 32.1.4 covers all eight per the Q&A; other named targets cover subsets.",
+    "VCF 5.x, Telco and extended-support systems: use their documented component paths below."
+  ],
+  "exploitationStatus": "The saved advisory says the issues were privately reported; it does not state that active exploitation is confirmed. None of these 23 CVE identifiers matched the CISA KEV snapshot retrieved at 2026-11-24T20:55:37.874Z. That dated catalog result is not proof that exploitation has not occurred or cannot occur. Exploitation reports for other advisory families must not be transferred to this one.",
+  "mechanism": "The advisory combines different attack paths: network-reachable vCenter and ESX flaws, backup-repository access, compromised service accounts, guest/VMX privileges, host root access and authenticated Avi roles. Do not call all 23 unauthenticated Internet attacks. Assess the exact component, branch and CVE conditions; a healthy management console cannot establish that hosts, desktops, guest Tools or Avi are fixed.",
+  "affectedConditions": "Inventory every component, exact version/build, workload owner and legitimate access path, including applicable witness, VCF, Telco and integrated-system dependencies. Maximum published CVSS 3.1 score: 9.8; individual CVEs range from 3.4 to 9.8. The single displayed score is that maximum, not a combined score or a rating for all 23 issues. USB exploitation is contained in ESX's VMX sandbox but may reach a Workstation/Fusion host.",
+  "remediation": "Match inventory to the original matrix. Check interoperability, release notes, recovery material, storage health and migration capacity. Prioritize the network-reachable critical issues through the organization's emergency-change process; pilot the supported update and verify before expanding.\n\nKeep ESX 9.0's two pending CVEs open and obtain guidance on temporary controls or a supported branch transition. For vCenter/ESX 7.0, the matrix requires the extended-support route, not an invented public fixed build. Absence of an older release from a matrix does not establish safety.",
+  "workaround": "KB463535 is an interim ESXi 8.x-only mitigation for CVE-2026-123910 and CVE-2026-123911: restrict IOFilterVP port 9080 to the vCenter Server IP. Read the current KB and assess management, storage and cluster dependencies before changing rules. It is not a patch or coverage for other branches/CVEs.\n\nRemoving an unnecessary XHCI controller may mitigate CVE-2026-123912 only, but can disrupt console input and USB devices. Test guest requirements. Avoid improvised service shutdowns or broad network blocks that may harm workloads.",
+  "verification": "Record three outcomes separately: the applicable installed build, activation of fixed code, and healthy legitimate applications. These ESX updates use the normal host-remediation/restart path; the vCenter updates are not Quick Patch eligible.\n\nA VM uses fixed VMX after power-on or vMotion to an updated host. A guest OS restart alone does not restart VMX. Account for non-migratable workloads and verify in-guest Tools separately.\n\nRetest management/directory operations, storage, networking, representative transactions and Avi routing. Do not run exploit payloads. An installer result or version string alone proves neither application health nor incident clearance.",
+  "recovery": "Confirm usable vendor-supported recovery material before rollout; do not assume a generic snapshot suffices. Stop for failed prechecks, degraded storage, insufficient evacuation capacity or unexplained service/application failures. Preserve diagnostics and use the component's supported recovery path.\n\nRollback may restore service while reintroducing exposure. Retain temporary controls and unresolved-risk records. Suspected compromise or persistence requires incident-response escalation, not patch-and-reboot clearance.",
+  "limitations": [
+    "Recheck the 24 November 2026 matrix before changing systems, especially pending entries.",
+    "ESX 9.0 fixes remain pending for CVE-2026-123914 and CVE-2026-123915.",
+    "No unresolved ESX USB score or precise Tools/VGAuth trigger is asserted.",
+    "Avi 31.x/CVE-2026-123926 needs clarified vendor applicability and target guidance.",
+    "KB463535 applies only to ESXi 8.x and its two named I/O-filter CVEs.",
+    "No customer inventory, exploit testing, runtime, change execution or application acceptance is claimed."
+  ],
+  "definitions": [
+    {"term": "CVE", "definition": "A vulnerability identifier, not a severity rating or proof of exposure."},
+    {"term": "vCenter", "definition": "The management component, separate from hosts and guest software."},
+    {"term": "ESX / ESXi", "definition": "The hypervisor running VMs; exact patch identifiers may retain the ESXi prefix."},
+    {"term": "VMX", "definition": "A host-side VM process, distinct from the guest operating system."},
+    {"term": "VMware Tools", "definition": "Software inside the guest, with its own update lane."},
+    {"term": "VGAuth", "definition": "The VMware Guest Authentication service."},
+    {"term": "vmdir", "definition": "The VMware Directory Service."},
+    {"term": "Service Engine", "definition": "The Avi component named in the routing-management issue; distinguish its administrators from Controller administrators."},
+    {"term": "Patch Pending", "definition": "No fixed patch is listed for that component/CVE row."}
+  ],
+  "sections": [
+    {
+      "heading": "vCenter: all seven CVE conditions",
+      "body": "These seven issues share the vCenter patch lane, not a single prerequisite. Follow the component's release row below rather than treating every condition as a remote code-execution path.",
+      "bullets": [
+        "CVE-2026-123903: authentication bypass in VMware Directory Service. An actor with network access to vCenter may bypass authentication and obtain unauthorized system access. Vendor severity: Critical; CVSSv3 9.8.",
+        "CVE-2026-123904: arbitrary file write while processing certain archives. Access to the backup repository is the stated prerequisite; writing as root may lead to appliance code execution. Vendor severity: Important; CVSSv3 7.5.",
+        "CVE-2026-123905: a VMware Directory Service denial-of-service issue reachable by an actor with network access to vCenter. Vendor severity: Important; CVSSv3 7.5.",
+        "CVE-2026-123906: another VMware Directory Service denial-of-service issue with the vendor's network-access prerequisite. Vendor severity: Important; CVSSv3 7.5.",
+        "CVE-2026-123907: a third VMware Directory Service denial-of-service issue, not a separate confirmed incident. Vendor severity: Important; CVSSv3 7.5.",
+        "CVE-2026-123908: a vpxd script privilege-escalation flaw. The actor must already have compromised the vpxd service account to escalate to root. Vendor severity: Important; CVSSv3 6.7.",
+        "CVE-2026-123909: failure to enforce a vSphere Distributed Switch security policy. The stated actor is local to a VM; do not describe it as an anonymous network login bypass. Vendor severity: Moderate; CVSSv3 5.2."
+      ],
+      "sourceUrls": ["https://support.broadcom.com/web/ecx/support-content-notification/-/external/content/SecurityAdvisories/0/39626"]
+    },
+    {
+      "heading": "vCenter release and platform map",
+      "body": "The following targets cover the seven vCenter CVEs in the corresponding matrix rows. The branch label matters: a vCenter target is not an ESX or guest Tools target.",
+      "bullets": [
+        "9.1.x.x: vCenter 9.1.2. 9.0.x.x: vCenter 9.0.2.0300. Standalone 8.0: vCenter 8.0 U3m.",
+        "vCenter 7.0: contact Broadcom Support if the organization has an extended support contract; no general fixed build is supplied in that row.",
+        "VCF 5.x: the matrix names 5.2.5 and links KB88287 for asynchronous component patching. The Q&A identifies vCenter 8.0 U3m for this path. A platform-version label does not replace checking the component itself.",
+        "KB463501 identifies vCenter 8.0 U3m for TCI 3.0 and TCP 3.0, 4.x, 5.0.x, 5.1.x and 5.2. For unlisted or extended-support Telco versions, obtain supported upgrade, mitigation or migration guidance."
+      ],
+      "sourceUrls": ["https://support.broadcom.com/web/ecx/support-content-notification/-/external/content/SecurityAdvisories/0/39626", "https://knowledge.broadcom.com/external/article/463501", "https://raw.githubusercontent.com/vmware/vcf-security-and-compliance-guidelines/main/security-advisories/vmsa-2026-0011/README.md"]
+    },
+    {
+      "heading": "ESX and desktop hypervisors: all seven CVE conditions",
+      "body": "The host and guest boundaries differ. In particular, the two critical I/O-filter issues require network access to ESX, not an existing foothold in a guest VM.",
+      "bullets": [
+        "CVE-2026-123910: heap out-of-bounds write in the I/O-filter service. An actor with network access to ESX may execute code on the host. Critical; CVSSv3 9.8.",
+        "CVE-2026-123911: use-after-free in the I/O-filter service, also described as permitting host code execution with network access to ESX. Critical; CVSSv3 9.8.",
+        "CVE-2026-123912: XHCI USB-controller out-of-bounds write. The vendor describes local administrative privileges in a VM. ESX exploitation is contained in VMX's sandbox; Workstation/Fusion may permit desktop-host code execution. Workstation/Fusion are Critical with CVSSv3 9.3; do not transfer that score or outcome to ESX.",
+        "CVE-2026-123913: VMkernel stack-buffer overflow. The actor already needs privileges within the VMX process to elevate privileges. Important; CVSSv3 8.2.",
+        "CVE-2026-123914: improper protection of the host configuration store. The stated condition is root access on an ESX host with Secure Boot enabled. Moderate; CVSSv3 6.7. ESX 9.0 remains Patch Pending.",
+        "CVE-2026-123915: signature-verification bypass that can permit malicious files to persist across reboots. Do not infer extra prerequisites from a calculator link or treat a reboot as removal of persistence. Moderate; CVSSv3 6.3. ESX 9.0 remains Patch Pending.",
+        "CVE-2026-123916: guest RPC denial of service. The advisory's attack description says a non-administrative guest actor can crash the VMX process, denying service to that VM. Moderate; CVSSv3 5.5. Workstation and Fusion are also in scope."
+      ],
+      "sourceUrls": ["https://support.broadcom.com/web/ecx/support-content-notification/-/external/content/SecurityAdvisories/0/39626"]
+    },
+    {
+      "heading": "ESX release map: keep the two pending items visible",
+      "body": "Use the exact build identifier and CVE set together. An available express patch does not imply that every issue on that branch is resolved.",
+      "bullets": [
+        "ESX 9.1.x.x: ESXi-9.1.2.0-25946735 covers the seven listed ESX CVEs.",
+        "ESX 9.0.x.x: ESXi-9.0.2.0200-25953133 covers CVE-2026-123910, CVE-2026-123911, CVE-2026-123912, CVE-2026-123913 and CVE-2026-123916 only.",
+        "ESX 9.0.x.x: CVE-2026-123914 and CVE-2026-123915 have a separate Patch Pending row. Do not close them after installing the five-CVE patch.",
+        "ESX 8.0: ESXi80U3m-25926933 is listed for both the critical I/O-filter pair and the other five ESX issues. Only the critical pair's workaround column points to KB463535.",
+        "ESX 7.0: the matrix directs customers with an extended support contract to Broadcom Support. Do not infer immunity or invent a public fixed build.",
+        "VCF 5.x: follow the matrix's 5.2.5/KB88287 component path, with the Q&A identifying ESX 8.0 U3m. Updating a different VCF component does not update the hosts.",
+        "KB463501 lists ESX 80U3m, linked as ESXi80U3m-25926933, for TCP 5.0.x and 5.1.x. Its TCI ESX entry is None. That entry is not a blanket statement that every TCI deployment or unlisted host version is immune."
+      ],
+      "sourceUrls": ["https://support.broadcom.com/web/ecx/support-content-notification/-/external/content/SecurityAdvisories/0/39626", "https://knowledge.broadcom.com/external/article/463501", "https://knowledge.broadcom.com/external/article/463535", "https://raw.githubusercontent.com/vmware/vcf-security-and-compliance-guidelines/main/security-advisories/vmsa-2026-0011/README.md"]
+    },
+    {
+      "heading": "Desktop hypervisors and guest Tools are separate lanes",
+      "body": "The Workstation and Fusion matrix rows list 25H2 as affected by CVE-2026-123912 and CVE-2026-123916, with 26H1u1 as the fixed release. An ESX update does not update an administrator's Workstation or Fusion installation.\n\nCVE-2026-123918 is the VMware Tools VGAuth denial-of-service issue, rated Moderate with CVSSv3 5.5. Keep the explanation at the stated availability impact: the vendor section's attack paragraph needs clarification before it supports a precise trigger narrative. Tools must be assessed inside each guest, not inferred from the host version.",
+      "bullets": [
+        "Tools 13.x.x.x: the matrix names 13.1.10.0. Tools 12.x.x and 11.x.x: it names 12.5.6.0.",
+        "For Windows 32-bit, the footnote identifies Tools 12.4.11 as part of the 12.5.6 release. Do not silently substitute a 64-bit package or normalize that footnote into a different build.",
+        "Linux open-vm-tools fixes are distributed by the Linux vendor; their version numbers can differ. Use that distribution's security package mapping and activation guidance."
+      ],
+      "sourceUrls": ["https://support.broadcom.com/web/ecx/support-content-notification/-/external/content/SecurityAdvisories/0/39626", "https://raw.githubusercontent.com/vmware/vcf-security-and-compliance-guidelines/main/security-advisories/vmsa-2026-0011/README.md"]
+    },
+    {
+      "heading": "Avi: all eight CVE conditions",
+      "body": "Administrative and authenticated access are important prerequisites here. In particular, neither a shared credential on a Service Engine nor an unspecified Controller resource-access flaw should be rewritten as an unauthenticated Internet bypass.",
+      "bullets": [
+        "CVE-2026-123919: insecure deserialization. Local administrative access on the Avi Controller may lead to arbitrary code execution as root. Moderate; CVSSv3 6.7.",
+        "CVE-2026-123920: local privilege escalation from administrative access on the Avi Controller to root. Moderate; CVSSv3 6.7.",
+        "CVE-2026-123921: command injection with network access and administrative privileges on Avi Load Balancer; the affected execution context is the Controller. Moderate; CVSSv3 6.6.",
+        "CVE-2026-123922: disclosure of password hashes to an actor with network access and administrative privileges. Password hashes are not a claim that plaintext passwords were disclosed. Moderate; CVSSv3 4.9.",
+        "CVE-2026-123923: an actor already administering a Service Engine may access its routing-management interface using a credential shared across installations. Preserve that SE-admin prerequisite. Low; CVSSv3 3.4.",
+        "CVE-2026-123924: an Avi Controller administrator may access resources beyond intended privileges. The advisory body does not establish an SSH-specific disclosure claim here. Low; CVSSv3 3.6.",
+        "CVE-2026-123925: directory traversal with network access and administrative privileges, allowing file access and deletion outside the intended directory. Low; CVSSv3 3.8.",
+        "CVE-2026-123926: an authenticated actor with network access may read resources beyond intended privileges. This is not the same prerequisite as every administrative Avi issue. Moderate; CVSSv3 6.5."
+      ],
+      "sourceUrls": ["https://support.broadcom.com/web/ecx/support-content-notification/-/external/content/SecurityAdvisories/0/39626"]
+    },
+    {
+      "heading": "Avi release map: partial fixes are not a complete closeout",
+      "body": "The vendor Q&A identifies 32.1.4 as resolving all eight Avi issues. Plan a supported upgrade path rather than treating that recommendation as permission for an arbitrary cross-branch jump. The matrix's smaller targets cover only the CVEs named in their rows.",
+      "bullets": [
+        "32.1.1-32.1.3: the seven issues CVE-2026-123919 through CVE-2026-123925 are mapped to 32.1.4, with each CVE's conditions described above.",
+        "31.1.1-31.2.2: CVE-2026-123919 and CVE-2026-123921 map to 31.2.3. For 31.1.1-31.2.3, CVE-2026-123920, CVE-2026-123922, CVE-2026-123923, CVE-2026-123924 and CVE-2026-123925 map to 32.1.4.",
+        "30.1.1-30.2.6: CVE-2026-123920 maps to 30.2.7. That does not resolve the rest of the older branch's issues.",
+        "30.1.1-30.2.7: CVE-2026-123919 and CVE-2026-123921 map to 31.2.3; CVE-2026-123922, CVE-2026-123923, CVE-2026-123924 and CVE-2026-123925 map to 32.1.4.",
+        "22.1.1-22.1.7: CVE-2026-123919 and CVE-2026-123921 map to 31.2.3; CVE-2026-123920, CVE-2026-123922, CVE-2026-123923, CVE-2026-123924 and CVE-2026-123925 map to 32.1.4.",
+        "For CVE-2026-123926 alone, the 32.1.3 row names 32.1.3-2p1; the 32.1.1-32.1.2 row names 32.1.2-2p3. These are not seven-other-CVE fixes.",
+        "The matrix marks 30.x and 22.x Not Impacted for CVE-2026-123926 only. The other applicable Avi CVEs remain relevant.",
+        "Do not mark Avi 31.x/CVE-2026-123926 resolved. The matrix omits a 31.x row while the Q&A supplies additional guidance. Obtain a clarified applicability and supported-target decision rather than inventing a definitive row."
+      ],
+      "sourceUrls": ["https://support.broadcom.com/web/ecx/support-content-notification/-/external/content/SecurityAdvisories/0/39626", "https://raw.githubusercontent.com/vmware/vcf-security-and-compliance-guidelines/main/security-advisories/vmsa-2026-0011/README.md"]
+    },
+    {
+      "heading": "Close each lane with evidence, not a single green indicator",
+      "body": "Record each component's CVEs, matrix row, current/target build, temporary controls, activation steps and application checks. Keep pending items open.\n\nFollow the responsible provider's procedure for managed bundles and engineered systems. Check exact interoperability, vSAN and witness dependencies; do not impose a universal vCenter-first order. Close the response with normal platform and application evidence, not offensive testing or a single green update indicator.",
+      "sourceUrls": ["https://raw.githubusercontent.com/vmware/vcf-security-and-compliance-guidelines/main/security-advisories/vmsa-2026-0011/README.md", "https://support.broadcom.com/web/ecx/support-content-notification/-/external/content/SecurityAdvisories/0/39626"]
+    }
+  ],
+  "sources": [
+    {"url": "https://support.broadcom.com/web/ecx/support-content-notification/-/external/content/SecurityAdvisories/0/39626", "bodySha256": "37f58ce19cde3137660f84757dcc18723d47d29e1f88afc227a3d0b6cdddcb4d"},
+    {"url": "https://knowledge.broadcom.com/external/article/463535", "bodySha256": "03bc4d1de3ebebc7cbca40cbc331299e5c7884c3af663df7fdbc34a3041b6e6a"},
+    {"url": "https://knowledge.broadcom.com/external/article/463501", "bodySha256": "001135fc6a5f0194edf156455f9d0820f1577329953deb0ea1454ba809dbe696"},
+    {"url": "https://raw.githubusercontent.com/vmware/vcf-security-and-compliance-guidelines/main/security-advisories/vmsa-2026-0011/README.md", "bodySha256": "5789cce563a24fac9a78b371cbfc809bab60cc10ccb41187f73410fa09ac26ac"},
+    {"url": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json", "bodySha256": "17dfaace755c075c10757f20687eaa588181ed9663de80e82936a08ba08e8a1f"}
+  ]
+}
