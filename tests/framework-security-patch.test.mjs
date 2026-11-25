@@ -61,8 +61,8 @@ test('all platform bindings are patched and no older nested Sharp survives', () 
 
 test('installed runtime uses patched Next and Sharp with functional image decoding', async () => {
   assert.equal(require('next/package.json').version, '16.4.6');
-  assert.equal(require('sharp/package.json').version, '0.35.5');
   const sharp = require('sharp');
+  assert.equal(sharp.versions.sharp, '0.35.5');
   const input = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="12"><rect width="16" height="12" fill="#c11352"/></svg>');
   const png = await sharp(input).resize(8, 6).png().toBuffer();
   const metadata = await sharp(png).metadata();
