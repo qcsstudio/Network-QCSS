@@ -5,12 +5,12 @@ import { createPageMetadata } from "@/lib/seo";
 import { LENS_PATH } from "@/lib/config-lens/catalog";
 import styles from "@/components/config-lens.module.css";
 
-export const metadata = createPageMetadata({ title: "Network Configuration Explainer | Cisco and Fortinet", description: "Explain supported Cisco and Fortinet configurations in your browser, with plain-language guidance, relationship diagrams and secret masking. Configurations stay on your device.", path: LENS_PATH, keywords: ["network configuration explainer", "Cisco configuration explained", "FortiGate configuration analyzer", "FortiWeb configuration", "local configuration analysis"] });
+export const metadata = createPageMetadata({ title: "Network Configuration Analyzer | Cisco and Fortinet", description: "Explain supported Cisco and Fortinet configurations in your browser, with plain-language guidance, relationship diagrams and secret masking. Configurations stay on your device.", path: LENS_PATH, keywords: ["network configuration explainer", "Cisco configuration explained", "FortiGate configuration analyzer", "FortiWeb configuration", "local configuration analysis"] });
 
 export default function ConfigLensPage() {
   return <main className={styles.page}>
     <StructuredData data={{ "@context": "https://schema.org", "@type": "WebApplication", name: "QCS Config Lens", applicationCategory: "NetworkApplication", operatingSystem: "Web", url: `https://www.qcsstudio.com${LENS_PATH}`, offers: { "@type": "Offer", price: "0", priceCurrency: "INR" }, description: "Browser-local explanation of supported Cisco and Fortinet text configurations. Read-only; no runtime or vulnerability verification." }} />
-    <header className={styles.heading}><Link href="/network-tools">Network tools</Link><h1>QCS Config Lens</h1><p>Understand what your network configuration says. Explore ports, networks, policies and their relationships in plain English, with the original statements beside each explanation.</p></header>
+    <header className={styles.heading}><Link href="/network-tools">Network tools</Link><h1>Network Configuration Analyzer</h1><p>Validate your configuration evidence, then explore supported ports, networks, policies and relationships with the original statements beside each explanation.</p></header>
     <ConfigLens />
     <section className={styles.faq} aria-label="Configuration analysis questions">
       <details><summary>Which devices and commands are supported?</summary><p>Version 1 covers selected common statements for Cisco routers and Catalyst switches using IOS/IOS XE, Nexus using NX-OS, ASA and partial FTD diagnostic output, plus FortiGate, FortiWeb and standalone FortiSwitch. The selected profile describes its scope. Every unrecognized statement is marked for review. This is not universal support for every device, OS release or feature.</p></details>

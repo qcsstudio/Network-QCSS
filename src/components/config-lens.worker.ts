@@ -1,30 +1,15 @@
 import { analyzeConfiguration } from "../lib/config-lens/engine";
 import type { Selection } from "../lib/config-lens/catalog";
+import { readConfigurationFile, validateTextLimits } from "../lib/config-lens/intake";
 
 self.onmessage = async (event: MessageEvent<{ input: string; file?: File; selection: Selection }>) => {
   try {
     let input = event.data.input;
     if (event.data.file) {
-      const file = event.data.file;
-      const reader = file.stream().getReader();
-      const decoder = new TextDecoder("utf-8", { fatal: true });
-      const chunks: string[] = [];
-      let completed = 0;
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(decoder.decode(value, { stream: true }));
-          completed += value.byteLength;
-          self.postMessage({ progress: { phase: "reading", completed, total: file.size } });
-        }
-        chunks.push(decoder.decode());
-      } catch (error) {
-        if (error instanceof RangeError) throw error;
-        throw new Error("This file is not readable UTF-8 text. Export a plain-text CLI configuration.");
-      } finally { reader.releaseLock(); }
-      input = chunks.join("");
+      const read = await readConfigurationFile(event.data.file, (completed, total) => self.postMessage({ progress: { phase: "reading", completed, total } }));
+      input = read.text;
     }
+    input = validateTextLimits(input).text;
     const analysis = analyzeConfiguration(input, event.data.selection, progress => self.postMessage({ progress }));
     self.postMessage({ analysis });
   } catch (error) {

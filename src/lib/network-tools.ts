@@ -56,14 +56,14 @@ export type NetworkUtilityTool = {
 export const networkUtilityTools: NetworkUtilityTool[] = [
   {
     slug: "network-configuration-explainer",
-    title: "Network Configuration Explainer",
-    shortTitle: "Config Lens",
+    title: "Network Configuration Analyzer",
+    shortTitle: "Config Analyzer",
     category: "Network automation tools",
-    description: "Explain supported Cisco and Fortinet configurations in your browser, with plain-English guidance, source lines, configured relationships and secret masking. No configuration upload or paid API.",
+    description: "Validate and explain Cisco and Fortinet configuration exports locally. Check file limits, versions and evidence scope; inspect source lines and configured relationships.",
     inputLabel: "Configuration",
     placeholder: "Choose vendor, device family and OS train",
     serviceIntent: "Network Security",
-    searchIntent: ["Cisco configuration explained", "FortiGate configuration analyzer", "network configuration explainer", "FortiWeb configuration"],
+    searchIntent: ["Cisco configuration explained", "FortiGate configuration analyzer", "network configuration explainer", "QCS Config Lens", "Router", "Catalyst", "IOS XE", "IOS-XE", "NX-OS", "FortiWeb", "FortiSwitch", "Nexus", "ASA", "FTD", "VRF VDOM ACL NAT VPN CLI", "before after configuration"],
     outputPromise: "Local explanations of supported statements, explicit coverage limits, configuration-reference diagrams and reviewed masked downloads.",
     cta: "Plan an authorized configuration review",
     icon: FileCode2

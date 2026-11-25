@@ -1,3 +1,4 @@
+import { validateAndExplain } from "./helpers/config-analyzer-flow";
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile, writeFile } from "node:fs/promises";
@@ -20,7 +21,7 @@ async function observe(page: Page) {
   page.on("request", r => requests.push(`${r.method()} ${r.url()} ${r.postData() || ""}`));
   page.on("pageerror", e => errors.push(e.message));
   await page.goto(path);
-  await expect(page.getByRole("button", { name: "Explain configuration", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Validate configuration", exact: true })).toBeVisible();
   return { requests, errors };
 }
 function privateChecks(observation: { requests: string[]; errors: string[] }) {
@@ -48,7 +49,7 @@ test("production page headers and all eight profiles use the local worker", asyn
     await page.getByRole("combobox", { name: "Vendor", exact: true }).selectOption(profile.vendor);
     await page.getByRole("combobox", { name: "Device family", exact: true }).selectOption(profile.id);
     await page.getByRole("button", { name: "Try an example", exact: true }).click();
-    await page.getByRole("button", { name: "Explain configuration", exact: true }).click();
+    await validateAndExplain(page);
     await expect(page.getByRole("heading", { name: `${profile.name} analysis`, exact: true })).toBeVisible();
     await expect(page.getByRole("tab", { name: "Categories", exact: true })).toHaveAttribute("aria-selected", "true");
   }
@@ -61,7 +62,7 @@ test("production categories, reverse references, source filters and mobile layou
   await page.getByRole("combobox", { name: "Vendor", exact: true }).selectOption("fortinet");
   const extra = `config vdom\n edit Branch\n config system interface\n edit port1\n set unusual-setting enable\n next\n end\n next\nend\nconfig system admin\n edit demo\n set password ${canary}\n next\nend`;
   await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(samples.fortigate + "\n" + extra);
-  await page.getByRole("button", { name: "Explain configuration", exact: true }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "FortiGate firewall analysis", exact: true })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Configuration categories", exact: true });
   await nav.getByRole("button", { name: /Interfaces & addressing/ }).click();
@@ -113,7 +114,7 @@ test("production Fortinet 12155-line full backup preserves syntax and masks secr
   await page.getByRole("combobox", { name: "Operating system / train", exact: true }).selectOption("FortiOS 7.4");
   const input = `${fortinetFullBackup}\n${"# synthetic padding\n".repeat(12155 - fortinetFullBackup.split("\n").length - 1)}# last line`;
   await page.getByLabel("Configuration file").setInputFiles({ name: "synthetic-fortigate.conf", mimeType: "text/plain", buffer: Buffer.from(input) });
-  await page.getByRole("button", { name: "Explain configuration", exact: true }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "FortiGate firewall analysis", exact: true })).toBeVisible({ timeout: 60000 });
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
   await page.getByRole("tab", { name: "Diagram", exact: true }).click();
@@ -132,7 +133,7 @@ test("production 20000-interface Cisco config keeps every object and complete ex
   const input = `hostname large\nvlan 10\n${Array.from({ length: count }, (_, i) => `interface GigabitEthernet0/${i}\n switchport mode access\n switchport access vlan 10\n description ${canary}${i}`).join("\n")}\nend`;
   await page.getByRole("combobox", { name: "Device family", exact: true }).selectOption("cisco-switch");
   await page.getByLabel("Configuration file").setInputFiles({ name: "synthetic-large-switch.cfg", mimeType: "text/plain", buffer: Buffer.from(input) });
-  await page.getByRole("button", { name: "Explain configuration", exact: true }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "Catalyst switch analysis", exact: true })).toBeVisible({ timeout: 60000 });
   await expect(page.locator("#lens-panel details > summary")).toHaveCount(24);
   await page.getByRole("tab", { name: "Diagram", exact: true }).click();

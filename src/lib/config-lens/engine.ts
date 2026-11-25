@@ -1,5 +1,6 @@
 import { getProfile, LENS_VERSION, type Selection } from "./catalog";
 import { maskConfiguration } from "./masking";
+import { configurationCommandLines } from "./intake";
 import { fortinetWords as words } from "./fortinet-syntax";
 import { ciscoRule, fortiRule, type Category } from "./rules";
 import { categoryCatalog, categoryOrder, classifyCategory } from "./categories";
@@ -39,7 +40,7 @@ function checkDialect(input: string, profileId: string) {
   if (p.dialect === "fortiweb" && /^\s*config (?:firewall policy|vpn ipsec)\b/m.test(input)) throw new Error("FortiOS firewall syntax is not a FortiWeb policy. Check the device family.");
   if (["ios", "nxos"].includes(p.dialect) && /^(?:ASA Version|NGFW Version|FTD Version)|^\s*nameif\s/m.test(input)) throw new Error("This is ASA/FTD-style configuration. Select the corresponding firewall family.");
   if (p.dialect === "asa" && /^(?:NGFW|FTD) Version/m.test(input)) throw new Error("Threat Defense diagnostic output requires the FTD profile and its partial-policy warning.");
-  if (p.dialect !== "nxos" && /NXOS: version|NX-OS|^version \d+\.\d+\(\d+\).*N\d/m.test(input)) throw new Error("NX-OS detected. Select Cisco > Nexus switch.");
+  if (p.dialect !== "nxos" && /^!?\s*NXOS:\s*version|^NX-OS(?: Software)?\s+(?:version|Release)|^version \d+\.\d+\(\d+\).*N\d/m.test(input)) throw new Error("NX-OS detected. Select Cisco > Nexus switch.");
 }
 
 export type AnalysisProgress = { phase: "masking" | "explaining" | "references"; completed: number; total: number };
@@ -49,7 +50,9 @@ export function analyzeConfiguration(input: string, selection: Selection, progre
   if (!profile || ![...profile.versions, "Other / unknown"].includes(selection.version) || !["running", "saved", "candidate", "unknown"].includes(selection.configType) || !/^[\w.() /-]{0,60}$/.test(selection.build)) throw new Error("Select a valid device family, OS train and configuration type.");
   progress?.({ phase: "masking", completed: 0, total: 0 });
   const masked = maskConfiguration(input, profile.vendor);
-  checkDialect(profile.vendor === "fortinet" ? masked.lines.join("\n") : input, profile.id);
+  const rawLines = input.replace(/\r\n?/g, "\n").split("\n");
+  const identification = configurationCommandLines(rawLines, profile.vendor).commands.map(command => /^#config-version=|^!\s*(?:NXOS:\s*version|Software Version:)/i.test(command.text) ? command.text : masked.lines[command.line - 1]).join("\n");
+  checkDialect(identification, profile.id);
   const explanations: Explanation[] = [], entities: Entity[] = [], relationships: Relationship[] = [], findings: Finding[] = [];
   let current: Entity | undefined, context = "Global", scope = "default", ciscoBlockLine = 0;
   type Frame = { type: "config" | "edit"; name: string; line: number; entity?: Entity };
@@ -69,6 +72,7 @@ export function analyzeConfiguration(input: string, selection: Selection, progre
     return e;
   }
   function relation(from: Entity, target: string, kind: string, line: number, role?: string) {
+    if (relationships.length >= 100_000) throw new Error("Reference processing exceeds the 100,000-reference safety budget. Assessment incomplete; no truncated graph or final verdict was produced.");
     relationships.push({ from: from.id, target, kind, role, line, scope: from.scope });
   }
   function add(line: number, text: string, context: string, category: Category, status: Explanation["status"], explanation: string, reference?: CommandReference) {
@@ -84,9 +88,9 @@ export function analyzeConfiguration(input: string, selection: Selection, progre
   if (selection.version === "Other / unknown") findings.push({ level: "review", title: "OS version is unverified", explanation: "Only recognizable syntax is explained. No defaults or version-specific security conclusions are inferred.", lines: [] });
   if (profile.dialect === "ftd") findings.push({ level: "review", title: "FTD diagnostic output is partial", explanation: profile.scope, lines: [] });
   if (profile.dialect === "fortiweb") findings.push({ level: "review", title: "WAF scope and operating mode", explanation: profile.scope, lines: [] });
-  const fortiVersion = input.match(/^#config-version=[^\r\n]*?-(\d+\.\d+\.\d+)-/m)?.[1];
+  const fortiVersion = identification.match(/^#config-version=[^\r\n]*?-(\d+\.\d+\.\d+)-/m)?.[1];
   const fortiVersionMismatch = !!fortiVersion && !fortiVersion.startsWith(selection.version.match(/\d+\.\d+/)?.[0] || "unmatched");
-  const ciscoVersion = input.match(/^version (\d+)\./m)?.[1];
+  const ciscoVersion = identification.match(/^version (\d+)\./m)?.[1];
   const ciscoVersionMismatch = profile.dialect === "ios" && !!ciscoVersion && ciscoVersion !== selection.version.match(/\d+/)?.[0];
   if (ciscoVersionMismatch) findings.push({ level: "review", title: "Export version differs from selection", explanation: "Select the OS train matching the export. Version-scoped explanations are withheld for this mismatch.", lines: [] });
   const ruleSelection = ciscoVersionMismatch ? { ...selection, version: "Other / unknown" } : selection;

@@ -5,7 +5,7 @@ const eslintConfig = [
   ...nextVitals,
   ...nextTypescript,
   {
-    ignores: [".next/**", "node_modules/**", "next-env.d.ts", "vendor/**", "envato-assets/**"]
+    ignores: [".next/**", "node_modules/**", "next-env.d.ts", "vendor/**", "envato-assets/**", "test-results/**"]
   }
 ];
 

@@ -1,10 +1,11 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Download, FileCode2, GitBranch, ListFilter, LockKeyhole, Network, Play, Router, ShieldCheck, Trash2, Upload, X, Cable, MapPin, Shield, Workflow, Server } from "lucide-react";
-import { CATALOG_REVIEWED, getProfile, glossary, LENS_PATH, profiles, type Selection, type Vendor } from "@/lib/config-lens/catalog";
-import { reportText, type Analysis, type AnalysisProgress } from "@/lib/config-lens/engine";
-import { samples } from "@/lib/config-lens/samples";
+import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, Check, ChevronLeft, ChevronRight, Download, FileCode2, GitBranch, ListFilter, LockKeyhole, Network, Router, ShieldCheck, X, Cable, MapPin, Shield, Workflow, Server } from "lucide-react";
+import { getProfile, glossary, LENS_PATH, type Selection } from "@/lib/config-lens/catalog";
+import { reportText, type Analysis } from "@/lib/config-lens/engine";
+import { ConfigAnalyzerIntake } from "./config-analyzer-intake";
+import type { IntakeResult } from "@/lib/config-lens/intake";
 import { categoryCatalog } from "@/lib/config-lens/categories";
 import { buildResultsIndex, matchesStatement, referenceRole, type StatementGroup } from "@/lib/config-lens/results";
 import { ConfigLensCategories } from "./config-lens-categories";
@@ -54,12 +55,9 @@ export function ConfigLens() {
 }
 
 function LocalConfigLens() {
-  const [vendor, setVendor] = useState<Vendor>("cisco");
   const [selection, setSelection] = useState<Selection>({ profileId: "cisco-router", version: "IOS XE 17.x", build: "", configType: "unknown" });
-  const [input, setInput] = useState("");
-  const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<Analysis | null>(null);
-  const [busy, setBusy] = useState(false), [error, setError] = useState("");
+  const [inputContext, setInputContext] = useState<{ intake: IntakeResult; label: string } | null>(null);
   const [tab, setTab] = useState<Tab>("Overview"), [filter, setFilter] = useState("all"), [page, setPage] = useState(0);
   const [statementCategory, setStatementCategory] = useState("all"), [statementScope, setStatementScope] = useState("all"), [statementQuery, setStatementQuery] = useState("");
   const [statementGroup, setStatementGroup] = useState<StatementGroup | null>(null);
@@ -70,52 +68,15 @@ function LocalConfigLens() {
   const [referencePage, setReferencePage] = useState(0), [settingPage, setSettingPage] = useState(0), [exportPage, setExportPage] = useState(0);
   const [exportKind, setExportKind] = useState<"report" | "config" | null>(null), [exportApproved, setExportApproved] = useState(false);
   const [announcement, setAnnouncement] = useState("");
-  const worker = useRef<Worker | null>(null), generation = useRef(0), timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fileInput = useRef<HTMLInputElement>(null), resultHeading = useRef<HTMLHeadingElement>(null), exportButton = useRef<HTMLButtonElement>(null);
+  const resultHeading = useRef<HTMLHeadingElement>(null), exportButton = useRef<HTMLButtonElement>(null);
   const profile = getProfile(selection.profileId)!;
-  function stop() { worker.current?.terminate(); worker.current = null; if (timer.current) clearTimeout(timer.current); timer.current = null; }
-  useEffect(() => {
-    const dispose = () => { generation.current++; worker.current?.terminate(); if (timer.current) clearTimeout(timer.current); };
-    const restore = (event: PageTransitionEvent) => { if (event.persisted) window.location.reload(); };
-    window.addEventListener("pagehide", dispose); window.addEventListener("pageshow", restore);
-    return () => { dispose(); window.removeEventListener("pagehide", dispose); window.removeEventListener("pageshow", restore); };
-  }, []);
-  function invalidate() { generation.current++; stop(); setBusy(false); setResult(null); setError(""); setAnnouncement(""); setExportKind(null); setPage(0); }
-  function chooseProfile(id: string) { invalidate(); const p = getProfile(id)!; setSelection({ profileId: id, version: p.versions[0], build: "", configType: "unknown" }); }
-  function changeSelection(next: Partial<Selection>) { invalidate(); setSelection(s => ({ ...s, ...next })); }
-  function clear() { invalidate(); setInput(""); setFile(null); setAnnouncement("Configuration and results cleared from this workspace."); if (fileInput.current) fileInput.current.value = ""; }
-  function loadFile(next?: File) {
-    if (!next) return;
-    invalidate(); setFile(null); setInput("");
-    if (fileInput.current) fileInput.current.value = "";
-    if (!/\.(?:txt|conf|cfg|config|log)$/i.test(next.name)) { setError("Choose a UTF-8 .txt, .conf, .cfg, .config or .log file. No archives or encrypted backups."); return; }
-    setFile(next); setAnnouncement("File selected locally. Review the device selection before analysis.");
-  }
-  function analyze() {
-    invalidate(); if (!file && !input.trim()) { setError("Add a configuration first."); return; }
-    setBusy(true); const request = generation.current;
-    try {
-      const w = new Worker(new URL("./config-lens.worker.ts", import.meta.url)); worker.current = w;
-      w.onmessage = (event: MessageEvent<{ analysis?: Analysis; error?: string; progress?: AnalysisProgress | { phase: "reading"; completed: number; total: number } }>) => {
-        if (request !== generation.current) return;
-        if (event.data.progress) {
-          const p = event.data.progress;
-          setAnnouncement(p.phase === "reading" ? `Reading locally: ${Math.round(p.completed / Math.max(1, p.total) * 100)}%.` : p.phase === "explaining" ? `Explaining line ${p.completed.toLocaleString()} of ${p.total.toLocaleString()}.` : p.phase === "masking" ? "Masking known secrets locally." : "Resolving configuration references locally.");
-          return;
-        }
-        stop(); setBusy(false);
-        if (!event.data.analysis) { setAnnouncement(""); setError(event.data.error || "Local analysis failed."); return; }
-        const analysis = event.data.analysis;
-        setResult(analysis); if (!file) setInput(analysis.maskedSource); setTab("Categories"); resetStatementFilters(); setDirection("outgoing");
-        setObjectQuery(""); setObjectPage(0); setReferencePage(0); setSettingPage(0);
-        setSelectedEntity(analysis.entities.find(e => e.kind.includes("policy"))?.id || analysis.entities[0]?.id || "");
-        setAnnouncement(`Analysis complete. ${analysis.coverage.unknown} statement${analysis.coverage.unknown === 1 ? " needs" : "s need"} review. ${analysis.maskedCount} line${analysis.maskedCount === 1 ? "" : "s"} masked.`);
-        setTimeout(() => resultHeading.current?.focus(), 0);
-      };
-      w.onerror = () => { if (request === generation.current) { stop(); setBusy(false); setAnnouncement(""); setError("Analysis could not finish in your browser. Check available memory and try again. Your configuration has not been uploaded."); } };
-      timer.current = setTimeout(() => { if (request === generation.current) setAnnouncement("Still processing locally. Large exports can take longer; you can cancel at any time."); }, 10000);
-      w.postMessage({ input: file ? "" : input, file: file || undefined, selection });
-    } catch { stop(); setBusy(false); setAnnouncement(""); setError("This browser could not start the analysis. Your configuration has not been uploaded."); }
+  function invalidate() { setResult(null); setInputContext(null); setExportKind(null); setAnnouncement(""); resetStatementFilters(); }
+  function openAnalysis(analysis: Analysis, intake: IntakeResult, label: string) {
+    setSelection(analysis.selection); setResult(analysis); setInputContext({ intake, label }); setExportKind(null);
+    setTab("Categories"); resetStatementFilters(); setDirection("outgoing"); setObjectQuery(""); setObjectPage(0); setReferencePage(0); setSettingPage(0);
+    setSelectedEntity(analysis.entities.find(entity => entity.kind.includes("policy"))?.id || analysis.entities[0]?.id || "");
+    setAnnouncement(label + " explanation opened. " + analysis.coverage.unknown + " statements need review. This is separate from a security baseline verdict.");
+    setTimeout(() => resultHeading.current?.focus(), 0);
   }
   function resetStatementFilters() { setFilter("all"); setStatementCategory("all"); setStatementScope("all"); setStatementQuery(""); setStatementGroup(null); setPage(0); }
   function showSource(line?: number) { setTab("Source"); resetStatementFilters(); setPage(line && result ? Math.floor(Math.max(0, result.lines.findIndex(l => l.line === line)) / pageSize) : 0); }
@@ -133,35 +94,12 @@ function LocalConfigLens() {
     for (const entity of result?.entities || []) { const group = groups.get(entity.kind) || { count: 0, names: [] }; group.count++; if (group.names.length < 5) group.names.push(entity.name); groups.set(entity.kind, group); }
     return [...groups];
   }, [result]);
-  const exportText = useMemo(() => result && exportKind ? exportKind === "report" ? reportText(result) : result.maskedSource : "", [result, exportKind]);
+  const exportText = useMemo(() => result && exportKind ? exportKind === "report" ? [reportText(result), "", "INPUT VALIDATION", inputContext ? JSON.stringify({ label: inputContext.label, ...inputContext.intake }, null, 2) : "Input metadata unavailable", "Explanation only: no security baseline verdict was issued."].join("\n") : result.maskedSource : "", [result, exportKind, inputContext]);
 
   return <div className={styles.lens} data-clarity-mask="true">
-    <div className={styles.privacy}><LockKeyhole size={18} aria-hidden="true" /><span>Processed on your device</span><span>No configuration upload</span><span>Secret masking</span></div>
-    <section className={styles.setup} aria-labelledby="lens-device">
-      <div className={styles.sectionTitle}><span className={styles.step}>1</span><h2 id="lens-device">Choose your device</h2></div>
-      <div className={styles.selectors}>
-        <label>Vendor<select value={vendor} onChange={e => { const v = e.target.value as Vendor; setVendor(v); chooseProfile(profiles.find(p => p.vendor === v)!.id); }}><option value="cisco">Cisco</option><option value="fortinet">Fortinet</option></select></label>
-        <label>Device family<select value={selection.profileId} onChange={e => chooseProfile(e.target.value)}>{profiles.filter(p => p.vendor === vendor).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-        <label>Operating system / train<select value={selection.version} onChange={e => changeSelection({ version: e.target.value })}>{[...profile.versions, "Other / unknown"].map(v => <option key={v}>{v}</option>)}</select></label>
-        <label>Exact version / build (optional)<input maxLength={60} autoComplete="off" value={selection.build} onChange={e => changeSelection({ build: e.target.value })} placeholder="For example 17.9.4 or 7.4.7" /></label>
-        <label>Export type<select value={selection.configType} onChange={e => changeSelection({ configType: e.target.value as Selection["configType"] })}><option value="unknown">Not sure</option><option value="running">Running configuration</option><option value="saved">Saved / startup configuration</option><option value="candidate">Candidate / proposed configuration</option></select></label>
-      </div>
-    <aside className={styles.scope}><ShieldCheck size={22} aria-hidden="true" /><div><strong>{profile.os}: supported scope</strong><p>{profile.scope}</p><a href={profile.source} target="_blank" rel="noreferrer">Official product documentation</a><span>Documentation reviewed {CATALOG_REVIEWED}. Coverage is partial. References identify the documentation version; model and maintenance-release differences still need review. Listed trains are not upgrade recommendations.</span></div></aside>
-    </section>
-    <section className={styles.editorSection} aria-labelledby="lens-import">
-      <div className={styles.sectionTitle}><span className={styles.step}>2</span><h2 id="lens-import">Add a text configuration</h2></div>
-      <p>{profile.exportHint}</p>
-      <div className={styles.toolbar}>
-        <button type="button" onClick={() => fileInput.current?.click()}><Upload size={17} aria-hidden="true" /> Select file</button>
-        <input ref={fileInput} type="file" aria-label="Configuration file" accept=".txt,.conf,.cfg,.config,.log" hidden onChange={e => { void loadFile(e.target.files?.[0]); }} />
-        <button type="button" onClick={() => { invalidate(); setFile(null); setInput(samples[profile.id]); setAnnouncement("Synthetic teaching example loaded. It is not a deployable configuration."); }}><Play size={17} aria-hidden="true" /> Try an example</button>
-        <button type="button" className={styles.iconButton} title="Clear configuration and results" aria-label="Clear configuration and results" onClick={clear}><Trash2 size={18} /></button>
-      </div>
-      {file ? <div className={styles.fileSelection}><FileCode2 size={22} aria-hidden="true" /><div><strong>{file.name}</strong><span>{file.size.toLocaleString()} bytes</span></div><button type="button" title="Remove selected file and paste text" onClick={clear}><X size={17} aria-hidden="true" /> Use pasted text</button></div> : <label className={styles.editorLabel}>Configuration<textarea value={input} onChange={e => { invalidate(); setInput(e.target.value); }} spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off" rows={11} placeholder="Paste the authorized plain-text export here." /></label>}
-      <div className={styles.editorFooter}><p>Known secret formats and free-text comments are masked before explanation. Unknown secrets and identifiers may remain; review before sharing. Only analyze configurations you are authorized to use.</p><button type="button" className={styles.primary} onClick={analyze} disabled={busy || (!file && !input.trim())}><FileCode2 size={18} aria-hidden="true" />{busy ? "Analyzing locally..." : "Explain configuration"}</button>{busy && <button type="button" onClick={() => invalidate()}>Cancel</button>}</div>
-      {error && <p className={styles.error} role="alert">{error}</p>}
-      <p role="status" className={styles.status}>{announcement}</p>
-    </section>
+    <ConfigAnalyzerIntake onInvalidate={invalidate} onAnalyze={openAnalysis} />
+    <p aria-live="polite" className={styles.status}>{announcement}</p>
+    {inputContext && <aside className={styles.notice}><strong>{inputContext.label} / {inputContext.intake.state === "limited" ? "Ready with limitations" : inputContext.intake.state}</strong><p>{inputContext.intake.physicalLines.toLocaleString()} physical lines · {inputContext.intake.encoding} · {inputContext.intake.support} release coverage. {inputContext.intake.state === "preview" ? "Preview only: no overall security baseline verdict." : "Input readiness and statement explanations do not establish a security baseline Pass."}</p></aside>}
     {result && <section className={styles.results} aria-labelledby="lens-results">
       <div className={styles.resultTitle}><div><p className={styles.eyebrow}>YOUR CONFIGURATION, EXPLAINED</p><h2 ref={resultHeading} tabIndex={-1} id="lens-results">{profile.name} analysis</h2></div><div className={styles.toolbar}><button ref={exportButton} type="button" onClick={() => openExport("report")}><Download size={17} aria-hidden="true" /> Report</button><button type="button" onClick={() => openExport("config")}><Download size={17} aria-hidden="true" /> Masked text</button></div></div>
       <div className={styles.tabs} role="tablist" aria-label="Analysis views">{tabs.map((name, i) => <button key={name} id={`lens-tab-${i}`} role="tab" aria-selected={tab === name} aria-controls="lens-panel" tabIndex={tab === name ? 0 : -1} onClick={() => { setTab(name); setPage(0); }} onKeyDown={e => { let n = i; if (e.key === "ArrowRight") n = (i + 1) % tabs.length; else if (e.key === "ArrowLeft") n = (i + tabs.length - 1) % tabs.length; else if (e.key === "Home") n = 0; else if (e.key === "End") n = tabs.length - 1; else return; e.preventDefault(); setTab(tabs[n]); document.getElementById(`lens-tab-${n}`)?.focus(); }}>{name}</button>)}</div>
