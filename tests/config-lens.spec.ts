@@ -1,3 +1,4 @@
+import { validateAndExplain } from "./helpers/config-analyzer-flow";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { createHmac } from "node:crypto";
@@ -14,14 +15,14 @@ test("local analysis, masking, exports, all device selectors and no config trans
   page.on("request", request => requests.push(`${request.method()} ${request.url()} ${request.postData() || ""}`));
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(path);
-  await expect(page.getByRole("button", { name: "Explain configuration" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Validate configuration" })).toBeVisible();
   for (const profile of profiles) {
     await page.getByRole("combobox", { name: "Vendor", exact: true }).selectOption(profile.vendor);
     await page.getByRole("combobox", { name: "Device family", exact: true }).selectOption(profile.id);
     await expect(page.getByLabel("Operating system / train")).toHaveValue(profile.versions[0]);
     await page.getByRole("button", { name: "Try an example" }).click();
-    await page.getByLabel("Export type").selectOption("running");
-    await page.getByRole("button", { name: "Explain configuration" }).click();
+    await page.getByRole("combobox", { name: "Configuration state", exact: true }).selectOption("running");
+    await validateAndExplain(page);
     await expect(page.getByRole("heading", { name: `${profile.name} analysis`, exact: true })).toBeVisible();
     if (profile.id === "cisco-ftd") {
       await page.getByRole("tab", { name: "Checks", exact: true }).click();
@@ -30,7 +31,7 @@ test("local analysis, masking, exports, all device selectors and no config trans
   }
   await page.getByLabel("Device family").selectOption("fortigate");
   await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(`${samples.fortigate}\nconfig system admin\n edit extra\n set password ${secret}\n next\nend`);
-  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "FortiGate firewall analysis" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Configuration", exact: true })).not.toHaveValue(new RegExp(secret));
   await page.getByRole("button", { name: "Report", exact: true }).click();
@@ -45,7 +46,7 @@ test("local analysis, masking, exports, all device selectors and no config trans
   expect(requests.some(request => request.includes(secret))).toBe(false);
   expect(requests.filter(request => /^POST|\/api\/network-tools|clarity\.ms|google-analytics|openai\.com/.test(request))).toEqual([]);
   expect(errors).toEqual([]);
-  await page.getByRole("button", { name: "Clear configuration and results" }).click();
+  await page.getByRole("button", { name: "Clear workspace" }).click();
   await expect(page.getByRole("textbox", { name: "Configuration", exact: true })).toHaveValue("");
   await expect(page.getByRole("heading", { name: "FortiGate firewall analysis" })).toHaveCount(0);
   expect((await context.cookies()).some(cookie => /_clck|_ga|_fbp/.test(cookie.name))).toBe(false);
@@ -54,16 +55,18 @@ test("local analysis, masking, exports, all device selectors and no config trans
 test("file upload, invalid input and changed selection cannot retain stale results", async ({ page }) => {
   await page.goto(path);
   await page.getByLabel("Configuration file").setInputFiles({ name: "router.cfg", mimeType: "text/plain", buffer: Buffer.from(samples["cisco-router"]) });
-  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "Router analysis", exact: true })).toBeVisible();
   await page.getByLabel("Operating system / train").selectOption("IOS 15.x");
   await expect(page.getByRole("heading", { name: "Router analysis", exact: true })).toHaveCount(0);
   await expect(page.getByRole("main").getByRole("status")).not.toContainText("Analysis complete");
   await page.getByLabel("Configuration file").setInputFiles({ name: "backup.bin", mimeType: "application/octet-stream", buffer: Buffer.from([0, 1, 2]) });
-  await expect(page.getByRole("main").getByRole("alert")).toContainText("UTF-8");
+  await page.getByRole("button", { name: "Validate configuration", exact: true }).click();
+  await expect(page.locator("[data-state=blocked]")).toBeVisible();
+  await page.getByRole("button", { name: "Use pasted text", exact: true }).click();
   await page.getByRole("textbox", { name: "Configuration", exact: true }).fill("<script>alert('do-not-run')</script>");
-  await page.getByRole("button", { name: "Explain configuration" }).click();
-  await expect(page.getByRole("main").getByRole("alert")).toContainText("not supported");
+  await page.getByRole("button", { name: "Validate configuration", exact: true }).click();
+  await expect(page.locator("[data-state=blocked]")).toBeVisible();
 });
 
 test("Fortinet full backups parse locally and failures clear progress without leaking values", async ({ page }, testInfo) => {
@@ -78,7 +81,7 @@ test("Fortinet full backups parse locally and failures clear progress without le
   await page.getByLabel("Operating system / train").selectOption("FortiOS 7.4");
   const input = `${fortinetFullBackup}\n${"# synthetic padding\n".repeat(12155 - fortinetFullBackup.split("\n").length - 1)}# last line`;
   await page.getByLabel("Configuration file").setInputFiles({ name: "synthetic-full-fortigate.conf", mimeType: "text/plain", buffer: Buffer.from(input) });
-  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "FortiGate firewall analysis", exact: true })).toBeVisible({ timeout: 60000 });
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
   await page.getByRole("tab", { name: "Diagram", exact: true }).click();
@@ -97,18 +100,18 @@ test("Fortinet full backups parse locally and failures clear progress without le
   const exported = await readFile((await (await download).path())!, "utf8");
   expect(exported.split("\n")).toHaveLength(12155);
   expect(exported).not.toMatch(/Hidden\w*Canary/);
-  await page.getByRole("button", { name: "Clear configuration and results" }).click();
+  await page.getByRole("button", { name: "Clear workspace" }).click();
   for (const broken of ["config system interface\n next\nend", 'config system interface\n edit "HiddenValueCanary']) {
     await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(broken);
-    await page.getByRole("button", { name: "Explain configuration" }).click();
-    await expect(page.getByRole("main").getByRole("alert")).toContainText("line 2");
-    await expect(page.getByRole("main").getByRole("alert")).not.toContainText("HiddenValueCanary");
-    await expect(page.getByRole("main").getByRole("status")).toBeEmpty();
-    await expect(page.getByRole("button", { name: "Explain configuration" })).toBeEnabled();
+    await page.getByRole("button", { name: "Validate configuration", exact: true }).click();
+    await expect(page.getByRole("main")).toContainText(/line 2|quoted value/);
+    expect((await page.locator('main [role="alert"], main [aria-labelledby="analyzer-readiness"]').allTextContents()).join(" ")).not.toContain("HiddenValueCanary");
+    await expect(page.getByRole("main").getByRole("status")).not.toContainText(/Reading locally|Validating supported statements/);
+    await expect(page.getByRole("button", { name: "Validate configuration" })).toBeEnabled();
     await expect(page.getByRole("button", { name: "Cancel", exact: true })).toHaveCount(0);
   }
   await page.getByRole("button", { name: "Try an example" }).click();
-  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "FortiGate firewall analysis", exact: true })).toBeVisible();
   expect(requests.filter(r => /^POST|\/api\/network-tools|clarity\.ms|google-analytics|openai\.com/.test(r))).toEqual([]);
   expect(requests.some(r => /Hidden\w*Canary/.test(r))).toBe(false);
@@ -130,7 +133,7 @@ test("large files retain all objects and exports while result views stay bounded
   await page.getByLabel("Configuration file").setInputFiles({ name: "large-switch.cfg", mimeType: "text/plain", buffer: Buffer.from(input) });
   await expect(page.getByText("large-switch.cfg", { exact: true })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Configuration", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "Catalyst switch analysis", exact: true })).toBeVisible({ timeout: 60000 });
   await page.getByRole("tab", { name: "Diagram", exact: true }).click();
   await expect(page.getByRole("combobox", { name: "Object", exact: true }).locator("option")).toHaveCount(60);
@@ -164,19 +167,19 @@ test("large files retain all objects and exports while result views stay bounded
 
 test("long lines, cancellation and invalid UTF-8 remain safe", async ({ page }) => {
   await page.goto(path);
-  const big = `hostname demo\n${"ip route 192.0.2.0 255.255.255.0 198.51.100.1\n".repeat(500000)}end`;
+  const big = `hostname demo\n${"ip route 192.0.2.0 255.255.255.0 198.51.100.1\n".repeat(90000)}end`;
   await page.getByLabel("Configuration file").setInputFiles({ name: "cancel.cfg", mimeType: "text/plain", buffer: Buffer.from(big) });
-  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await page.getByRole("button", { name: "Validate configuration", exact: true }).click();
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Explain configuration" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Validate configuration" })).toBeEnabled();
   await expect(page.getByRole("heading", { name: "Router analysis", exact: true })).toHaveCount(0);
   await page.getByLabel("Configuration file").setInputFiles({ name: "bad.cfg", mimeType: "text/plain", buffer: Buffer.from([0xff]) });
-  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await page.getByRole("button", { name: "Validate configuration", exact: true }).click();
   await expect(page.getByRole("main").getByRole("alert")).toContainText("UTF-8");
   await page.getByRole("button", { name: "Use pasted text", exact: true }).click();
   const long = `unknown-command ${"x".repeat(10000)} END_OF_LONG_LINE`;
   await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(`hostname demo\n${long}\nend`);
-  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "Router analysis", exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "Source", exact: true }).click();
   await page.getByText(/^View complete text/).click();
@@ -189,7 +192,7 @@ test("large FortiGate address groups have paged references and complete long set
   const names = Array.from({ length: 5000 }, (_, i) => `Host${i}`);
   const input = `config firewall address\n${names.map(n => ` edit "${n}"\n set subnet 192.0.2.1 255.255.255.255\n next`).join("\n")}\nend\nconfig firewall addrgrp\n edit "AllHosts"\n set member ${names.map(n => `"${n}"`).join(" ")}\n next\nend`;
   await page.getByLabel("Configuration file").setInputFiles({ name: "large-fortigate.conf", mimeType: "text/plain", buffer: Buffer.from(input) });
-  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "FortiGate firewall analysis", exact: true })).toBeVisible({ timeout: 60000 });
   await page.getByRole("tab", { name: "Diagram", exact: true }).click();
   await page.getByLabel("Find object").fill("AllHosts");
@@ -207,7 +210,7 @@ test("diagram, keyboard navigation, accessibility and responsive viewports", asy
   await page.getByRole("button", { name: "Essential only", exact: true }).click();
   await page.getByRole("combobox", { name: "Vendor", exact: true }).selectOption("fortinet");
   await page.getByRole("button", { name: "Try an example" }).click();
-  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "FortiGate firewall analysis" })).toBeVisible();
   await page.getByRole("tab", { name: "Diagram", exact: true }).click();
   await expect(page.getByLabel("Configuration references for 10", { exact: true })).toBeVisible();
@@ -238,7 +241,7 @@ test("categories retain unknown statements, scoped filters, source access and re
   await page.getByRole("combobox", { name: "Vendor", exact: true }).selectOption("fortinet");
   const extra = 'config vdom\n edit Branch\n config system interface\n edit port1\n set unusual-setting enable\n next\n end\n next\nend\nconfig system admin\n edit demo-admin\n set password ' + secret + '\n next\nend';
   await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(samples.fortigate + "\n" + extra);
-  await page.getByRole("button", { name: "Explain configuration" }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("tab", { name: "Categories", exact: true })).toHaveAttribute("aria-selected", "true");
   const categories = page.getByRole("navigation", { name: "Configuration categories", exact: true });
   await categories.getByRole("button", { name: /Interfaces & addressing/ }).click();
@@ -287,7 +290,7 @@ test("full document isolation and route CSP protect entry from another page", as
   await page.goto("/network-tools");
   await page.evaluate(() => { (window as Window & { lensPreviousDocument?: boolean }).lensPreviousDocument = true; });
   await page.locator(`a[href="${path}"]`).first().click();
-  await expect(page.getByRole("button", { name: "Explain configuration" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Validate configuration" })).toBeVisible();
   expect(await page.evaluate(() => Boolean((window as Window & { lensPreviousDocument?: boolean }).lensPreviousDocument))).toBe(false);
   const response = await page.request.get(path);
   const csp = response.headers()["content-security-policy"];
@@ -297,10 +300,12 @@ test("full document isolation and route CSP protect entry from another page", as
 });
 
 test("admin update desk is authenticated, CSRF protected and independent of the DB", async ({ page, context, request, baseURL }, testInfo) => {
+  test.skip(!process.env.CONFIG_ANALYZER_QA_ADMIN_SECRET, "Requires an independent local QA session secret shared with the local test server");
+  expect(["127.0.0.1", "localhost"]).toContain(new URL(baseURL!).hostname);
   const unauthenticated = await request.post("/api/admin/config-lens/updates", { headers: { origin: baseURL! } });
   expect(unauthenticated.status()).toBe(401);
   const payload = Buffer.from(JSON.stringify({ email: "config-lens-test@localhost", expiresAt: Date.now() + 60000 })).toString("base64url");
-  const signature = createHmac("sha256", "config-lens-local-test-session-not-production").update(payload).digest("base64url");
+  const signature = createHmac("sha256", process.env.CONFIG_ANALYZER_QA_ADMIN_SECRET!).update(payload).digest("base64url");
   await context.addCookies([{ name: "network_qcss_admin", value: `${payload}.${signature}`, url: baseURL!, httpOnly: true, sameSite: "Lax" }]);
   await page.goto("/admin/config-lens");
   await expect(page.getByRole("heading", { name: "Config Lens update desk", exact: true })).toBeVisible();

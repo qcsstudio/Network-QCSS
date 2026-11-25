@@ -1,3 +1,4 @@
+import { validateAndExplain } from "./helpers/config-analyzer-flow";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
@@ -25,7 +26,7 @@ for (const width of [1440, 320]) test(`routing, switching, firewall and VPN stay
   await page.getByRole("combobox", { name: "Operating system / train", exact: true }).selectOption("FortiOS 7.4");
   const source = fortiNetworking.replace("set dpd on-demand", "set dpd on-demand\n  set unsupported-vpn-setting enable");
   await page.getByLabel("Configuration file").setInputFiles({ name: "synthetic-networking.conf", mimeType: "text/plain", buffer: Buffer.from(source) });
-  await page.getByRole("button", { name: "Explain configuration", exact: true }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "FortiGate firewall analysis", exact: true })).toBeVisible();
   for (const [category, label, content] of [["Routing", "Routing & VRFs", "prefix-list-in"], ["Switching", "Switching & VLANs", "lacp-mode"], ["Firewall", "Firewall policies & ACLs", "srcaddr-negate"], ["VPN", "VPN & tunnels", "dpd"]]) {
     if (width < 700) await page.getByRole("combobox", { name: "Configuration category", exact: true }).selectOption(category);
@@ -62,7 +63,7 @@ for (const width of [1440, 320]) test(`routing, switching, firewall and VPN stay
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download reviewed text" }).click();
   const report = await readFile((await (await download).path())!, "utf8");
-  expect(report).toContain("QCS Config Lens 1.6.0");
+  expect(report).toContain("QCS Config Lens 1.7.0");
   expect(report).not.toContain("NetworkingSecretCanary");
   expect(report).toContain("not a TCP/UDP port");
   await page.getByRole("button", { name: "Use pasted text", exact: true }).click();
@@ -71,7 +72,7 @@ for (const width of [1440, 320]) test(`routing, switching, firewall and VPN stay
     await page.getByRole("combobox", { name: "Device family", exact: true }).selectOption(id);
     await page.getByRole("combobox", { name: "Operating system / train", exact: true }).selectOption("IOS XE 17.x");
     await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(input);
-    await page.getByRole("button", { name: "Explain configuration", exact: true }).click();
+    await validateAndExplain(page);
     await page.getByRole("tab", { name: "Explanations", exact: true }).click();
     await page.getByRole("textbox", { name: "Search statements", exact: true }).fill(search);
     const row = page.locator("#lens-panel article");

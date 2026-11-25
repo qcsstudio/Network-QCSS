@@ -1,3 +1,4 @@
+import { validateAndExplain } from "./helpers/config-analyzer-flow";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
@@ -24,7 +25,7 @@ for (const width of [1440, 320]) test(`expanded OS families stay private and ver
   for (const version of ["FortiOS 7.2", "FortiOS 7.4", "FortiOS 7.6"]) {
     await page.getByRole("combobox", { name: "Operating system / train", exact: true }).selectOption(version);
     await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(fortiExpanded);
-    await page.getByRole("button", { name: "Explain configuration", exact: true }).click();
+    await validateAndExplain(page);
     await expect(page.getByRole("heading", { name: "FortiGate firewall analysis", exact: true })).toBeVisible();
     await page.getByRole("tab", { name: "Explanations", exact: true }).click();
     const relay = page.locator("#lens-panel article").filter({ has: page.locator("[class*='code']", { hasText: "set dhcp-relay-service enable" }) });
@@ -44,7 +45,7 @@ for (const width of [1440, 320]) test(`expanded OS families stay private and ver
   for (const version of ["IOS 15.x", "IOS XE 16.x", "IOS XE 17.x"]) {
     await page.getByRole("combobox", { name: "Operating system / train", exact: true }).selectOption(version);
     await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(ciscoExpanded);
-    await page.getByRole("button", { name: "Explain configuration", exact: true }).click();
+    await validateAndExplain(page);
     await expect(page.getByRole("heading", { name: "Router analysis", exact: true })).toBeVisible();
     await page.getByRole("tab", { name: "Explanations", exact: true }).click();
     const boot = page.locator("#lens-panel article").filter({ hasText: "bootfile client.img" });
@@ -72,7 +73,7 @@ for (const width of [1440, 320]) test(`documented command coverage and private e
   await page.getByRole("combobox", { name: "Vendor", exact: true }).selectOption("fortinet");
   await page.getByRole("combobox", { name: "Operating system / train", exact: true }).selectOption("FortiOS 7.4");
   await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(fortiServices);
-  await page.getByRole("button", { name: "Explain configuration", exact: true }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "FortiGate firewall analysis", exact: true })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Configuration categories", exact: true });
   if (width < 700) await page.getByRole("combobox", { name: "Configuration category", exact: true }).selectOption("Network services");
@@ -101,7 +102,7 @@ for (const width of [1440, 320]) test(`documented command coverage and private e
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download reviewed text" }).click();
   const report = await readFile((await (await download).path())!, "utf8");
-  expect(report).toContain("QCS Config Lens 1.6.0");
+  expect(report).toContain("QCS Config Lens 1.7.0");
   expect(report).toContain("Vendor reference:");
   expect(report).toContain("system dhcp server ip-range");
   expect(report).not.toContain("CoverageSecretCanary");
@@ -109,7 +110,7 @@ for (const width of [1440, 320]) test(`documented command coverage and private e
   await page.getByRole("combobox", { name: "Vendor", exact: true }).selectOption("cisco");
   await page.getByRole("combobox", { name: "Device family", exact: true }).selectOption("cisco-switch");
   await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(ciscoServices);
-  await page.getByRole("button", { name: "Explain configuration", exact: true }).click();
+  await validateAndExplain(page);
   await expect(page.getByRole("heading", { name: "Catalyst switch analysis", exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "Explanations", exact: true }).click();
   await expect(page.locator("#lens-panel article").filter({ hasText: "network 192.0.2.0" })).toContainText("not a routing-protocol advertisement");

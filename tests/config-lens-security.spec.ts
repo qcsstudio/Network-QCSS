@@ -1,3 +1,4 @@
+import { validateAndExplain } from "./helpers/config-analyzer-flow";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { ciscoPortSecurity, ciscoCertificateVpn, fortiSecurity } from "./fixtures/config-lens-security";
@@ -31,7 +32,7 @@ for (const width of [1440, 320]) test(`security command coverage is cited, reada
     await page.getByRole("combobox", { name: "Device family", exact: true }).selectOption(item.profile);
     await page.getByRole("combobox", { name: "Operating system / train", exact: true }).selectOption(item.version);
     await page.getByRole("textbox", { name: "Configuration", exact: true }).fill(item.source);
-    await page.getByRole("button", { name: "Explain configuration", exact: true }).click();
+    await validateAndExplain(page);
     await page.getByRole("tab", { name: "Explanations", exact: true }).click();
     const search = page.getByRole("textbox", { name: "Search statements", exact: true });
     const row = page.locator("#lens-panel article");

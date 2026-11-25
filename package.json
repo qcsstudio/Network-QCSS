@@ -4,6 +4,8 @@
   "private": true,
   "description": "Robust Next.js product for network services, cybersecurity lead generation, diagnostic tools, automation, and admin intelligence.",
   "scripts": {
+    "test:config-analyzer": "tsx --test tests/config-analyzer*.test.mjs tests/config-lens*.test.mjs",
+    "test:config-analyzer-ui": "node scripts/config-analyzer-browser-qa.mjs",
     "postinstall": "prisma generate",
     "dev": "next dev",
     "prebuild": "prisma generate",

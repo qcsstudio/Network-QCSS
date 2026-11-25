@@ -111,7 +111,7 @@ export default function NetworkToolsPage() {
           <p className="eyebrow">Choose a tool</p>
           <h2>Find the right check.</h2>
         </div>
-        <ToolDirectory tools={networkUtilityTools.map(({ slug, title, description, category }) => ({ slug, title, description, category }))} />
+        <ToolDirectory tools={networkUtilityTools.map(({ slug, title, description, category, searchIntent }) => ({ slug, title, description, category, keywords: searchIntent }))} />
       </section>
 
       <section className="section split">
