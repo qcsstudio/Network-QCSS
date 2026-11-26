@@ -6,9 +6,10 @@ const source = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "u
 
 test("service navigation resolves to uniquely named sections", () => {
   const page = source("src/app/services/[slug]/page.tsx");
+  const renderedSections = page + source("src/components/cloud-service-details.tsx");
   const targets = [...page.matchAll(/href="#([^"]+)"/g)].map((match) => match[1]);
   for (const id of targets) {
-    assert.equal([...page.matchAll(new RegExp(`id="${id}"`, "g"))].length, 1, id);
+    assert.equal([...renderedSections.matchAll(new RegExp(`id="${id}"`, "g"))].length, 1, id);
   }
   assert.match(page, /aria-label="Breadcrumb"/);
   assert.match(page, /<details key={faq.question}>/);
