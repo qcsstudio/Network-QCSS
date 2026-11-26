@@ -1,0 +1,21 @@
+.cloud-service-details { scroll-margin-top: 7rem; }
+.cloud-workstream-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+.cloud-workstream { min-width: 0; padding: 1.75rem; border: 1px solid #dcdde5; border-radius: 1rem; background: #fff; color: #242633; }
+.cloud-workstream > svg { color: #ad2058; margin-bottom: 1rem; }
+.cloud-workstream h3, .cloud-audit-phases h3, .cloud-intake h3 { margin: 0 0 .8rem; font-size: 1.25rem; line-height: 1.4; }
+.cloud-workstream p, .cloud-audit-phases p, .cloud-intake p, .cloud-intake li { font-size: 1rem; line-height: 1.75; color: #4a5063; }
+.cloud-workstream p { margin: 0; }
+.cloud-workstream .cloud-workstream-output { border-top: 1px solid #dcdde5; padding-top: 1rem; margin-top: 1.25rem; }
+.cloud-workstream-output strong { display: block; margin-bottom: .3rem; color: #242633; }
+.cloud-audit-phases { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; list-style: none; padding: 0; margin: 0; }
+.cloud-audit-phases li { min-width: 0; border-top: 3px solid #ad2058; padding: 1.5rem; background: #faf5f7; border-radius: 0 0 .75rem .75rem; }
+.cloud-audit-phases p { margin: 0 0 1rem; }
+.cloud-audit-phases .cloud-phase-output { margin-bottom: 0; color: #242633; }
+.cloud-intake { margin-top: 2rem; border: 1px solid #dcdde5; border-radius: 1rem; padding: 1.75rem; background: #f8f8fb; }
+.cloud-intake ul { padding-left: 1.25rem; }
+.cloud-intake li + li { margin-top: .5rem; }
+.cloud-intake .button { margin-top: .5rem; white-space: normal; text-align: center; }
+@media (max-width: 700px) {
+  .cloud-workstream-grid, .cloud-audit-phases { grid-template-columns: 1fr; }
+  .cloud-workstream, .cloud-audit-phases li, .cloud-intake { padding: 1.25rem; }
+}

@@ -343,33 +343,53 @@ export const services = [
   },
   {
     slug: "cloud-network-services",
-    title: "Cloud Network Services",
-    metaTitle: "Cloud Network Services for AWS, Azure, Google Cloud and Hybrid Teams",
+    title: "Cloud Security, DevSecOps and Networking",
+    metaTitle: "Cloud Security and DevSecOps for GCP, AWS and Azure",
     metaDescription:
-      "Cloud network services for VPC, VNet, hybrid VPN, routing, security groups, public exposure, cloud logs, SASE direction and migration readiness.",
-    kicker: "Cloud",
+      "Cloud security audits, DevSecOps, Kubernetes security, workload identity, AI agent and MCP security, and hybrid networking for GCP, AWS and Azure.",
+    kicker: "Cloud and security engineering",
     summary:
-      "Design and secure AWS VPC, Azure VNet, Google Cloud VPC, site-to-site VPN, routing, private access, and public exposure.",
-    bestFor: "Teams moving workloads to cloud or connecting offices, users, vendors, and applications across hybrid environments.",
+      "Assess and strengthen security across your applications, cloud infrastructure and networks. Connect development, deployment and operations across Google Cloud, AWS, Azure and hybrid environments.",
+    bestFor: "Product and IT teams running cloud applications, Kubernetes, microservices or AI agents while development and production operations continue.",
     proof:
-      "The work focuses on route intent, exposure, segmentation, logs, identity-aware access, and performance instead of isolated cloud settings.",
-    outcomes: ["Cloud visibility", "Safer public exposure", "Cleaner routing", "Cost-aware connectivity"],
-    buyerTriggers: ["Unknown public IPs", "Flat cloud networks", "VPN instability", "Migration pressure", "Cloud app latency", "No flow logs"],
-    scope: ["VPC/VNet review", "Route and subnet mapping", "Security group/NSG review", "Hybrid VPN design", "Flow log and exposure review"],
-    deliverables: ["Cloud network map", "Exposure inventory", "Segmentation recommendations", "Connectivity risk notes", "Cloud readiness backlog"],
+      "Start with a scoped review of the application, cloud and network layers. Use the findings to agree remediation, deployment checks and ongoing security support with clear owners and verification.",
+    outcomes: ["Risk-ranked findings", "Stronger identity controls", "Safer deployments", "Verified remediation"],
+    buyerTriggers: ["Cloud security audit due", "GCP, AWS or Azure workloads", "Kubernetes exposure", "Secrets in code", "Cross-cloud access", "AI agents and MCP", "Hybrid migration", "Monitoring gaps"],
+    scope: ["Application and API security review", "Cloud configuration and IAM assessment", "Kubernetes and container hardening", "DevSecOps and CI/CD security checks", "SSO and workload identity review", "AI agent and MCP access assessment", "VPC/VNet, routing and hybrid VPN review", "Monitoring, remediation and retesting"],
+    deliverables: ["Agreed scope, assumptions and architecture map", "Executive summary and technical findings", "Risk-ranked remediation backlog with owners", "Identity, exposure and deployment control recommendations", "Resource plan and estimates by audit layer", "Validation and retest evidence for agreed fixes", "Handover notes and ongoing monitoring plan"],
     faqs: [
       {
-        question: "Can QCS review an existing cloud network?",
+        question: "Which cloud platforms and environments can QCS review?",
         answer:
-          "Yes. The review can inspect VPC/VNet structure, subnets, routes, security groups, VPNs, public IPs, load balancers, flow logs, and cloud connectivity risks."
+          "We scope work across Google Cloud, AWS, Azure and connected on-premises environments. Reviews can cover GKE and other Kubernetes workloads, microservices, identity, cloud data-service access and hybrid connectivity. The architecture review determines the services and specialist coverage required."
       },
       {
-        question: "Does cloud network work include security?",
+        question: "What does the three-layer security audit cover?",
         answer:
-          "Yes. Cloud networking and security overlap through routes, public exposure, segmentation, private access, security groups, logging, and identity-aware access."
+          "Application review covers code, APIs, dependencies, secrets and delivery pipelines. Cloud review covers IAM, workload identity, Kubernetes, configurations and logging. Network review covers public exposure, segmentation, routes, firewalls and private connectivity. We agree assets, access, testing methods and deliverables for each layer before starting."
+      },
+      {
+        question: "Can you assess AI agents and MCP integrations?",
+        answer:
+          "Yes. The scope can include human and agent identities, delegated access, permitted tool operations, downstream API and database permissions, and audit trails. We review read, write and delete privileges separately and agree controlled tests for unintended access or actions."
+      },
+      {
+        question: "How long does an audit take, and what do you need from us?",
+        answer:
+          "Share a high-level architecture, an inventory of in-scope applications and cloud services, your priorities, and any existing findings you are permitted to share. We then estimate effort, elapsed time, specialists and client participation separately for the application, cloud and network layers. Timing depends on complexity and access readiness."
+      },
+      {
+        question: "Can you work while our teams continue deploying?",
+        answer:
+          "Yes. We agree assessment access, deployment coordination, change windows and escalation contacts with your team. Production changes and active testing follow an approved scope, with validation and rollback planning. Follow-on support can include pipeline checks, monitoring and remediation reviews under an agreed service model."
+      },
+      {
+        question: "Can we still request cloud networking work on its own?",
+        answer:
+          "Yes. VPC/VNet design, subnet and route mapping, security groups and NSGs, site-to-site VPNs, private access, flow logs and hybrid migration remain available as a focused engagement. The network readiness self-check is a starting point for that discussion."
       }
     ],
-    cta: "Review Cloud Network",
+    cta: "Check network readiness",
     icon: Cloud,
     tool: "cloud-readiness"
   },
@@ -798,8 +818,8 @@ export const contentPillars = [
     description: "Firewall cleanup, VPN hardening, segmentation, ZTNA/SASE readiness, logging, and audit preparation."
   },
   {
-    title: "Cloud Network Services",
-    description: "AWS VPC, Azure VNet, Google Cloud VPC, hybrid VPN, route design, exposure review, and cloud logs."
+    title: "Cloud Security, DevSecOps and Networking",
+    description: "GCP, AWS and Azure security audits, Kubernetes, CI/CD security, workload identity, AI agent controls and hybrid networking."
   },
   {
     title: "Penetration Testing and Retesting",

@@ -16,7 +16,7 @@ const footerGroups = [
       ["Managed networks", "/services/managed-network-services"],
       ["Network security", "/services/network-security-services"],
       ["Penetration testing", "/services/penetration-testing"],
-      ["Cloud networking", "/services/cloud-network-services"],
+      ["Cloud and DevSecOps", "/services/cloud-network-services"],
       ["Explore solutions", "/solutions"],
     ],
   },

@@ -5,7 +5,7 @@ export const siteNavigation = [
       { title: "Managed networks", href: "/services/managed-network-services", description: "Operations, ownership and ongoing support." },
       { title: "Network security", href: "/services/network-security-services", description: "Review exposure and strengthen controls." },
       { title: "Penetration testing", href: "/services/penetration-testing", description: "Authorized testing, findings and verification." },
-      { title: "Cloud networking", href: "/services/cloud-network-services", description: "Plan and validate hybrid connectivity." },
+      { title: "Cloud and DevSecOps", href: "/services/cloud-network-services", description: "Security audits, identity and hybrid networking." },
       { title: "Troubleshooting", href: "/services/network-troubleshooting", description: "Trace faults across the affected path." },
       { title: "Guided assessments", href: "/diagnose", description: "Start with the issue you need to understand." },
     ],

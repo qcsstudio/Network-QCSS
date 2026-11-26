@@ -248,8 +248,8 @@ export function HomeContent({ children }: { children: ReactNode }) {
             >
               <span className="service-number">03</span>
               <span>
-                <strong>Cloud connectivity</strong>
-                <small>Connect environments with clarity.</small>
+                <strong>Cloud and DevSecOps</strong>
+                <small>Secure applications, identity and networks.</small>
               </span>
               <ArrowUpRight aria-hidden="true" />
             </button>
@@ -328,7 +328,7 @@ export function HomeContent({ children }: { children: ReactNode }) {
             Network security
           </Link>
           <Link href="/services/penetration-testing">Penetration testing</Link>
-          <Link href="/services/cloud-network-services">Cloud networking</Link>
+          <Link href="/services/cloud-network-services">Cloud and DevSecOps</Link>
           <Link href="/services/firewall-management">Firewall management</Link>
           <Link href="/services/noc-as-a-service">NOC support</Link>
           <Link href="/services/managed-wifi-lan">Wi-Fi and LAN</Link>

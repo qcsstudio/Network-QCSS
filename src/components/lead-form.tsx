@@ -13,7 +13,7 @@ type LeadFormProps = {
 const standardInterests = [
   "Managed network services",
   "Network security services",
-  "Cloud network services",
+  "Cloud security, DevSecOps and networking",
   "Penetration testing",
   "Emergency troubleshooting",
   "Network security training",

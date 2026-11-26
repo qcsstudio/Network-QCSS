@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, Check, ChevronDown, LogIn, ShieldCheck } from "lucide-react";
 import { DomainHeroVisual, type DomainVisualVariant } from "@/components/domain-hero-visual";
+import { CloudServiceDetails } from "@/components/cloud-service-details";
 import { LeadForm } from "@/components/lead-form";
 import { SignalJourney } from "@/components/signal-journey";
 import { StructuredData } from "@/components/structured-data";
@@ -46,6 +47,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
   const service = services.find((item) => item.slug === slug);
   if (!service) notFound();
   const Icon = service.icon;
+  const isCloudService = service.slug === "cloud-network-services";
 
   return (
     <main className="purpose-service">
@@ -135,6 +137,8 @@ export default async function ServicePage({ params }: ServicePageProps) {
       <nav className="service-section-nav" aria-label="On this service page">
         <a href="#service-overview">Overview</a>
         <a href="#service-scope">Scope</a>
+        {isCloudService ? <a href="#cloud-capabilities">Capabilities</a> : null}
+        {isCloudService ? <a href="#cloud-audit-process">Audit process</a> : null}
         <a href="#service-deliverables">Deliverables</a>
         <a href="#service-questions">Questions</a>
         <a href="#request-review">Request review <ArrowRight aria-hidden="true" size={16} /></a>
@@ -196,6 +200,8 @@ export default async function ServicePage({ params }: ServicePageProps) {
         </ul>
       </section>
 
+      {isCloudService ? <CloudServiceDetails /> : null}
+
       <section className="section" id="service-deliverables" aria-labelledby="service-deliverables-title">
         <div className="section-heading">
           <p className="eyebrow">Deliverables</p>
@@ -227,7 +233,7 @@ export default async function ServicePage({ params }: ServicePageProps) {
           <h2>Discuss {service.title.toLowerCase()}.</h2>
           <p>Tell us about your environment, the issue or project, and the outcome you need. Do not include passwords or sensitive configuration details.</p>
         </div>
-        <LeadForm interest={service.title} pipeline={service.title} />
+        <LeadForm interest={service.title} pipeline={isCloudService ? "Cloud Network Services" : service.title} />
       </section>
     </main>
   );

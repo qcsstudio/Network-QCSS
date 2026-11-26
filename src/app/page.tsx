@@ -80,7 +80,7 @@ export default function HomePage() {
               {
                 "@type": "ListItem",
                 position: 3,
-                name: "Cloud network services",
+                name: "Cloud security, DevSecOps and networking",
                 url: `${siteConfig.url}/services/cloud-network-services`,
               },
               {
